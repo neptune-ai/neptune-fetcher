@@ -1,0 +1,5 @@
+-e .
+behave
+mock
+pre-commit
+pytest
