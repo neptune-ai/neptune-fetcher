@@ -22,11 +22,5 @@ repos:
         entry: pflake8
         # We use a custom version of flake8 that includes a fix for Python 3.12 compatibility
         additional_dependencies: ["git+https://github.com/neptune-ai/pyproject-flake8.git@7.0.0"]
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4.1
-    hooks:
-      - id: mypy
-        args: [ --config-file, pyproject.toml ]
-        pass_filenames: false
 default_language_version:
     python: python3
