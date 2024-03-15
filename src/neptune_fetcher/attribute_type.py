@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023, Neptune Labs Sp. z o.o.
+# Copyright (c) 2024, Neptune Labs Sp. z o.o.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = [
-    "ReadOnlyProject",
-    "ReadOnlyRun",
-]
+from enum import Enum
 
-from .read_only_project import ReadOnlyProject
-from .read_only_run import ReadOnlyRun
+
+class AttributeType(Enum):
+    FLOAT = "float"
+    INT = "int"
+    STRING = "string"
+    FLOAT_SERIES = "floatSeries"
