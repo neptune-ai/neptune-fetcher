@@ -29,7 +29,7 @@ from typing import (
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils import verify_type
-from neptune.metadata_containers.metadata_containers_table import TableEntry
+from neptune.table import TableEntry
 
 from neptune_fetcher.fetchable import (
     Fetchable,
