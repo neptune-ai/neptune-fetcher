@@ -29,7 +29,10 @@ from typing import (
 )
 
 from neptune import Project
-from neptune.envs import PROJECT_ENV_NAME
+from neptune.envs import (
+    NEPTUNE_FETCH_TABLE_STEP_SIZE,
+    PROJECT_ENV_NAME,
+)
 from neptune.internal.backends.nql import (
     NQLAttributeOperator,
     NQLAttributeType,
@@ -44,8 +47,8 @@ from neptune.internal.id_formats import (
     conform_optional,
 )
 from neptune.management.internal.utils import normalize_project_name
-from neptune.metadata_containers.metadata_containers_table import Table
 from neptune.metadata_containers.utils import prepare_nql_query
+from neptune.table import Table
 from neptune.typing import ProgressBarType
 
 from neptune_fetcher.custom_backend import CustomBackend
@@ -99,12 +102,16 @@ class ReadOnlyProject:
 
         Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ...}`.
         """
+        step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
+
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
             types=[ContainerType.RUN],
             query=NQLQueryAttribute(
                 name="sys/trashed", type=NQLAttributeType.BOOLEAN, operator=NQLAttributeOperator.EQUALS, value=False
             ),
+            sort_by="sys/id",
+            step_size=step_size,
             columns=["sys/id", "sys/name"],
         )
 
