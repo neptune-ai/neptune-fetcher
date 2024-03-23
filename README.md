@@ -187,8 +187,8 @@ __Parameters__:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `read_only_project` | `ReadOnlyProject` | Source project from which run will be fetched. |
-| `with_id` | `str` | Neptune run ID to fetch. Example: `RUN-1`. |
+| `read_only_project` | `ReadOnlyProject` | - | Source project from which run will be fetched. |
+| `with_id` | `str` | - | Neptune run ID to fetch. Example: `RUN-1`. |
 
 __Example__:
 ```python
