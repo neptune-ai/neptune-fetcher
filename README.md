@@ -1,6 +1,9 @@
 # Neptune Fetcher
 
-!EXPERIMENTAL! Neptune Fetcher is a Python package designed to separate data retrieval capabilities from the regular `neptune` package. This separation bypasses the need to initialize the heavy structures of the regular package, which makes data fetching more efficient and improves performance.
+> [!NOTE]
+> This package is **experimental**.
+
+Neptune Fetcher is a Python package designed to separate data retrieval capabilities from the regular `neptune` package. This separation bypasses the need to initialize the heavy structures of the regular package, which makes data fetching more efficient and improves performance.
 
 ## Installation
 
