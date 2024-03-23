@@ -151,7 +151,7 @@ specific_runs_df = my_project.fetch_runs_df(
 ```
 
 __Returns__:
-`pandas.DataFrame`: A pandas DataFrame containing information about fetched runs.
+`pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
 ---
 
