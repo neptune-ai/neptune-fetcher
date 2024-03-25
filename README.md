@@ -1,100 +1,297 @@
 # Neptune Fetcher
 
-!EXPERIMENTAL! Neptune Fetcher is a Python package designed for efficient fetching and manipulation of data from Neptune projects and runs. It provides classes and methods for interacting with Neptune data in a read-only manner.
+> [!NOTE]
+> This package is **experimental**.
+
+Neptune Fetcher is a Python package designed to separate data retrieval capabilities from the regular `neptune` package. This separation bypasses the need to initialize the heavy structures of the regular package, which makes data fetching more efficient and improves performance.
 
 ## Installation
+
 ```bash
 pip install neptune-fetcher
 ```
 
-## Usage
+## Example usage
 
-### Importing
+### Fetching data frame containing run fields
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+project = ReadOnlyProject("workspace/project")
+# Fetch all runs with specific columns
+runs_df = project.fetch_runs_df(
+    columns=["sys/name", "sys/modification_time", "training/lr"],
+)
+```
+
+### Fetching data from multiple runs
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+project = ReadOnlyProject("workspace/project")
+
+for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
+    run.prefetch(["parameters/optimizer", "parameters/init_lr"])
+
+    print(run["parameters/optimizer"].fetch())
+    print(run["parameters/init_lr"].fetch())
+```
+
+### Listing run identifiers
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+project = ReadOnlyProject("workspace/project")
+
+for run in project.list_runs():
+    print(run)
+```
+
+### Fetching data from a single run
 
 ```python
 from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
+
+project = ReadOnlyProject("workspace/project")
+run = ReadOnlyRun(project, with_id="TES-1")
+run.prefetch(["parameters/optimizer", "parameters/init_lr"])
+
+print(run["parameters/optimizer"].fetch())
+print(run["parameters/init_lr"].fetch())
 ```
 
-### Overview of Classes
-- `ReadOnlyProject`: A lightweight, read-only class for handling basic project information.
-    - _Constructor Parameters_:
-        - `project`: Optional string specifying the project name.
-        - `workspace`: Optional string specifying the workspace.
-        - `api_token`: Optional string for the API token.
-        - `proxies`: Optional dictionary for proxy configuration.
-    - _Methods_:
-        - `list_runs()`: Yields dictionaries with basic information about each run, including `sys/id` and `sys/name`.
-        - `fetch_read_only_runs(with_ids: List[str])`: Returns a generator for `ReadOnlyRun` instances for specified run IDs.
-        - `fetch_runs()`: Fetches runs as a DataFrame with default columns.
-        - `fetch_runs_df()`: Fetches runs as a DataFrame based on specified filters.
+## API reference
 
-- _`ReadOnlyRun`_: Represents a single Neptune run with read-only access.
-    - _Methods_:
-        - `__getitem__()`: Accesses a field by its path.
-        - `field_names`: Yields the names of all available fields in the run.
-        - `prefetch()`: Loads values of specified fields into local cache.
+### `ReadOnlyProject`
 
+Representation of a Neptune project in a limited read-only mode.
 
-## Examples
-### Fetching Project Metadata
+#### Initialization
+
+Initialize with the ReadOnlyProject class constructor.
+
+__Parameters__:
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `project` | `str`, optional | `None` | Name of a project in the form `workspace-name/project-name`. If `None`, the value of the `NEPTUNE_PROJECT` environment variable is used. |
+| `api_token` | `str`, optional | `None` | Your Neptune API token (or a service account's API token). If `None`, the value of the `NEPTUNE_API_TOKEN` environment variable is used. To keep your token secure, avoid placing it in source code. Instead, save it as an environment variable. |
+| `proxies` | `dict`, optional | `None` | Argument passed to HTTP calls made via the Requests library. For details on proxies, see the [Requests documentation](https://requests.readthedocs.io/). |
+
+__Example__:
 
 ```python
-from neptune_fetcher import ReadOnlyProject
-
-project = ReadOnlyProject(workspace="some", project="project")
+project = ReadOnlyProject("workspace/project", api_token="...")
 ```
 
-### Listing Runs in a Project
+---
 
+#### `list_runs()`
+
+Lists minimal information, like identifier and name, for every run in a project.
+
+__Example__:
 ```python
-from neptune_fetcher import ReadOnlyProject
-
-project = ReadOnlyProject(workspace="some", project="project")
-ids = list(map(lambda row: row["sys/id"], project.list_runs()))
+for run in project.list_runs():
+    print(run)
 ```
 
-### Filtering and Processing Runs
+__Returns__:
+`Iterator` of dictionaries with run identifiers and names.
 
+---
+
+#### `fetch_runs()`
+
+Fetches a table containing IDs and names of runs in the project.
+
+__Example__:
 ```python
-from neptune_fetcher import ReadOnlyProject
-
-project = ReadOnlyProject(workspace="some", project="project")
-df = project.fetch_runs_df()
-
-matches = df["sys/name"].str.match("metrics.*")
-ids = df[matches]["sys/id"]
+df = project.fetch_runs()
 ```
 
-### Iterating Over Runs
+__Returns__:
+`pandas.DataFrame` with two columns (`sys/id` and `sys/name`) and rows corresponding to project runs.
 
+---
+
+#### `fetch_runs_df()`
+
+Fetches the runs' metadata and returns them as a pandas DataFrame.
+
+__Parameters__:
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `columns` | `List[str]`, optional | `None` | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included. |
+| `with_ids` | `List[str]`, optional | `None` | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion. |
+| `states` | `List[str]`, optional | `None` | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion. |
+| `owners` | `List[str]`, optional | `None` | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion. |
+| `tags` | `List[str]`, optional | `None` | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion. |
+| `trashed` | `bool`, optional | `False` | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones. |
+| `limit` | `int`, optional | `None` | Maximum number of runs to fetch. If `None`, all runs are fetched. |
+| `sort_by` | `str`, optional | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer). |
+| `ascending` | `bool`, optional | `False` | Whether to sort the entries in ascending order of the sorting column values. |
+| `progress_bar` | `bool`, `Type[ProgressBarCallback]`, optional | `None` | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
+
+__Example__:
 ```python
-from neptune_fetcher import ReadOnlyProject
+# Fetch all runs with specific columns
+runs_df = project.fetch_runs_df(
+	columns=["sys/name", "sys/modification_time", "training/lr"],
+)
 
-project = ReadOnlyProject(workspace="some", project="project")
-for run in project.fetch_read_only_runs(with_ids=["PROJ-2"]):
-    for field in run.field_names:
-        if field.startswith("param"):
-            print(run[field].fetch())
-        if field.startswith("metric"):
-            print(run[field].fetch_values())
+# Fetch runs by specific IDs
+specific_runs_df = my_project.fetch_runs_df(
+	with_ids=["RUN-123", "RUN-456"]
+)
 ```
 
-### Prefetching Values
+__Returns__:
+`pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
+---
+
+#### `fetch_read_only_runs()`
+List runs of the project in the form of ReadOnlyRun.
+
+__Parameters__:
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `with_ids` | `List[str]` | - | List of Neptune run IDs to fetch. |
+
+__Example__:
 ```python
-run.prefetch(["metric1", "metric2"])
-print(run["metric1"].fetch(), run["metric2"].fetch())  # This will use the local cache
+for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
+    ...
 ```
 
-### Purging Local Cache
+__Returns__:
+Iterator of ReadOnlyRun objects.
 
+---
+
+### `ReadOnlyRun`
+
+Representation of a Neptune run in a limited read-only mode.
+
+#### Initialization
+
+Can be created with the class constructor, or as a result of the [`fetch_read_only_runs()`](#fetch_read_only_runs) method of the ReadOnlyProject class.
+
+__Parameters__:
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `read_only_project` | `ReadOnlyProject` | - | Source project from which run will be fetched. |
+| `with_id` | `str` | - | Neptune run ID to fetch. Example: `RUN-1`. |
+
+__Example__:
 ```python
-del run["metric1"]
+from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
+
+project = ReadOnlyProject("workspace/project", api_token="...")
+run = ReadOnlyRun(project, with_id="TES-1")
 ```
 
+---
 
-### Example
-A full example can be found in `examples/fetch_api.py`.
+#### `.field_names`
+List of run field names.
+
+__Example__:
+```python
+for run in project.fetch_read_only_runs(with_ids=["TES-1", "TES-2"]):
+    print(list(run.field_names))
+```
+
+__Returns__:
+Iterator of run fields as strings.
+
+
+---
+
+#### Field lookup: `run[field_name]`
+Used to access a specific field of a run. See [Available types](#available-types).
+
+__Returns__:
+An internal object used to operate on a specific field.
+
+__Example__:
+```python
+run_id = run["sys/id"].fetch()
+```
+
+---
+
+#### `prefetch()`
+Pre-fetches a batch of fields to the internal cache.
+
+Improves the performance of access to consecutive field values. Only simple field types are supported (`int`, `float`, `str`).
+
+__Parameters__:
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `paths` | `List[str]` | - | List of paths to fetch to the cache. |
+
+__Example__:
+```python
+run.prefetch(["parameters/optimizer", "parameter/init_lr"])
+# No more calls to the API
+print(run["parameters/optimizer"].fetch())
+print(run["parameter/init_lr"].fetch())
+```
+
+## Available types
+
+The following sections list the currently supported field types, along with their available data retrieval operations.
+
+---
+
+### Integer
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+batch_size = run["batch_size"].fetch()
+```
+__Returns__:
+`int`
+
+---
+
+### Float
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+f1 = run["scores/f1"].fetch()
+```
+__Returns__:
+`float`
+
+---
+
+### String
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+token = run["token"].fetch()
+```
+
+__Returns__:
+`str`
+
+---
 
 ## License
 
