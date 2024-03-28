@@ -47,7 +47,7 @@ from neptune.internal.id_formats import (
     conform_optional,
 )
 from neptune.management.internal.utils import normalize_project_name
-from neptune.metadata_containers.utils import prepare_nql_query
+from neptune.objects.utils import prepare_nql_query
 from neptune.table import Table
 from neptune.typing import ProgressBarType
 
