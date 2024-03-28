@@ -31,7 +31,7 @@ from typing import (
     Union,
 )
 
-from neptune.common.warnings import NeptuneUnsupportedType
+from neptune.internal.warnings import NeptuneUnsupportedType
 from neptune.internal.backends.api_model import Attribute
 from neptune.internal.container_type import ContainerType
 
