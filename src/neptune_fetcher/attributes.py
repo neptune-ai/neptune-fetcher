@@ -44,9 +44,8 @@ from neptune.internal.container_type import ContainerType
 from neptune_fetcher.attribute_type import AttributeType
 
 if typing.TYPE_CHECKING:
+    from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
-
-    from neptune_fetcher.custom_backend import CustomBackend
 
 T = TypeVar("T")
 
@@ -58,7 +57,7 @@ class Series(ABC, Generic[T]):
 
     def fetch_values(
         self,
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
@@ -91,7 +90,7 @@ class Series(ABC, Generic[T]):
 
     @staticmethod
     def _fetch_values_from_backend(
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
@@ -101,14 +100,14 @@ class Series(ABC, Generic[T]):
         ...
 
     @staticmethod
-    def fetch_last(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: str) -> T:
+    def fetch_last(backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str) -> T:
         ...
 
 
 class FloatSeries(Series[float]):
     @staticmethod
     def _fetch_values_from_backend(
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
@@ -118,7 +117,9 @@ class FloatSeries(Series[float]):
         return backend.get_float_series_values(container_id, container_type, path, offset, limit)
 
     @staticmethod
-    def fetch_last(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: str) -> float:
+    def fetch_last(
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str
+    ) -> float:
         return backend.get_float_series_attribute(container_id, container_type, [path]).last
 
 
@@ -128,14 +129,16 @@ class Attr(Generic[T], ABC):
     val: Optional[T] = None
 
     @staticmethod
-    def fetch(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]) -> T:
+    def fetch(
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+    ) -> T:
         ...
 
 
 class Integer(Attr[int]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> int:
         return IntegerAttr.getter(
             backend=backend,
@@ -148,7 +151,7 @@ class Integer(Attr[int]):
 class Float(Attr[float]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> float:
         return FloatAttr.getter(
             backend=backend,
@@ -161,7 +164,7 @@ class Float(Attr[float]):
 class String(Attr[str]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> str:
         return StringAttr.getter(
             backend=backend,

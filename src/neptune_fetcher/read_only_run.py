@@ -32,6 +32,7 @@ from neptune.internal.utils import verify_type
 from neptune.table import TableEntry
 
 from neptune_fetcher.attribute_type import AttributeType
+from neptune_fetcher.custom_backend import get_attribute_from_dto
 from neptune_fetcher.fetchable import (
     Fetchable,
     FetchableSeries,
@@ -93,5 +94,6 @@ class ReadOnlyRun:
         Args:
             paths: List of field paths to prefetch.
         """
-        fetched = self.project._backend.prefetch_values(self._container_id, ContainerType.RUN, paths)
+        fetched = self.project._backend.get_attributes_with_paths_filter(self._container_id, ContainerType.RUN, paths)
+        fetched = {dto.name: get_attribute_from_dto(dto) for dto in fetched.attributes}
         self._cache.update(fetched)

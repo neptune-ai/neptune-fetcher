@@ -33,6 +33,7 @@ from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
     PROJECT_ENV_NAME,
 )
+from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.backends.nql import (
     NQLAttributeOperator,
     NQLAttributeType,
@@ -51,7 +52,6 @@ from neptune.objects.utils import prepare_nql_query
 from neptune.table import Table
 from neptune.typing import ProgressBarType
 
-from neptune_fetcher.custom_backend import CustomBackend
 from neptune_fetcher.read_only_run import (
     ReadOnlyRun,
     get_attribute_value_from_entry,
@@ -85,7 +85,7 @@ class ReadOnlyProject:
         if self._project is None:
             raise Exception("Could not find project name in env")
 
-        self._backend: CustomBackend = CustomBackend(
+        self._backend: HostedNeptuneBackend = HostedNeptuneBackend(
             credentials=Credentials.from_token(api_token=api_token), proxies=proxies
         )
         self._project_qualified_name: Optional[str] = conform_optional(self._project, QualifiedName)

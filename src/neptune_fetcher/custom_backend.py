@@ -13,19 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = ["CustomBackend"]
 
-from typing import (
-    Any,
-    Dict,
-    List,
-)
+from typing import Any
 
-from bravado.exception import HTTPNotFound
-from neptune.exceptions import ContainerUUIDNotFound
-from neptune.internal.backends.hosted_client import DEFAULT_REQUEST_KWARGS
-from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
-from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.logger import get_logger
 
 from neptune_fetcher.attribute_type import AttributeType
@@ -47,25 +37,3 @@ def get_attribute_from_dto(dto: Any) -> Attr:
     if dto.intProperties is not None:
         return Integer(AttributeType(dto.type), dto.intProperties.value)
     raise Exception(f"Field {dto.name} of type {AttributeType(dto.type)} does not support prefetching")
-
-
-class CustomBackend(HostedNeptuneBackend):
-    def prefetch_values(self, container_id: str, container_type: ContainerType, paths: List[str]) -> Dict[str, Attr]:
-        params = {
-            "holderIdentifier": container_id,
-            "holderType": "experiment",
-            "attributeQuery": {
-                "attributePathsFilter": paths,
-            },
-            **DEFAULT_REQUEST_KWARGS,
-        }
-
-        try:
-            result = self.leaderboard_client.api.getAttributesWithPathsFilter(**params).response().result
-        except HTTPNotFound as e:
-            raise ContainerUUIDNotFound(
-                container_id=container_id,
-                container_type=container_type,
-            ) from e
-
-        return {dto.name: get_attribute_from_dto(dto) for dto in result.attributes}

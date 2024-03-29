@@ -47,9 +47,8 @@ from neptune_fetcher.attributes import (
 )
 
 if TYPE_CHECKING:
+    from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
-
-    from neptune_fetcher.custom_backend import CustomBackend
 
 
 logger = get_logger()
@@ -67,7 +66,7 @@ class Fetchable(ABC):
     def __init__(
         self,
         attribute: Attribute,
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         cache: Dict[str, Union[Attr, Series]],
     ) -> None:
