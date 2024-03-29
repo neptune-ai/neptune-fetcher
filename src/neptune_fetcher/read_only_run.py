@@ -65,10 +65,11 @@ class ReadOnlyRun:
                 self._container_id,
                 self._cache,
             )
-            for attribute in self.project._backend.get_attribute_definitions_proto(
+            for attribute in self.project._backend.get_attribute_definitions(
                 container_id=self._container_id,
                 container_type=ContainerType.RUN,
                 filter_types=[attr.value for attr in AttributeType],
+                use_proto=True,
             )
         }
 
