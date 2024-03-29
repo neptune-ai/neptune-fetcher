@@ -33,6 +33,7 @@ from typing import (
 
 from neptune.internal.backends.api_model import Attribute
 from neptune.internal.container_type import ContainerType
+from neptune.internal.utils.logger import get_logger
 from neptune.internal.warnings import NeptuneUnsupportedType
 
 from neptune_fetcher.attribute_type import AttributeType
@@ -49,6 +50,9 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
     from neptune_fetcher.custom_backend import CustomBackend
+
+
+logger = get_logger()
 
 
 ATOMS = {
@@ -75,6 +79,12 @@ class Fetchable(ABC):
     @abstractmethod
     def fetch(self):
         ...
+
+
+class NoopFetchable(Fetchable):
+    def fetch(self) -> None:
+        logger.info("Unsupported type: %s", self._attribute.type)
+        return None
 
 
 class FetchableAtom(Fetchable):
@@ -118,4 +128,4 @@ def which_fetchable(attribute: Attribute, *args: Any, **kwargs: Any) -> Fetchabl
         return FetchableAtom(attribute, *args, **kwargs)
     elif attribute.type in SERIES:
         return FetchableSeries(attribute, *args, **kwargs)
-    raise NeptuneUnsupportedType(f"Unsupported type: {attribute.type}")
+    return NoopFetchable(attribute, *args, **kwargs)

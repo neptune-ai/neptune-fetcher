@@ -23,7 +23,6 @@ from typing import (
 
 from bravado.exception import HTTPNotFound
 from neptune.exceptions import ContainerUUIDNotFound
-from neptune.internal.backends.api_model import Attribute
 from neptune.internal.backends.hosted_client import DEFAULT_REQUEST_KWARGS
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.container_type import ContainerType
@@ -40,10 +39,6 @@ from neptune_fetcher.attributes import (
 logger = get_logger()
 
 
-def to_attribute(attr) -> Attribute:
-    return Attribute(attr.name, AttributeType(attr.type))
-
-
 def get_attribute_from_dto(dto: Any) -> Attr:
     if dto.stringProperties is not None:
         return String(AttributeType(dto.type), dto.stringProperties.value)
@@ -55,24 +50,6 @@ def get_attribute_from_dto(dto: Any) -> Attr:
 
 
 class CustomBackend(HostedNeptuneBackend):
-    def get_attributes(self, container_id: str, container_type: ContainerType) -> List[Attribute]:
-        params = {
-            "experimentIdentifier": container_id,
-            **DEFAULT_REQUEST_KWARGS,
-        }
-        try:
-            experiment = self.leaderboard_client.api.queryAttributeDefinitions(**params).response().result
-
-            attribute_type_names = [at.value for at in AttributeType]
-            accepted_attributes = [attr for attr in experiment.entries if attr.type in attribute_type_names]
-
-            return [to_attribute(attr) for attr in accepted_attributes if attr.type in attribute_type_names]
-        except HTTPNotFound as e:
-            raise ContainerUUIDNotFound(
-                container_id=container_id,
-                container_type=container_type,
-            ) from e
-
     def prefetch_values(self, container_id: str, container_type: ContainerType, paths: List[str]) -> Dict[str, Attr]:
         params = {
             "holderIdentifier": container_id,

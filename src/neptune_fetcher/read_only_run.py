@@ -31,6 +31,7 @@ from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils import verify_type
 from neptune.table import TableEntry
 
+from neptune_fetcher.attribute_type import AttributeType
 from neptune_fetcher.fetchable import (
     Fetchable,
     FetchableSeries,
@@ -64,7 +65,11 @@ class ReadOnlyRun:
                 self._container_id,
                 self._cache,
             )
-            for attribute in self.project._backend.get_attributes(self._container_id, ContainerType.RUN)
+            for attribute in self.project._backend.get_attribute_definitions_proto(
+                container_id=self._container_id,
+                container_type=ContainerType.RUN,
+                filter_types=[attr.value for attr in AttributeType],
+            )
         }
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
