@@ -542,13 +542,13 @@ files = [
 
 [[package]]
 name = "neptune"
-version = "1.10.1"
+version = "1.10.2"
 description = "Neptune Client"
 optional = false
 python-versions = "<4.0,>=3.7"
 files = [
-    {file = "neptune-1.10.1-py3-none-any.whl", hash = "sha256:c7e31e176473f38fa62a3da0b96ed5b516eb85c0a31f1fe479bf6fa2061e3259"},
-    {file = "neptune-1.10.1.tar.gz", hash = "sha256:7fe94012172da0ce95d58bc582e5b4f76ef73394fb3081a31a78ce02dc25b3b6"},
+    {file = "neptune-1.10.2-py3-none-any.whl", hash = "sha256:75cf8e58a349d9510b03dd5ce941ab34d40b33dc5f9c35442ef4a706ab8acfab"},
+    {file = "neptune-1.10.2.tar.gz", hash = "sha256:c6d9c7d9ea7344a2359c4ee47c50cc519121622b34e55e83eebd6bfd3638ddbd"},
 ]
 
 [package.dependencies]
@@ -566,6 +566,7 @@ psutil = "*"
 PyJWT = "*"
 requests = ">=2.20.0"
 requests-oauthlib = ">=1.0.0"
+setuptools = {version = "*", markers = "python_version >= \"3.12\""}
 six = ">=1.12.0"
 swagger-spec-validator = ">=2.7.4"
 typing-extensions = ">=3.10.0"
@@ -1037,6 +1038,22 @@ botocore = ">=1.33.2,<2.0a.0"
 
 [package.extras]
 crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
+
+[[package]]
+name = "setuptools"
+version = "69.2.0"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "setuptools-69.2.0-py3-none-any.whl", hash = "sha256:c21c49fb1042386df081cb5d86759792ab89efca84cf114889191cd09aacc80c"},
+    {file = "setuptools-69.2.0.tar.gz", hash = "sha256:0ff4183f8f42cd8fa3acea16c45205521a4ef28f73c6391d8a25e92893134f2e"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.2)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
 name = "simplejson"
