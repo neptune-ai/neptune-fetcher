@@ -28,11 +28,11 @@ from typing import (
     Union,
 )
 
-from neptune import Project
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
     PROJECT_ENV_NAME,
 )
+from neptune.internal.backends.api_model import Project
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.backends.nql import (
     NQLAttributeOperator,
@@ -113,6 +113,7 @@ class ReadOnlyProject:
             sort_by="sys/id",
             step_size=step_size,
             columns=["sys/id", "sys/name"],
+            use_proto=True,
         )
 
         for row in Table(
@@ -204,6 +205,7 @@ class ReadOnlyProject:
             sort_by=sort_by,
             ascending=ascending,
             progress_bar=progress_bar,
+            use_proto=True,
         )
 
         return Table(
