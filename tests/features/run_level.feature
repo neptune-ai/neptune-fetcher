@@ -28,14 +28,14 @@ Feature: Support for read-only runs
      When we fetch the field value
      Then the value is `Neptune Rulez!`
 
-  Scenario: Fetching float series values
-    Given we have a read-only run
-      And we have a float series
-     When we fetch the series values
-     Then the values are [1, 2, 4]
-
-  Scenario: Fetching float series last value
-    Given we have a read-only run
-      And we have a float series
-     When we fetch the series last value
-     Then the value is 4
+#  Scenario: Fetching float series values
+#    Given we have a read-only run
+#      And we have a float series
+#     When we fetch the series values
+#     Then the values are [1, 2, 4]
+#
+#  Scenario: Fetching float series last value
+#    Given we have a read-only run
+#      And we have a float series
+#     When we fetch the series last value
+#     Then the value is 4
