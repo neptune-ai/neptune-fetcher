@@ -3,4 +3,7 @@ behave
 mock
 pre-commit
 pytest
+pytest-mock
+pytest-timeout
+pytest-xdist
 icecream
