@@ -189,6 +189,8 @@ class ReadOnlyProject:
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
             ```
         """
+        step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
+
         query = prepare_nql_query(with_ids, states, owners, tags, trashed)
 
         if columns is not None:
@@ -203,6 +205,7 @@ class ReadOnlyProject:
             columns=columns,
             limit=limit,
             sort_by=sort_by,
+            step_size=step_size,
             ascending=ascending,
             progress_bar=progress_bar,
             use_proto=True,
