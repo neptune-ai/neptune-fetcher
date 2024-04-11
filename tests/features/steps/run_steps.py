@@ -51,20 +51,22 @@ def step_impl(context):
 
 @then("all field names are present")
 def step_impl(context):
-    assert sorted(context.field_names) == [
-        "fields/float",
-        "fields/int",
-        "fields/string",
-        "series/float",
-        "sys/creation_time",
-        "sys/id",
-        "sys/modification_time",
-        "sys/monitoring_time",
-        "sys/ping_time",
-        "sys/running_time",
-        "sys/size",
-        "sys/state",
-    ]
+    assert sorted(context.field_names) == sorted(
+        [
+            "fields/float",
+            "fields/int",
+            "fields/string",
+            "sys/custom_run_id",
+            "sys/description",
+            "sys/family",
+            "sys/id",
+            "sys/name",
+            "sys/monitoring_time",
+            "sys/owner",
+            "sys/running_time",
+            "sys/size",
+        ]
+    )
 
 
 @when("we fetch the series values")

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 __all__ = [
-    "Attr",
+    "Field",
     "Float",
     "FloatSeries",
     "Integer",
@@ -25,15 +25,13 @@ __all__ = [
 import typing
 from abc import ABC
 from dataclasses import dataclass
-from datetime import datetime
 from typing import (
-    Dict,
     Generic,
     Optional,
     TypeVar,
-    Union,
 )
 
+from neptune.api.models import FieldType
 from neptune.attributes.atoms.float import Float as FloatAttr
 from neptune.attributes.atoms.integer import Integer as IntegerAttr
 from neptune.attributes.atoms.string import String as StringAttr
@@ -41,12 +39,9 @@ from neptune.attributes.series.fetchable_series import Row
 from neptune.internal.backends.api_model import FloatSeriesValues
 from neptune.internal.container_type import ContainerType
 
-from neptune_fetcher.attribute_type import AttributeType
-
 if typing.TYPE_CHECKING:
+    from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
-
-    from neptune_fetcher.custom_backend import CustomBackend
 
 T = TypeVar("T")
 
@@ -58,40 +53,17 @@ class Series(ABC, Generic[T]):
 
     def fetch_values(
         self,
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
         include_timestamp: bool = True,
     ) -> "DataFrame":
-        import pandas as pd
-
-        limit = 1000
-        val = self._fetch_values_from_backend(backend, container_id, container_type, path, 0, limit)
-        data = val.values
-        offset = limit
-
-        def make_row(entry: Row) -> Dict[str, Union[str, float, datetime]]:
-            row: Dict[str, Union[str, float, datetime]] = dict()
-            row["step"] = entry.step
-            row["value"] = entry.value
-            if include_timestamp:
-                row["timestamp"] = datetime.fromtimestamp(entry.timestampMillis / 1000)
-            return row
-
-        while offset < val.totalItemCount:
-            batch = self._fetch_values_from_backend(backend, container_id, container_type, path, offset, limit)
-            data.extend(batch.values)
-            offset += limit
-
-        rows = dict((n, make_row(entry)) for (n, entry) in enumerate(data))
-
-        df = pd.DataFrame.from_dict(data=rows, orient="index")
-        return df
+        raise NotImplementedError
 
     @staticmethod
     def _fetch_values_from_backend(
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
@@ -101,14 +73,14 @@ class Series(ABC, Generic[T]):
         ...
 
     @staticmethod
-    def fetch_last(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: str) -> T:
+    def fetch_last(backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str) -> T:
         ...
 
 
 class FloatSeries(Series[float]):
     @staticmethod
     def _fetch_values_from_backend(
-        backend: "CustomBackend",
+        backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
         path: typing.List[str],
@@ -118,24 +90,28 @@ class FloatSeries(Series[float]):
         return backend.get_float_series_values(container_id, container_type, path, offset, limit)
 
     @staticmethod
-    def fetch_last(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: str) -> float:
+    def fetch_last(
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str
+    ) -> float:
         return backend.get_float_series_attribute(container_id, container_type, [path]).last
 
 
 @dataclass
-class Attr(Generic[T], ABC):
-    type: AttributeType
+class Field(Generic[T], ABC):
+    type: FieldType
     val: Optional[T] = None
 
     @staticmethod
-    def fetch(backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]) -> T:
+    def fetch(
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+    ) -> T:
         ...
 
 
-class Integer(Attr[int]):
+class Integer(Field[int]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> int:
         return IntegerAttr.getter(
             backend=backend,
@@ -145,10 +121,10 @@ class Integer(Attr[int]):
         )
 
 
-class Float(Attr[float]):
+class Float(Field[float]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> float:
         return FloatAttr.getter(
             backend=backend,
@@ -158,10 +134,10 @@ class Float(Attr[float]):
         )
 
 
-class String(Attr[str]):
+class String(Field[str]):
     @staticmethod
     def fetch(
-        backend: "CustomBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
+        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
     ) -> str:
         return StringAttr.getter(
             backend=backend,

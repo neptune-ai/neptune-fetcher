@@ -32,8 +32,10 @@ from neptune.internal.utils import verify_type
 from neptune.table import TableEntry
 
 from neptune_fetcher.fetchable import (
+    SUPPORTED_TYPES,
     Fetchable,
     FetchableSeries,
+    FieldToFetchableVisitor,
     which_fetchable,
 )
 
@@ -52,19 +54,25 @@ class ReadOnlyRun:
     def __init__(self, read_only_project: "ReadOnlyProject", with_id: str) -> None:
         self.project = read_only_project
         self.with_id = with_id
+        self._field_to_fetchable_visitor = FieldToFetchableVisitor()
 
         verify_type("with_id", with_id, str)
 
         self._container_id = QualifiedName(f"{self.project.project_identifier}/{with_id}")
         self._cache = dict()
         self._structure = {
-            attribute.path: which_fetchable(
-                attribute,
+            field_definition.path: which_fetchable(
+                field_definition,
                 self.project._backend,
                 self._container_id,
                 self._cache,
             )
-            for attribute in self.project._backend.get_attributes(self._container_id, ContainerType.RUN)
+            for field_definition in self.project._backend.get_fields_definitions(
+                container_id=self._container_id,
+                container_type=ContainerType.RUN,
+                use_proto=True,
+            )
+            if field_definition.type in SUPPORTED_TYPES
         }
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
@@ -87,5 +95,11 @@ class ReadOnlyRun:
         Args:
             paths: List of field paths to prefetch.
         """
-        fetched = self.project._backend.prefetch_values(self._container_id, ContainerType.RUN, paths)
+        data = self.project._backend.get_fields_with_paths_filter(
+            container_id=self._container_id,
+            container_type=ContainerType.RUN,
+            paths=paths,
+            use_proto=True,
+        )
+        fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
         self._cache.update(fetched)

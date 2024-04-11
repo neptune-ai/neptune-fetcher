@@ -28,11 +28,12 @@ from typing import (
     Union,
 )
 
-from neptune import Project
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
     PROJECT_ENV_NAME,
 )
+from neptune.internal.backends.api_model import Project
+from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.backends.nql import (
     NQLAttributeOperator,
     NQLAttributeType,
@@ -51,7 +52,6 @@ from neptune.objects.utils import prepare_nql_query
 from neptune.table import Table
 from neptune.typing import ProgressBarType
 
-from neptune_fetcher.custom_backend import CustomBackend
 from neptune_fetcher.read_only_run import (
     ReadOnlyRun,
     get_attribute_value_from_entry,
@@ -85,7 +85,7 @@ class ReadOnlyProject:
         if self._project is None:
             raise Exception("Could not find project name in env")
 
-        self._backend: CustomBackend = CustomBackend(
+        self._backend: HostedNeptuneBackend = HostedNeptuneBackend(
             credentials=Credentials.from_token(api_token=api_token), proxies=proxies
         )
         self._project_qualified_name: Optional[str] = conform_optional(self._project, QualifiedName)
@@ -113,6 +113,7 @@ class ReadOnlyProject:
             sort_by="sys/id",
             step_size=step_size,
             columns=["sys/id", "sys/name"],
+            use_proto=True,
         )
 
         for row in Table(
@@ -188,6 +189,8 @@ class ReadOnlyProject:
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
             ```
         """
+        step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
+
         query = prepare_nql_query(with_ids, states, owners, tags, trashed)
 
         if columns is not None:
@@ -202,8 +205,10 @@ class ReadOnlyProject:
             columns=columns,
             limit=limit,
             sort_by=sort_by,
+            step_size=step_size,
             ascending=ascending,
             progress_bar=progress_bar,
+            use_proto=True,
         )
 
         return Table(

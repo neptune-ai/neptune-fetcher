@@ -34,6 +34,6 @@ def step_impl(context):
 @then("runs list contains the run details we created")
 def step_impl(context):
     assert sorted(context.runs, key=lambda kv: kv["sys/id"]) == [
-        {"sys/id": "FETCH-1", "sys/name": None},
-        {"sys/id": "FETCH-2", "sys/name": None},
+        {"sys/id": "FETCH-1", "sys/name": "FETCH-1"},
+        {"sys/id": "FETCH-2", "sys/name": "FETCH-2"},
     ]
