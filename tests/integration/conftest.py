@@ -35,7 +35,7 @@ from neptune.internal.id_formats import (
 
 
 @pytest.fixture(scope="session")
-def api_token():
+def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
 
 
