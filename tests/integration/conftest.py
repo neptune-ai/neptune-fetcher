@@ -96,7 +96,7 @@ class BackendMock:
     def get_string_attribute(self, container_id, container_type, path):
         return StringField(path="metrics/string", value="Test string")
 
-    def get_fields_with_paths_filter(self, container_id, container_type, paths):
+    def get_fields_with_paths_filter(self, container_id, container_type, paths, use_proto):
         return [
             FloatField(path="metrics/float", value=25.97),
             IntField(path="metrics/int", value=97),
