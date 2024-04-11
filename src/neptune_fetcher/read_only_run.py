@@ -95,6 +95,11 @@ class ReadOnlyRun:
         Args:
             paths: List of field paths to prefetch.
         """
-        data = self.project._backend.get_fields_with_paths_filter(self._container_id, ContainerType.RUN, paths)
+        data = self.project._backend.get_fields_with_paths_filter(
+            container_id=self._container_id,
+            container_type=ContainerType.RUN,
+            paths=paths,
+            use_proto=True,
+        )
         fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
         self._cache.update(fetched)
