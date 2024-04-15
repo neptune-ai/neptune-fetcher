@@ -31,11 +31,11 @@ from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils import verify_type
 from neptune.table import TableEntry
 
+from neptune_fetcher.cache import FieldsCache
 from neptune_fetcher.fetchable import (
     SUPPORTED_TYPES,
     Fetchable,
     FetchableSeries,
-    FieldToFetchableVisitor,
     which_fetchable,
 )
 
@@ -54,12 +54,15 @@ class ReadOnlyRun:
     def __init__(self, read_only_project: "ReadOnlyProject", with_id: str) -> None:
         self.project = read_only_project
         self.with_id = with_id
-        self._field_to_fetchable_visitor = FieldToFetchableVisitor()
 
         verify_type("with_id", with_id, str)
 
         self._container_id = QualifiedName(f"{self.project.project_identifier}/{with_id}")
-        self._cache = dict()
+        self._cache = FieldsCache(
+            backend=self.project._backend,
+            container_id=self._container_id,
+            container_type=ContainerType.RUN,
+        )
         self._structure = {
             field_definition.path: which_fetchable(
                 field_definition,
@@ -95,11 +98,4 @@ class ReadOnlyRun:
         Args:
             paths: List of field paths to prefetch.
         """
-        data = self.project._backend.get_fields_with_paths_filter(
-            container_id=self._container_id,
-            container_type=ContainerType.RUN,
-            paths=paths,
-            use_proto=True,
-        )
-        fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
-        self._cache.update(fetched)
+        self._cache.prefetch(paths=paths)
