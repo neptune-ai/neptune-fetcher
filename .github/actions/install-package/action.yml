@@ -8,20 +8,22 @@ inputs:
   os:
     description: "Operating system"
     required: true
+  working_directory:
+    description: "Working directory"
+    required: false
+    default: .
 
 runs:
     using: "composite"
     steps:
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-        shell: bash
 
-      - uses: actions/cache@v3
-        id: cache
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ inputs.os }}-python-${{ inputs.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ steps.date.outputs.date }}
+          fetch-depth: 0
+          repository: neptune-ai/neptune-fetcher
+          path: ${{ inputs.working_directory }}
+          ref: ${{ github.event.client_payload.pull_request.head.ref }}
 
       - name: Install Python ${{ inputs.python-version }}
         uses: actions/setup-python@v4
@@ -29,8 +31,9 @@ runs:
           python-version: ${{ inputs.python-version }}
 
       - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
         run: |
-          pip install -r dev_requirements.txt
+          pip install -r ./dev_requirements.txt
         shell: bash
 
       - name: List dependencies
