@@ -1,3 +1,9 @@
+## [UNRELEASED] neptune-fetcher 0.1.1
+
+### Changes
+- Using only paths filter endpoint instead of dedicated ones ([#17](https://github.com/neptune-ai/neptune-fetcher/pull/17))
+
+
 ## neptune-fetcher 0.1.0
 
 Initial release
