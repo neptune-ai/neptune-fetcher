@@ -1,5 +1,5 @@
 ---
-name: Test Unit
+name: Test Integration
 description: Check unit tests
 inputs:
   python-version:
@@ -11,22 +11,21 @@ inputs:
   report_job:
     description: "Job name to update by JUnit report"
     required: true
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: .
 
 runs:
   using: "composite"
   steps:
-    - name: Install package
-      uses: ./.github/actions/install-package
-      with:
-        python-version: ${{ inputs.python-version }}
-        os: ${{ inputs.os }}-latest
-
     - name: Test
+      working-directory: ${{ inputs.working_directory }}
       run: |
         pytest -v -n 2 ./tests/integration/ \
         --timeout=120 --timeout_method=thread \
         --color=yes \
-        --junitxml="./test-results/test-integration-${{ inputs.os }}-${{ inputs.python-version }}.xml"
+        --junitxml="${{ inputs.working_directory }}/test-results/test-integration-${{ inputs.os }}-${{ inputs.python-version }}.xml"
       shell: bash
 
     - name: Upload test reports
@@ -34,13 +33,13 @@ runs:
       if: always()
       with:
         name: test-artifacts
-        path: ./test-results
+        path: ${{ inputs.working_directory }}/test-results
 
     - name: Report
       uses: mikepenz/action-junit-report@v3.6.2
       if: always()
       with:
-        report_paths: './test-results/test-integration-*.xml'
+        report_paths: "${{ inputs.working_directory }}/test-results/test-integration-*.xml"
         update_check: true
         include_passed: true
         annotate_notice: true
