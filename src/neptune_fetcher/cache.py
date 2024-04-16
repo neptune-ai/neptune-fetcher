@@ -25,23 +25,26 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         self._container_type = container_type
         self._field_to_fetchable_visitor = FieldToFetchableVisitor()
 
-    def __cache_miss(self, paths: List[str]) -> None:
+    def cache_miss(self, paths: List[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
-        if missed_paths:
-            data = self._backend.get_fields_with_paths_filter(
-                container_id=self._container_id,
-                container_type=ContainerType.RUN,
-                paths=missed_paths,
-                use_proto=True,
-            )
-            fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
-            self.update(fetched)
+
+        if not missed_paths:
+            return None
+
+        data = self._backend.get_fields_with_paths_filter(
+            container_id=self._container_id,
+            container_type=ContainerType.RUN,
+            paths=missed_paths,
+            use_proto=True,
+        )
+        fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
+        self.update(fetched)
 
     def prefetch(self, paths: List[str]) -> None:
-        self.__cache_miss(paths)
+        self.cache_miss(paths)
 
     def __getitem__(self, path: str) -> Union[Field, Series]:
-        self.__cache_miss(
+        self.cache_miss(
             paths=[
                 path,
             ]
