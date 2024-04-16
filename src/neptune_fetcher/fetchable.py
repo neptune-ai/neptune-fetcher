@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
 __all__ = [
     "which_fetchable",
     "Fetchable",
@@ -29,8 +31,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Union,
 )
 
 from neptune.api.models import (
@@ -53,7 +53,6 @@ from neptune.api.models import (
     StringSeriesField,
     StringSetField,
 )
-from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.logger import get_logger
 from neptune.internal.warnings import NeptuneUnsupportedType
 
@@ -61,13 +60,14 @@ from neptune_fetcher.fields import (
     Field,
     Float,
     Integer,
-    Series,
     String,
 )
 
 if TYPE_CHECKING:
     from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
+
+    from neptune_fetcher.cache import FieldsCache
 
 
 logger = get_logger()
@@ -88,12 +88,12 @@ class Fetchable(ABC):
         field: FieldDefinition,
         backend: "HostedNeptuneBackend",
         container_id: str,
-        cache: Dict[str, Union[Field, Series]],
+        cache: FieldsCache,
     ) -> None:
         self._field = field
         self._backend = backend
         self._container_id = container_id
-        self._cache = cache
+        self._cache: FieldsCache = cache
 
     @abstractmethod
     def fetch(self):
@@ -108,19 +108,7 @@ class NoopFetchable(Fetchable):
 
 class FetchableAtom(Fetchable):
     def fetch(self):
-        if self._field.path in self._cache:
-            return self._cache[self._field.path].val
-        if self._field.type == FieldType.STRING:
-            attr = String(self._field.type)
-        elif self._field.type == FieldType.INT:
-            attr = Integer(self._field.type)
-        elif self._field.type == FieldType.FLOAT:
-            attr = Float(self._field.type)
-        else:
-            raise NeptuneUnsupportedType()
-        attr.val = attr.fetch(self._backend, self._container_id, ContainerType.RUN, [self._field.path])
-        self._cache[self._field.path] = attr
-        return attr.val
+        return self._cache[self._field.path].val
 
 
 class FetchableSeries(Fetchable):

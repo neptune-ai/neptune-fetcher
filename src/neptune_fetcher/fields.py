@@ -32,11 +32,6 @@ from typing import (
 )
 
 from neptune.api.models import FieldType
-from neptune.attributes.atoms.float import Float as FloatAttr
-from neptune.attributes.atoms.integer import Integer as IntegerAttr
-from neptune.attributes.atoms.string import String as StringAttr
-from neptune.attributes.series.fetchable_series import Row
-from neptune.internal.backends.api_model import FloatSeriesValues
 from neptune.internal.container_type import ContainerType
 
 if typing.TYPE_CHECKING:
@@ -48,7 +43,6 @@ T = TypeVar("T")
 
 @dataclass
 class Series(ABC, Generic[T]):
-    values: Optional["DataFrame"] = None
     last: Optional[T] = None
 
     def fetch_values(
@@ -61,87 +55,30 @@ class Series(ABC, Generic[T]):
     ) -> "DataFrame":
         raise NotImplementedError
 
-    @staticmethod
-    def _fetch_values_from_backend(
-        backend: "HostedNeptuneBackend",
-        container_id: str,
-        container_type: ContainerType,
-        path: typing.List[str],
-        offset: int,
-        limit: int,
-    ) -> Row:
-        ...
-
-    @staticmethod
-    def fetch_last(backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str) -> T:
-        ...
+    def fetch_last(self) -> Optional[T]:
+        return self.last
 
 
 class FloatSeries(Series[float]):
-    @staticmethod
-    def _fetch_values_from_backend(
-        backend: "HostedNeptuneBackend",
-        container_id: str,
-        container_type: ContainerType,
-        path: typing.List[str],
-        offset: int,
-        limit: int,
-    ) -> FloatSeriesValues:
-        return backend.get_float_series_values(container_id, container_type, path, offset, limit)
-
-    @staticmethod
-    def fetch_last(
-        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: str
-    ) -> float:
-        return backend.get_float_series_attribute(container_id, container_type, [path]).last
+    ...
 
 
 @dataclass
 class Field(Generic[T], ABC):
     type: FieldType
-    val: Optional[T] = None
+    val: T
 
-    @staticmethod
-    def fetch(
-        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
-    ) -> T:
-        ...
+    def fetch(self) -> T:
+        return self.val
 
 
 class Integer(Field[int]):
-    @staticmethod
-    def fetch(
-        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
-    ) -> int:
-        return IntegerAttr.getter(
-            backend=backend,
-            container_id=container_id,
-            container_type=container_type,
-            path=path,
-        )
+    ...
 
 
 class Float(Field[float]):
-    @staticmethod
-    def fetch(
-        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
-    ) -> float:
-        return FloatAttr.getter(
-            backend=backend,
-            container_id=container_id,
-            container_type=container_type,
-            path=path,
-        )
+    ...
 
 
 class String(Field[str]):
-    @staticmethod
-    def fetch(
-        backend: "HostedNeptuneBackend", container_id: str, container_type: ContainerType, path: typing.List[str]
-    ) -> str:
-        return StringAttr.getter(
-            backend=backend,
-            container_id=container_id,
-            container_type=container_type,
-            path=path,
-        )
+    ...
