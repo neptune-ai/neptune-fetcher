@@ -25,6 +25,9 @@ from neptune.api.models import (
     FieldDefinition,
     FieldType,
     FloatField,
+    FloatPointValue,
+    FloatSeriesField,
+    FloatSeriesValues,
     IntField,
     LeaderboardEntry,
     ObjectStateField,
@@ -102,7 +105,18 @@ class BackendMock:
             BoolField(path="metrics/bool", value=True),
             DateTimeField(path="metrics/datetime", value=datetime.datetime(2024, 1, 1, 12, 34, 56)),
             ObjectStateField(path="metrics/objectState", value="Inactive"),
+            FloatSeriesField(path="metrics/floatSeries", last=25.97),
         ]
+
+    def get_float_series_values(self, container_id, container_type, path, from_step, limit):
+        return FloatSeriesValues(
+            total=3,
+            values=[
+                FloatPointValue(step=1, value=1.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 56)),
+                FloatPointValue(step=2, value=2.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 57)),
+                FloatPointValue(step=3, value=3.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 58)),
+            ],
+        )
 
 
 @pytest.fixture(scope="session")

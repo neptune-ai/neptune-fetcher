@@ -21,7 +21,7 @@ from neptune_fetcher import (
 )
 
 
-def test__read_only_run__initialization(api_token, hosted_backend):
+def test__initialization(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -29,7 +29,7 @@ def test__read_only_run__initialization(api_token, hosted_backend):
     ReadOnlyRun(read_only_project=project, with_id="RUN-1")
 
 
-def test__read_only_run__field_names(api_token, hosted_backend):
+def test__field_names(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -45,6 +45,7 @@ def test__read_only_run__field_names(api_token, hosted_backend):
             "metrics/bool",
             "metrics/datetime",
             "metrics/float",
+            "metrics/floatSeries",
             "metrics/int",
             "metrics/objectState",
             "metrics/string",
@@ -56,7 +57,7 @@ def test__read_only_run__field_names(api_token, hosted_backend):
     )
 
 
-def test__read_only_run__fetch__float__without_prefetch(api_token, hosted_backend):
+def test__fetch__float__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -70,7 +71,7 @@ def test__read_only_run__fetch__float__without_prefetch(api_token, hosted_backen
     assert val == 25.97
 
 
-def test__read_only_run__fetch__float__prefetch(api_token, hosted_backend):
+def test__fetch__float__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -85,7 +86,7 @@ def test__read_only_run__fetch__float__prefetch(api_token, hosted_backend):
     assert val == 25.97
 
 
-def test__read_only_run__fetch__int__without_prefetch(api_token, hosted_backend):
+def test__fetch__int__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -99,7 +100,7 @@ def test__read_only_run__fetch__int__without_prefetch(api_token, hosted_backend)
     assert val == 97
 
 
-def test__read_only_run__fetch__int__prefetch(api_token, hosted_backend):
+def test__fetch__int__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -114,7 +115,7 @@ def test__read_only_run__fetch__int__prefetch(api_token, hosted_backend):
     assert val == 97
 
 
-def test__read_only_run__fetch__string__without_prefetch(api_token, hosted_backend):
+def test__fetch__string__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -128,7 +129,7 @@ def test__read_only_run__fetch__string__without_prefetch(api_token, hosted_backe
     assert val == "Test string"
 
 
-def test__read_only_run__fetch__string__prefetch(api_token, hosted_backend):
+def test__fetch__string__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -143,7 +144,7 @@ def test__read_only_run__fetch__string__prefetch(api_token, hosted_backend):
     assert val == "Test string"
 
 
-def test__read_only_run__fetch__bool__without_prefetch(api_token, hosted_backend):
+def test__fetch__bool__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -157,7 +158,7 @@ def test__read_only_run__fetch__bool__without_prefetch(api_token, hosted_backend
     assert val is True
 
 
-def test__read_only_run__fetch__bool__prefetch(api_token, hosted_backend):
+def test__fetch__bool__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -172,7 +173,7 @@ def test__read_only_run__fetch__bool__prefetch(api_token, hosted_backend):
     assert val is True
 
 
-def test__read_only_run__fetch__datetime__without_prefetch(api_token, hosted_backend):
+def test__fetch__datetime__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -186,7 +187,7 @@ def test__read_only_run__fetch__datetime__without_prefetch(api_token, hosted_bac
     assert val == datetime.datetime(2024, 1, 1, 12, 34, 56)
 
 
-def test__read_only_run__fetch__datetime__prefetch(api_token, hosted_backend):
+def test__fetch__datetime__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -201,7 +202,7 @@ def test__read_only_run__fetch__datetime__prefetch(api_token, hosted_backend):
     assert val == datetime.datetime(2024, 1, 1, 12, 34, 56)
 
 
-def test__read_only_run__fetch__object_state__without_prefetch(api_token, hosted_backend):
+def test__fetch__object_state__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -215,7 +216,7 @@ def test__read_only_run__fetch__object_state__without_prefetch(api_token, hosted
     assert val == "Inactive"
 
 
-def test__read_only_run__fetch__object_state__prefetch(api_token, hosted_backend):
+def test__fetch__object_state__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -230,7 +231,7 @@ def test__read_only_run__fetch__object_state__prefetch(api_token, hosted_backend
     assert val == "Inactive"
 
 
-def test__read_only_run__fetch__string_set__without_prefetch(api_token, hosted_backend):
+def test__fetch__string_set__without_prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -244,7 +245,7 @@ def test__read_only_run__fetch__string_set__without_prefetch(api_token, hosted_b
     assert val == {"a", "b", "c"}
 
 
-def test__read_only_run__fetch__string_set__prefetch(api_token, hosted_backend):
+def test__fetch__string_set__prefetch(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -257,3 +258,63 @@ def test__read_only_run__fetch__string_set__prefetch(api_token, hosted_backend):
 
     # then
     assert val == {"a", "b", "c"}
+
+
+def test__fetch__float_series__without_prefetch(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # and
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # when
+    val = run["metrics/floatSeries"].fetch()
+
+    # then
+    assert val == 25.97
+
+
+def test__fetch__float_series__prefetch(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # and
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # when
+    run.prefetch(["metrics/floatSeries"])
+    val = run["metrics/floatSeries"].fetch()
+
+    # then
+    assert val == 25.97
+
+
+def test__fetch_values__float_series__without_prefetch(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # and
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # when
+    df = run["metrics/floatSeries"].fetch_values()
+
+    # then
+    assert df["value"].to_list() == [1.0, 2.0, 3.0]
+    assert df["step"].to_list() == [1, 2, 3]
+
+
+def test__fetch_values__float_series__prefetch(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # and
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # when
+    run.prefetch(["metrics/floatSeries"])
+    df = run["metrics/floatSeries"].fetch_values()
+
+    # then
+    assert df["value"].to_list() == [1.0, 2.0, 3.0]
+    assert df["step"].to_list() == [1, 2, 3]
