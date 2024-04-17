@@ -293,6 +293,79 @@ __Returns__:
 
 ---
 
+### Datetime
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+created_at = run["sys/creation_time"].fetch()
+```
+
+__Returns__:
+`datetime.datetime`
+
+---
+
+### Object state
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+state = run["sys/state"].fetch()
+```
+
+__Returns__:
+`str`
+
+---
+
+### Boolean
+#### `fetch()`
+Retrieves value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+status = run["sys/failed"].fetch()
+```
+
+__Returns__:
+`bool`
+
+---
+
+### Float series
+#### `fetch()` or `fetch_last()`
+Retrieves last series value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example__:
+```python
+loss = run["loss"].fetch_last()
+```
+
+__Returns__:
+`Optional[float]`
+
+#### `fetch_values()`
+Retrieves all series values from the API.
+
+__Parameters__:
+
+| Name | Type   | Default | Description                |
+| ---- |--------|---------|----------------------------|
+| `include_timestamp` | `bool` | True    | Whether the fetched data should include the timestamp field. |
+
+__Example__:
+```python
+values = run["loss"].fetch_values()
+```
+
+__Returns__:
+`pandas.DataFrame`
+
+---
+
 ## License
 
 This project is licensed under the Apache License Version 2.0. For more details, see [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

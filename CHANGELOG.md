@@ -1,4 +1,8 @@
-## [UNRELEASED] neptune-fetcher 0.1.1
+## [UNRELEASED] neptune-fetcher 0.2.0
+
+### Features
+- Added support for bool, state, datetime and float series ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
+- Added support for fetching float series values ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 
 ### Changes
 - Using only paths filter endpoint instead of dedicated ones ([#17](https://github.com/neptune-ai/neptune-fetcher/pull/17))
