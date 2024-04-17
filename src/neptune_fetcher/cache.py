@@ -35,7 +35,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             container_id=self._container_id,
             container_type=ContainerType.RUN,
             paths=missed_paths,
-            use_proto=False,
+            use_proto=True,
         )
         fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
         self.update(fetched)
