@@ -20,21 +20,28 @@ __all__ = [
     "Integer",
     "Series",
     "String",
+    "Bool",
+    "DateTime",
+    "ObjectState",
+    "StringSet",
 ]
 
-import typing
 from abc import ABC
 from dataclasses import dataclass
+from datetime import datetime
 from typing import (
+    TYPE_CHECKING,
     Generic,
+    List,
     Optional,
+    Set,
     TypeVar,
 )
 
 from neptune.api.models import FieldType
 from neptune.internal.container_type import ContainerType
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
 
@@ -50,7 +57,7 @@ class Series(ABC, Generic[T]):
         backend: "HostedNeptuneBackend",
         container_id: str,
         container_type: ContainerType,
-        path: typing.List[str],
+        path: List[str],
         include_timestamp: bool = True,
     ) -> "DataFrame":
         raise NotImplementedError
@@ -81,4 +88,20 @@ class Float(Field[float]):
 
 
 class String(Field[str]):
+    ...
+
+
+class Bool(Field[bool]):
+    ...
+
+
+class DateTime(Field[datetime]):
+    ...
+
+
+class ObjectState(Field[str]):
+    ...
+
+
+class StringSet(Field[Set[str]]):
     ...

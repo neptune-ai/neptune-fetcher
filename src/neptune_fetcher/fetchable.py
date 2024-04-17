@@ -57,10 +57,14 @@ from neptune.internal.utils.logger import get_logger
 from neptune.internal.warnings import NeptuneUnsupportedType
 
 from neptune_fetcher.fields import (
+    Bool,
+    DateTime,
     Field,
     Float,
     Integer,
+    ObjectState,
     String,
+    StringSet,
 )
 
 if TYPE_CHECKING:
@@ -77,8 +81,14 @@ SUPPORTED_ATOMS = {
     FieldType.INT,
     FieldType.FLOAT,
     FieldType.STRING,
+    FieldType.BOOL,
+    FieldType.DATETIME,
+    FieldType.STRING_SET,
+    FieldType.OBJECT_STATE,
 }
-SUPPORTED_SERIES_TYPES = set()
+SUPPORTED_SERIES_TYPES = {
+    # TODO: FieldType.FLOAT_SERIES,
+}
 SUPPORTED_TYPES = {*SUPPORTED_ATOMS, *SUPPORTED_SERIES_TYPES}
 
 
@@ -135,13 +145,13 @@ class FieldToFetchableVisitor(FieldVisitor[Field]):
         return Integer(field.type, val=field.value)
 
     def visit_bool(self, field: BoolField) -> Field:
-        raise NotImplementedError
+        return Bool(field.type, val=field.value)
 
     def visit_string(self, field: StringField) -> Field:
         return String(field.type, val=field.value)
 
     def visit_datetime(self, field: DateTimeField) -> Field:
-        raise NotImplementedError
+        return DateTime(field.type, val=field.value)
 
     def visit_file(self, field: FileField) -> Field:
         raise NotImplementedError
@@ -159,13 +169,13 @@ class FieldToFetchableVisitor(FieldVisitor[Field]):
         raise NotImplementedError
 
     def visit_string_set(self, field: StringSetField) -> Field:
-        raise NotImplementedError
+        return StringSet(field.type, val=field.values)
 
     def visit_git_ref(self, field: GitRefField) -> Field:
         raise NotImplementedError
 
     def visit_object_state(self, field: ObjectStateField) -> Field:
-        raise NotImplementedError
+        return ObjectState(field.type, val=field.value)
 
     def visit_notebook_ref(self, field: NotebookRefField) -> Field:
         raise NotImplementedError
