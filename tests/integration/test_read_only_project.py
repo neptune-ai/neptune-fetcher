@@ -33,6 +33,18 @@ def test__fetch_runs_df(api_token, hosted_backend):
     assert sorted(results["sys/id"].values) == sorted(["RUN-1", "RUN-2"])
 
 
+def test__fetch_runs_df__with_columns_regex(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_runs_df(columns=[], columns_regex="sys/.*")
+
+    # then
+    assert results is not None
+    assert sorted(results.columns) == sorted(["sys/id", "sys/name", "sys/failed"])
+
+
 def test__fetch_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
