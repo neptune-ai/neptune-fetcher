@@ -16,12 +16,12 @@
 from neptune_fetcher import ReadOnlyProject
 
 
-def test__read_only_project__initialization(api_token, hosted_backend):
+def test__initialization(api_token, hosted_backend):
     # then
     ReadOnlyProject(project="test_project", api_token=api_token)
 
 
-def test__read_only_project__fetch_runs_df(api_token, hosted_backend):
+def test__fetch_runs_df(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -33,7 +33,7 @@ def test__read_only_project__fetch_runs_df(api_token, hosted_backend):
     assert sorted(results["sys/id"].values) == sorted(["RUN-1", "RUN-2"])
 
 
-def test__read_only_project__fetch_runs(api_token, hosted_backend):
+def test__fetch_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -46,7 +46,7 @@ def test__read_only_project__fetch_runs(api_token, hosted_backend):
     assert sorted(results["sys/name"].values) == sorted(["run1", "run2"])
 
 
-def test__read_only_project__list_runs(api_token, hosted_backend):
+def test__list_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
@@ -59,7 +59,7 @@ def test__read_only_project__list_runs(api_token, hosted_backend):
     assert sorted([result["sys/name"] for result in results]) == sorted(["run1", "run2"])
 
 
-def test__read_only_project__fetch_read_only_runs(api_token, hosted_backend):
+def test__fetch_read_only_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 

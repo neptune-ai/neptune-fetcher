@@ -14,17 +14,25 @@
 # limitations under the License.
 #
 import base64
+import datetime
 import json
 
 import pytest
 from mock import patch
 from neptune.api.models import (
+    BoolField,
+    DateTimeField,
     FieldDefinition,
     FieldType,
     FloatField,
+    FloatPointValue,
+    FloatSeriesField,
+    FloatSeriesValues,
     IntField,
     LeaderboardEntry,
+    ObjectStateField,
     StringField,
+    StringSetField,
 )
 from neptune.internal.backends.api_model import Project
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
@@ -72,6 +80,7 @@ class BackendMock:
             FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             FieldDefinition(path="metrics/string", type=FieldType.STRING),
+            FieldDefinition(path="metrics/bool", type=FieldType.BOOL),
             FieldDefinition(path="metrics/stringSeries", type=FieldType.STRING_SERIES),
             FieldDefinition(path="metrics/float", type=FieldType.FLOAT),
             FieldDefinition(path="metrics/int", type=FieldType.INT),
@@ -87,21 +96,27 @@ class BackendMock:
             FieldDefinition(path="metrics/artifact", type=FieldType.ARTIFACT),
         ]
 
-    def get_float_attribute(self, container_id, container_type, path):
-        return FloatField(path="metrics/float", value=25.97)
-
-    def get_int_attribute(self, container_id, container_type, path):
-        return FloatField(path="metrics/int", value=97)
-
-    def get_string_attribute(self, container_id, container_type, path):
-        return StringField(path="metrics/string", value="Test string")
-
     def get_fields_with_paths_filter(self, container_id, container_type, paths, use_proto):
         return [
             FloatField(path="metrics/float", value=25.97),
             IntField(path="metrics/int", value=97),
             StringField(path="metrics/string", value="Test string"),
+            StringSetField(path="metrics/stringSet", values={"a", "b", "c"}),
+            BoolField(path="metrics/bool", value=True),
+            DateTimeField(path="metrics/datetime", value=datetime.datetime(2024, 1, 1, 12, 34, 56)),
+            ObjectStateField(path="metrics/objectState", value="Inactive"),
+            FloatSeriesField(path="metrics/floatSeries", last=25.97),
         ]
+
+    def get_float_series_values(self, container_id, container_type, path, from_step, limit):
+        return FloatSeriesValues(
+            total=3,
+            values=[
+                FloatPointValue(step=1, value=1.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 56)),
+                FloatPointValue(step=2, value=2.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 57)),
+                FloatPointValue(step=3, value=3.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 58)),
+            ],
+        )
 
 
 @pytest.fixture(scope="session")

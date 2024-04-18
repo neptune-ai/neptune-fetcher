@@ -31,6 +31,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Union,
 )
 
 from neptune.api.models import (
@@ -53,14 +54,20 @@ from neptune.api.models import (
     StringSeriesField,
     StringSetField,
 )
+from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.logger import get_logger
-from neptune.internal.warnings import NeptuneUnsupportedType
 
 from neptune_fetcher.fields import (
+    Bool,
+    DateTime,
     Field,
     Float,
+    FloatSeries,
     Integer,
+    ObjectState,
+    Series,
     String,
+    StringSet,
 )
 
 if TYPE_CHECKING:
@@ -77,8 +84,14 @@ SUPPORTED_ATOMS = {
     FieldType.INT,
     FieldType.FLOAT,
     FieldType.STRING,
+    FieldType.BOOL,
+    FieldType.DATETIME,
+    FieldType.STRING_SET,
+    FieldType.OBJECT_STATE,
 }
-SUPPORTED_SERIES_TYPES = set()
+SUPPORTED_SERIES_TYPES = {
+    FieldType.FLOAT_SERIES,
+}
 SUPPORTED_TYPES = {*SUPPORTED_ATOMS, *SUPPORTED_SERIES_TYPES}
 
 
@@ -113,10 +126,19 @@ class FetchableAtom(Fetchable):
 
 class FetchableSeries(Fetchable):
     def fetch(self):
-        raise NeptuneUnsupportedType()
+        return self._cache[self._field.path].last
+
+    def fetch_last(self):
+        return self.fetch()
 
     def fetch_values(self, *, include_timestamp: bool = True) -> "DataFrame":
-        raise NeptuneUnsupportedType()
+        return self._cache[self._field.path].fetch_values(
+            backend=self._backend,
+            container_id=self._container_id,
+            container_type=ContainerType.RUN,
+            path=self._field.path,
+            include_timestamp=include_timestamp,
+        )
 
 
 def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetchable:
@@ -127,7 +149,7 @@ def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetcha
     return NoopFetchable(field, *args, **kwargs)
 
 
-class FieldToFetchableVisitor(FieldVisitor[Field]):
+class FieldToFetchableVisitor(FieldVisitor[Union[Field, Series]]):
     def visit_float(self, field: FloatField) -> Field:
         return Float(field.type, val=field.value)
 
@@ -135,13 +157,13 @@ class FieldToFetchableVisitor(FieldVisitor[Field]):
         return Integer(field.type, val=field.value)
 
     def visit_bool(self, field: BoolField) -> Field:
-        raise NotImplementedError
+        return Bool(field.type, val=field.value)
 
     def visit_string(self, field: StringField) -> Field:
         return String(field.type, val=field.value)
 
     def visit_datetime(self, field: DateTimeField) -> Field:
-        raise NotImplementedError
+        return DateTime(field.type, val=field.value)
 
     def visit_file(self, field: FileField) -> Field:
         raise NotImplementedError
@@ -149,8 +171,8 @@ class FieldToFetchableVisitor(FieldVisitor[Field]):
     def visit_file_set(self, field: FileSetField) -> Field:
         raise NotImplementedError
 
-    def visit_float_series(self, field: FloatSeriesField) -> Field:
-        raise NotImplementedError
+    def visit_float_series(self, field: FloatSeriesField) -> Series:
+        return FloatSeries(field.type, last=field.last)
 
     def visit_string_series(self, field: StringSeriesField) -> Field:
         raise NotImplementedError
@@ -159,13 +181,13 @@ class FieldToFetchableVisitor(FieldVisitor[Field]):
         raise NotImplementedError
 
     def visit_string_set(self, field: StringSetField) -> Field:
-        raise NotImplementedError
+        return StringSet(field.type, val=field.values)
 
     def visit_git_ref(self, field: GitRefField) -> Field:
         raise NotImplementedError
 
     def visit_object_state(self, field: ObjectStateField) -> Field:
-        raise NotImplementedError
+        return ObjectState(field.type, val=field.value)
 
     def visit_notebook_ref(self, field: NotebookRefField) -> Field:
         raise NotImplementedError
