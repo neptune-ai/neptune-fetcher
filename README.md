@@ -75,11 +75,11 @@ Initialize with the ReadOnlyProject class constructor.
 
 __Parameters__:
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `project` | `str`, optional | `None` | Name of a project in the form `workspace-name/project-name`. If `None`, the value of the `NEPTUNE_PROJECT` environment variable is used. |
-| `api_token` | `str`, optional | `None` | Your Neptune API token (or a service account's API token). If `None`, the value of the `NEPTUNE_API_TOKEN` environment variable is used. To keep your token secure, avoid placing it in source code. Instead, save it as an environment variable. |
-| `proxies` | `dict`, optional | `None` | Argument passed to HTTP calls made via the Requests library. For details on proxies, see the [Requests documentation](https://requests.readthedocs.io/). |
+| Name        | Type             | Default | Description                                                                                                                                                                                                                                       |
+|-------------|------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `project`   | `str`, optional  | `None`  | Name of a project in the form `workspace-name/project-name`. If `None`, the value of the `NEPTUNE_PROJECT` environment variable is used.                                                                                                          |
+| `api_token` | `str`, optional  | `None`  | Your Neptune API token (or a service account's API token). If `None`, the value of the `NEPTUNE_API_TOKEN` environment variable is used. To keep your token secure, avoid placing it in source code. Instead, save it as an environment variable. |
+| `proxies`   | `dict`, optional | `None`  | Argument passed to HTTP calls made via the Requests library. For details on proxies, see the [Requests documentation](https://requests.readthedocs.io/).                                                                                          |
 
 __Example__:
 
@@ -124,18 +124,20 @@ Fetches the runs' metadata and returns them as a pandas DataFrame.
 
 __Parameters__:
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `columns` | `List[str]`, optional | `None` | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included. |
-| `with_ids` | `List[str]`, optional | `None` | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion. |
-| `states` | `List[str]`, optional | `None` | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion. |
-| `owners` | `List[str]`, optional | `None` | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion. |
-| `tags` | `List[str]`, optional | `None` | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion. |
-| `trashed` | `bool`, optional | `False` | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones. |
-| `limit` | `int`, optional | `None` | Maximum number of runs to fetch. If `None`, all runs are fetched. |
-| `sort_by` | `str`, optional | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer). |
-| `ascending` | `bool`, optional | `False` | Whether to sort the entries in ascending order of the sorting column values. |
-| `progress_bar` | `bool`, `Type[ProgressBarCallback]`, optional | `None` | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
+| Name            | Type                                          | Default             | Description                                                                                                                                                                                                                                                                            |
+|-----------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `columns`       | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
+| `columns_regex` | `str`, optional                               | `None`              | A regex pattern to filter the columns by name in addition to `columns`.                                                                                                                                                                                                                |
+| `names_regex`   | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                        |
+| `with_ids`      | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
+| `states`        | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                     |
+| `owners`        | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                            |
+| `tags`          | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                          |
+| `trashed`       | `bool`, optional                              | `False`             | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones.                                                                         |
+| `limit`         | `int`, optional                               | `None`              | Maximum number of runs to fetch. If `None`, all runs are fetched.                                                                                                                                                                                                                      |
+| `sort_by`       | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                             |
+| `ascending`     | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                           |
+| `progress_bar`  | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
 
 __Example__:
 ```python
@@ -144,9 +146,20 @@ runs_df = project.fetch_runs_df(
 	columns=["sys/name", "sys/modification_time", "training/lr"],
 )
 
+# Fetch all runs with specific columns and matching a regex pattern
+runs_df = project.fetch_runs_df(
+	columns=["sys/name", "sys/modification_time"],
+    columns_regex='tree/.*'
+)
+
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
 	with_ids=["RUN-123", "RUN-456"]
+)
+
+# Filter by name regex
+specific_runs_df = my_project.fetch_runs_df(
+	names_regex='tree_3[2-4]+'
 )
 ```
 
@@ -160,9 +173,9 @@ List runs of the project in the form of ReadOnlyRun.
 
 __Parameters__:
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `with_ids` | `List[str]` | - | List of Neptune run IDs to fetch. |
+| Name       | Type        | Default | Description                       |
+|------------|-------------|---------|-----------------------------------|
+| `with_ids` | `List[str]` | -       | List of Neptune run IDs to fetch. |
 
 __Example__:
 ```python
@@ -185,10 +198,10 @@ Can be created with the class constructor, or as a result of the [`fetch_read_on
 
 __Parameters__:
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `read_only_project` | `ReadOnlyProject` | - | Source project from which run will be fetched. |
-| `with_id` | `str` | - | Neptune run ID to fetch. Example: `RUN-1`. |
+| Name                | Type              | Default | Description                                    |
+|---------------------|-------------------|---------|------------------------------------------------|
+| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched. |
+| `with_id`           | `str`             | -       | Neptune run ID to fetch. Example: `RUN-1`.     |
 
 __Example__:
 ```python
@@ -235,9 +248,9 @@ Improves the performance of access to consecutive field values. Only simple fiel
 
 __Parameters__:
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `paths` | `List[str]` | - | List of paths to fetch to the cache. |
+| Name    | Type        | Default | Description                          |
+|---------|-------------|---------|--------------------------------------|
+| `paths` | `List[str]` | -       | List of paths to fetch to the cache. |
 
 __Example__:
 ```python
@@ -352,8 +365,8 @@ Retrieves all series values from the API.
 
 __Parameters__:
 
-| Name | Type   | Default | Description                |
-| ---- |--------|---------|----------------------------|
+| Name                | Type   | Default | Description                                                  |
+|---------------------|--------|---------|--------------------------------------------------------------|
 | `include_timestamp` | `bool` | True    | Whether the fetched data should include the timestamp field. |
 
 __Example__:

@@ -18,6 +18,7 @@ __all__ = [
 ]
 
 import os
+import re
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -63,6 +64,7 @@ if TYPE_CHECKING:
 
 
 MAX_COLUMNS_ALLOWED = 10_000
+MAX_REGEXABLE_RUNS = 100
 
 
 class ReadOnlyProject:
@@ -150,6 +152,7 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
+        names_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
@@ -166,6 +169,8 @@ class ReadOnlyProject:
             columns: None or a list of column names to include in the result.
                 Defaults to None, which includes all available columns up to 10k.
             columns_regex: A regex pattern to filter the columns by name in addition to `columns`.
+            names_regex: A regex pattern to filter the runs by name.
+                When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
             states: A list of run states to filter the results.
             owners: A list of owner names to filter the results.
@@ -197,15 +202,13 @@ class ReadOnlyProject:
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
-        query = prepare_nql_query(with_ids, states, owners, tags, trashed)
-
         if columns is not None:
             # always return entries with `sys/id` column when filter applied
             columns = set(columns)
             columns.add("sys/id")
 
         if columns_regex is not None:
-            data = list(
+            field_definitions = list(
                 paginate_over(
                     getter=self._backend.query_fields_definitions_within_project,
                     extract_entries=lambda data: data.entries,
@@ -214,13 +217,39 @@ class ReadOnlyProject:
                     experiment_ids_filter=with_ids,
                 )
             )
-            for field_definition in data:
+            for field_definition in field_definitions:
                 columns.add(field_definition.path)
 
-        if len(columns) > MAX_COLUMNS_ALLOWED:
+        if columns is not None and len(columns) > MAX_COLUMNS_ALLOWED:
             raise ValueError(
                 f"Too many columns requested ({len(columns)}). " "Please limit the number of columns to 10k or fewer."
             )
+
+        if names_regex is not None:
+            objects = list(
+                paginate_over(
+                    getter=self._backend.query_fields_within_project,
+                    extract_entries=lambda data: data.entries,
+                    project_id=self._project_qualified_name,
+                    field_names_filter=["sys/name"],
+                    experiment_ids_filter=with_ids,
+                )
+            )
+            regex = re.compile(names_regex)
+            with_ids = []
+
+            for experiment in objects:
+                for field in experiment.fields:
+                    if field.path == "sys/name" and regex.match(field.value) is not None:
+                        with_ids.append(experiment.object_key)
+
+            if with_ids is not None and len(with_ids) > MAX_REGEXABLE_RUNS:
+                raise ValueError(
+                    f"Too many runs matched the names regex ({len(with_ids)}). "
+                    f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                )
+
+        query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
