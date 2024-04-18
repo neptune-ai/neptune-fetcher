@@ -207,23 +207,24 @@ class ReadOnlyProject:
             columns = set(columns)
             columns.add("sys/id")
 
-        if columns_regex is not None:
-            field_definitions = list(
-                paginate_over(
-                    getter=self._backend.query_fields_definitions_within_project,
-                    extract_entries=lambda data: data.entries,
-                    project_id=self._project_qualified_name,
-                    field_name_regex=columns_regex,
-                    experiment_ids_filter=with_ids,
+            if columns_regex is not None:
+                field_definitions = list(
+                    paginate_over(
+                        getter=self._backend.query_fields_definitions_within_project,
+                        extract_entries=lambda data: data.entries,
+                        project_id=self._project_qualified_name,
+                        field_name_regex=columns_regex,
+                        experiment_ids_filter=with_ids,
+                    )
                 )
-            )
-            for field_definition in field_definitions:
-                columns.add(field_definition.path)
+                for field_definition in field_definitions:
+                    columns.add(field_definition.path)
 
-        if columns is not None and len(columns) > MAX_COLUMNS_ALLOWED:
-            raise ValueError(
-                f"Too many columns requested ({len(columns)}). " "Please limit the number of columns to 10k or fewer."
-            )
+            if columns is not None and len(columns) > MAX_COLUMNS_ALLOWED:
+                raise ValueError(
+                    f"Too many columns requested ({len(columns)}). "
+                    "Please limit the number of columns to 10k or fewer."
+                )
 
         if names_regex is not None:
             objects = list(
