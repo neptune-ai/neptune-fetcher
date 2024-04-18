@@ -28,6 +28,7 @@ from typing import (
     Union,
 )
 
+from neptune.api.pagination import paginate_over
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
     PROJECT_ENV_NAME,
@@ -59,6 +60,9 @@ from neptune_fetcher.read_only_run import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+
+
+MAX_COLUMNS_ALLOWED = 10_000
 
 
 class ReadOnlyProject:
@@ -145,6 +149,7 @@ class ReadOnlyProject:
     def fetch_runs_df(
         self,
         columns: Optional[Iterable[str]] = None,
+        columns_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
@@ -160,6 +165,7 @@ class ReadOnlyProject:
         Args:
             columns: None or a list of column names to include in the result.
                 Defaults to None, which includes all available columns up to 10k.
+            columns_regex: A regex pattern to filter the columns by name in addition to `columns`.
             with_ids: A list of run IDs to filter the results.
             states: A list of run states to filter the results.
             owners: A list of owner names to filter the results.
@@ -197,6 +203,24 @@ class ReadOnlyProject:
             # always return entries with `sys/id` column when filter applied
             columns = set(columns)
             columns.add("sys/id")
+
+        if columns_regex is not None:
+            data = list(
+                paginate_over(
+                    getter=self._backend.query_fields_definitions_within_project,
+                    extract_entries=lambda data: data.entries,
+                    project_id=self._project_qualified_name,
+                    field_name_regex=columns_regex,
+                    experiment_ids_filter=with_ids,
+                )
+            )
+            for field_definition in data:
+                columns.add(field_definition.path)
+
+        if len(columns) > MAX_COLUMNS_ALLOWED:
+            raise ValueError(
+                f"Too many columns requested ({len(columns)}). " "Please limit the number of columns to 10k or fewer."
+            )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
