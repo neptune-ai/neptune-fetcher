@@ -4,7 +4,7 @@
 - Added support for bool, state, datetime and float series ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 - Added support for fetching float series values ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 - Regex support with `columns_regex` and `names_regex` for `fetch_runs_df()` ([#20](https://github.com/neptune-ai/neptune-fetcher/pull/20))
-- Regex support with `custom_id_regex` for `fetch_runs_df()` ([]())
+- Regex support with `custom_id_regex` for `fetch_runs_df()` ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/22))
 
 ### Changes
 - Using only paths filter endpoint instead of dedicated ones ([#17](https://github.com/neptune-ai/neptune-fetcher/pull/17))
