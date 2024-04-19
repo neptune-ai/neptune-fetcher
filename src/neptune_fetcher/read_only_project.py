@@ -221,7 +221,7 @@ class ReadOnlyProject:
                 for field_definition in field_definitions:
                     columns.add(field_definition.path)
 
-            if columns is not None and len(columns) > MAX_COLUMNS_ALLOWED:
+            if len(columns) > MAX_COLUMNS_ALLOWED:
                 raise ValueError(
                     f"Too many columns requested ({len(columns)}). "
                     "Please limit the number of columns to 10 000 or fewer."
@@ -238,18 +238,20 @@ class ReadOnlyProject:
                 )
             )
             regex = re.compile(names_regex)
-            with_ids = []
+            filtered_with_ids = []
 
             for experiment in objects:
                 for field in experiment.fields:
                     if field.path == "sys/name" and regex.match(field.value) is not None:
-                        with_ids.append(experiment.object_key)
+                        filtered_with_ids.append(experiment.object_key)
 
-            if with_ids is not None and len(with_ids) > MAX_REGEXABLE_RUNS:
+            if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
                 raise ValueError(
-                    f"Too many runs matched the names regex ({len(with_ids)}). "
+                    f"Too many runs matched the names regex ({len(filtered_with_ids)}). "
                     f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
                 )
+
+            with_ids = filtered_with_ids
 
         query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 
