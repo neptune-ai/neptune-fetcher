@@ -34,6 +34,21 @@ def step_impl(context):
     context.field = "fields/string"
 
 
+@given("we have a bool field")
+def step_impl(context):
+    context.field = "sys/failed"
+
+
+@given("we have a datetime field")
+def step_impl(context):
+    context.field = "sys/creation_time"
+
+
+@given("we have a string set field")
+def step_impl(context):
+    context.field = "sys/tags"
+
+
 @given("we have a float series")
 def step_impl(context):
     context.series = "series/float"
@@ -65,6 +80,15 @@ def step_impl(context):
             "sys/owner",
             "sys/running_time",
             "sys/size",
+            "sys/creation_time",
+            "sys/ping_time",
+            "sys/group_tags",
+            "sys/failed",
+            "sys/tags",
+            "series/float",
+            "sys/modification_time",
+            "sys/trashed",
+            "sys/state",
         ]
     )
 
@@ -94,6 +118,11 @@ def step_impl(context):
     assert context.value == 5
 
 
+@then("the value is False")
+def step_impl(context):
+    assert context.value is False
+
+
 @then("the value is `Neptune Rulez!`")
 def step_impl(context):
     assert context.value == "Neptune Rulez!"
@@ -102,3 +131,8 @@ def step_impl(context):
 @then("the values are [1, 2, 4]")
 def step_impl(context):
     assert context.values == [1, 2, 4]
+
+
+@then("we have a value")
+def step_impl(context):
+    assert context.value is not None
