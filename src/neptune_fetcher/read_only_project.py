@@ -168,7 +168,8 @@ class ReadOnlyProject:
         Args:
             columns: None or a list of column names to include in the result.
                 Defaults to None, which includes all available columns up to 10k.
-            columns_regex: A regex pattern to filter the columns by name in addition to `columns`.
+            columns_regex: A regex pattern to filter columns by name.
+                Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
