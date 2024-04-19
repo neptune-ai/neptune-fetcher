@@ -30,7 +30,11 @@ from neptune.api.models import (
     FloatSeriesValues,
     IntField,
     LeaderboardEntry,
+    NextPage,
     ObjectStateField,
+    QueryFieldDefinitionsResult,
+    QueryFieldsExperimentResult,
+    QueryFieldsResult,
     StringField,
     StringSetField,
 )
@@ -54,27 +58,43 @@ class BackendMock:
     def get_project(self, project_id: UniqueId) -> Project:
         return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
-    def search_leaderboard_entries(self, *args, **kwargs):
-        return iter(
-            [
+    def search_leaderboard_entries(self, columns, query, *args, **kwargs):
+        output = [
+            LeaderboardEntry(
+                object_id="RUN-2",
+                fields=list(
+                    filter(
+                        lambda field: columns is None or field.path in columns,
+                        [
+                            StringField(path="sys/id", value="RUN-2"),
+                            StringField(path="sys/name", value="run2"),
+                            BoolField(path="sys/failed", value=True),
+                        ],
+                    )
+                ),
+            ),
+        ]
+
+        if str(query) == "(`sys/trashed`:bool = false)":
+            output.append(
                 LeaderboardEntry(
                     object_id="RUN-1",
-                    fields=[
-                        StringField(path="sys/id", value="RUN-1"),
-                        StringField(path="sys/name", value="run1"),
-                    ],
-                ),
-                LeaderboardEntry(
-                    object_id="RUN-2",
-                    fields=[
-                        StringField(path="sys/id", value="RUN-2"),
-                        StringField(path="sys/name", value="run2"),
-                    ],
-                ),
-            ]
-        )
+                    fields=list(
+                        filter(
+                            lambda field: columns is None or field.path in columns,
+                            [
+                                StringField(path="sys/id", value="RUN-1"),
+                                StringField(path="sys/name", value="run1"),
+                                BoolField(path="sys/failed", value=False),
+                            ],
+                        )
+                    ),
+                )
+            )
 
-    def get_fields_definitions(self, container_id, container_type, use_proto):
+        return iter(output)
+
+    def get_fields_definitions(self, *args, **kwargs):
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
             FieldDefinition(path="sys/name", type=FieldType.STRING),
@@ -96,7 +116,7 @@ class BackendMock:
             FieldDefinition(path="metrics/artifact", type=FieldType.ARTIFACT),
         ]
 
-    def get_fields_with_paths_filter(self, container_id, container_type, paths, use_proto):
+    def get_fields_with_paths_filter(self, *args, **kwargs):
         return [
             FloatField(path="metrics/float", value=25.97),
             IntField(path="metrics/int", value=97),
@@ -108,7 +128,7 @@ class BackendMock:
             FloatSeriesField(path="metrics/floatSeries", last=25.97),
         ]
 
-    def get_float_series_values(self, container_id, container_type, path, from_step, limit):
+    def get_float_series_values(self, *args, **kwargs):
         return FloatSeriesValues(
             total=3,
             values=[
@@ -116,6 +136,37 @@ class BackendMock:
                 FloatPointValue(step=2, value=2.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 57)),
                 FloatPointValue(step=3, value=3.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 58)),
             ],
+        )
+
+    def query_fields_definitions_within_project(self, *args, **kwargs):
+        return QueryFieldDefinitionsResult(
+            entries=[
+                FieldDefinition(path="sys/id", type=FieldType.STRING),
+                FieldDefinition(path="sys/name", type=FieldType.STRING),
+                FieldDefinition(path="sys/failed", type=FieldType.BOOL),
+            ],
+            next_page=NextPage(next_page_token=None, limit=None),
+        )
+
+    def query_fields_within_project(self, *args, **kwargs):
+        return QueryFieldsResult(
+            entries=[
+                QueryFieldsExperimentResult(
+                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                    object_key="RUN-1",
+                    fields=[
+                        StringField(path="sys/name", value="powerful-sun-2"),
+                    ],
+                ),
+                QueryFieldsExperimentResult(
+                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                    object_key="RUN-2",
+                    fields=[
+                        StringField(path="sys/name", value="lazy-moon-2"),
+                    ],
+                ),
+            ],
+            next_page=NextPage(next_page_token=None, limit=None),
         )
 
 
