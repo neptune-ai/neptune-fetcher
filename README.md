@@ -146,7 +146,7 @@ runs_df = project.fetch_runs_df(
 	columns=["sys/name", "sys/modification_time", "training/lr"],
 )
 
-# Fetch all runs with specific columns and matching a regex pattern
+# Fetch all runs with specific columns and extra columns that match a regex pattern
 runs_df = project.fetch_runs_df(
 	columns=["sys/name", "sys/modification_time"],
     columns_regex='tree/.*'
