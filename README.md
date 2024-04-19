@@ -100,7 +100,7 @@ for run in project.list_runs():
 ```
 
 __Returns__:
-`Iterator` of dictionaries with Neptune Run identifiers, custom identifiers and names.
+`Iterator` of dictionaries with Neptune run identifiers, custom identifiers and names.
 
 ---
 
