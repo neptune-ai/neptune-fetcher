@@ -228,14 +228,12 @@ class ReadOnlyProject:
                 )
 
         if names_regex is not None:
-            objects = list(
-                paginate_over(
-                    getter=self._backend.query_fields_within_project,
-                    extract_entries=lambda data: data.entries,
-                    project_id=self._project_qualified_name,
-                    field_names_filter=["sys/name"],
-                    experiment_ids_filter=with_ids,
-                )
+            objects = paginate_over(
+                getter=self._backend.query_fields_within_project,
+                extract_entries=lambda data: data.entries,
+                project_id=self._project_qualified_name,
+                field_names_filter=["sys/name"],
+                experiment_ids_filter=with_ids,
             )
             regex = re.compile(names_regex)
             filtered_with_ids = []
@@ -245,11 +243,11 @@ class ReadOnlyProject:
                     if field.path == "sys/name" and regex.match(field.value) is not None:
                         filtered_with_ids.append(experiment.object_key)
 
-            if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                raise ValueError(
-                    f"Too many runs matched the names regex ({len(filtered_with_ids)}). "
-                    f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                )
+                        if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
+                            raise ValueError(
+                                "Too many runs matched the names regex. "
+                                f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                            )
 
             with_ids = filtered_with_ids
 
