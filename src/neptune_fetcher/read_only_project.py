@@ -37,8 +37,10 @@ from neptune.envs import (
 from neptune.internal.backends.api_model import Project
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.backends.nql import (
+    NQLAggregator,
     NQLAttributeOperator,
     NQLAttributeType,
+    NQLQueryAggregate,
     NQLQueryAttribute,
 )
 from neptune.internal.backends.project_name_lookup import project_name_lookup
@@ -107,7 +109,7 @@ class ReadOnlyProject:
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists IDs and names of the runs in the project.
 
-        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ...}`.
+        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ..., "sys/custom_run_id": ...}`.
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
 
@@ -119,7 +121,7 @@ class ReadOnlyProject:
             ),
             sort_by="sys/id",
             step_size=step_size,
-            columns=["sys/id", "sys/name"],
+            columns=["sys/id", "sys/name", "sys/custom_run_id"],
             use_proto=True,
         )
 
@@ -129,6 +131,7 @@ class ReadOnlyProject:
             yield {
                 "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
                 "sys/name": get_attribute_value_from_entry(entry=row, name="sys/name"),
+                "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
             }
 
     def fetch_read_only_runs(self, with_ids: List[str]) -> Generator[ReadOnlyRun, None, None]:
@@ -145,9 +148,10 @@ class ReadOnlyProject:
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing IDs and names of runs in the project.
 
-        Returns `pandas.DataFrame` with two columns ('sys/id' and 'sys/name') and rows corresponding to project runs.
+        Returns `pandas.DataFrame` with two columns ('sys/id', 'sys/name' and 'sys/custom_run_id')
+            and rows corresponding to project runs.
         """
-        return self.fetch_runs_df(columns=["sys/id", "sys/name"])
+        return self.fetch_runs_df(columns=["sys/id", "sys/name", "sys/custom_run_id"])
 
     def fetch_runs_df(
         self,
@@ -155,6 +159,7 @@ class ReadOnlyProject:
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
+        with_custom_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -174,6 +179,7 @@ class ReadOnlyProject:
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
+            with_custom_ids: A list of custom run IDs to filter the results.
             states: A list of run states to filter the results.
             owners: A list of owner names to filter the results.
             tags: A list of tags to filter the results.
@@ -205,9 +211,10 @@ class ReadOnlyProject:
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
         if columns is not None:
-            # always return entries with `sys/id` column when filter applied
+            # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
             columns = set(columns)
             columns.add("sys/id")
+            columns.add("sys/custom_run_id")
 
             if columns_regex is not None:
                 field_definitions = list(
@@ -253,6 +260,26 @@ class ReadOnlyProject:
             with_ids = filtered_with_ids
 
         query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
+
+        if with_custom_ids is not None:
+            query = NQLQueryAggregate(
+                items=[
+                    query,
+                    NQLQueryAggregate(
+                        items=[
+                            NQLQueryAttribute(
+                                name="sys/custom_run_id",
+                                type=NQLAttributeType.STRING,
+                                operator=NQLAttributeOperator.EQUALS,
+                                value=custom_id,
+                            )
+                            for custom_id in with_custom_ids
+                        ],
+                        aggregator=NQLAggregator.OR,
+                    ),
+                ],
+                aggregator=NQLAggregator.AND,
+            )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,

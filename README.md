@@ -100,13 +100,13 @@ for run in project.list_runs():
 ```
 
 __Returns__:
-`Iterator` of dictionaries with run identifiers and names.
+`Iterator` of dictionaries with Neptune Run identifiers, custom identifiers and names.
 
 ---
 
 #### `fetch_runs()`
 
-Fetches a table containing IDs and names of runs in the project.
+Fetches a table containing Neptune IDs, custom Run IDs and names of runs in the project.
 
 __Example__:
 ```python
@@ -114,7 +114,7 @@ df = project.fetch_runs()
 ```
 
 __Returns__:
-`pandas.DataFrame` with two columns (`sys/id` and `sys/name`) and rows corresponding to project runs.
+`pandas.DataFrame` with three columns (`sys/id`, `sys/name` and `sys/custom_run_id`) and rows corresponding to project runs.
 
 ---
 
@@ -127,9 +127,10 @@ __Parameters__:
 | Name            | Type                                          | Default             | Description                                                                                                                                                                                                                                                                            |
 |-----------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`       | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
-| `columns_regex` | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. |
+| `columns_regex` | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
 | `names_regex`   | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                        |
 | `with_ids`      | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
+| `with_custom_ids` | `List[str]`, optional | `None` | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                 |
 | `states`        | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                     |
 | `owners`        | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                            |
 | `tags`          | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                          |
@@ -154,7 +155,7 @@ runs_df = project.fetch_runs_df(
 
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
-	with_ids=["RUN-123", "RUN-456"]
+	with_custom_ids=["nostalgic_shockley", "high_albattani"]
 )
 
 # Filter by name regex
@@ -236,7 +237,7 @@ An internal object used to operate on a specific field.
 
 __Example__:
 ```python
-run_id = run["sys/id"].fetch()
+custom_id = run["sys/custom_run_id"].fetch()
 ```
 
 ---

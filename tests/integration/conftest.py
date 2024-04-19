@@ -67,6 +67,7 @@ class BackendMock:
                         lambda field: columns is None or field.path in columns,
                         [
                             StringField(path="sys/id", value="RUN-2"),
+                            StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
                             StringField(path="sys/name", value="run2"),
                             BoolField(path="sys/failed", value=True),
                         ],
@@ -84,6 +85,7 @@ class BackendMock:
                             lambda field: columns is None or field.path in columns,
                             [
                                 StringField(path="sys/id", value="RUN-1"),
+                                StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
                                 StringField(path="sys/name", value="run1"),
                                 BoolField(path="sys/failed", value=False),
                             ],
@@ -97,6 +99,7 @@ class BackendMock:
     def get_fields_definitions(self, *args, **kwargs):
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
+            FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
             FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             FieldDefinition(path="metrics/string", type=FieldType.STRING),
