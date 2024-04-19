@@ -59,13 +59,6 @@ jobs:
           name: neptune-fetcher-package
           path: dist/
 
-      - name: Uploading to test PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.14
-        with:
-         user: __token__
-         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-         repository_url: https://test.pypi.org/legacy/
-
       - name: Uploading to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.14
         with:
