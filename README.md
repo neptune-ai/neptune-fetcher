@@ -106,7 +106,7 @@ __Returns__:
 
 #### `fetch_runs()`
 
-Fetches a table containing Neptune IDs, custom Run IDs and names of runs in the project.
+Fetches a table containing Neptune IDs, custom run IDs and names of runs in the project.
 
 __Example__:
 ```python
