@@ -223,7 +223,7 @@ class ReadOnlyProject:
             if columns is not None and len(columns) > MAX_COLUMNS_ALLOWED:
                 raise ValueError(
                     f"Too many columns requested ({len(columns)}). "
-                    "Please limit the number of columns to 10k or fewer."
+                    "Please limit the number of columns to 10 000 or fewer."
                 )
 
         if names_regex is not None:
