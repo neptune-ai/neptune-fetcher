@@ -148,7 +148,7 @@ class ReadOnlyProject:
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing IDs and names of runs in the project.
 
-        Returns `pandas.DataFrame` with two columns ('sys/id', 'sys/name' and 'sys/custom_run_id')
+        Returns `pandas.DataFrame` with three columns ('sys/id', 'sys/name' and 'sys/custom_run_id')
             and rows corresponding to project runs.
         """
         return self.fetch_runs_df(columns=["sys/id", "sys/name", "sys/custom_run_id"])
