@@ -57,6 +57,18 @@ def test__fetch_runs_df__with_names_regex(api_token, hosted_backend):
     assert sorted(results["sys/id"].values) == sorted(["RUN-2"])
 
 
+def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_runs_df(custom_id_regex="powerful.*")
+
+    # then
+    assert results is not None
+    assert sorted(results["sys/custom_run_id"].values) == sorted(["powerful_run_2"])
+
+
 def test__fetch_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)

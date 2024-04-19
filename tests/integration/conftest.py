@@ -67,6 +67,7 @@ class BackendMock:
                         lambda field: columns is None or field.path in columns,
                         [
                             StringField(path="sys/id", value="RUN-2"),
+                            StringField(path="sys/custom_run_id", value="powerful_run_2"),
                             StringField(path="sys/name", value="run2"),
                             BoolField(path="sys/failed", value=True),
                         ],
@@ -84,6 +85,7 @@ class BackendMock:
                             lambda field: columns is None or field.path in columns,
                             [
                                 StringField(path="sys/id", value="RUN-1"),
+                                StringField(path="sys/custom_run_id", value="lazy_moon_1"),
                                 StringField(path="sys/name", value="run1"),
                                 BoolField(path="sys/failed", value=False),
                             ],
@@ -148,26 +150,47 @@ class BackendMock:
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
-    def query_fields_within_project(self, *args, **kwargs):
-        return QueryFieldsResult(
-            entries=[
-                QueryFieldsExperimentResult(
-                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                    object_key="RUN-1",
-                    fields=[
-                        StringField(path="sys/name", value="powerful-sun-2"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                    object_key="RUN-2",
-                    fields=[
-                        StringField(path="sys/name", value="lazy-moon-2"),
-                    ],
-                ),
-            ],
-            next_page=NextPage(next_page_token=None, limit=None),
-        )
+    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
+        if field_names_filter == ["sys/name"]:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/name", value="lazy-moon-1"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/name", value="powerful-run-2"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
+        else:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="lazy_moon_1"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="powerful_run_2"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
 
 
 @pytest.fixture(scope="session")

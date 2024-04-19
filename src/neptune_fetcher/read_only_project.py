@@ -153,6 +153,7 @@ class ReadOnlyProject:
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
+        custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
@@ -170,6 +171,8 @@ class ReadOnlyProject:
                 Defaults to None, which includes all available columns up to 10k.
             columns_regex: A regex pattern to filter the columns by name in addition to `columns`.
             names_regex: A regex pattern to filter the runs by name.
+                When applied, it needs to limit the number of runs to 100 or fewer.
+            custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
             states: A list of run states to filter the results.
@@ -247,6 +250,30 @@ class ReadOnlyProject:
             if with_ids is not None and len(with_ids) > MAX_REGEXABLE_RUNS:
                 raise ValueError(
                     f"Too many runs matched the names regex ({len(with_ids)}). "
+                    f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                )
+
+        if custom_id_regex is not None:
+            objects = list(
+                paginate_over(
+                    getter=self._backend.query_fields_within_project,
+                    extract_entries=lambda data: data.entries,
+                    project_id=self._project_qualified_name,
+                    field_names_filter=["sys/custom_run_id"],
+                    experiment_ids_filter=with_ids,
+                )
+            )
+            regex = re.compile(custom_id_regex)
+            with_ids = []
+
+            for experiment in objects:
+                for field in experiment.fields:
+                    if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
+                        with_ids.append(experiment.object_key)
+
+            if with_ids is not None and len(with_ids) > MAX_REGEXABLE_RUNS:
+                raise ValueError(
+                    f"Too many runs matched the custom ID regex ({len(with_ids)}). "
                     f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
                 )
 
