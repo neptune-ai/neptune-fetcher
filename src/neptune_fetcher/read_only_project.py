@@ -98,6 +98,7 @@ class ReadOnlyProject:
         self._project_api_object: Project = project_name_lookup(
             backend=self._backend, name=self._project_qualified_name
         )
+        self._project_key: str = self._project_api_object.sys_id
         self._project_id: UniqueId = self._project_api_object.id
         self.project_identifier = normalize_project_name(
             name=self._project, workspace=self._project_api_object.workspace
