@@ -22,7 +22,6 @@ PROJECT = "<PROJECT HERE>"
 
 
 def main():
-    print("Run created. Now let's use the new fetcher API")
     project = ReadOnlyProject(project=PROJECT)
 
     run_info = list(project.list_runs())
