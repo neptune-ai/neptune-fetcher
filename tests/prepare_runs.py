@@ -1,3 +1,5 @@
+import time
+
 from ingestion import NeptuneIngestion
 
 client = NeptuneIngestion(
@@ -22,6 +24,7 @@ client.log(
     run_family=run1_id,
 )
 
+time.sleep(5)
 
 run2_id = client.create_run(run_id="fetcher-bb-2")
 client.log(
