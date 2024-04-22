@@ -1,4 +1,4 @@
-## [UNRELEASED] neptune-fetcher 0.3.0
+## neptune-fetcher 0.3.0
 
 ### Features
 - Regex support with `columns_regex` and `names_regex` for `fetch_runs_df()` ([#20](https://github.com/neptune-ai/neptune-fetcher/pull/20))

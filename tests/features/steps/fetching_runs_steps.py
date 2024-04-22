@@ -8,7 +8,7 @@ from behave import (
 
 @given("we filter by `with_ids`")
 def step_impl(context):
-    context.kwargs = {"with_ids": ["FETCH-1"]}
+    context.kwargs = {"with_ids": [f"{context.project_key}-1"]}
 
 
 @given("we limit the number of runs to 1")
@@ -28,6 +28,17 @@ def step_impl(context):
     context.kwargs = {"sort_by": context.column, "ascending": False}
 
 
+@given("we select columns by regex")
+def step_impl(context):
+    context.expected_columns = ["fields/int", "fields/float", "fields/string"]
+    context.kwargs = {"columns_regex": "fields/.*", "columns": []}
+
+
+@given("we filter by run names regex")
+def step_impl(context):
+    context.kwargs = {"names_regex": f"{context.project_key}-[2-9]+"}
+
+
 @when("we fetch runs dataframe")
 def step_impl(context):
     if hasattr(context, "kwargs"):
@@ -39,6 +50,23 @@ def step_impl(context):
 @then("we should get 1 run")
 def step_impl(context):
     assert len(context.dataframe) == 1
+
+
+@then("we should get second run")
+def step_impl(context):
+    assert len(context.dataframe) == 1
+    assert context.dataframe["sys/name"].values[0] == f"{context.project_key}-2"
+
+
+@then("we should have selected columns included")
+def step_impl(context):
+    # run id column is always included
+    assert sorted(
+        context.expected_columns
+        + [
+            "sys/id",
+        ]
+    ) == sorted(context.dataframe.columns.tolist())
 
 
 @then("we should get 2 runs")
