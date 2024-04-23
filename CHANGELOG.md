@@ -1,3 +1,9 @@
+## [UNRELEASED] neptune-fetcher 0.4.0
+
+### Features
+- Added `sys/custom_run_id` to `list_runs()` result ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/21))
+
+
 ## neptune-fetcher 0.3.0
 
 ### Features
@@ -9,7 +15,6 @@
 ### Features
 - Added support for bool, state, datetime and float series ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 - Added support for fetching float series values ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
-- Added `sys/custom_run_id` to `list_runs()` result ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/21))
 
 ### Changes
 - Using only paths filter endpoint instead of dedicated ones ([#17](https://github.com/neptune-ai/neptune-fetcher/pull/17))
