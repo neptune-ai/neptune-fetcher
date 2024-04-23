@@ -30,6 +30,7 @@ from typing import (
     Union,
 )
 
+from icecream import ic
 from neptune.api.pagination import paginate_over
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
@@ -167,6 +168,7 @@ class ReadOnlyProject:
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
+        custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         with_custom_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
@@ -186,6 +188,8 @@ class ReadOnlyProject:
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
             names_regex: A regex pattern to filter the runs by name.
+                When applied, it needs to limit the number of runs to 100 or fewer.
+            custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
             with_custom_ids: A list of custom run IDs to filter the results.
@@ -266,7 +270,38 @@ class ReadOnlyProject:
                                 f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
                             )
 
-            with_ids = filtered_with_ids
+            if with_ids is None:
+                with_ids = filtered_with_ids
+            else:
+                with_ids = list(set(with_ids) & set(filtered_with_ids))
+
+        if custom_id_regex is not None:
+            objects = paginate_over(
+                getter=self._backend.query_fields_within_project,
+                extract_entries=lambda data: data.entries,
+                project_id=self._project_qualified_name,
+                field_names_filter=["sys/custom_run_id"],
+                experiment_ids_filter=with_ids,
+            )
+            regex = re.compile(custom_id_regex)
+            filtered_with_ids = []
+
+            for experiment in objects:
+                for field in experiment.fields:
+                    ic(field.path, field.value, regex.match(field.value))
+                    if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
+                        filtered_with_ids.append(experiment.object_key)
+
+                        if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
+                            raise ValueError(
+                                "Too many runs matched the names regex. "
+                                f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                            )
+
+            if with_ids is None:
+                with_ids = filtered_with_ids
+            else:
+                with_ids = list(set(with_ids) & set(filtered_with_ids))
 
         query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 

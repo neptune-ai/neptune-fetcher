@@ -64,24 +64,32 @@ class BackendMock:
         return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
-        output = [
-            LeaderboardEntry(
-                object_id="RUN-2",
-                fields=list(
-                    filter(
-                        lambda field: columns is None or field.path in columns,
-                        [
-                            StringField(path="sys/id", value="RUN-2"),
-                            StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
-                            StringField(path="sys/name", value="run2"),
-                            BoolField(path="sys/failed", value=True),
-                        ],
-                    )
-                ),
-            ),
-        ]
+        print(query)
 
-        if str(query) == "(`sys/trashed`:bool = false)":
+        output = []
+
+        if str(query) != '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))':
+            output.append(
+                LeaderboardEntry(
+                    object_id="RUN-2",
+                    fields=list(
+                        filter(
+                            lambda field: columns is None or field.path in columns,
+                            [
+                                StringField(path="sys/id", value="RUN-2"),
+                                StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                                StringField(path="sys/name", value="run2"),
+                                BoolField(path="sys/failed", value=True),
+                            ],
+                        )
+                    ),
+                )
+            )
+
+        if (
+            str(query) == "(`sys/trashed`:bool = false)"
+            or str(query) == '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))'
+        ):
             output.append(
                 LeaderboardEntry(
                     object_id="RUN-1",
@@ -156,26 +164,47 @@ class BackendMock:
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
-    def query_fields_within_project(self, *args, **kwargs):
-        return QueryFieldsResult(
-            entries=[
-                QueryFieldsExperimentResult(
-                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                    object_key="RUN-1",
-                    fields=[
-                        StringField(path="sys/name", value="powerful-sun-2"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                    object_key="RUN-2",
-                    fields=[
-                        StringField(path="sys/name", value="lazy-moon-2"),
-                    ],
-                ),
-            ],
-            next_page=NextPage(next_page_token=None, limit=None),
-        )
+    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
+        if field_names_filter == ["sys/name"]:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/name", value="powerful-sun-2"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/name", value="lazy-moon-2"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
+        else:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="alternative_tesla"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
 
     def get_metadata_container(self, container_id, *args, **kwargs):
         if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
