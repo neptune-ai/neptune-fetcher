@@ -51,9 +51,26 @@ from neptune.internal.id_formats import (
 )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
+
+
+def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
+    return LeaderboardEntry(
+        object_id=sys_id,
+        fields=list(
+            filter(
+                lambda field: columns is None or field.path in columns,
+                [
+                    StringField(path="sys/id", value=sys_id),
+                    StringField(path="sys/custom_run_id", value=custom_run_id),
+                    StringField(path="sys/name", value=name),
+                    BoolField(path="sys/failed", value=True),
+                ],
+            )
+        ),
+    )
 
 
 class BackendMock:
@@ -69,42 +86,14 @@ class BackendMock:
         output = []
 
         if str(query) != '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))':
-            output.append(
-                LeaderboardEntry(
-                    object_id="RUN-2",
-                    fields=list(
-                        filter(
-                            lambda field: columns is None or field.path in columns,
-                            [
-                                StringField(path="sys/id", value="RUN-2"),
-                                StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
-                                StringField(path="sys/name", value="run2"),
-                                BoolField(path="sys/failed", value=True),
-                            ],
-                        )
-                    ),
-                )
-            )
+            output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", "run2", columns))
 
         if (
             str(query) == "(`sys/trashed`:bool = false)"
             or str(query) == '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))'
         ):
             output.append(
-                LeaderboardEntry(
-                    object_id="RUN-1",
-                    fields=list(
-                        filter(
-                            lambda field: columns is None or field.path in columns,
-                            [
-                                StringField(path="sys/id", value="RUN-1"),
-                                StringField(path="sys/custom_run_id", value="alternative_tesla"),
-                                StringField(path="sys/name", value="run1"),
-                                BoolField(path="sys/failed", value=False),
-                            ],
-                        )
-                    ),
-                )
+                create_leaderboard_entry("RUN-1", "alternative_tesla", "run1", columns),
             )
 
         return iter(output)
@@ -224,7 +213,7 @@ class BackendMock:
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def hosted_backend() -> HostedNeptuneBackend:
-    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend", BackendMock) as mock:
+    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend", return_value=BackendMock()) as mock:
         yield mock

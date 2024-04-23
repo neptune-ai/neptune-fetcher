@@ -30,7 +30,6 @@ from typing import (
     Union,
 )
 
-from icecream import ic
 from neptune.api.pagination import paginate_over
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
@@ -276,6 +275,7 @@ class ReadOnlyProject:
                 with_ids = list(set(with_ids) & set(filtered_with_ids))
 
         if custom_id_regex is not None:
+            print("custom_id_regex")
             objects = paginate_over(
                 getter=self._backend.query_fields_within_project,
                 extract_entries=lambda data: data.entries,
@@ -288,7 +288,7 @@ class ReadOnlyProject:
 
             for experiment in objects:
                 for field in experiment.fields:
-                    ic(field.path, field.value, regex.match(field.value))
+                    print(field.path, field.value, regex.match(field.value), experiment.object_key)
                     if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
                         filtered_with_ids.append(experiment.object_key)
 
@@ -297,6 +297,8 @@ class ReadOnlyProject:
                                 "Too many runs matched the names regex. "
                                 f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
                             )
+
+            print(filtered_with_ids)
 
             if with_ids is None:
                 with_ids = filtered_with_ids
