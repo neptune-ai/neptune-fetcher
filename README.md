@@ -200,10 +200,11 @@ Can be created with the class constructor, or as a result of the [`fetch_read_on
 
 __Parameters__:
 
-| Name                | Type              | Default | Description                                    |
-|---------------------|-------------------|---------|------------------------------------------------|
-| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched. |
-| `with_id`           | `str`             | -       | Neptune run ID to fetch. Example: `RUN-1`.     |
+| Name                | Type              | Default | Description                                                                   |
+|---------------------|-------------------|---------|-------------------------------------------------------------------------------|
+| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched.                                |
+| `with_id`           | `Optional[str]`   | `None`  | Neptune run ID to fetch. Example: `RUN-1`. Exclusive with `custom_id`         |
+| `custom_id`         | `Optional[str]`   | `None`  | Neptune Custom IDs to fetch. Example: `my-run-aa-1`. Exclusive with `with_id` |
 
 __Example__:
 ```python
