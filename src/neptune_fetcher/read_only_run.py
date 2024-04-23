@@ -51,13 +51,27 @@ def get_attribute_value_from_entry(entry: TableEntry, name: str) -> Optional[str
 
 
 class ReadOnlyRun:
-    def __init__(self, read_only_project: "ReadOnlyProject", with_id: str) -> None:
+    def __init__(
+        self, read_only_project: "ReadOnlyProject", with_id: Optional[str] = None, custom_id: Optional[str] = None
+    ) -> None:
         self.project = read_only_project
-        self.with_id = with_id
 
-        verify_type("with_id", with_id, str)
+        verify_type("with_id", with_id, (str, type(None)))
+        verify_type("custom_id", custom_id, (str, type(None)))
 
-        self._container_id = QualifiedName(f"{self.project.project_identifier}/{with_id}")
+        if with_id is None and custom_id is None:
+            raise ValueError("Either `with_id` or `custom_id` must be provided.")
+
+        if custom_id is not None:
+            experiment = read_only_project._backend.get_metadata_container(
+                container_id=QualifiedName(f"CUSTOM/{read_only_project.project_identifier}/{custom_id}"),
+                expected_container_type=None,
+            )
+            self.with_id = experiment.sys_id
+        else:
+            self.with_id = with_id
+
+        self._container_id = QualifiedName(f"{self.project.project_identifier}/{self.with_id}")
         self._cache = FieldsCache(
             backend=self.project._backend,
             container_id=self._container_id,
