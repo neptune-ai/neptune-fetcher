@@ -1,7 +1,7 @@
 ## [UNRELEASED] neptune-fetcher 0.4.0
 
 ### Features
-- Added `sys/custom_run_id` across all the methods ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/21))
+- Added support for custom run ids ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/21))
 
 
 ## neptune-fetcher 0.3.0
