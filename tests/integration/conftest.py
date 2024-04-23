@@ -81,8 +81,6 @@ class BackendMock:
         return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
-        print(query)
-
         output = []
 
         if str(query) != '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))':
