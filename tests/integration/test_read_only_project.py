@@ -54,7 +54,7 @@ def test__fetch_runs_df__with_names_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results["sys/id"].values) == sorted(["RUN-1"])
+    assert results["sys/id"].values == ["RUN-1"]
 
 
 def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
@@ -66,7 +66,7 @@ def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results["sys/custom_run_id"].values) == sorted(["alternative_tesla"])
+    assert results["sys/custom_run_id"].values == ["alternative_tesla"]
 
 
 def test__fetch_runs(api_token, hosted_backend):
