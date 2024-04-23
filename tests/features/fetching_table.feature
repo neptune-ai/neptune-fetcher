@@ -41,3 +41,9 @@ Feature: Fetching runs dataframe
       And we filter by run names regex
      When we fetch runs dataframe
      Then we should get second run
+
+  Scenario: Custom id regex
+    Given we have a read-only project
+      And we filter by custom id regex
+     When we fetch runs dataframe
+     Then we should get second run
