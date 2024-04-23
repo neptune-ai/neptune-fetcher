@@ -38,9 +38,14 @@ from neptune.api.models import (
     StringField,
     StringSetField,
 )
-from neptune.internal.backends.api_model import Project
+from neptune.internal.backends.api_model import (
+    ApiExperiment,
+    Project,
+)
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
+from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import (
+    QualifiedName,
     SysId,
     UniqueId,
 )
@@ -85,7 +90,7 @@ class BackendMock:
                             lambda field: columns is None or field.path in columns,
                             [
                                 StringField(path="sys/id", value="RUN-1"),
-                                StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                                StringField(path="sys/custom_run_id", value="alternative_tesla"),
                                 StringField(path="sys/name", value="run1"),
                                 BoolField(path="sys/failed", value=False),
                             ],
@@ -170,6 +175,23 @@ class BackendMock:
                 ),
             ],
             next_page=NextPage(next_page_token=None, limit=None),
+        )
+
+    def get_metadata_container(self, container_id, *args, **kwargs):
+        if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
+            internal_id = UniqueId("440ee146-442e-4d7c-a8ac-276ba940a071")
+            sys_id = SysId("RUN-1")
+        else:
+            internal_id = UniqueId("2f24214f-c315-4c96-a82e-6d05aa017532")
+            sys_id = SysId("RUN-2")
+
+        return ApiExperiment(
+            id=internal_id,
+            type=ContainerType.RUN,
+            sys_id=sys_id,
+            workspace="test-workspace",
+            project_name="test-project",
+            trashed=False,
         )
 
 

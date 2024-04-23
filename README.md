@@ -174,13 +174,14 @@ List runs of the project in the form of ReadOnlyRun.
 
 __Parameters__:
 
-| Name       | Type        | Default | Description                       |
-|------------|-------------|---------|-----------------------------------|
-| `with_ids` | `List[str]` | -       | List of Neptune run IDs to fetch. |
+| Name         | Type                  | Default | Description                       |
+|--------------|-----------------------|---------|-----------------------------------|
+| `with_ids`   | `Optional[List[str]]` | `None`  | List of Neptune run IDs to fetch. |
+| `custom_ids` | `Optional[List[str]]` | `None`  | List of custom run IDs to fetch.  |
 
 __Example__:
 ```python
-for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
+for run in project.fetch_read_only_runs(custom_ids=["my-run-aa-1", "my-run-bb-2"]):
     ...
 ```
 

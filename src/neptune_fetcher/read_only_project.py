@@ -24,6 +24,7 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    Iterator,
     List,
     Optional,
     Union,
@@ -134,16 +135,24 @@ class ReadOnlyProject:
                 "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
             }
 
-    def fetch_read_only_runs(self, with_ids: List[str]) -> Generator[ReadOnlyRun, None, None]:
+    def fetch_read_only_runs(
+        self,
+        with_ids: Optional[List[str]] = None,
+        custom_ids: Optional[List[str]] = None,
+    ) -> Iterator[ReadOnlyRun]:
         """Lists runs of the project in the form of read-only runs.
 
         Returns a generator of `ReadOnlyRun` instances.
 
         Args:
             with_ids: List of run ids to fetch.
+            custom_ids: List of custom run ids to fetch.
         """
-        for run_id in with_ids:
+        for run_id in with_ids or []:
             yield ReadOnlyRun(read_only_project=self, with_id=run_id)
+
+        for custom_id in custom_ids or []:
+            yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing IDs and names of runs in the project.

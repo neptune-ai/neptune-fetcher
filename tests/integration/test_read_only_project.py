@@ -83,12 +83,28 @@ def test__list_runs(api_token, hosted_backend):
     assert sorted([result["sys/name"] for result in results]) == sorted(["run1", "run2"])
 
 
-def test__fetch_read_only_runs(api_token, hosted_backend):
+def test__fetch_read_only_runs__with_ids(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
 
     # when
     results = list(project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]))
+
+    # then
+    assert results is not None
+    assert len(results) == 2
+    assert results[0].with_id == "RUN-1"
+    assert results[1].with_id == "RUN-2"
+    assert results[0].project == project
+    assert results[1].project == project
+
+
+def test__fetch_read_only_runs__custom_ids(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = list(project.fetch_read_only_runs(custom_ids=["alternative_tesla", "nostalgic_stallman"]))
 
     # then
     assert results is not None
