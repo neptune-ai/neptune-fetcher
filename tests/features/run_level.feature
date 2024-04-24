@@ -5,6 +5,11 @@ Feature: Support for read-only runs
      When we initialize the read-only run
      Then no exception is thrown
 
+  Scenario: Initialize read-only run using custom id
+    Given we have a read-only project
+     When we initialize the read-only run with custom id
+     Then no exception is thrown
+
   Scenario: Fetching field names
     Given we have a read-only run
      When we fetch the field names

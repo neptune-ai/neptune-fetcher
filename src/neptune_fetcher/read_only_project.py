@@ -24,8 +24,10 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    Iterator,
     List,
     Optional,
+    Set,
     Union,
 )
 
@@ -37,8 +39,11 @@ from neptune.envs import (
 from neptune.internal.backends.api_model import Project
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
 from neptune.internal.backends.nql import (
+    NQLAggregator,
     NQLAttributeOperator,
     NQLAttributeType,
+    NQLQuery,
+    NQLQueryAggregate,
     NQLQueryAttribute,
 )
 from neptune.internal.backends.project_name_lookup import project_name_lookup
@@ -107,7 +112,7 @@ class ReadOnlyProject:
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists IDs and names of the runs in the project.
 
-        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ...}`.
+        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ..., "sys/custom_run_id": ...}`.
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
 
@@ -119,7 +124,7 @@ class ReadOnlyProject:
             ),
             sort_by="sys/id",
             step_size=step_size,
-            columns=["sys/id", "sys/name"],
+            columns=["sys/id", "sys/name", "sys/custom_run_id"],
             use_proto=True,
         )
 
@@ -129,32 +134,44 @@ class ReadOnlyProject:
             yield {
                 "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
                 "sys/name": get_attribute_value_from_entry(entry=row, name="sys/name"),
+                "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
             }
 
-    def fetch_read_only_runs(self, with_ids: List[str]) -> Generator[ReadOnlyRun, None, None]:
+    def fetch_read_only_runs(
+        self,
+        with_ids: Optional[List[str]] = None,
+        custom_ids: Optional[List[str]] = None,
+    ) -> Iterator[ReadOnlyRun]:
         """Lists runs of the project in the form of read-only runs.
 
         Returns a generator of `ReadOnlyRun` instances.
 
         Args:
             with_ids: List of run ids to fetch.
+            custom_ids: List of custom run ids to fetch.
         """
-        for run_id in with_ids:
+        for run_id in with_ids or []:
             yield ReadOnlyRun(read_only_project=self, with_id=run_id)
+
+        for custom_id in custom_ids or []:
+            yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing IDs and names of runs in the project.
 
-        Returns `pandas.DataFrame` with two columns ('sys/id' and 'sys/name') and rows corresponding to project runs.
+        Returns `pandas.DataFrame` with three columns ('sys/id', 'sys/name' and 'sys/custom_run_id')
+            and rows corresponding to project runs.
         """
-        return self.fetch_runs_df(columns=["sys/id", "sys/name"])
+        return self.fetch_runs_df(columns=["sys/id", "sys/name", "sys/custom_run_id"])
 
     def fetch_runs_df(
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
+        custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
+        with_custom_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -173,7 +190,10 @@ class ReadOnlyProject:
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it needs to limit the number of runs to 100 or fewer.
+            custom_id_regex: A regex pattern to filter the runs by custom ID.
+                When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
+            with_custom_ids: A list of custom run IDs to filter the results.
             states: A list of run states to filter the results.
             owners: A list of owner names to filter the results.
             tags: A list of tags to filter the results.
@@ -205,22 +225,19 @@ class ReadOnlyProject:
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
         if columns is not None:
-            # always return entries with `sys/id` column when filter applied
+            # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
             columns = set(columns)
             columns.add("sys/id")
+            columns.add("sys/custom_run_id")
 
             if columns_regex is not None:
-                field_definitions = list(
-                    paginate_over(
-                        getter=self._backend.query_fields_definitions_within_project,
-                        extract_entries=lambda data: data.entries,
-                        project_id=self._project_qualified_name,
-                        field_name_regex=columns_regex,
-                        experiment_ids_filter=with_ids,
-                    )
+                columns = filter_columns_regex(
+                    columns_regex=columns_regex,
+                    columns=columns,
+                    backend=self._backend,
+                    project_qualified_name=self._project_qualified_name,
+                    with_ids=with_ids,
                 )
-                for field_definition in field_definitions:
-                    columns.add(field_definition.path)
 
             if len(columns) > MAX_COLUMNS_ALLOWED:
                 raise ValueError(
@@ -229,30 +246,29 @@ class ReadOnlyProject:
                 )
 
         if names_regex is not None:
-            objects = paginate_over(
-                getter=self._backend.query_fields_within_project,
-                extract_entries=lambda data: data.entries,
-                project_id=self._project_qualified_name,
-                field_names_filter=["sys/name"],
-                experiment_ids_filter=with_ids,
+            with_ids = filter_sys_name_regex(
+                names_regex=names_regex,
+                backend=self._backend,
+                project_qualified_name=self._project_qualified_name,
+                with_ids=with_ids,
             )
-            regex = re.compile(names_regex)
-            filtered_with_ids = []
 
-            for experiment in objects:
-                for field in experiment.fields:
-                    if field.path == "sys/name" and regex.match(field.value) is not None:
-                        filtered_with_ids.append(experiment.object_key)
+        if custom_id_regex is not None:
+            with_ids = filter_custom_id_regex(
+                custom_id_regex=custom_id_regex,
+                backend=self._backend,
+                project_qualified_name=self._project_qualified_name,
+                with_ids=with_ids,
+            )
 
-                        if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                            raise ValueError(
-                                "Too many runs matched the names regex. "
-                                f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                            )
-
-            with_ids = filtered_with_ids
-
-        query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
+        query = prepare_extended_nql_query(
+            with_ids=with_ids,
+            with_custom_ids=with_custom_ids,
+            states=states,
+            owners=owners,
+            tags=tags,
+            trashed=trashed,
+        )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
@@ -272,3 +288,124 @@ class ReadOnlyProject:
             container_type=ContainerType.RUN,
             entries=leaderboard_entries,
         ).to_pandas()
+
+
+def prepare_extended_nql_query(
+    with_ids: Optional[Iterable[str]] = None,
+    with_custom_ids: Optional[Iterable[str]] = None,
+    states: Optional[Iterable[str]] = None,
+    owners: Optional[Iterable[str]] = None,
+    tags: Optional[Iterable[str]] = None,
+    trashed: Optional[bool] = False,
+) -> NQLQuery:
+    query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
+
+    if with_custom_ids is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAggregate(
+                    items=[
+                        NQLQueryAttribute(
+                            name="sys/custom_run_id",
+                            type=NQLAttributeType.STRING,
+                            operator=NQLAttributeOperator.EQUALS,
+                            value=custom_id,
+                        )
+                        for custom_id in with_custom_ids
+                    ],
+                    aggregator=NQLAggregator.OR,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
+        )
+
+    return query
+
+
+def filter_columns_regex(
+    columns_regex: str,
+    columns: Set[str],
+    backend: HostedNeptuneBackend,
+    project_qualified_name: str,
+    with_ids: Optional[List[str]] = None,
+) -> Set[str]:
+    field_definitions = list(
+        paginate_over(
+            getter=backend.query_fields_definitions_within_project,
+            extract_entries=lambda data: data.entries,
+            project_id=project_qualified_name,
+            field_name_regex=columns_regex,
+            experiment_ids_filter=with_ids,
+        )
+    )
+    for field_definition in field_definitions:
+        columns.add(field_definition.path)
+
+    return columns
+
+
+def filter_sys_name_regex(
+    names_regex: str,
+    backend: HostedNeptuneBackend,
+    project_qualified_name: str,
+    with_ids: Optional[List[str]] = None,
+) -> List[str]:
+    objects = paginate_over(
+        getter=backend.query_fields_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+        field_names_filter=["sys/name"],
+        experiment_ids_filter=with_ids,
+    )
+    regex = re.compile(names_regex)
+    filtered_with_ids = []
+
+    for experiment in objects:
+        for field in experiment.fields:
+            if field.path == "sys/name" and regex.match(field.value) is not None:
+                filtered_with_ids.append(experiment.object_key)
+
+                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
+                    raise ValueError(
+                        "Too many runs matched the names regex. "
+                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                    )
+
+    if with_ids is None:
+        return filtered_with_ids
+    else:
+        return list(set(with_ids) & set(filtered_with_ids))
+
+
+def filter_custom_id_regex(
+    custom_id_regex: str,
+    backend: HostedNeptuneBackend,
+    project_qualified_name: str,
+    with_ids: Optional[List[str]] = None,
+) -> List[str]:
+    objects = paginate_over(
+        getter=backend.query_fields_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+        field_names_filter=["sys/custom_run_id"],
+        experiment_ids_filter=with_ids,
+    )
+    regex = re.compile(custom_id_regex)
+    filtered_with_ids = []
+
+    for experiment in objects:
+        for field in experiment.fields:
+            if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
+                filtered_with_ids.append(experiment.object_key)
+
+                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
+                    raise ValueError(
+                        "Too many runs matched the custom ID regex. "
+                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                    )
+
+    if with_ids is None:
+        return filtered_with_ids
+    else:
+        return list(set(with_ids) & set(filtered_with_ids))

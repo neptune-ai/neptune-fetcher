@@ -39,6 +39,11 @@ def step_impl(context):
     context.kwargs = {"names_regex": f"{context.project_key}-[2-9]+"}
 
 
+@given("we filter by custom id regex")
+def step_impl(context):
+    context.kwargs = {"custom_id_regex": "fetcher-bb-.*"}
+
+
 @when("we fetch runs dataframe")
 def step_impl(context):
     if hasattr(context, "kwargs"):
@@ -65,6 +70,7 @@ def step_impl(context):
         context.expected_columns
         + [
             "sys/id",
+            "sys/custom_run_id",
         ]
     ) == sorted(context.dataframe.columns.tolist())
 
@@ -77,7 +83,7 @@ def step_impl(context):
 @then("we should get 2 runs with 1 column")
 def step_impl(context):
     assert context.column in context.dataframe.columns
-    assert len(context.dataframe.columns) == 1 + 1  # +1 for the run id column
+    assert len(context.dataframe.columns) == 1 + 2  # +2 for the run id column and custom id column
 
 
 @then("we should get 2 runs sorted by `fields/float` in descending order")

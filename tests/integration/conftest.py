@@ -38,17 +38,39 @@ from neptune.api.models import (
     StringField,
     StringSetField,
 )
-from neptune.internal.backends.api_model import Project
+from neptune.internal.backends.api_model import (
+    ApiExperiment,
+    Project,
+)
 from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
+from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import (
+    QualifiedName,
     SysId,
     UniqueId,
 )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
+
+
+def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
+    return LeaderboardEntry(
+        object_id=sys_id,
+        fields=list(
+            filter(
+                lambda field: columns is None or field.path in columns,
+                [
+                    StringField(path="sys/id", value=sys_id),
+                    StringField(path="sys/custom_run_id", value=custom_run_id),
+                    StringField(path="sys/name", value=name),
+                    BoolField(path="sys/failed", value=True),
+                ],
+            )
+        ),
+    )
 
 
 class BackendMock:
@@ -59,37 +81,17 @@ class BackendMock:
         return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
-        output = [
-            LeaderboardEntry(
-                object_id="RUN-2",
-                fields=list(
-                    filter(
-                        lambda field: columns is None or field.path in columns,
-                        [
-                            StringField(path="sys/id", value="RUN-2"),
-                            StringField(path="sys/name", value="run2"),
-                            BoolField(path="sys/failed", value=True),
-                        ],
-                    )
-                ),
-            ),
-        ]
+        output = []
 
-        if str(query) == "(`sys/trashed`:bool = false)":
+        if str(query) != '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))':
+            output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", "run2", columns))
+
+        if (
+            str(query) == "(`sys/trashed`:bool = false)"
+            or str(query) == '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))'
+        ):
             output.append(
-                LeaderboardEntry(
-                    object_id="RUN-1",
-                    fields=list(
-                        filter(
-                            lambda field: columns is None or field.path in columns,
-                            [
-                                StringField(path="sys/id", value="RUN-1"),
-                                StringField(path="sys/name", value="run1"),
-                                BoolField(path="sys/failed", value=False),
-                            ],
-                        )
-                    ),
-                )
+                create_leaderboard_entry("RUN-1", "alternative_tesla", "run1", columns),
             )
 
         return iter(output)
@@ -97,6 +99,7 @@ class BackendMock:
     def get_fields_definitions(self, *args, **kwargs):
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
+            FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
             FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             FieldDefinition(path="metrics/string", type=FieldType.STRING),
@@ -148,29 +151,67 @@ class BackendMock:
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
-    def query_fields_within_project(self, *args, **kwargs):
-        return QueryFieldsResult(
-            entries=[
-                QueryFieldsExperimentResult(
-                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                    object_key="RUN-1",
-                    fields=[
-                        StringField(path="sys/name", value="powerful-sun-2"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                    object_key="RUN-2",
-                    fields=[
-                        StringField(path="sys/name", value="lazy-moon-2"),
-                    ],
-                ),
-            ],
-            next_page=NextPage(next_page_token=None, limit=None),
+    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
+        if field_names_filter == ["sys/name"]:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/name", value="powerful-sun-2"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/name", value="lazy-moon-2"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
+        else:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="RUN-1",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="alternative_tesla"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="RUN-2",
+                        fields=[
+                            StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
+
+    def get_metadata_container(self, container_id, *args, **kwargs):
+        if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
+            internal_id = UniqueId("440ee146-442e-4d7c-a8ac-276ba940a071")
+            sys_id = SysId("RUN-1")
+        else:
+            internal_id = UniqueId("2f24214f-c315-4c96-a82e-6d05aa017532")
+            sys_id = SysId("RUN-2")
+
+        return ApiExperiment(
+            id=internal_id,
+            type=ContainerType.RUN,
+            sys_id=sys_id,
+            workspace="test-workspace",
+            project_name="test-project",
+            trashed=False,
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def hosted_backend() -> HostedNeptuneBackend:
-    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend", BackendMock) as mock:
+    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend", return_value=BackendMock()) as mock:
         yield mock
