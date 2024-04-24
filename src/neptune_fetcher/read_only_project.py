@@ -401,7 +401,7 @@ def filter_custom_id_regex(
 
                 if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
                     raise ValueError(
-                        "Too many runs matched the names regex. "
+                        "Too many runs matched the custom ID regex. "
                         f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
                     )
 
