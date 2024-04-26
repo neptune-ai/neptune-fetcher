@@ -34,8 +34,8 @@ jobs:
       - name: Install package
         uses: ./.github/actions/install-package
         with:
-          python-version: ${{ inputs.python-version }}
-          os: ${{ inputs.os }}-latest
+          python-version: ${{ matrix.python-version }}
+          os: ${{ matrix.os }}-latest
 
       - name: Run tests
         uses: ./.github/actions/test-integration
