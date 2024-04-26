@@ -1,4 +1,4 @@
-## [UNRELEASED] neptune-fetcher 0.4.0
+## neptune-fetcher 0.4.0
 
 ### Features
 - Added support for custom run IDs ([#22](https://github.com/neptune-ai/neptune-fetcher/pull/21))

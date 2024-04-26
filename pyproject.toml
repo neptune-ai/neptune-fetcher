@@ -17,7 +17,6 @@ neptune = "2.0.0a3"
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0", optional = true }
 
-
 [tool.poetry]
 authors = ["neptune.ai <contact@neptune.ai>"]
 description = "Neptune Fetcher"
