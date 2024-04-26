@@ -171,7 +171,7 @@ class ReadOnlyProject:
         names_regex: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
-        with_custom_ids: Optional[Iterable[str]] = None,
+        custom_ids: Optional[Iterable[str]] = None,
         states: Optional[Iterable[str]] = None,
         owners: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -193,7 +193,7 @@ class ReadOnlyProject:
             custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
-            with_custom_ids: A list of custom run IDs to filter the results.
+            custom_ids: A list of custom run IDs to filter the results.
             states: A list of run states to filter the results.
             owners: A list of owner names to filter the results.
             tags: A list of tags to filter the results.
@@ -263,7 +263,7 @@ class ReadOnlyProject:
 
         query = prepare_extended_nql_query(
             with_ids=with_ids,
-            with_custom_ids=with_custom_ids,
+            custom_ids=custom_ids,
             states=states,
             owners=owners,
             tags=tags,
@@ -292,7 +292,7 @@ class ReadOnlyProject:
 
 def prepare_extended_nql_query(
     with_ids: Optional[Iterable[str]] = None,
-    with_custom_ids: Optional[Iterable[str]] = None,
+    custom_ids: Optional[Iterable[str]] = None,
     states: Optional[Iterable[str]] = None,
     owners: Optional[Iterable[str]] = None,
     tags: Optional[Iterable[str]] = None,
@@ -300,7 +300,7 @@ def prepare_extended_nql_query(
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 
-    if with_custom_ids is not None:
+    if custom_ids is not None:
         query = NQLQueryAggregate(
             items=[
                 query,
@@ -312,7 +312,7 @@ def prepare_extended_nql_query(
                             operator=NQLAttributeOperator.EQUALS,
                             value=custom_id,
                         )
-                        for custom_id in with_custom_ids
+                        for custom_id in custom_ids
                     ],
                     aggregator=NQLAggregator.OR,
                 ),
