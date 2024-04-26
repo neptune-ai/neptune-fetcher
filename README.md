@@ -13,7 +13,7 @@ pip install neptune-fetcher
 
 ## Example usage
 
-### Fetching data frame containing run fields
+### Fetching data frame containing specified fields as columns
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -21,11 +21,12 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time", "training/lr"],
+    columns=["sys/name", "sys/modification_time"],
+    columns_regex="tree/.*",  # added to columns specified with the "columns" parameter
 )
 ```
 
-### Fetching data from multiple runs
+### Fetching data from specified runs
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -145,23 +146,23 @@ __Example__:
 ```python
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-	columns=["sys/name", "sys/modification_time", "training/lr"],
+    columns=["sys/name", "sys/modification_time", "training/lr"]
 )
 
 # Fetch all runs with specific columns and extra columns that match a regex pattern
 runs_df = project.fetch_runs_df(
-	columns=["sys/name", "sys/modification_time"],
-    columns_regex='tree/.*'
+    columns=["sys/name", "sys/modification_time"],
+    columns_regex="tree/.*",
 )
 
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
-	custom_ids=["nostalgic_shockley", "high_albattani"]
+    custom_ids=["nostalgic_shockley", "high_albattani"]
 )
 
 # Filter by name regex
 specific_runs_df = my_project.fetch_runs_df(
-	names_regex='tree_3[2-4]+'
+    names_regex="tree_3[2-4]+"
 )
 ```
 
