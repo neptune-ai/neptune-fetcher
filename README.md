@@ -13,7 +13,7 @@ pip install neptune-fetcher
 
 ## Example usage
 
-### Fetching data frame containing run fields
+### Fetching data frame containing specified fields as columns
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -21,11 +21,12 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time", "training/lr"],
+    columns=["sys/name", "sys/modification_time"],
+    columns_regex="tree/.*",  # added to columns specified with the "columns" parameter
 )
 ```
 
-### Fetching data from multiple runs
+### Fetching data from specified runs
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -131,7 +132,7 @@ __Parameters__:
 | `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                        |
 | `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                   |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
-| `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
+| `with_custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
 | `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                     |
 | `owners`          | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                            |
 | `tags`            | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                          |
@@ -145,23 +146,23 @@ __Example__:
 ```python
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-	columns=["sys/name", "sys/modification_time", "training/lr"],
+    columns=["sys/name", "sys/modification_time", "training/lr"]
 )
 
 # Fetch all runs with specific columns and extra columns that match a regex pattern
 runs_df = project.fetch_runs_df(
-	columns=["sys/name", "sys/modification_time"],
-    columns_regex='tree/.*'
+    columns=["sys/name", "sys/modification_time"],
+    columns_regex="tree/.*",
 )
 
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
-	custom_ids=["nostalgic_shockley", "high_albattani"]
+    custom_ids=["nostalgic_shockley", "high_albattani"]
 )
 
 # Filter by name regex
 specific_runs_df = my_project.fetch_runs_df(
-	names_regex='tree_3[2-4]+'
+    names_regex="tree_3[2-4]+"
 )
 ```
 
