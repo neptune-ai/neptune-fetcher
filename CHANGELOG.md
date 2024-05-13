@@ -1,3 +1,9 @@
+## [UNRELEASED] neptune-fetcher 0.5.0
+
+## Breaking Changes
+- Dropped support for `sys/name` field and `names_regex` parameter in `ReadOnlyProject` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
+
+
 ## neptune-fetcher 0.4.0
 
 ### Features
