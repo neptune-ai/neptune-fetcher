@@ -60,7 +60,6 @@ def step_impl(context):
 @then("we should get second run")
 def step_impl(context):
     assert len(context.dataframe) == 1
-    assert context.dataframe["sys/name"].values[0] == f"{context.project_key}-2"
 
 
 @then("we should have selected columns included")

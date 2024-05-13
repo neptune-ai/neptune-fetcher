@@ -53,7 +53,6 @@ def test__field_names(api_token, hosted_backend):
             "sys/failed",
             "sys/id",
             "sys/custom_run_id",
-            "sys/name",
         ]
     )
 

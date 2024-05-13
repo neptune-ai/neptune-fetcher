@@ -39,7 +39,7 @@ def main():
 
     # Fetch runs table
     run_df = project.fetch_runs_df(
-        columns=["sys/id", "sys/name", "sys/owner"],
+        columns=["sys/id", "sys/owner"],
         with_ids=[run["sys/id"] for run in run_info[:10]],
     )
     print("Runs dataframe:\n", run_df, "\n###########################################\n")

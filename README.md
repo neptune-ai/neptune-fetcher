@@ -21,7 +21,7 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time"],
+    columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",  # added to columns specified with the "columns" parameter
 )
 ```
@@ -115,7 +115,7 @@ df = project.fetch_runs()
 ```
 
 __Returns__:
-`pandas.DataFrame` with three columns (`sys/id`, `sys/name` and `sys/custom_run_id`) and rows corresponding to project runs.
+`pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and rows corresponding to project runs.
 
 ---
 
@@ -146,12 +146,12 @@ __Example__:
 ```python
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time", "training/lr"]
+    columns=["sys/custom_run_id", "sys/modification_time", "training/lr"]
 )
 
 # Fetch all runs with specific columns and extra columns that match a regex pattern
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time"],
+    columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",
 )
 

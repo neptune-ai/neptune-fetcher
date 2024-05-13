@@ -110,9 +110,9 @@ class ReadOnlyProject:
         )
 
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
-        """Lists IDs and names of the runs in the project.
+        """Lists IDs of the runs in the project.
 
-        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/name": ..., "sys/custom_run_id": ...}`.
+        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/custom_run_id": ...}`.
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
 
@@ -124,7 +124,7 @@ class ReadOnlyProject:
             ),
             sort_by="sys/id",
             step_size=step_size,
-            columns=["sys/id", "sys/name", "sys/custom_run_id"],
+            columns=["sys/id", "sys/custom_run_id"],
             use_proto=True,
         )
 
@@ -133,7 +133,6 @@ class ReadOnlyProject:
         ).to_rows():
             yield {
                 "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
-                "sys/name": get_attribute_value_from_entry(entry=row, name="sys/name"),
                 "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
             }
 
@@ -157,18 +156,17 @@ class ReadOnlyProject:
             yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
     def fetch_runs(self) -> "DataFrame":
-        """Fetches a table containing IDs and names of runs in the project.
+        """Fetches a table containing IDs of runs in the project.
 
-        Returns `pandas.DataFrame` with three columns ('sys/id', 'sys/name' and 'sys/custom_run_id')
+        Returns `pandas.DataFrame` with two columns ('sys/id' and 'sys/custom_run_id')
             and rows corresponding to project runs.
         """
-        return self.fetch_runs_df(columns=["sys/id", "sys/name", "sys/custom_run_id"])
+        return self.fetch_runs_df(columns=["sys/id", "sys/custom_run_id"])
 
     def fetch_runs_df(
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
-        names_regex: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -188,8 +186,6 @@ class ReadOnlyProject:
                 Defaults to None, which includes all available columns up to 10k.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
-            names_regex: A regex pattern to filter the runs by name.
-                When applied, it needs to limit the number of runs to 100 or fewer.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
@@ -214,7 +210,7 @@ class ReadOnlyProject:
         Example:
             ```
             # Fetch all runs with specific columns
-            columns_to_fetch = ["sys/name", "sys/modification_time", "training/lr"]
+            columns_to_fetch = ["sys/modification_time", "training/lr"]
             runs_df = my_project.fetch_runs_df(columns=columns_to_fetch, states=["active"])
 
             # Fetch runs by specific IDs
@@ -244,14 +240,6 @@ class ReadOnlyProject:
                     f"Too many columns requested ({len(columns)}). "
                     "Please limit the number of columns to 10 000 or fewer."
                 )
-
-        if names_regex is not None:
-            with_ids = filter_sys_name_regex(
-                names_regex=names_regex,
-                backend=self._backend,
-                project_qualified_name=self._project_qualified_name,
-                with_ids=with_ids,
-            )
 
         if custom_id_regex is not None:
             with_ids = filter_custom_id_regex(
@@ -343,39 +331,6 @@ def filter_columns_regex(
         columns.add(field_definition.path)
 
     return columns
-
-
-def filter_sys_name_regex(
-    names_regex: str,
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    with_ids: Optional[List[str]] = None,
-) -> List[str]:
-    objects = paginate_over(
-        getter=backend.query_fields_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-        field_names_filter=["sys/name"],
-        experiment_ids_filter=with_ids,
-    )
-    regex = re.compile(names_regex)
-    filtered_with_ids = []
-
-    for experiment in objects:
-        for field in experiment.fields:
-            if field.path == "sys/name" and regex.match(field.value) is not None:
-                filtered_with_ids.append(experiment.object_key)
-
-                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                    raise ValueError(
-                        "Too many runs matched the names regex. "
-                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                    )
-
-    if with_ids is None:
-        return filtered_with_ids
-    else:
-        return list(set(with_ids) & set(filtered_with_ids))
 
 
 def filter_custom_id_regex(

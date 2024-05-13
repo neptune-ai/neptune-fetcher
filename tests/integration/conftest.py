@@ -65,7 +65,6 @@ def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
                 [
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
-                    StringField(path="sys/name", value=name),
                     BoolField(path="sys/failed", value=True),
                 ],
             )
@@ -100,7 +99,6 @@ class BackendMock:
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
             FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
-            FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             FieldDefinition(path="metrics/string", type=FieldType.STRING),
             FieldDefinition(path="metrics/bool", type=FieldType.BOOL),
@@ -145,53 +143,31 @@ class BackendMock:
         return QueryFieldDefinitionsResult(
             entries=[
                 FieldDefinition(path="sys/id", type=FieldType.STRING),
-                FieldDefinition(path="sys/name", type=FieldType.STRING),
                 FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             ],
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
-    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
-        if field_names_filter == ["sys/name"]:
-            return QueryFieldsResult(
-                entries=[
-                    QueryFieldsExperimentResult(
-                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                        object_key="RUN-1",
-                        fields=[
-                            StringField(path="sys/name", value="powerful-sun-2"),
-                        ],
-                    ),
-                    QueryFieldsExperimentResult(
-                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                        object_key="RUN-2",
-                        fields=[
-                            StringField(path="sys/name", value="lazy-moon-2"),
-                        ],
-                    ),
-                ],
-                next_page=NextPage(next_page_token=None, limit=None),
-            )
-        else:
-            return QueryFieldsResult(
-                entries=[
-                    QueryFieldsExperimentResult(
-                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                        object_key="RUN-1",
-                        fields=[
-                            StringField(path="sys/custom_run_id", value="alternative_tesla"),
-                        ],
-                    ),
-                    QueryFieldsExperimentResult(
-                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                        object_key="RUN-2",
-                        fields=[
-                            StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
-                        ],
-                    ),
-                ],
-                next_page=NextPage(next_page_token=None, limit=None),
-            )
+    def query_fields_within_project(self, *args, **kwargs):
+        return QueryFieldsResult(
+            entries=[
+                QueryFieldsExperimentResult(
+                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                    object_key="RUN-1",
+                    fields=[
+                        StringField(path="sys/custom_run_id", value="alternative_tesla"),
+                    ],
+                ),
+                QueryFieldsExperimentResult(
+                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                    object_key="RUN-2",
+                    fields=[
+                        StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                    ],
+                ),
+            ],
+            next_page=NextPage(next_page_token=None, limit=None),
+        )
 
     def get_metadata_container(self, container_id, *args, **kwargs):
         if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
