@@ -9,7 +9,7 @@ client = NeptuneIngestion(
     kafka_topic="ingest.feed",
 )
 
-run1_id = client.create_run(run_id="fetcher-aa-1")
+run1_id = client.create_run(run_id="fetcher-aa-1", experiment_id="my-lovely-experiment")
 for i in range(3):
     client.log(
         run_id=run1_id,
