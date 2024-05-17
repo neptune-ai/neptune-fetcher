@@ -92,7 +92,7 @@ project = ReadOnlyProject("workspace/project", api_token="...")
 
 #### `list_runs()`
 
-Lists minimal information, like identifier and name, for every run in a project.
+Lists minimal information, like identifier and custom identifier, for every run in a project.
 
 __Example__:
 ```python
@@ -101,13 +101,13 @@ for run in project.list_runs():
 ```
 
 __Returns__:
-`Iterator` of dictionaries with Neptune run identifiers, custom identifiers and names.
+`Iterator` of dictionaries with Neptune run identifiers and custom identifiers.
 
 ---
 
 #### `fetch_runs()`
 
-Fetches a table containing Neptune IDs, custom run IDs and names of runs in the project.
+Fetches a table containing Neptune IDs and custom run IDs of runs in the project.
 
 __Example__:
 ```python
@@ -129,7 +129,6 @@ __Parameters__:
 |-------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
 | `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
-| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                        |
 | `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                   |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
 | `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
@@ -158,11 +157,6 @@ runs_df = project.fetch_runs_df(
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
     custom_ids=["nostalgic_shockley", "high_albattani"]
-)
-
-# Filter by name regex
-specific_runs_df = my_project.fetch_runs_df(
-    names_regex="tree_3[2-4]+"
 )
 ```
 
