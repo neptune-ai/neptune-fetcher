@@ -36,7 +36,7 @@ def step_impl(context):
 
 @given("we filter by run names regex")
 def step_impl(context):
-    context.kwargs = {"names_regex": f"{context.project_key}-[2-9]+"}
+    context.kwargs = {"names_regex": "my-.*-experiment"}
 
 
 @given("we filter by custom id regex")
@@ -57,9 +57,18 @@ def step_impl(context):
     assert len(context.dataframe) == 1
 
 
+@then("we should get first run")
+def step_impl(context):
+    print(context.dataframe.to_dict())
+    assert len(context.dataframe) == 1
+    assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-1"
+
+
 @then("we should get second run")
 def step_impl(context):
     assert len(context.dataframe) == 1
+    assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-2"
+
 
 
 @then("we should have selected columns included")
