@@ -70,7 +70,6 @@ def step_impl(context):
     assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-2"
 
 
-
 @then("we should have selected columns included")
 def step_impl(context):
     # run id column is always included
