@@ -116,12 +116,15 @@ class ReadOnlyProject:
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
 
+        query = NQLQueryAggregate(
+            items=[query_for_not_trashed(), query_for_runs_not_experiments()],
+            aggregator=NQLAggregator.AND,
+        )
+
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
             types=[ContainerType.RUN],
-            query=NQLQueryAttribute(
-                name="sys/trashed", type=NQLAttributeType.BOOLEAN, operator=NQLAttributeOperator.EQUALS, value=False
-            ),
+            query=query,
             sort_by="sys/id",
             step_size=step_size,
             columns=["sys/id", "sys/custom_run_id"],
@@ -364,3 +367,21 @@ def filter_custom_id_regex(
         return filtered_with_ids
     else:
         return list(set(with_ids) & set(filtered_with_ids))
+
+
+def query_for_not_trashed() -> NQLQuery:
+    return NQLQueryAttribute(
+        name="sys/trashed",
+        type=NQLAttributeType.BOOLEAN,
+        operator=NQLAttributeOperator.EQUALS,
+        value=False,
+    )
+
+
+def query_for_runs_not_experiments() -> NQLQuery:
+    return NQLQueryAttribute(
+        name="sys/name",
+        type=NQLAttributeType.STRING,
+        operator=NQLAttributeOperator.EQUALS,
+        value="",
+    )
