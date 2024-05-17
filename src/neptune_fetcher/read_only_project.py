@@ -288,6 +288,7 @@ def prepare_extended_nql_query(
     owners: Optional[Iterable[str]] = None,
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
+    is_run: bool = True,
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 
@@ -308,6 +309,12 @@ def prepare_extended_nql_query(
                     aggregator=NQLAggregator.OR,
                 ),
             ],
+            aggregator=NQLAggregator.AND,
+        )
+
+    if is_run:
+        query = NQLQueryAggregate(
+            items=[query, query_for_runs_not_experiments()],
             aggregator=NQLAggregator.AND,
         )
 

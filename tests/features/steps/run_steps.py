@@ -82,6 +82,7 @@ def step_impl(context):
             "sys/description",
             "sys/family",
             "sys/id",
+            "sys/name",
             "sys/monitoring_time",
             "sys/owner",
             "sys/running_time",

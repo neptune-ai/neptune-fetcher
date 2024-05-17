@@ -66,6 +66,7 @@ def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
                     BoolField(path="sys/failed", value=True),
+                    StringField(path="sys/name", value=name),
                 ],
             )
         ),
@@ -82,13 +83,13 @@ class BackendMock:
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
         output = []
 
-        if str(query) != '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))':
+        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")) AND (`sys/name`:string = ""))'
+        query_all = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
+
+        if str(query) != query_run1:
             output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", "run2", columns))
 
-        if (
-            str(query) == "(`sys/trashed`:bool = false)"
-            or str(query) == '((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1"))'
-        ):
+        if str(query) == query_all or str(query) == query_run1:
             output.append(
                 create_leaderboard_entry("RUN-1", "alternative_tesla", "run1", columns),
             )
@@ -99,6 +100,7 @@ class BackendMock:
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
             FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
+            FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             FieldDefinition(path="metrics/string", type=FieldType.STRING),
             FieldDefinition(path="metrics/bool", type=FieldType.BOOL),
