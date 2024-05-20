@@ -56,7 +56,7 @@ def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
 
 
-def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
+def create_leaderboard_entry(sys_id, custom_run_id, columns=None):
     return LeaderboardEntry(
         object_id=sys_id,
         fields=list(
@@ -66,7 +66,7 @@ def create_leaderboard_entry(sys_id, custom_run_id, name, columns=None):
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
                     BoolField(path="sys/failed", value=True),
-                    StringField(path="sys/name", value=name),
+                    StringField(path="sys/name", value=""),
                 ],
             )
         ),
@@ -87,11 +87,11 @@ class BackendMock:
         query_all = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
 
         if str(query) != query_run1:
-            output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", "run2", columns))
+            output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns))
 
         if str(query) == query_all or str(query) == query_run1:
             output.append(
-                create_leaderboard_entry("RUN-1", "alternative_tesla", "run1", columns),
+                create_leaderboard_entry("RUN-1", "alternative_tesla", columns),
             )
 
         return iter(output)
