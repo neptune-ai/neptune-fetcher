@@ -21,7 +21,7 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time"],
+    columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",  # added to columns specified with the "columns" parameter
 )
 ```
@@ -92,7 +92,9 @@ project = ReadOnlyProject("workspace/project", api_token="...")
 
 #### `list_runs()`
 
-Lists minimal information, like identifier and name, for every run in a project.
+Lists all runs of a project.
+
+Each run is identified by Neptune ID (`sys/id`) and, if set, custom ID (`sys/custom_run_id`).
 
 __Example__:
 ```python
@@ -101,13 +103,13 @@ for run in project.list_runs():
 ```
 
 __Returns__:
-`Iterator` of dictionaries with Neptune run identifiers, custom identifiers and names.
+`Iterator` of dictionaries with Neptune run identifiers and custom identifiers.
 
 ---
 
 #### `fetch_runs()`
 
-Fetches a table containing Neptune IDs, custom run IDs and names of runs in the project.
+Fetches a table containing Neptune IDs and custom run IDs of runs in the project.
 
 __Example__:
 ```python
@@ -115,7 +117,7 @@ df = project.fetch_runs()
 ```
 
 __Returns__:
-`pandas.DataFrame` with three columns (`sys/id`, `sys/name` and `sys/custom_run_id`) and rows corresponding to project runs.
+`pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and one row for each run.
 
 ---
 
@@ -129,7 +131,6 @@ __Parameters__:
 |-------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
 | `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
-| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                        |
 | `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                   |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
 | `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
@@ -146,23 +147,18 @@ __Example__:
 ```python
 # Fetch all runs with specific columns
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time", "training/lr"]
+    columns=["sys/custom_run_id", "sys/modification_time", "training/lr"]
 )
 
 # Fetch all runs with specific columns and extra columns that match a regex pattern
 runs_df = project.fetch_runs_df(
-    columns=["sys/name", "sys/modification_time"],
+    columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",
 )
 
 # Fetch runs by specific IDs
 specific_runs_df = my_project.fetch_runs_df(
     custom_ids=["nostalgic_shockley", "high_albattani"]
-)
-
-# Filter by name regex
-specific_runs_df = my_project.fetch_runs_df(
-    names_regex="tree_3[2-4]+"
 )
 ```
 
