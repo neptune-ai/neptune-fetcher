@@ -110,9 +110,16 @@ class ReadOnlyProject:
         )
 
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
-        """Lists IDs of the runs in the project.
+        """Lists all runs of a project.
 
-        Returns a generator of run info dictionaries `{"sys/id": ..., "sys/custom_run_id": ...}`.
+        Returns a generator of dictionaries with run identifiers: `{"sys/id": ..., "sys/custom_run_id": ...}`.
+
+        Example:
+            ```
+            project = ReadOnlyProject("workspace/project", api_token="...")
+            for run in project.list_runs():
+                print(run)
+            ```
         """
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
 
@@ -159,10 +166,15 @@ class ReadOnlyProject:
             yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
     def fetch_runs(self) -> "DataFrame":
-        """Fetches a table containing IDs of runs in the project.
+        """Fetches a table containing identifiers of runs in the project.
 
-        Returns `pandas.DataFrame` with two columns ('sys/id' and 'sys/custom_run_id')
-            and rows corresponding to project runs.
+        Returns `pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and one row for each run.
+
+        Example:
+            ```
+            project = ReadOnlyProject("workspace/project", api_token="...")
+            df = project.fetch_runs()
+            ```
         """
         return self.fetch_runs_df(columns=["sys/id", "sys/custom_run_id"])
 

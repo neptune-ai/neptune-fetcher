@@ -92,7 +92,9 @@ project = ReadOnlyProject("workspace/project", api_token="...")
 
 #### `list_runs()`
 
-Lists minimal information, like identifier and custom identifier, for every run in a project.
+Lists all runs of a project.
+
+Each run is identified by Neptune ID (`sys/id`) and, if set, custom ID (`sys/custom_run_id`).
 
 __Example__:
 ```python
@@ -115,7 +117,7 @@ df = project.fetch_runs()
 ```
 
 __Returns__:
-`pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and rows corresponding to project runs.
+`pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and one row for each run.
 
 ---
 
