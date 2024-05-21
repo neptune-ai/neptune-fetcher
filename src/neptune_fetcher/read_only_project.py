@@ -26,7 +26,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Literal,
     Optional,
     Set,
     Union,
@@ -62,6 +61,7 @@ from neptune.table import (
     TableEntry,
 )
 from neptune.typing import ProgressBarType
+from typing_extensions import Literal
 
 from neptune_fetcher.read_only_run import (
     ReadOnlyRun,
