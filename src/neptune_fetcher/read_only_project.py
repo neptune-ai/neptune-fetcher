@@ -26,6 +26,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Optional,
     Set,
     Union,
@@ -56,7 +57,10 @@ from neptune.internal.id_formats import (
 )
 from neptune.management.internal.utils import normalize_project_name
 from neptune.objects.utils import prepare_nql_query
-from neptune.table import Table
+from neptune.table import (
+    Table,
+    TableEntry,
+)
 from neptune.typing import ProgressBarType
 
 from neptune_fetcher.read_only_run import (
@@ -121,30 +125,26 @@ class ReadOnlyProject:
                 print(run)
             ```
         """
-        step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
-
-        query = NQLQueryAggregate(
-            items=[query_for_not_trashed(), query_for_runs_not_experiments()],
-            aggregator=NQLAggregator.AND,
+        yield from list_objects_from_project(
+            self._backend, self._project_id, query_for_not_trashed(), query_for_runs_not_experiments()
         )
 
-        leaderboard_entries = self._backend.search_leaderboard_entries(
-            project_id=self._project_id,
-            types=[ContainerType.RUN],
-            query=query,
-            sort_by="sys/id",
-            step_size=step_size,
-            columns=["sys/id", "sys/custom_run_id"],
-            use_proto=True,
-        )
+    def list_experiments(self) -> Generator[Dict[str, Optional[str]], None, None]:
+        """Lists all experiments of a project.
 
-        for row in Table(
-            backend=self._backend, container_type=ContainerType.RUN, entries=leaderboard_entries
-        ).to_rows():
-            yield {
-                "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
-                "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
-            }
+        Returns a generator of dictionaries with experiment identifiers:
+        `{"sys/id": ..., "sys/custom_experiment_id": ...}`.
+
+        Example:
+            ```
+            project = ReadOnlyProject("workspace/project", api_token="...")
+            for experiment in project.list_experiments():
+                print(experiment)
+            ```
+        """
+        yield from list_objects_from_project(
+            self._backend, self._project_id, query_for_not_trashed(), query_for_experiments_not_runs()
+        )
 
     def fetch_read_only_runs(
         self,
@@ -177,6 +177,20 @@ class ReadOnlyProject:
             ```
         """
         return self.fetch_runs_df(columns=["sys/id", "sys/custom_run_id"])
+
+    def fetch_experiments(self) -> "DataFrame":
+        """Fetches a table containing identifiers of experiments in the project.
+
+        Returns `pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`)
+        and one row for each experiment.
+
+        Example:
+            ```
+            project = ReadOnlyProject("workspace/project", api_token="...")
+            df = project.fetch_experiments()
+            ```
+        """
+        return self.fetch_experiments_df(columns=["sys/id", "sys/custom_run_id"])
 
     def fetch_runs_df(
         self,
@@ -233,6 +247,111 @@ class ReadOnlyProject:
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
             ```
         """
+        return self._fetch_project_objects_df(
+            columns=columns,
+            columns_regex=columns_regex,
+            custom_id_regex=custom_id_regex,
+            with_ids=with_ids,
+            custom_ids=custom_ids,
+            states=states,
+            owners=owners,
+            tags=tags,
+            trashed=trashed,
+            limit=limit,
+            sort_by=sort_by,
+            ascending=ascending,
+            progress_bar=progress_bar,
+        )
+
+    def fetch_experiments_df(
+        self,
+        columns: Optional[Iterable[str]] = None,
+        columns_regex: Optional[str] = None,
+        custom_id_regex: Optional[str] = None,
+        with_ids: Optional[Iterable[str]] = None,
+        custom_ids: Optional[Iterable[str]] = None,
+        states: Optional[Iterable[str]] = None,
+        owners: Optional[Iterable[str]] = None,
+        tags: Optional[Iterable[str]] = None,
+        trashed: Optional[bool] = False,
+        limit: Optional[int] = None,
+        sort_by: str = "sys/creation_time",
+        ascending: bool = False,
+        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+    ) -> "DataFrame":
+        """Fetches the experiments' metadata and returns them as a pandas DataFrame.
+
+        Args:
+            columns: None or a list of column names to include in the result.
+                Defaults to None, which includes all available columns up to 10k.
+            columns_regex: A regex pattern to filter columns by name.
+                Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
+            custom_id_regex: A regex pattern to filter the experiments by custom ID.
+                When applied, it needs to limit the number of experiments to 100 or fewer.
+            with_ids: A list of experiment IDs to filter the results.
+            custom_ids: A list of custom experiment IDs to filter the results.
+            states: A list of experiment states to filter the results.
+            owners: A list of owner names to filter the results.
+            tags: A list of tags to filter the results.
+            trashed: Whether to return trashed experiments as the result.
+                If True: return only trashed experiments.
+                If False (default): return only non-trashed experiments.
+                If None: return all experiments.
+            limit: How many entries to return at most. If `None`, all entries are returned.
+            sort_by: Name of the field to sort the results by.
+                The field must represent a simple type (string, float, datetime, integer, or Boolean).
+            ascending: Whether to sort the entries in ascending order of the sorting column values.
+            progress_bar: Set to `False` to disable the download progress bar,
+                or pass a `ProgressBarCallback` class to use your own progress bar callback.
+
+        Returns:
+            DataFrame: A pandas DataFrame containing information about the fetched experiments.
+
+        Example:
+            ```
+            # Fetch all experiments with specific columns
+            columns_to_fetch = ["sys/modification_time", "training/lr"]
+            experiments_df = my_project.fetch_experiments_df(columns=columns_to_fetch, states=["active"])
+
+            # Fetch experiments by specific IDs
+            specific_experiment_ids = ["RUN-123", "RUN-456"]
+            specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
+            ```
+        """
+        return self._fetch_project_objects_df(
+            columns=columns,
+            columns_regex=columns_regex,
+            custom_id_regex=custom_id_regex,
+            with_ids=with_ids,
+            custom_ids=custom_ids,
+            states=states,
+            owners=owners,
+            tags=tags,
+            trashed=trashed,
+            limit=limit,
+            sort_by=sort_by,
+            ascending=ascending,
+            progress_bar=progress_bar,
+            object_type="experiment",
+        )
+
+    def _fetch_project_objects_df(
+        self,
+        columns: Optional[Iterable[str]] = None,
+        columns_regex: Optional[str] = None,
+        custom_id_regex: Optional[str] = None,
+        with_ids: Optional[Iterable[str]] = None,
+        custom_ids: Optional[Iterable[str]] = None,
+        states: Optional[Iterable[str]] = None,
+        owners: Optional[Iterable[str]] = None,
+        tags: Optional[Iterable[str]] = None,
+        trashed: Optional[bool] = False,
+        limit: Optional[int] = None,
+        sort_by: str = "sys/creation_time",
+        ascending: bool = False,
+        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        object_type: Literal["run", "experiment"] = "run",
+    ) -> "DataFrame":
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
         if columns is not None:
@@ -271,6 +390,7 @@ class ReadOnlyProject:
             owners=owners,
             tags=tags,
             trashed=trashed,
+            is_run=object_type == "run",
         )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
@@ -324,11 +444,12 @@ def prepare_extended_nql_query(
             aggregator=NQLAggregator.AND,
         )
 
-    if is_run:
-        query = NQLQueryAggregate(
-            items=[query, query_for_runs_not_experiments()],
-            aggregator=NQLAggregator.AND,
-        )
+    items = [query, query_for_runs_not_experiments()] if is_run else [query, query_for_experiments_not_runs()]
+
+    query = NQLQueryAggregate(
+        items=items,
+        aggregator=NQLAggregator.AND,
+    )
 
     return query
 
@@ -404,3 +525,46 @@ def query_for_runs_not_experiments() -> NQLQuery:
         operator=NQLAttributeOperator.EQUALS,
         value="",
     )
+
+
+def query_for_experiments_not_runs() -> NQLQuery:
+    return NQLQueryAttribute(
+        name="sys/name",
+        type=NQLAttributeType.STRING,
+        operator=NQLAttributeOperator.NOT_EQUALS,
+        value="",
+    )
+
+
+def list_objects_from_project(
+    backend: HostedNeptuneBackend,
+    project_id: UniqueId,
+    *queries: NQLQuery,
+) -> List[Dict[str, Optional[str]]]:
+    step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
+
+    query = NQLQueryAggregate(
+        items=queries,
+        aggregator=NQLAggregator.AND,
+    )
+
+    leaderboard_entries = backend.search_leaderboard_entries(
+        project_id=project_id,
+        types=[ContainerType.RUN],
+        query=query,
+        sort_by="sys/id",
+        step_size=step_size,
+        columns=["sys/id", "sys/custom_experiment_id"],
+        use_proto=True,
+    )
+    return [
+        get_object_dictionary_from_row(row=row)
+        for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
+    ]
+
+
+def get_object_dictionary_from_row(row: TableEntry) -> Dict[str, Optional[str]]:
+    return {
+        "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
+        "sys/custom_experiment_id": get_attribute_value_from_entry(entry=row, name="sys/custom_experiment_id"),
+    }
