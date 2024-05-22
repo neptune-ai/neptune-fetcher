@@ -58,5 +58,6 @@ def step_impl(context):
         {
             "sys/id": f"{context.project_key}-1",
             "sys/custom_run_id": "fetcher-aa-1",
+            "sys/name": "my-lovely-experiment",
         },
     ]

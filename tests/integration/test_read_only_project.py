@@ -170,4 +170,4 @@ def test__fetch_experiments_df__with_columns_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/failed"])
+    assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/failed", "sys/name"])

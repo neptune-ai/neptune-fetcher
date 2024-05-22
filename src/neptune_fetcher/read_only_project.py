@@ -125,15 +125,13 @@ class ReadOnlyProject:
                 print(run)
             ```
         """
-        yield from list_objects_from_project(
-            self._backend, self._project_id, query_for_not_trashed(), query_for_runs_not_experiments()
-        )
+        yield from list_objects_from_project(self._backend, self._project_id, object_type="run")
 
     def list_experiments(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists all experiments of a project.
 
-        Returns a generator of dictionaries with experiment identifiers:
-        `{"sys/id": ..., "sys/custom_experiment_id": ...}`.
+        Returns a generator of dictionaries with experiment identifiers and names:
+        `{"sys/id": ..., "sys/custom_experiment_id": ..., "sys/name": ...}`.
 
         Example:
             ```
@@ -142,9 +140,7 @@ class ReadOnlyProject:
                 print(experiment)
             ```
         """
-        yield from list_objects_from_project(
-            self._backend, self._project_id, query_for_not_trashed(), query_for_experiments_not_runs()
-        )
+        yield from list_objects_from_project(self._backend, self._project_id, object_type="experiment")
 
     def fetch_read_only_runs(
         self,
@@ -359,6 +355,8 @@ class ReadOnlyProject:
             columns = set(columns)
             columns.add("sys/id")
             columns.add("sys/custom_run_id")
+            if object_type == "experiment":
+                columns.add("sys/name")
 
             if columns_regex is not None:
                 columns = filter_columns_regex(
@@ -539,9 +537,18 @@ def query_for_experiments_not_runs() -> NQLQuery:
 def list_objects_from_project(
     backend: HostedNeptuneBackend,
     project_id: UniqueId,
-    *queries: NQLQuery,
+    object_type: Literal["run", "experiment"],
 ) -> List[Dict[str, Optional[str]]]:
     step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
+    queries = [query_for_not_trashed()]
+    if object_type == "run":
+        queries.append(query_for_runs_not_experiments())
+    else:
+        queries.append(query_for_experiments_not_runs())
+
+    columns = ["sys/id", "sys/custom_run_id"]
+    if object_type == "experiment":
+        columns.append("sys/name")
 
     query = NQLQueryAggregate(
         items=queries,
@@ -554,17 +561,25 @@ def list_objects_from_project(
         query=query,
         sort_by="sys/id",
         step_size=step_size,
-        columns=["sys/id", "sys/custom_run_id"],
+        columns=columns,
         use_proto=True,
     )
     return [
-        get_object_dictionary_from_row(row=row)
+        get_object_dictionary_from_row(row=row, object_type=object_type)
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
 
 
-def get_object_dictionary_from_row(row: TableEntry) -> Dict[str, Optional[str]]:
-    return {
+def get_object_dictionary_from_row(
+    row: TableEntry,
+    object_type: Literal["run", "experiment"],
+) -> Dict[str, Optional[str]]:
+    object_dict = {
         "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
         "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
     }
+
+    if object_type == "experiment":
+        object_dict["sys/name"] = get_attribute_value_from_entry(entry=row, name="sys/name")
+
+    return object_dict
