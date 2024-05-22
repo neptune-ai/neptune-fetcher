@@ -84,15 +84,28 @@ class BackendMock:
         output = []
 
         query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")) AND (`sys/name`:string = ""))'
-        query_all = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
+        query_all_runs = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
 
-        if str(query) != query_run1:
-            output.append(create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns))
+        query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
+        query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
-        if str(query) == query_all or str(query) == query_run1:
-            output.append(
+        if str(query) == query_run1:
+            output = [create_leaderboard_entry("RUN-1", "alternative_tesla", columns)]
+
+        elif str(query) == query_all_runs:
+            output = [
                 create_leaderboard_entry("RUN-1", "alternative_tesla", columns),
-            )
+                create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns),
+            ]
+
+        elif str(query) == query_exp1:
+            output = [create_leaderboard_entry("EXP-1", "custom_experiment_id", columns)]
+
+        elif str(query) == query_all_exps:
+            output = [
+                create_leaderboard_entry("EXP-1", "custom_experiment_id", columns),
+                create_leaderboard_entry("EXP-2", "nostalgic_stallman", columns),
+            ]
 
         return iter(output)
 
@@ -165,6 +178,13 @@ class BackendMock:
                     object_key="RUN-2",
                     fields=[
                         StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                    ],
+                ),
+                QueryFieldsExperimentResult(
+                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                    object_key="EXP-1",
+                    fields=[
+                        StringField(path="sys/custom_run_id", value="custom_experiment_id"),
                     ],
                 ),
             ],
