@@ -8,7 +8,7 @@ from behave import (
 
 @given("we filter by `with_ids`")
 def step_impl(context):
-    context.kwargs = {"with_ids": [f"{context.project_key}-1"]}
+    context.kwargs = {"with_ids": [f"{context.project_key}-2"]}
 
 
 @given("we limit the number of runs to 1")
@@ -32,11 +32,6 @@ def step_impl(context):
 def step_impl(context):
     context.expected_columns = ["fields/int", "fields/float", "fields/string"]
     context.kwargs = {"columns_regex": "fields/.*", "columns": []}
-
-
-@given("we filter by run names regex")
-def step_impl(context):
-    context.kwargs = {"names_regex": "my-.*-experiment"}
 
 
 @given("we filter by custom id regex")
@@ -80,11 +75,6 @@ def step_impl(context):
             "sys/custom_run_id",
         ]
     ) == sorted(context.dataframe.columns.tolist())
-
-
-@then("we should get 2 runs")
-def step_impl(context):
-    assert len(context.dataframe) == 2
 
 
 @then("we should get 2 runs with 1 column")
