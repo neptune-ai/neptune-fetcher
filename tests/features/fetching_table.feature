@@ -5,6 +5,11 @@ Feature: Fetching runs dataframe
      When we fetch runs dataframe
      Then we should get 1 run
 
+  Scenario: Fetch all experiments
+    Given we have a read-only project
+     When we fetch experiment dataframe
+     Then we should get 1 run
+
   Scenario: Filter by `with_ids`
     Given we have a read-only project
       And we filter by `with_ids`

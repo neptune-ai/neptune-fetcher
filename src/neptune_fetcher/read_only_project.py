@@ -554,7 +554,7 @@ def list_objects_from_project(
         query=query,
         sort_by="sys/id",
         step_size=step_size,
-        columns=["sys/id", "sys/custom_experiment_id"],
+        columns=["sys/id", "sys/custom_run_id"],
         use_proto=True,
     )
     return [
@@ -566,5 +566,5 @@ def list_objects_from_project(
 def get_object_dictionary_from_row(row: TableEntry) -> Dict[str, Optional[str]]:
     return {
         "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
-        "sys/custom_experiment_id": get_attribute_value_from_entry(entry=row, name="sys/custom_experiment_id"),
+        "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
     }

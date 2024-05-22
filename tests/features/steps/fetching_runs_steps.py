@@ -47,6 +47,14 @@ def step_impl(context):
         context.dataframe = context.project.fetch_runs_df()
 
 
+@when("we fetch experiment dataframe")
+def step_impl(context):
+    if hasattr(context, "kwargs"):
+        context.dataframe = context.project.fetch_experiments_df(**context.kwargs)
+    else:
+        context.dataframe = context.project.fetch_experiments_df()
+
+
 @then("we should get 1 run")
 def step_impl(context):
     assert len(context.dataframe) == 1
@@ -54,7 +62,6 @@ def step_impl(context):
 
 @then("we should get first run")
 def step_impl(context):
-    print(context.dataframe.to_dict())
     assert len(context.dataframe) == 1
     assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-1"
 
