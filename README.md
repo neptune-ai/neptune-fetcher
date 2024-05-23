@@ -51,6 +51,17 @@ for run in project.list_runs():
     print(run)
 ```
 
+### Listing experiment identifiers
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+project = ReadOnlyProject("workspace/project")
+
+for experiment in project.list_experiments():
+    print(experiment)
+```
+
 ### Fetching data from a single run
 
 ```python
@@ -106,6 +117,26 @@ __Returns__:
 `Iterator` of dictionaries with Neptune run identifiers and custom identifiers.
 
 ---
+
+
+#### `list_experiments()`
+
+Lists all experiments of a project.
+
+Each experiment is identified by Neptune ID (`sys/id`) and, if set, custom ID (`sys/custom_run_id`).
+Additionally, the experiment has a name (`sys/name`).
+
+__Example__:
+```python
+for run in project.list_experiments():
+    print(run)
+```
+
+__Returns__:
+`Iterator` of dictionaries with Neptune experiment identifiers, custom identifiers and names.
+
+---
+
 
 #### `fetch_runs()`
 

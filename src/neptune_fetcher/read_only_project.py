@@ -175,9 +175,9 @@ class ReadOnlyProject:
         return self.fetch_runs_df(columns=["sys/id", "sys/custom_run_id"])
 
     def fetch_experiments(self) -> "DataFrame":
-        """Fetches a table containing identifiers of experiments in the project.
+        """Fetches a table containing identifiers and names of experiments in the project.
 
-        Returns `pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`)
+        Returns `pandas.DataFrame` with three columns (`sys/id`, `sys/custom_run_id` and `sys/name`)
         and one row for each experiment.
 
         Example:
@@ -186,7 +186,7 @@ class ReadOnlyProject:
             df = project.fetch_experiments()
             ```
         """
-        return self.fetch_experiments_df(columns=["sys/id", "sys/custom_run_id"])
+        return self.fetch_experiments_df(columns=["sys/id", "sys/custom_run_id", "sys/name"])
 
     def fetch_runs_df(
         self,
