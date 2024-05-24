@@ -283,7 +283,7 @@ Pre-fetches a batch of fields to the internal cache.
 
 Improves the performance of access to consecutive field values.
 
-Supported Neptune field types: `Integer`, `Float`, `String`, `Boolean`, `Datetime`, and `StringSet`.
+Supported Neptune field types: integer, float, string, Boolean, datetime, and state.
 
 __Parameters:__
 
