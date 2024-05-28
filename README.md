@@ -260,6 +260,10 @@ specific_experiments_df = my_project.fetch_experiments_df(
 __Returns__:
 `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
+
+>[!IMPORTANT]
+>When name regex is applied, it needs to limit the number of experiments to 100 or fewer.
+
 ---
 
 
