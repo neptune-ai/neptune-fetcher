@@ -19,6 +19,7 @@ __all__ = [
 
 import os
 import re
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -540,11 +541,18 @@ def query_for_runs_not_experiments() -> NQLQuery:
 
 
 def query_for_experiments_not_runs() -> NQLQuery:
-    op = "!=" if not hasattr(NQLAttributeOperator, "NOT_EQUALS") else NQLAttributeOperator.NOT_EQUALS  # noqa
+    names = [(m.name, m.value) for m in NQLAttributeOperator]  # noqa
+
+    # handle the case when the client nql doesn't have the 'NOT_EQUALS' operator
+    if "NOT_EQUALS" not in NQLAttributeOperator.__members__:
+        names += [("NOT_EQUALS", "!=")]
+
+    operators = Enum("NQLAttributeOperator", names)
+
     return NQLQueryAttribute(
         name="sys/name",
         type=NQLAttributeType.STRING,
-        operator=op,
+        operator=operators.NOT_EQUALS,  # noqa
         value="",
     )
 
