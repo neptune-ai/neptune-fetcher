@@ -225,32 +225,32 @@ __Parameters__:
 |-------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
 | `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
-| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                   |
+| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                     |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
 | `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
-| `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                     |
-| `owners`          | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                            |
-| `tags`            | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                          |
-| `trashed`         | `bool`, optional                              | `False`             | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones.                                                                         |
-| `limit`           | `int`, optional                               | `None`              | Maximum number of runs to fetch. If `None`, all runs are fetched.                                                                                                                                                                                                                      |
+| `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                              |
+| `owners`          | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the experiement. Matching any element of the list is sufficient to pass the criterion.                                                                                                    |
+| `tags`            | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                   |
+| `trashed`         | `bool`, optional                              | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                             |
+| `limit`           | `int`, optional                               | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                        |
 | `sort_by`         | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                             |
 | `ascending`       | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                           |
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
 
 __Example__:
 ```python
-# Fetch all runs with specific columns
+# Fetch all experiments with specific columns
 experiments_df = project.fetch_experiments_df(
     columns=["sys/custom_run_id", "sys/modification_time", "training/lr"]
 )
 
-# Fetch all runs with specific columns and extra columns that match a regex pattern
+# Fetch all experiments with specific columns and extra columns that match a regex pattern
 experiments_df = project.fetch_experiments_df(
     columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",
 )
 
-# Fetch runs by specific IDs
+# Fetch experiments by specific IDs
 specific_experiments_df = my_project.fetch_experiments_df(
     custom_ids=["nostalgic_shockley", "high_albattani"]
 )
