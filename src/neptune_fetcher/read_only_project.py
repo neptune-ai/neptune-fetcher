@@ -263,6 +263,7 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
+        names_regex: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -282,6 +283,8 @@ class ReadOnlyProject:
                 Defaults to None, which includes all available columns up to 10k.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
+            names_regex: A regex pattern to filter the experiments by name.
+                When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
                 When applied, it needs to limit the number of experiments to 100 or fewer.
             with_ids: A list of experiment IDs to filter the results.
@@ -317,6 +320,7 @@ class ReadOnlyProject:
         return self._fetch_project_objects_df(
             columns=columns,
             columns_regex=columns_regex,
+            names_regex=names_regex,
             custom_id_regex=custom_id_regex,
             with_ids=with_ids,
             custom_ids=custom_ids,
@@ -335,6 +339,7 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
+        names_regex: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -372,6 +377,14 @@ class ReadOnlyProject:
                     f"Too many columns requested ({len(columns)}). "
                     "Please limit the number of columns to 10 000 or fewer."
                 )
+
+        if names_regex is not None:
+            with_ids = filter_sys_name_regex(
+                names_regex=names_regex,
+                backend=self._backend,
+                project_qualified_name=self._project_qualified_name,
+                with_ids=with_ids,
+            )
 
         if custom_id_regex is not None:
             with_ids = filter_custom_id_regex(
@@ -468,6 +481,7 @@ def filter_columns_regex(
             experiment_ids_filter=with_ids,
         )
     )
+
     for field_definition in field_definitions:
         columns.add(field_definition.path)
 
@@ -526,10 +540,11 @@ def query_for_runs_not_experiments() -> NQLQuery:
 
 
 def query_for_experiments_not_runs() -> NQLQuery:
+    op = "!=" if not hasattr(NQLAttributeOperator, "NOT_EQUALS") else NQLAttributeOperator.NOT_EQUALS  # noqa
     return NQLQueryAttribute(
         name="sys/name",
         type=NQLAttributeType.STRING,
-        operator=NQLAttributeOperator.NOT_EQUALS,
+        operator=op,
         value="",
     )
 
@@ -583,3 +598,36 @@ def get_object_dictionary_from_row(
         object_dict["sys/name"] = get_attribute_value_from_entry(entry=row, name="sys/name")
 
     return object_dict
+
+
+def filter_sys_name_regex(
+    names_regex: str,
+    backend: HostedNeptuneBackend,
+    project_qualified_name: str,
+    with_ids: Optional[List[str]] = None,
+) -> List[str]:
+    objects = paginate_over(
+        getter=backend.query_fields_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+        field_names_filter=["sys/name"],
+        experiment_ids_filter=with_ids,
+    )
+    regex = re.compile(names_regex)
+    filtered_with_ids = []
+
+    for experiment in objects:
+        for field in experiment.fields:
+            if field.path == "sys/name" and regex.match(field.value) is not None:
+                filtered_with_ids.append(experiment.object_key)
+
+                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
+                    raise ValueError(
+                        "Too many runs matched the names regex. "
+                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
+                    )
+
+    if with_ids is None:
+        return filtered_with_ids
+    else:
+        return list(set(with_ids) & set(filtered_with_ids))

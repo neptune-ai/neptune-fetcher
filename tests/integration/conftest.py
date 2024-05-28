@@ -16,6 +16,7 @@
 import base64
 import datetime
 import json
+from typing import Optional
 
 import pytest
 from mock import patch
@@ -56,7 +57,9 @@ def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
 
 
-def create_leaderboard_entry(sys_id, custom_run_id, columns=None):
+def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, columns=None):
+    name = name if name is not None else ""
+
     return LeaderboardEntry(
         object_id=sys_id,
         fields=list(
@@ -66,7 +69,7 @@ def create_leaderboard_entry(sys_id, custom_run_id, columns=None):
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
                     BoolField(path="sys/failed", value=True),
-                    StringField(path="sys/name", value=""),
+                    StringField(path="sys/name", value=name),
                 ],
             )
         ),
@@ -87,24 +90,34 @@ class BackendMock:
         query_all_runs = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
 
         query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
+        query_exp2 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
         query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
+        run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
+        run2 = create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns=columns)
+
+        exp1 = create_leaderboard_entry("EXP-1", "custom_experiment_id", name="powerful-sun-2", columns=columns)
+        exp2 = create_leaderboard_entry("EXP-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
+
         if str(query) == query_run1:
-            output = [create_leaderboard_entry("RUN-1", "alternative_tesla", columns)]
+            output = [run1]
 
         elif str(query) == query_all_runs:
             output = [
-                create_leaderboard_entry("RUN-1", "alternative_tesla", columns),
-                create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns),
+                run1,
+                run2,
             ]
 
         elif str(query) == query_exp1:
-            output = [create_leaderboard_entry("EXP-1", "custom_experiment_id", columns)]
+            output = [exp1]
+
+        elif str(query) == query_exp2:
+            output = [exp2]
 
         elif str(query) == query_all_exps:
             output = [
-                create_leaderboard_entry("EXP-1", "custom_experiment_id", columns),
-                create_leaderboard_entry("EXP-2", "nostalgic_stallman", columns),
+                exp1,
+                exp2,
             ]
 
         return iter(output)
@@ -163,7 +176,27 @@ class BackendMock:
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
-    def query_fields_within_project(self, *args, **kwargs):
+    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
+        if field_names_filter == ["sys/name"]:
+            return QueryFieldsResult(
+                entries=[
+                    QueryFieldsExperimentResult(
+                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                        object_key="EXP-1",
+                        fields=[
+                            StringField(path="sys/name", value="powerful-sun-2"),
+                        ],
+                    ),
+                    QueryFieldsExperimentResult(
+                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                        object_key="EXP-2",
+                        fields=[
+                            StringField(path="sys/name", value="lazy-moon-2"),
+                        ],
+                    ),
+                ],
+                next_page=NextPage(next_page_token=None, limit=None),
+            )
         return QueryFieldsResult(
             entries=[
                 QueryFieldsExperimentResult(

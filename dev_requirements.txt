@@ -1,5 +1,4 @@
 -e .
-git+https://github.com/neptune-ai/neptune-client.git@master
 behave
 mock
 pre-commit

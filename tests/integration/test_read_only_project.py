@@ -171,3 +171,22 @@ def test__fetch_experiments_df__with_columns_regex(api_token, hosted_backend):
     # then
     assert results is not None
     assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/failed", "sys/name"])
+
+
+def test__fetch_experiments_df__with_names_regex(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_experiments_df(names_regex="powerful.*")
+
+    # then
+    assert results is not None
+    assert results["sys/id"].values == ["EXP-1"]
+
+    # when
+    results = project.fetch_experiments_df(names_regex="lazy.*")
+
+    # then
+    assert results is not None
+    assert results["sys/id"].values == ["EXP-2"]
