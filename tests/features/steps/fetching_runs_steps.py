@@ -8,7 +8,7 @@ from behave import (
 
 @given("we filter by `with_ids`")
 def step_impl(context):
-    context.kwargs = {"with_ids": [f"{context.project_key}-1"]}
+    context.kwargs = {"with_ids": [f"{context.project_key}-2"]}
 
 
 @given("we limit the number of runs to 1")
@@ -34,11 +34,6 @@ def step_impl(context):
     context.kwargs = {"columns_regex": "fields/.*", "columns": []}
 
 
-@given("we filter by run names regex")
-def step_impl(context):
-    context.kwargs = {"names_regex": "my-.*-experiment"}
-
-
 @given("we filter by custom id regex")
 def step_impl(context):
     context.kwargs = {"custom_id_regex": "fetcher-bb-.*"}
@@ -52,6 +47,14 @@ def step_impl(context):
         context.dataframe = context.project.fetch_runs_df()
 
 
+@when("we fetch experiment dataframe")
+def step_impl(context):
+    if hasattr(context, "kwargs"):
+        context.dataframe = context.project.fetch_experiments_df(**context.kwargs)
+    else:
+        context.dataframe = context.project.fetch_experiments_df()
+
+
 @then("we should get 1 run")
 def step_impl(context):
     assert len(context.dataframe) == 1
@@ -59,7 +62,6 @@ def step_impl(context):
 
 @then("we should get first run")
 def step_impl(context):
-    print(context.dataframe.to_dict())
     assert len(context.dataframe) == 1
     assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-1"
 
@@ -80,11 +82,6 @@ def step_impl(context):
             "sys/custom_run_id",
         ]
     ) == sorted(context.dataframe.columns.tolist())
-
-
-@then("we should get 2 runs")
-def step_impl(context):
-    assert len(context.dataframe) == 2
 
 
 @then("we should get 2 runs with 1 column")
