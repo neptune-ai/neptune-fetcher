@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 10_000
+MAX_COLUMNS_ALLOWED = 100
 MAX_REGEXABLE_RUNS = 100
 
 
@@ -392,6 +392,7 @@ class ReadOnlyProject:
                 custom_id_regex=custom_id_regex,
                 backend=self._backend,
                 project_qualified_name=self._project_qualified_name,
+                limit=limit,
                 with_ids=with_ids,
             )
 
@@ -493,6 +494,7 @@ def filter_custom_id_regex(
     custom_id_regex: str,
     backend: HostedNeptuneBackend,
     project_qualified_name: str,
+    limit: Optional[int],
     with_ids: Optional[List[str]] = None,
 ) -> List[str]:
     objects = paginate_over(
@@ -505,11 +507,17 @@ def filter_custom_id_regex(
     regex = re.compile(custom_id_regex)
     filtered_with_ids = []
 
+    should_continue = True
+
     for experiment in objects:
+        if not should_continue:
+            break
         for field in experiment.fields:
             if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
                 filtered_with_ids.append(experiment.object_key)
-
+                if len(filtered_with_ids) == limit:
+                    should_continue = False
+                    break
                 if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
                     raise ValueError(
                         "Too many runs matched the custom ID regex. "
