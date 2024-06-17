@@ -1,5 +1,6 @@
 __all__ = ["logged", "handle_critical", "StatsCollector", "TimeitDecorator"]
 
+import json
 import pprint
 import time
 from functools import wraps
@@ -57,6 +58,10 @@ class StatsCollector:
 
     def print_stats(self, *args: Any, **kwargs: Any) -> None:
         pprint.pprint(self._stats, *args, **kwargs)
+
+    def dump_stats(self, file_name: str = "results.json") -> None:
+        with open(file_name, "w") as f:
+            json.dump(self._stats, f)
 
 
 class TimeitDecorator:

@@ -129,3 +129,4 @@ def run_benchmark() -> None:
 if __name__ == "__main__":
     run_benchmark()
     stats_collector.print_stats(width=1)
+    stats_collector.dump_stats()
