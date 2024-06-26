@@ -13,7 +13,7 @@ pip install neptune-fetcher
 
 ## Example usage
 
-### Listing runs of a project:
+### Listing runs of a project
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -22,6 +22,17 @@ project = ReadOnlyProject("workspace/project")
 
 for run in project.list_runs():
     print(run)  # dicts with Neptune ID and custom ID
+```
+
+### Listing experiments of a project
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+project = ReadOnlyProject("workspace/project")
+
+for experiment in project.list_experiments():
+    print(experiment)
 ```
 
 ### Fetching runs data frame with specific columns
@@ -111,6 +122,26 @@ for run in project.list_runs():
 
 ---
 
+
+#### `list_experiments()`
+
+Lists all experiments of a project.
+
+Each experiment is identified by Neptune ID (`sys/id`) and, if set, custom ID (`sys/custom_run_id`).
+Additionally, the experiment has a name (`sys/name`).
+
+__Example__:
+```python
+for run in project.list_experiments():
+    print(run)
+```
+
+__Returns__:
+`Iterator` of dictionaries with Neptune experiment identifiers, custom identifiers and names.
+
+---
+
+
 #### `fetch_runs()`
 
 Fetches a table containing Neptune IDs and custom run IDs of runs in the project.
@@ -125,6 +156,22 @@ df = project.fetch_runs()
 ```
 
 ---
+
+
+#### `fetch_experiments()`
+
+Fetches a table containing Neptune IDs, custom IDs and names of experiments in the project.
+
+__Example__:
+```python
+df = project.fetch_experiments()
+```
+
+__Returns__:
+`pandas.DataFrame` with three columns (`sys/id`, `sys/custom_run_id`, `sys/name`) and one row for each experiment.
+
+---
+
 
 #### `fetch_runs_df()`
 
@@ -178,6 +225,59 @@ specific_runs_df = my_project.fetch_runs_df(custom_ids=["nostalgic_shockley", "h
 ```
 
 ---
+
+
+#### `fetch_experiments_df()`
+
+Fetches the experiments' metadata and returns them as a pandas DataFrame.
+
+__Parameters__:
+
+| Name              | Type                                          | Default             | Description                                                                                                                                                                                                                                                                            |
+|-------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
+| `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
+| `names_regex` | `str`, optional | `None` | A regex pattern to filter the experiments by name. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                          |
+| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                     |
+| `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
+| `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple Custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                |
+| `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                              |
+| `owners`          | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the experiement. Matching any element of the list is sufficient to pass the criterion.                                                                                                    |
+| `tags`            | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                   |
+| `trashed`         | `bool`, optional                              | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                             |
+| `limit`           | `int`, optional                               | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                        |
+| `sort_by`         | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                             |
+| `ascending`       | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                           |
+| `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
+
+__Example__:
+```python
+# Fetch all experiments with specific columns
+experiments_df = project.fetch_experiments_df(
+    columns=["sys/custom_run_id", "sys/modification_time", "training/lr"]
+)
+
+# Fetch all experiments with specific columns and extra columns that match a regex pattern
+experiments_df = project.fetch_experiments_df(
+    columns=["sys/custom_run_id", "sys/modification_time"],
+    columns_regex="tree/.*",
+)
+
+# Fetch experiments by specific IDs
+specific_experiments_df = my_project.fetch_experiments_df(
+    custom_ids=["nostalgic_shockley", "high_albattani"]
+)
+```
+
+__Returns__:
+`pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
+
+
+>[!IMPORTANT]
+>When name regex is applied, it needs to limit the number of experiments to 100 or fewer.
+
+---
+
 
 #### `fetch_read_only_runs()`
 

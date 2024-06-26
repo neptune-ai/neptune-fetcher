@@ -94,6 +94,7 @@ def step_impl(context):
             "sys/tags",
             "series/float",
             "sys/modification_time",
+            "sys/relative_creation_time_ms",
             "sys/trashed",
             "sys/state",
         ]

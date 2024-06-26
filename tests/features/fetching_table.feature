@@ -3,7 +3,12 @@ Feature: Fetching runs dataframe
   Scenario: Fetch all runs
     Given we have a read-only project
      When we fetch runs dataframe
-     Then we should get 2 runs
+     Then we should get 1 run
+
+  Scenario: Fetch all experiments
+    Given we have a read-only project
+     When we fetch experiment dataframe
+     Then we should get 1 run
 
   Scenario: Filter by `with_ids`
     Given we have a read-only project
@@ -33,14 +38,8 @@ Feature: Fetching runs dataframe
     Given we have a read-only project
       And we select columns by regex
      When we fetch runs dataframe
-     Then we should get 2 runs
+     Then we should get 1 run
       And we should have selected columns included
-
-  Scenario: Run names regex
-    Given we have a read-only project
-      And we filter by run names regex
-     When we fetch runs dataframe
-     Then we should get first run
 
   Scenario: Custom id regex
     Given we have a read-only project
