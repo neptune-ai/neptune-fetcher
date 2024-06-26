@@ -385,14 +385,14 @@ Improves the performance of access to consecutive field values.
 
 Supported Neptune field types:
 
-- [Integer](#integer)
-- [Float](#float)
-- [Float series](#float-series)
-- [String](#string)
-- [String set](#string-set)
-- [Boolean](#boolean)
-- [Datetime](#boolean)
-- [State](#object-state)
+- [`Boolean`](#boolean)
+- [`Datetime`](#boolean)
+- [`Float`](#float)
+- [`FloatSeries`](#floatseries)
+- [`Integer`](#integer)
+- [`ObjectState`](#objectstate)
+- [`String`](#string)
+- [`StringSet`](#stringset)
 
 __Parameters:__
 
@@ -414,97 +414,9 @@ print(run["parameter/init_lr"].fetch())
 
 This section lists the available field types and data retrieval operations.
 
-### Integer
-
-#### `fetch()`
-
-Retrieves an `int` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Example:__
-
-```python
-batch_size = run["batch_size"].fetch()
-```
-
 ---
 
-### Float
-
-#### `fetch()`
-
-Retrieves a `float` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Example:__
-
-```python
-f1 = run["scores/f1"].fetch()
-```
-
----
-
-### String
-
-#### `fetch()`
-
-Retrieves a `str` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Example:__
-
-```python
-token = run["token"].fetch()
-```
-
----
-
-### String set
-
-#### `fetch()`
-
-Retrieves a `dict` of `str` values either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Example:__
-
-```python
-groups = run["sys/group_tags"].fetch()
-```
-
----
-
-### Datetime
-
-#### `fetch()`
-
-Retrieves a `datetime.datetime` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Example:__
-
-```python
-created_at = run["sys/creation_time"].fetch()
-```
-
----
-
-### Object state
-
-#### `fetch()`
-
-Retrieves the state of a run either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
-
-__Returns:__ `str`
-
-> [!NOTE]
-> The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
-> To learn more about this field, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune docs.
-
-__Example:__
-
-```python
-state = run["sys/state"].fetch()
-```
-
----
-
-### Boolean
+### `Boolean`
 
 #### `fetch()`
 
@@ -518,7 +430,35 @@ status = run["sys/failed"].fetch()
 
 ---
 
-### Float series
+### `Datetime`
+
+#### `fetch()`
+
+Retrieves a `datetime.datetime` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+created_at = run["sys/creation_time"].fetch()
+```
+
+---
+
+### `Float`
+
+#### `fetch()`
+
+Retrieves a `float` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+f1 = run["scores/f1"].fetch()
+```
+
+---
+
+### `FloatSeries`
 
 #### `fetch()` or `fetch_last()`
 
@@ -551,6 +491,66 @@ values = run["loss"].fetch_values()
 ```
 
 ---
+
+### `Integer`
+
+#### `fetch()`
+
+Retrieves an `int` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+batch_size = run["batch_size"].fetch()
+```
+
+---
+
+### `ObjectState`
+
+#### `fetch()`
+
+Retrieves the state of a run either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Returns:__ `str`
+
+> [!NOTE]
+> The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
+> To learn more about this field, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune docs.
+
+__Example:__
+
+```python
+state = run["sys/state"].fetch()
+```
+
+---
+
+### `String`
+
+#### `fetch()`
+
+Retrieves a `str` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+token = run["token"].fetch()
+```
+
+---
+
+### `StringSet`
+
+#### `fetch()`
+
+Retrieves a `dict` of `str` values either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+groups = run["sys/group_tags"].fetch()
+```
 
 ## License
 
