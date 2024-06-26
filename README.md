@@ -412,7 +412,7 @@ print(run["parameter/init_lr"].fetch())
 
 ## Supported field types
 
-This section lists the currently available field types and data retrieval operations.
+This section lists the available field types and data retrieval operations.
 
 ### Integer
 
@@ -452,6 +452,20 @@ __Example:__
 
 ```python
 token = run["token"].fetch()
+```
+
+---
+
+### String set
+
+#### `fetch()`
+
+Retrieves a `dict` of `str` values either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
+
+__Example:__
+
+```python
+groups = run["sys/group_tags"].fetch()
 ```
 
 ---
