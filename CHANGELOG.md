@@ -2,7 +2,7 @@
 
 ## Breaking Changes
 - Dropped support for `sys/name` field and `names_regex` parameter in `ReadOnlyProject` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
-- Made `list_runs` and `fetch_runs_df` methods return only Runs and not Experiments ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
+- Made `list_runs()` and `fetch_runs_df()` methods return only Runs and not Experiments ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
 
 ## Features
 - Added methods to list and fetch Experiments ([#34](https://github.com/neptune-ai/neptune-fetcher/pull/34))
