@@ -386,7 +386,7 @@ Improves the performance of access to consecutive field values.
 Supported Neptune field types:
 
 - [`Boolean`](#boolean)
-- [`Datetime`](#boolean)
+- [`Datetime`](#datetime)
 - [`Float`](#float)
 - [`FloatSeries`](#floatseries)
 - [`Integer`](#integer)
