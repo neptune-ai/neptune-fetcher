@@ -2,7 +2,7 @@
 
 ## Breaking Changes
 - Dropped support for `sys/name` field and `names_regex` parameter in `ReadOnlyProject` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
-- Made `list_runs` and `fetch_runs_df` methods return only Runs and not Experiments ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
+- Made `list_runs()` and `fetch_runs_df()` methods return only Runs and not Experiments ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
 
 ## Features
 - Added methods to list and fetch Experiments ([#34](https://github.com/neptune-ai/neptune-fetcher/pull/34))
@@ -23,7 +23,7 @@
 ## neptune-fetcher 0.2.0
 
 ### Features
-- Added support for bool, state, datetime and float series ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
+- Added support for bool, state, datetime, float series, and string set ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 - Added support for fetching float series values ([#19](https://github.com/neptune-ai/neptune-fetcher/pull/19))
 
 ### Changes
