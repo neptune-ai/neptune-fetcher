@@ -254,6 +254,7 @@ __Parameters__:
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
 
 __Example__:
+
 ```python
 # Fetch all experiments with specific columns
 experiments_df = project.fetch_experiments_df(
@@ -272,12 +273,11 @@ specific_experiments_df = my_project.fetch_experiments_df(
 )
 ```
 
-__Returns__:
-`pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
+__Returns__: `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
 
->[!IMPORTANT]
->When name regex is applied, it needs to limit the number of experiments to 100 or fewer.
+> [!IMPORTANT]
+> When a regular expression is used to filter experiments, it must limit the number of matched entries to 100 or fewer.
 
 ---
 
