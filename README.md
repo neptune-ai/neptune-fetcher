@@ -127,17 +127,20 @@ for run in project.list_runs():
 
 Lists all experiments of a project.
 
-Each experiment is identified by Neptune ID (`sys/id`) and, if set, custom ID (`sys/custom_run_id`).
-Additionally, the experiment has a name (`sys/name`).
+Each experiment is identified by:
 
-__Example__:
+- Neptune ID: `sys/id`
+- (If set) Custom ID: `sys/custom_run_id`
+- Name: `sys/name`
+
+__Example:__
+
 ```python
-for run in project.list_experiments():
-    print(run)
+for experiment in project.list_experiments():
+    print(experiment)
 ```
 
-__Returns__:
-`Iterator` of dictionaries with Neptune experiment identifiers, custom identifiers and names.
+__Returns:__ `Iterator` of dictionaries with Neptune experiment identifiers, custom identifiers and names.
 
 ---
 
