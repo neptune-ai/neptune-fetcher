@@ -457,7 +457,7 @@ def prepare_extended_nql_query(
             aggregator=NQLAggregator.AND,
         )
 
-    items = [query, query_for_runs_not_experiments()] if is_run else [query, query_for_experiments_not_runs()]
+    items = [query] if is_run else [query, query_for_experiments_not_runs()]
 
     query = NQLQueryAggregate(
         items=items,
@@ -539,15 +539,6 @@ def query_for_not_trashed() -> NQLQuery:
     )
 
 
-def query_for_runs_not_experiments() -> NQLQuery:
-    return NQLQueryAttribute(
-        name="sys/name",
-        type=NQLAttributeType.STRING,
-        operator=NQLAttributeOperator.EQUALS,
-        value="",
-    )
-
-
 def query_for_experiments_not_runs() -> NQLQuery:
     names = [(m.name, m.value) for m in NQLAttributeOperator]  # noqa
 
@@ -572,9 +563,7 @@ def list_objects_from_project(
 ) -> List[Dict[str, Optional[str]]]:
     step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
     queries = [query_for_not_trashed()]
-    if object_type == "run":
-        queries.append(query_for_runs_not_experiments())
-    else:
+    if object_type == "experiment":
         queries.append(query_for_experiments_not_runs())
 
     columns = ["sys/id", "sys/custom_run_id"]

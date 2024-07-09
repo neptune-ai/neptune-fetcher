@@ -86,8 +86,8 @@ class BackendMock:
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
         output = []
 
-        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")) AND (`sys/name`:string = ""))'
-        query_all_runs = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
+        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
+        query_all_runs = "(`sys/trashed`:bool = false)"
 
         query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
         query_exp2 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
