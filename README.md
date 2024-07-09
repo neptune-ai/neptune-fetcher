@@ -184,9 +184,9 @@ __Parameters:__
 
 | Name              | Type                                          | Default             | Description                |
 |-------------------|-----------------------------------------------|---------------------|----------------------------|
-| `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`sys/id`) is included automatically. If `None`, all the columns of the experiments table are included. |
-| `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. |
-| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, it needs to limit the number of runs to 100 or fewer. |
+| `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`sys/id`) is included automatically. If `None`, all the columns of the experiments table are included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 100. |
+| `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 100. |
+| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, the total number of matched runs must not exceed 100. |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion. |
 | `custom_ids` | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion. |
 | `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion. |
@@ -199,6 +199,14 @@ __Parameters:__
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
+
+> [!IMPORTANT]
+> When using a regular expression to filter runs or columns, the total number of matched entries must not exceed 100.
+
+Specifically, you can fetch a data fram with a maximum of:
+
+- 100 columns, when using `columns` or `columns_regex` to filter columns.
+- 100 runs, when using `custom_id_regex` to filter runs.
 
 __Examples:__
 
@@ -238,8 +246,8 @@ __Parameters__:
 
 | Name              | Type                                          | Default             | Description                                                                                                                                                                                                                                                                            |
 |-------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included.                                                                                           |
-| `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.                                                                                                                                         |
+| `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune ID (`"sys/id"`) is included automatically. If `None`, all the columns of the experiments table are included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 100. |
+| `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 100. |
 | `names_regex` | `str`, optional | `None` | A regex pattern to filter the experiments by name. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                          |
 | `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                     |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                     |
@@ -253,34 +261,44 @@ __Parameters__:
 | `ascending`       | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                           |
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used. |
 
-__Example__:
+__Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
+
+> [!IMPORTANT]
+> When using a regular expression to filter experiments or columns, the total number of matched entries must not exceed 100.
+
+Specifically, you can fetch a data fram with a maximum of:
+
+- 100 columns, when using `columns` or `columns_regex` to filter columns.
+- 100 experiments, when using `names_regex` or `custom_id_regex` to filter experiments.
+
+__Examples:__
+
+Fetch all experiments with specific columns:
 
 ```python
-# Fetch all experiments with specific columns
 experiments_df = project.fetch_experiments_df(
     columns=["sys/custom_run_id", "sys/modification_time", "training/lr"]
 )
+```
 
-# Fetch all experiments with specific columns and extra columns that match a regex pattern
+Fetch all experiments with specific columns and extra columns that match a regex pattern:
+
+```python
 experiments_df = project.fetch_experiments_df(
     columns=["sys/custom_run_id", "sys/modification_time"],
     columns_regex="tree/.*",
 )
+```
 
-# Fetch experiments by specific IDs
+Fetch experiments by specific IDs:
+
+```python
 specific_experiments_df = my_project.fetch_experiments_df(
     custom_ids=["nostalgic_shockley", "high_albattani"]
 )
 ```
 
-__Returns__: `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
-
-
-> [!IMPORTANT]
-> When a regular expression is used to filter experiments, it must limit the number of matched entries to 100 or fewer.
-
 ---
-
 
 #### `fetch_read_only_runs()`
 
