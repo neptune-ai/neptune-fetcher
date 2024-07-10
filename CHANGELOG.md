@@ -1,7 +1,8 @@
 ## [UNRELEASED] neptune-fetcher 0.5.0
 
 ## Breaking Changes
-- Dropped support for `sys/name` field and `names_regex` parameter in `ReadOnlyProject` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
+- Removed `names_regex` parameter from `fetch_runs_df` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
+- Removed `sys/name` from objects returned by run-related methods of `ReadOnlyProject` ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
 - Made `list_runs` and `fetch_runs_df` methods return only Runs and not Experiments ([#30](https://github.com/neptune-ai/neptune-fetcher/pull/30))
 
 ## Features
