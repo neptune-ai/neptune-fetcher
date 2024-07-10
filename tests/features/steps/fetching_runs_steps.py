@@ -55,6 +55,11 @@ def step_impl(context):
         context.dataframe = context.project.fetch_experiments_df()
 
 
+@then("we should get 1 run and 1 experiment")
+def step_impl(context):
+    assert len(context.dataframe) == 2
+
+
 @then("we should get 1 run")
 def step_impl(context):
     assert len(context.dataframe) == 1
