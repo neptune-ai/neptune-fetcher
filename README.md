@@ -203,7 +203,7 @@ __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the f
 > [!IMPORTANT]
 > When using a regular expression to filter runs or columns, the total number of matched entries must not exceed 100.
 
-Specifically, you can fetch a data fram with a maximum of:
+Specifically, you can fetch a data frame with a maximum of:
 
 - 100 columns, when using `columns` or `columns_regex` to filter columns.
 - 100 runs, when using `custom_id_regex` to filter runs.
@@ -266,7 +266,7 @@ __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the f
 > [!IMPORTANT]
 > When using a regular expression to filter experiments or columns, the total number of matched entries must not exceed 100.
 
-Specifically, you can fetch a data fram with a maximum of:
+Specifically, you can fetch a data frame with a maximum of:
 
 - 100 columns, when using `columns` or `columns_regex` to filter columns.
 - 100 experiments, when using `names_regex` or `custom_id_regex` to filter experiments.
