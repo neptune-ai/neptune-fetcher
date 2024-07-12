@@ -28,10 +28,7 @@ from neptune_fetcher.fields import (
 
 
 class ClickProgressBar(ProgressBarCallback):
-    ...
-
     def __init__(self, *, description: Optional[str] = None, **_) -> None:
-        ...
         super().__init__()
 
         from click import progressbar
