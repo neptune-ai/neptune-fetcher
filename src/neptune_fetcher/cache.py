@@ -1,6 +1,5 @@
 __all__ = ("FieldsCache",)
 
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from types import TracebackType
@@ -61,8 +60,6 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         self._container_id: QualifiedName = container_id
         self._container_type = container_type
         self._field_to_fetchable_visitor = FieldToFetchableVisitor()
-
-        self._lock = threading.RLock()
 
     def cache_miss(self, paths: List[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
