@@ -114,5 +114,5 @@ class ReadOnlyRun:
         """
         self._cache.prefetch(paths=paths)
 
-    def prefetch_series_values(self, paths: List[str]) -> None:
-        self._cache.prefetch_series_values(paths=paths)
+    def prefetch_series_values(self, paths: List[str], use_threads: bool = False) -> None:
+        self._cache.prefetch_series_values(paths=paths, use_threads=use_threads)

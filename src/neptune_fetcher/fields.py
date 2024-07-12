@@ -35,7 +35,6 @@ from typing import (
     TYPE_CHECKING,
     Dict,
     Generic,
-    Iterator,
     List,
     Optional,
     Set,
@@ -80,7 +79,7 @@ def make_row(entry: Row, include_timestamp: bool = True) -> Dict[str, Union[str,
 class Series(ABC, Generic[T]):
     type: FieldType
     last: Optional[T] = None
-    data: Optional[Iterator[PointValue]] = None
+    prefetched_data: Optional[List[PointValue]] = None
 
     def fetch_values(
         self,
@@ -92,8 +91,8 @@ class Series(ABC, Generic[T]):
     ) -> "DataFrame":
         import pandas as pd
 
-        if self.data is None:  # `prefetch_values` was not called
-            self.data = fetch_series_values(
+        if self.prefetched_data is None:  # `prefetch_values` was not called
+            data = fetch_series_values(
                 getter=partial(
                     self._fetch_values_from_backend,
                     backend=backend,
@@ -104,10 +103,10 @@ class Series(ABC, Generic[T]):
                 path=path,
                 progress_bar=None,
             )
+        else:
+            data = self.prefetched_data
 
-        rows = dict(
-            (n, make_row(entry=entry, include_timestamp=include_timestamp)) for (n, entry) in enumerate(self.data)
-        )
+        rows = dict((n, make_row(entry=entry, include_timestamp=include_timestamp)) for (n, entry) in enumerate(data))
         return pd.DataFrame.from_dict(data=rows, orient="index")
 
     @abc.abstractmethod
