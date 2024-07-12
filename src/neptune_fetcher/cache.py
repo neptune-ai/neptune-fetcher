@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from types import TracebackType
 from typing import (
+    Callable,
     Dict,
     List,
     Optional,
@@ -72,6 +73,8 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         if not missed_paths:
             return None
 
+        missed_paths = list(set(missed_paths))
+
         data = self._backend.get_fields_with_paths_filter(
             container_id=self._container_id,
             container_type=ContainerType.RUN,
@@ -85,17 +88,12 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         self.cache_miss(paths)
 
     def prefetch_series_values(self, paths: List[str], use_threads: bool) -> None:
-        paths = list(set(paths))
-
         self.cache_miss(paths)
 
         if use_threads:
-            with ThreadPoolExecutor(10) as executor:
-                executor.map(self._fetch_single_series_values, paths)
-
+            fetch_values_concurrently(self._fetch_single_series_values, paths)
         else:
-            for path in paths:
-                self._fetch_single_series_values(path)
+            fetch_values_sequentially(self._fetch_single_series_values, paths)
 
     def _fetch_single_series_values(self, path: str) -> None:
         if not isinstance(self[path], Series):
@@ -109,7 +107,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 path=parse_path(path),
             ),
             path=path,
-            progress_bar=ClickProgressBar,  # TODO: handle progress bar in parallel
+            progress_bar=ClickProgressBar,
         )
         self[path].prefetched_data = list(data)
 
@@ -120,3 +118,14 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             ]
         )
         return super().__getitem__(path)
+
+
+def fetch_values_sequentially(getter: Callable[[str], None], paths: List[str]) -> None:
+    for path in paths:
+        getter(path)
+
+
+def fetch_values_concurrently(getter: Callable[[str], None], paths: List[str], *args, **kwargs) -> None:
+    max_workers = kwargs.pop("max_workers", 10)
+    with ThreadPoolExecutor(max_workers, *args, **kwargs) as executor:
+        executor.map(getter, paths)
