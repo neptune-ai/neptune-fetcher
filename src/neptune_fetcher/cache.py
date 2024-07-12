@@ -1,14 +1,17 @@
 __all__ = ("FieldsCache",)
 
+from functools import partial
 from typing import (
     Dict,
     List,
     Union,
 )
 
+from neptune.api.fetching_series_values import fetch_series_values
 from neptune.internal.backends.neptune_backend import NeptuneBackend
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
+from neptune.internal.utils.paths import parse_path
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
@@ -42,6 +45,25 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
 
     def prefetch(self, paths: List[str]) -> None:
         self.cache_miss(paths)
+
+    def prefetch_series_values(self, paths: List[str]) -> None:
+        self.cache_miss(paths)
+
+        for path in paths:  # TODO: parallelize
+            if not isinstance(self[path], Series):
+                continue
+
+            data = fetch_series_values(
+                getter=partial(
+                    self._backend.get_float_series_values,
+                    container_id=self._container_id,
+                    container_type=ContainerType.RUN,
+                    path=parse_path(path),
+                ),
+                path=path,
+                progress_bar=None,  # TODO: handle progress bar in parallel
+            )
+            self[path].data = data
 
     def __getitem__(self, path: str) -> Union[Field, Series]:
         self.cache_miss(

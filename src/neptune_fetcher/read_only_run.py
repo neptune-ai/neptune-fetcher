@@ -113,3 +113,6 @@ class ReadOnlyRun:
             paths: List of field paths to prefetch.
         """
         self._cache.prefetch(paths=paths)
+
+    def prefetch_series_values(self, paths: List[str]) -> None:
+        self._cache.prefetch_series_values(paths=paths)
