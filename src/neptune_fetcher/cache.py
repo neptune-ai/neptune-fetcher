@@ -3,9 +3,12 @@ __all__ = ("FieldsCache",)
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from types import TracebackType
 from typing import (
     Dict,
     List,
+    Optional,
+    Type,
     Union,
 )
 
@@ -14,12 +17,43 @@ from neptune.internal.backends.neptune_backend import NeptuneBackend
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils.paths import parse_path
+from neptune.typing import ProgressBarCallback
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
     Field,
     Series,
 )
+
+
+class ClickProgressBar(ProgressBarCallback):
+    ...
+
+    def __init__(self, *, description: Optional[str] = None, **_) -> None:
+        ...
+        super().__init__()
+
+        from click import progressbar
+
+        self._progress_bar = progressbar(iterable=None, length=1, label=description)
+
+    def update(self, *, by: int, total: Optional[int] = None) -> None:
+        if total:
+            self._progress_bar.length = total
+        self._progress_bar.update(by)
+
+    def __enter__(self) -> "ClickProgressBar":
+        self._progress_bar.__enter__()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+
+        self._progress_bar.__exit__(exc_type, exc_val, exc_tb)
 
 
 class FieldsCache(Dict[str, Union[Field, Series]]):
@@ -75,7 +109,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 path=parse_path(path),
             ),
             path=path,
-            progress_bar=None,  # TODO: handle progress bar in parallel
+            progress_bar=ClickProgressBar,  # TODO: handle progress bar in parallel
         )
         self[path].prefetched_data = list(data)
 
