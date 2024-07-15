@@ -2,55 +2,26 @@ __all__ = ("FieldsCache",)
 
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from types import TracebackType
 from typing import (
     Callable,
     Dict,
     List,
-    Optional,
-    Type,
     Union,
 )
 
 from neptune.api.fetching_series_values import fetch_series_values
 from neptune.internal.backends.neptune_backend import NeptuneBackend
+from neptune.internal.backends.utils import construct_progress_bar
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils.paths import parse_path
-from neptune.typing import ProgressBarCallback
+from neptune.typing import ProgressBarType
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
     Field,
     Series,
 )
-
-
-class ClickProgressBar(ProgressBarCallback):
-    def __init__(self, *, description: Optional[str] = None, **_) -> None:
-        super().__init__()
-
-        from click import progressbar
-
-        self._progress_bar = progressbar(iterable=None, length=1, label=description)
-
-    def update(self, *, by: int, total: Optional[int] = None) -> None:
-        if total:
-            self._progress_bar.length = total
-        self._progress_bar.update(by)
-
-    def __enter__(self) -> "ClickProgressBar":
-        self._progress_bar.__enter__()
-        return self
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
-
-        self._progress_bar.__exit__(exc_type, exc_val, exc_tb)
 
 
 class FieldsCache(Dict[str, Union[Field, Series]]):
@@ -84,12 +55,14 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
     def prefetch_series_values(self, paths: List[str], use_threads: bool) -> None:
         self.cache_miss(paths)
 
-        if use_threads:
-            fetch_values_concurrently(self._fetch_single_series_values, paths)
-        else:
-            fetch_values_sequentially(self._fetch_single_series_values, paths)
+        with construct_progress_bar(True, description="Fetching metrics") as progress_bar:
+            progress_bar.update(by=0, total=len(paths))
+            if use_threads:
+                fetch_values_concurrently(self._fetch_single_series_values, paths=paths, progress_bar=progress_bar)
+            else:
+                fetch_values_sequentially(self._fetch_single_series_values, paths, progress_bar)
 
-    def _fetch_single_series_values(self, path: str) -> None:
+    def _fetch_single_series_values(self, path: str, progress_bar: ProgressBarType) -> None:
         if not isinstance(self[path], Series):
             return None
 
@@ -101,9 +74,11 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 path=parse_path(path),
             ),
             path=path,
-            progress_bar=ClickProgressBar,
+            progress_bar=False,
         )
         self[path].prefetched_data = list(data)
+
+        progress_bar.update(by=1)
 
     def __getitem__(self, path: str) -> Union[Field, Series]:
         self.cache_miss(
@@ -114,12 +89,21 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         return super().__getitem__(path)
 
 
-def fetch_values_sequentially(getter: Callable[[str], None], paths: List[str]) -> None:
+def fetch_values_sequentially(
+    getter: Callable[[str, ProgressBarType], None],
+    paths: List[str],
+    progress_bar: ProgressBarType,
+) -> None:
     for path in paths:
-        getter(path)
+        getter(path, progress_bar)
 
 
-def fetch_values_concurrently(getter: Callable[[str], None], paths: List[str], *args, **kwargs) -> None:
+def fetch_values_concurrently(
+    getter: Callable[[str, ProgressBarType], None],
+    paths: List[str],
+    progress_bar: ProgressBarType,
+    **kwargs,
+) -> None:
     max_workers = kwargs.pop("max_workers", 10)
-    with ThreadPoolExecutor(max_workers, *args, **kwargs) as executor:
-        executor.map(getter, paths)
+    with ThreadPoolExecutor(max_workers, **kwargs) as executor:
+        executor.map(partial(getter, progress_bar=progress_bar), paths)
