@@ -1,5 +1,6 @@
 __all__ = ("FieldsCache",)
 
+import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import (
@@ -15,7 +16,7 @@ from neptune.internal.backends.utils import construct_progress_bar
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils.paths import parse_path
-from neptune.typing import ProgressBarType
+from neptune.typing import ProgressBarCallback
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
@@ -62,7 +63,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             else:
                 fetch_values_sequentially(self._fetch_single_series_values, paths, progress_bar)
 
-    def _fetch_single_series_values(self, path: str, progress_bar: ProgressBarType) -> None:
+    def _fetch_single_series_values(self, path: str, progress_bar: ProgressBarCallback) -> None:
         if not isinstance(self[path], Series):
             return None
 
@@ -90,20 +91,20 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
 
 
 def fetch_values_sequentially(
-    getter: Callable[[str, ProgressBarType], None],
+    getter: Callable[[str, ProgressBarCallback], None],
     paths: List[str],
-    progress_bar: ProgressBarType,
+    progress_bar: ProgressBarCallback,
 ) -> None:
     for path in paths:
         getter(path, progress_bar)
 
 
 def fetch_values_concurrently(
-    getter: Callable[[str, ProgressBarType], None],
+    getter: Callable[[str, ProgressBarCallback], None],
     paths: List[str],
-    progress_bar: ProgressBarType,
-    **kwargs,
+    progress_bar: ProgressBarCallback,
 ) -> None:
-    max_workers = kwargs.pop("max_workers", 10)
-    with ThreadPoolExecutor(max_workers, **kwargs) as executor:
+    max_workers = os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10)
+
+    with ThreadPoolExecutor(max_workers) as executor:
         executor.map(partial(getter, progress_bar=progress_bar), paths)
