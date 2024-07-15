@@ -7,6 +7,7 @@
 
 ## Features
 - Added methods to list and fetch Experiments ([#34](https://github.com/neptune-ai/neptune-fetcher/pull/34))
+- Added method to prefetch series values ([#42](https://github.com/neptune-ai/neptune-fetcher/pull/42))
 
 
 ## neptune-fetcher 0.4.0
