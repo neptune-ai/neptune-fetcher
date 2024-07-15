@@ -368,6 +368,10 @@ Pre-fetches a batch of series fields to the internal cache.
 
 Improves the performance of access to consecutive field values. Works only for series fields (`float series`).
 
+This method can use python's `ThreadPoolExecutor` to speed up the fetching process.
+To enable it, set the `use_threads` parameter to `True`.
+By default, it will use max. 10 workers. This can be changed by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
+
 __Parameters__:
 
 | Name          | Type        | Default | Description                               |
