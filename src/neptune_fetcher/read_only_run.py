@@ -115,4 +115,14 @@ class ReadOnlyRun:
         self._cache.prefetch(paths=paths)
 
     def prefetch_series_values(self, paths: List[str], use_threads: bool = False) -> None:
+        """
+        Prefetches values of a list of series fields and stores them in local cache.
+
+        Args:
+            paths: List of field paths to prefetch.
+            use_threads: If True, fetching will be done concurrently.
+
+        To control the number of workers in the thread pool, set the environment variable
+         NEPTUNE_FETCHER_MAX_WORKERS. The default value is 10.
+        """
         self._cache.prefetch_series_values(paths=paths, use_threads=use_threads)

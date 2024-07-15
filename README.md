@@ -70,6 +70,7 @@ from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
 project = ReadOnlyProject("workspace/project")
 run = ReadOnlyRun(project, with_id="TES-1")
 run.prefetch(["parameters/optimizer", "parameters/init_lr"])
+run.prefetch_series_values(["metrics/loss", "metrics/accuracy"], use_threads=True)
 
 print(run["parameters/optimizer"].fetch())
 print(run["parameters/init_lr"].fetch())
@@ -361,6 +362,28 @@ print(run["parameters/optimizer"].fetch())
 print(run["parameter/init_lr"].fetch())
 ```
 
+
+### `prefetch_series_values()`
+Pre-fetches a batch of series fields to the internal cache.
+
+Improves the performance of access to consecutive field values. Works only for series fields (`float series`).
+
+__Parameters__:
+
+| Name          | Type        | Default | Description                               |
+|---------------|-------------|---------|-------------------------------------------|
+| `paths`       | `List[str]` | -       | List of paths to fetch to the cache.      |
+| `use_threads` | `bool`      | `False` | Whether to use threads to fetch the data. |
+
+__Example__:
+```python
+run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
+# No more calls to the API
+print(run["metrics/loss"].fetch_values())
+print(run["metrics/accuracy"].fetch_values())
+```
+
+
 ## Available types
 
 The following sections list the currently supported field types, along with their available data retrieval operations.
@@ -462,7 +485,7 @@ __Returns__:
 `Optional[float]`
 
 #### `fetch_values()`
-Retrieves all series values from the API.
+Retrieves all series values either from the internal cache (see [`prefetch_series_values()`](#prefetch_series_values)) or from the API.
 
 __Parameters__:
 

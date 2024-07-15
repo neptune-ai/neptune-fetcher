@@ -104,7 +104,7 @@ def fetch_values_concurrently(
     paths: List[str],
     progress_bar: ProgressBarCallback,
 ) -> None:
-    max_workers = os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10)
+    max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
 
     with ThreadPoolExecutor(max_workers) as executor:
         executor.map(partial(getter, progress_bar=progress_bar), paths)
