@@ -123,15 +123,15 @@ class ReadOnlyRun:
             use_threads: If True, fetching is done concurrently.
 
         To control the number of workers in the thread pool, set the
-         NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
+        NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
 
-         Example:
-         ```
-         run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
+        Example:
+        ```
+        run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
 
-         # No more calls to the API
-         print(run["metrics/loss"].fetch_values())
-         print(run["metrics/accuracy"].fetch_values())
-         ```
+        # No more calls to the API
+        print(run["metrics/loss"].fetch_values())
+        print(run["metrics/accuracy"].fetch_values())
+        ```
         """
         self._cache.prefetch_series_values(paths=paths, use_threads=use_threads)
