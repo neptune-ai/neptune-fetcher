@@ -124,7 +124,7 @@ class ReadOnlyRun:
 
         To control the number of workers in the thread pool, set the
          NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
-         
+
          Example:
          ```
          run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
