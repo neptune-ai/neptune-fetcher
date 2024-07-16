@@ -1,14 +1,22 @@
 __all__ = ("FieldsCache",)
 
+import os
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import (
+    Callable,
     Dict,
     List,
     Union,
 )
 
+from neptune.api.fetching_series_values import fetch_series_values
 from neptune.internal.backends.neptune_backend import NeptuneBackend
+from neptune.internal.backends.utils import construct_progress_bar
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
+from neptune.internal.utils.paths import parse_path
+from neptune.typing import ProgressBarCallback
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
@@ -31,6 +39,8 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         if not missed_paths:
             return None
 
+        missed_paths = list(set(missed_paths))
+
         data = self._backend.get_fields_with_paths_filter(
             container_id=self._container_id,
             container_type=ContainerType.RUN,
@@ -43,6 +53,34 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
     def prefetch(self, paths: List[str]) -> None:
         self.cache_miss(paths)
 
+    def prefetch_series_values(self, paths: List[str], use_threads: bool) -> None:
+        self.cache_miss(paths)
+
+        with construct_progress_bar(True, description="Fetching metrics") as progress_bar:
+            progress_bar.update(by=0, total=len(paths))
+            if use_threads:
+                fetch_values_concurrently(self._fetch_single_series_values, paths=paths, progress_bar=progress_bar)
+            else:
+                fetch_values_sequentially(self._fetch_single_series_values, paths, progress_bar)
+
+    def _fetch_single_series_values(self, path: str, progress_bar: ProgressBarCallback) -> None:
+        if not isinstance(self[path], Series):
+            return None
+
+        data = fetch_series_values(
+            getter=partial(
+                self._backend.get_float_series_values,
+                container_id=self._container_id,
+                container_type=ContainerType.RUN,
+                path=parse_path(path),
+            ),
+            path=path,
+            progress_bar=False,
+        )
+        self[path].prefetched_data = list(data)
+
+        progress_bar.update(by=1)
+
     def __getitem__(self, path: str) -> Union[Field, Series]:
         self.cache_miss(
             paths=[
@@ -50,3 +88,23 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             ]
         )
         return super().__getitem__(path)
+
+
+def fetch_values_sequentially(
+    getter: Callable[[str, ProgressBarCallback], None],
+    paths: List[str],
+    progress_bar: ProgressBarCallback,
+) -> None:
+    for path in paths:
+        getter(path, progress_bar)
+
+
+def fetch_values_concurrently(
+    getter: Callable[[str, ProgressBarCallback], None],
+    paths: List[str],
+    progress_bar: ProgressBarCallback,
+) -> None:
+    max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
+
+    with ThreadPoolExecutor(max_workers) as executor:
+        executor.map(partial(getter, progress_bar=progress_bar), paths)

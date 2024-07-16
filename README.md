@@ -71,6 +71,7 @@ project = ReadOnlyProject("workspace/project")
 run = ReadOnlyRun(project, with_id="TES-1")
 
 run.prefetch(["parameters/optimizer", "parameters/init_lr"])
+run.prefetch_series_values(["metrics/loss", "metrics/accuracy"], use_threads=True)
 
 print(run["parameters/optimizer"].fetch())
 print(run["parameters/init_lr"].fetch())
@@ -431,7 +432,32 @@ print(run["parameters/optimizer"].fetch())
 print(run["parameter/init_lr"].fetch())
 ```
 
-## Supported field types
+### `prefetch_series_values()`
+Prefetches a batch of series to the internal cache.
+
+Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
+
+To speed up the fetching process, this method can use Python's `ThreadPoolExecutor`.
+To enable it, set the `use_threads` parameter to `True`.
+By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
+
+__Parameters__:
+
+| Name          | Type        | Default | Description                               |
+|---------------|-------------|---------|-------------------------------------------|
+| `paths`       | `List[str]`, required | None      | List of paths to prefetch to the internal cache.      |
+| `use_threads` | `bool`, optional      | `False` | Whether to use threads to fetch the data. |
+
+__Example__:
+```python
+run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
+# No more calls to the API
+print(run["metrics/loss"].fetch_values())
+print(run["metrics/accuracy"].fetch_values())
+```
+
+
+## Available types
 
 This section lists the available field types and data retrieval operations.
 
@@ -495,7 +521,7 @@ loss = run["loss"].fetch_last()
 
 #### `fetch_values()`
 
-Retrieves all values of the series from the API.
+Retrieves all series values either from the internal cache (see [`prefetch_series_values()`](#prefetch_series_values)) or from the API.
 
 __Parameters:__
 
