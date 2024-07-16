@@ -208,10 +208,14 @@ class ReadOnlyProject:
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
         Args:
-            columns: None or a list of column names to include in the result.
+            columns: Columns to include in the result, as a list of field names.
                 Defaults to None, which includes all available columns up to 10k.
+                When using one or both of the `columns` and `columns_regex` parameters,
+                the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
+                When using one or both of the `columns` and `columns_regex` parameters,
+                the total number of matched columns must not exceed 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
@@ -280,10 +284,14 @@ class ReadOnlyProject:
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
         Args:
-            columns: None or a list of column names to include in the result.
+            columns: Columns to include in the result, as a list of field names.
                 Defaults to None, which includes all available columns up to 10k.
+                When using one or both of the `columns` and `columns_regex` parameters,
+                the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
+                When using one or both of the `columns` and `columns_regex` parameters,
+                the total number of matched columns must not exceed 100.
             names_regex: A regex pattern to filter the experiments by name.
                 When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
