@@ -364,20 +364,20 @@ print(run["parameter/init_lr"].fetch())
 
 
 ### `prefetch_series_values()`
-Pre-fetches a batch of series fields to the internal cache.
+Prefetches a batch of series to the internal cache.
 
-Improves the performance of access to consecutive field values. Works only for series fields (`float series`).
+Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
 
-This method can use python's `ThreadPoolExecutor` to speed up the fetching process.
+To speed up the fetching process, this method can use Python's `ThreadPoolExecutor`.
 To enable it, set the `use_threads` parameter to `True`.
-By default, it will use max. 10 workers. This can be changed by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
+By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
 
 __Parameters__:
 
 | Name          | Type        | Default | Description                               |
 |---------------|-------------|---------|-------------------------------------------|
-| `paths`       | `List[str]` | -       | List of paths to fetch to the cache.      |
-| `use_threads` | `bool`      | `False` | Whether to use threads to fetch the data. |
+| `paths`       | `List[str]`, required | None      | List of paths to prefetch to the internal cache.      |
+| `use_threads` | `bool`, optional      | `False` | Whether to use threads to fetch the data. |
 
 __Example__:
 ```python
