@@ -16,7 +16,10 @@ from neptune.internal.backends.utils import construct_progress_bar
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils.paths import parse_path
-from neptune.typing import ProgressBarCallback
+from neptune.typing import (
+    ProgressBarCallback,
+    ProgressBarType,
+)
 
 from neptune_fetcher.fetchable import FieldToFetchableVisitor
 from neptune_fetcher.fields import (
@@ -53,10 +56,12 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
     def prefetch(self, paths: List[str]) -> None:
         self.cache_miss(paths)
 
-    def prefetch_series_values(self, paths: List[str], use_threads: bool) -> None:
+    def prefetch_series_values(
+        self, paths: List[str], use_threads: bool, progress_bar: "ProgressBarType" = None
+    ) -> None:
         self.cache_miss(paths)
 
-        with construct_progress_bar(True, description="Fetching metrics") as progress_bar:
+        with construct_progress_bar(progress_bar, description="Fetching metrics") as progress_bar:
             progress_bar.update(by=0, total=len(paths))
             if use_threads:
                 fetch_values_concurrently(self._fetch_single_series_values, paths=paths, progress_bar=progress_bar)
