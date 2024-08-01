@@ -46,8 +46,14 @@ def step_impl(context):
 def step_impl(context):
     assert sorted(context.runs, key=lambda kv: kv["sys/id"]) == [
         {
+            "sys/id": f"{context.project_key}-1",
+            "sys/custom_run_id": "fetcher-aa-1",
+            "sys/name": "my-lovely-experiment",
+        },
+        {
             "sys/id": f"{context.project_key}-2",
             "sys/custom_run_id": "fetcher-bb-2",
+            "sys/name": "",
         },
     ]
 
