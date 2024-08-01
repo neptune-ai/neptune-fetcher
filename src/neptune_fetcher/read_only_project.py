@@ -203,7 +203,7 @@ class ReadOnlyProject:
         limit: Optional[int] = None,
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
-        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        progress_bar: ProgressBarType = None,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
