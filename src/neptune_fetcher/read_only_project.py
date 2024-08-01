@@ -359,7 +359,7 @@ class ReadOnlyProject:
         limit: Optional[int] = None,
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
-        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        progress_bar: ProgressBarType = None,
         object_type: Literal["run", "experiment"] = "run",
     ) -> "DataFrame":
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))

@@ -8,6 +8,7 @@
 ## Features
 - Added methods to list and fetch Experiments ([#34](https://github.com/neptune-ai/neptune-fetcher/pull/34))
 - Added method to prefetch series values ([#42](https://github.com/neptune-ai/neptune-fetcher/pull/42))
+- Added `progress_bar` parameter to `prefetch_series_values` ([#43](https://github.com/neptune-ai/neptune-fetcher/pull/43))
 
 
 ## neptune-fetcher 0.4.0
