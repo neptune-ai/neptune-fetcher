@@ -58,6 +58,7 @@ def api_token() -> str:
 
 
 def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, columns=None):
+    print(f"Creating leaderboard entry for {sys_id} with custom_run_id {custom_run_id}")
     name = name if name is not None else ""
 
     return LeaderboardEntry(
@@ -84,10 +85,11 @@ class BackendMock:
         return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
+        print(f"Searching leaderboard entries with query {query}")
         output = []
 
-        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")) AND (`sys/name`:string = ""))'
-        query_all_runs = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
+        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
+        query_all_runs = "(`sys/trashed`:bool = false)"
 
         query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
         query_exp2 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
@@ -123,6 +125,7 @@ class BackendMock:
         return iter(output)
 
     def get_fields_definitions(self, *args, **kwargs):
+        print("Getting fields definitions")
         return [
             FieldDefinition(path="sys/id", type=FieldType.STRING),
             FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
@@ -146,6 +149,7 @@ class BackendMock:
         ]
 
     def get_fields_with_paths_filter(self, *args, **kwargs):
+        print("Getting fields with paths filter")
         return [
             FloatField(path="metrics/float", value=25.97),
             IntField(path="metrics/int", value=97),
@@ -158,6 +162,7 @@ class BackendMock:
         ]
 
     def get_float_series_values(self, *args, **kwargs):
+        print("Getting float series values")
         return FloatSeriesValues(
             total=3,
             values=[
@@ -168,15 +173,18 @@ class BackendMock:
         )
 
     def query_fields_definitions_within_project(self, *args, **kwargs):
+        print("Querying fields definitions within project")
         return QueryFieldDefinitionsResult(
             entries=[
                 FieldDefinition(path="sys/id", type=FieldType.STRING),
+                FieldDefinition(path="sys/name", type=FieldType.STRING),
                 FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             ],
             next_page=NextPage(next_page_token=None, limit=None),
         )
 
     def query_fields_within_project(self, field_names_filter, *args, **kwargs):
+        print("Querying fields within project")
         if field_names_filter == ["sys/name"]:
             return QueryFieldsResult(
                 entries=[

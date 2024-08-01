@@ -42,7 +42,19 @@ def test__fetch_runs_df__with_columns_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/failed"])
+    assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/name", "sys/failed"])
+
+
+def test__fetch_runs_df__with_names_regex(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_runs_df(names_regex="powerful.*")
+
+    # then
+    assert results is not None
+    assert results["sys/id"].values == ["RUN-1"]
 
 
 def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
@@ -67,6 +79,7 @@ def test__fetch_runs(api_token, hosted_backend):
     # then
     assert results is not None
     assert sorted(results["sys/id"].values) == sorted(["RUN-1", "RUN-2"])
+    assert sorted(results["sys/name"].values) == sorted(["", ""])
 
 
 def test__list_runs(api_token, hosted_backend):
@@ -79,6 +92,7 @@ def test__list_runs(api_token, hosted_backend):
     # then
     assert results is not None
     assert sorted([result["sys/id"] for result in results]) == sorted(["RUN-1", "RUN-2"])
+    assert sorted([result["sys/name"] for result in results]) == sorted(["", ""])
 
 
 def test__fetch_read_only_runs__with_ids(api_token, hosted_backend):
