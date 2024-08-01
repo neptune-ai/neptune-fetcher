@@ -34,6 +34,11 @@ def step_impl(context):
     context.kwargs = {"columns_regex": "fields/.*", "columns": []}
 
 
+@given("we filter by run names regex")
+def step_impl(context):
+    context.kwargs = {"names_regex": "my-.*-experiment"}
+
+
 @given("we filter by custom id regex")
 def step_impl(context):
     context.kwargs = {"custom_id_regex": "fetcher-bb-.*"}

@@ -68,8 +68,8 @@ def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, 
                 [
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
-                    BoolField(path="sys/failed", value=True),
                     StringField(path="sys/name", value=name),
+                    BoolField(path="sys/failed", value=True),
                 ],
             )
         ),

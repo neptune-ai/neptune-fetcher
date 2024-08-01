@@ -41,6 +41,12 @@ Feature: Fetching runs dataframe
      Then we should get 1 run and 1 experiment
       And we should have selected columns included
 
+  Scenario: Run names regex
+    Given we have a read-only project
+      And we filter by run names regex
+     When we fetch runs dataframe
+     Then we should get first run
+
   Scenario: Custom id regex
     Given we have a read-only project
       And we filter by custom id regex
