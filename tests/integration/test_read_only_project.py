@@ -54,7 +54,7 @@ def test__fetch_runs_df__with_names_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert results["sys/id"].values == ["RUN-1"]
+    assert results["sys/id"].values == ["EXP-1"]
 
 
 def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
