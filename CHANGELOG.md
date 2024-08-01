@@ -1,4 +1,4 @@
-## [UNRELEASED] neptune-fetcher 0.5.0
+## neptune-fetcher 0.5.0
 
 ## Features
 - Added methods to list and fetch Experiments ([#34](https://github.com/neptune-ai/neptune-fetcher/pull/34))
