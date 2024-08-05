@@ -522,12 +522,10 @@ def build_extended_nql_query(query: str, trashed: Optional[bool], is_run: bool =
             ),
         )
 
-    query = NQLQueryAggregate(
+    return NQLQueryAggregate(
         items=items,
         aggregator=NQLAggregator.AND,
     )
-
-    return query
 
 
 def build_extended_nql_query(query: str, trashed: Optional[bool], is_run: bool = True) -> NQLQuery:
