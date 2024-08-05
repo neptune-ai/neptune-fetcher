@@ -57,10 +57,7 @@ from neptune.internal.id_formats import (
 )
 from neptune.management.internal.utils import normalize_project_name
 from neptune.objects.utils import prepare_nql_query
-from neptune.table import (
-    Table,
-    TableEntry,
-)
+from neptune.table import Table
 from neptune.typing import ProgressBarType
 from typing_extensions import Literal
 
@@ -117,7 +114,8 @@ class ReadOnlyProject:
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists all runs of a project.
 
-        Returns a generator of dictionaries with run identifiers: `{"sys/id": ..., "sys/custom_run_id": ...}`.
+        Returns a generator of dictionaries with run identifiers:
+            `{"sys/id": ..., "sys/name": ..., "sys/custom_run_id": ...}`.
 
         Example:
             ```
@@ -163,9 +161,10 @@ class ReadOnlyProject:
             yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
     def fetch_runs(self) -> "DataFrame":
-        """Fetches a table containing identifiers of runs in the project.
+        """Fetches a table containing identifiers and names of runs in the project.
 
-        Returns `pandas.DataFrame` with two columns (`sys/id` and `sys/custom_run_id`) and one row for each run.
+        Returns `pandas.DataFrame` with three columns (`sys/id`, `sys/custom_run_id` and `sys/name`)
+        and one row for each run.
 
         Example:
             ```
@@ -173,7 +172,7 @@ class ReadOnlyProject:
             df = project.fetch_runs()
             ```
         """
-        return self.fetch_runs_df(columns=["sys/id", "sys/custom_run_id"])
+        return self.fetch_runs_df(columns=["sys/id", "sys/name", "sys/custom_run_id"])
 
     def fetch_experiments(self) -> "DataFrame":
         """Fetches a table containing identifiers and names of experiments in the project.
@@ -193,6 +192,7 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
+        names_regex: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -216,6 +216,8 @@ class ReadOnlyProject:
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
+            names_regex: A regex pattern to filter the runs by name.
+                When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
@@ -240,7 +242,7 @@ class ReadOnlyProject:
         Example:
             ```
             # Fetch all runs with specific columns
-            columns_to_fetch = ["sys/modification_time", "training/lr"]
+            columns_to_fetch = ["sys/name", "sys/modification_time", "training/lr"]
             runs_df = my_project.fetch_runs_df(columns=columns_to_fetch, states=["active"])
 
             # Fetch runs by specific IDs
@@ -251,6 +253,7 @@ class ReadOnlyProject:
         return self._fetch_project_objects_df(
             columns=columns,
             columns_regex=columns_regex,
+            names_regex=names_regex,
             custom_id_regex=custom_id_regex,
             with_ids=with_ids,
             custom_ids=custom_ids,
@@ -318,7 +321,7 @@ class ReadOnlyProject:
         Example:
             ```
             # Fetch all experiments with specific columns
-            columns_to_fetch = ["sys/modification_time", "training/lr"]
+            columns_to_fetch = ["sys/name", "sys/modification_time", "training/lr"]
             experiments_df = my_project.fetch_experiments_df(columns=columns_to_fetch, states=["active"])
 
             # Fetch experiments by specific IDs
@@ -465,7 +468,7 @@ def prepare_extended_nql_query(
             aggregator=NQLAggregator.AND,
         )
 
-    items = [query, query_for_runs_not_experiments()] if is_run else [query, query_for_experiments_not_runs()]
+    items = [query] if is_run else [query, query_for_experiments_not_runs()]
 
     query = NQLQueryAggregate(
         items=items,
@@ -547,15 +550,6 @@ def query_for_not_trashed() -> NQLQuery:
     )
 
 
-def query_for_runs_not_experiments() -> NQLQuery:
-    return NQLQueryAttribute(
-        name="sys/name",
-        type=NQLAttributeType.STRING,
-        operator=NQLAttributeOperator.EQUALS,
-        value="",
-    )
-
-
 def query_for_experiments_not_runs() -> NQLQuery:
     names = [(m.name, m.value) for m in NQLAttributeOperator]  # noqa
 
@@ -580,14 +574,8 @@ def list_objects_from_project(
 ) -> List[Dict[str, Optional[str]]]:
     step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "1000"))
     queries = [query_for_not_trashed()]
-    if object_type == "run":
-        queries.append(query_for_runs_not_experiments())
-    else:
-        queries.append(query_for_experiments_not_runs())
-
-    columns = ["sys/id", "sys/custom_run_id"]
     if object_type == "experiment":
-        columns.append("sys/name")
+        queries.append(query_for_experiments_not_runs())
 
     query = NQLQueryAggregate(
         items=queries,
@@ -600,28 +588,17 @@ def list_objects_from_project(
         query=query,
         sort_by="sys/id",
         step_size=step_size,
-        columns=columns,
+        columns=["sys/id", "sys/name", "sys/custom_run_id"],
         use_proto=True,
     )
     return [
-        get_object_dictionary_from_row(row=row, object_type=object_type)
+        {
+            "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
+            "sys/name": get_attribute_value_from_entry(entry=row, name="sys/name"),
+            "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
+        }
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
-
-
-def get_object_dictionary_from_row(
-    row: TableEntry,
-    object_type: Literal["run", "experiment"],
-) -> Dict[str, Optional[str]]:
-    object_dict = {
-        "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
-        "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
-    }
-
-    if object_type == "experiment":
-        object_dict["sys/name"] = get_attribute_value_from_entry(entry=row, name="sys/name")
-
-    return object_dict
 
 
 def filter_sys_name_regex(

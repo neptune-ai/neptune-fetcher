@@ -68,8 +68,8 @@ def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, 
                 [
                     StringField(path="sys/id", value=sys_id),
                     StringField(path="sys/custom_run_id", value=custom_run_id),
-                    BoolField(path="sys/failed", value=True),
                     StringField(path="sys/name", value=name),
+                    BoolField(path="sys/failed", value=True),
                 ],
             )
         ),
@@ -86,11 +86,16 @@ class BackendMock:
     def search_leaderboard_entries(self, columns, query, *args, **kwargs):
         output = []
 
-        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")) AND (`sys/name`:string = ""))'
-        query_all_runs = '((`sys/trashed`:bool = false) AND (`sys/name`:string = ""))'
+        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
+        query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")))'
+        query_all_runs = "(`sys/trashed`:bool = false)"
 
-        query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
-        query_exp2 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
+        query_exp1_only = (
+            '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
+        )
+        query_exp2_only = (
+            '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
+        )
         query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
         run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
@@ -108,10 +113,10 @@ class BackendMock:
                 run2,
             ]
 
-        elif str(query) == query_exp1:
+        elif str(query) == query_exp1_only or str(query) == query_exp1:
             output = [exp1]
 
-        elif str(query) == query_exp2:
+        elif str(query) == query_exp2_only:
             output = [exp2]
 
         elif str(query) == query_all_exps:
@@ -171,6 +176,7 @@ class BackendMock:
         return QueryFieldDefinitionsResult(
             entries=[
                 FieldDefinition(path="sys/id", type=FieldType.STRING),
+                FieldDefinition(path="sys/name", type=FieldType.STRING),
                 FieldDefinition(path="sys/failed", type=FieldType.BOOL),
             ],
             next_page=NextPage(next_page_token=None, limit=None),

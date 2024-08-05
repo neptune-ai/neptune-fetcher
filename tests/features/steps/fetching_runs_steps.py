@@ -34,6 +34,11 @@ def step_impl(context):
     context.kwargs = {"columns_regex": "fields/.*", "columns": []}
 
 
+@given("we filter by run names regex")
+def step_impl(context):
+    context.kwargs = {"names_regex": "my-.*-experiment"}
+
+
 @given("we filter by custom id regex")
 def step_impl(context):
     context.kwargs = {"custom_id_regex": "fetcher-bb-.*"}
@@ -53,6 +58,11 @@ def step_impl(context):
         context.dataframe = context.project.fetch_experiments_df(**context.kwargs)
     else:
         context.dataframe = context.project.fetch_experiments_df()
+
+
+@then("we should get 1 run and 1 experiment")
+def step_impl(context):
+    assert len(context.dataframe) == 2
 
 
 @then("we should get 1 run")
