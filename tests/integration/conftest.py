@@ -88,6 +88,7 @@ class BackendMock:
 
         query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
         query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")))'
+        complex_query_run = "((`fields/int`:int > 5) AND (`sys/trashed`:bool = false))"
         query_all_runs = "(`sys/trashed`:bool = false)"
 
         query_exp1_only = (
@@ -96,6 +97,7 @@ class BackendMock:
         query_exp2_only = (
             '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
         )
+        complex_query_exp = '((`fields/int`:int > 5) AND (`sys/name`:string != "") AND (`sys/trashed`:bool = false))'
         query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
         run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
@@ -104,7 +106,7 @@ class BackendMock:
         exp1 = create_leaderboard_entry("EXP-1", "custom_experiment_id", name="powerful-sun-2", columns=columns)
         exp2 = create_leaderboard_entry("EXP-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
 
-        if str(query) == query_run1:
+        if str(query) == query_run1 or str(query) == complex_query_run:
             output = [run1]
 
         elif str(query) == query_all_runs:
@@ -113,7 +115,7 @@ class BackendMock:
                 run2,
             ]
 
-        elif str(query) == query_exp1_only or str(query) == query_exp1:
+        elif str(query) == query_exp1_only or str(query) == query_exp1 or str(query) == complex_query_exp:
             output = [exp1]
 
         elif str(query) == query_exp2_only:

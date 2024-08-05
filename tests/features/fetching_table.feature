@@ -52,3 +52,9 @@ Feature: Fetching runs dataframe
       And we filter by custom id regex
      When we fetch runs dataframe
      Then we should get second run
+
+  Scenario: Complex query
+    Given we have a read-only project
+      And we filter by complex query
+     When we fetch runs dataframe
+     Then we should get first run

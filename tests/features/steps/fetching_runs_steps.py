@@ -44,6 +44,11 @@ def step_impl(context):
     context.kwargs = {"custom_id_regex": "fetcher-bb-.*"}
 
 
+@given("we filter by complex query")
+def step_impl(context):
+    context.kwargs = {"query": "(`fields/int`:int > 0) AND (`fields/float`:float > 3.0)"}
+
+
 @when("we fetch runs dataframe")
 def step_impl(context):
     if hasattr(context, "kwargs"):
