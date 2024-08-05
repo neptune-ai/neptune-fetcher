@@ -217,7 +217,7 @@ class ReadOnlyProject:
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             names_regex: A regex pattern to filter the runs by name.
-                When applied, it needs to limit the number of runs to 100 or fewer.
+                When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
                 When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
