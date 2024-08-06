@@ -246,7 +246,7 @@ specific_runs_df = my_project.fetch_runs_df(
 )
 ```
 
-Fetch runs by complex query:
+Fetch runs with a complex query:
 ```python
 runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
 ```
