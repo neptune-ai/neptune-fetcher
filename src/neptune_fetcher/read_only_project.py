@@ -324,7 +324,6 @@ class ReadOnlyProject:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: NQL query string. Syntax: https://docs.neptune.ai/usage/nql/
-                Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
 
         Returns:
