@@ -341,7 +341,7 @@ class ReadOnlyProject:
             specific_experiment_ids = ["RUN-123", "RUN-456"]
             specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
 
-            # Fetch experiments by complex query
+            # Fetch experiments with a complex query
             experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
             ```
         """
