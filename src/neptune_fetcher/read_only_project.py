@@ -46,6 +46,7 @@ from neptune.internal.backends.nql import (
     NQLQuery,
     NQLQueryAggregate,
     NQLQueryAttribute,
+    RawNQLQuery,
 )
 from neptune.internal.backends.project_name_lookup import project_name_lookup
 from neptune.internal.container_type import ContainerType
@@ -204,6 +205,7 @@ class ReadOnlyProject:
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        query: Optional[str] = None,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
@@ -235,6 +237,8 @@ class ReadOnlyProject:
             ascending: Whether to sort the entries in ascending order of the sorting column values.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            query: A query string to filter the results. Use the Neptune Query Language syntax.
+                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched runs.
@@ -248,6 +252,9 @@ class ReadOnlyProject:
             # Fetch runs by specific IDs
             specific_run_ids = ["RUN-123", "RUN-456"]
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
+
+            # Fetch runs with a complex query
+            runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
             ```
         """
         return self._fetch_project_objects_df(
@@ -265,6 +272,7 @@ class ReadOnlyProject:
             sort_by=sort_by,
             ascending=ascending,
             progress_bar=progress_bar,
+            query=query,
         )
 
     def fetch_experiments_df(
@@ -283,6 +291,7 @@ class ReadOnlyProject:
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        query: Optional[str] = None,
     ) -> "DataFrame":
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
@@ -314,6 +323,8 @@ class ReadOnlyProject:
             ascending: Whether to sort the entries in ascending order of the sorting column values.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            query: A query string to filter the results. Use the Neptune Query Language syntax.
+                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched experiments.
@@ -327,6 +338,9 @@ class ReadOnlyProject:
             # Fetch experiments by specific IDs
             specific_experiment_ids = ["RUN-123", "RUN-456"]
             specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
+
+            # Fetch experiments with a complex query
+            experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
             ```
         """
         return self._fetch_project_objects_df(
@@ -345,6 +359,7 @@ class ReadOnlyProject:
             ascending=ascending,
             progress_bar=progress_bar,
             object_type="experiment",
+            query=query,
         )
 
     def _fetch_project_objects_df(
@@ -364,8 +379,15 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: ProgressBarType = None,
         object_type: Literal["run", "experiment"] = "run",
+        query: Optional[str] = None,
     ) -> "DataFrame":
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
+
+        if any((with_ids, custom_ids, states, owners, tags)) and query is not None:
+            raise ValueError(
+                "You can't use the 'query' parameter together with the 'with_ids', 'custom_ids', 'states', 'owners', "
+                "or 'tags' parameters."
+            )
 
         if columns is not None:
             # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
@@ -407,20 +429,27 @@ class ReadOnlyProject:
                 with_ids=with_ids,
             )
 
-        query = prepare_extended_nql_query(
-            with_ids=with_ids,
-            custom_ids=custom_ids,
-            states=states,
-            owners=owners,
-            tags=tags,
-            trashed=trashed,
-            is_run=object_type == "run",
-        )
+        if query is not None:
+            prepared_query = build_extended_nql_query(
+                query=query,
+                trashed=trashed,
+                is_run=object_type == "run",
+            )
+        else:
+            prepared_query = prepare_extended_nql_query(
+                with_ids=with_ids,
+                custom_ids=custom_ids,
+                states=states,
+                owners=owners,
+                tags=tags,
+                trashed=trashed,
+                is_run=object_type == "run",
+            )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
             types=[ContainerType.RUN],
-            query=query,
+            query=prepared_query,
             columns=columns,
             limit=limit,
             sort_by=sort_by,
@@ -476,6 +505,27 @@ def prepare_extended_nql_query(
     )
 
     return query
+
+
+def build_extended_nql_query(query: str, trashed: Optional[bool], is_run: bool = True) -> NQLQuery:
+    items: List[Union[str, NQLQuery]] = [
+        RawNQLQuery("(" + query + ")"),
+    ]
+
+    if not is_run:
+        items.append(query_for_experiments_not_runs())
+
+    if trashed is not None:
+        items.append(
+            NQLQueryAttribute(
+                name="sys/trashed", type=NQLAttributeType.BOOLEAN, operator=NQLAttributeOperator.EQUALS, value=trashed
+            ),
+        )
+
+    return NQLQueryAggregate(
+        items=items,
+        aggregator=NQLAggregator.AND,
+    )
 
 
 def filter_columns_regex(

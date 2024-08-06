@@ -200,6 +200,7 @@ __Parameters:__
 | `sort_by`         | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                            |
 | `ascending`       | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                          |
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                |
+| `query`           | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                                                                   |                                                                                                                  |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
@@ -239,9 +240,16 @@ specific_runs_df = my_project.fetch_runs_df(custom_ids=["nostalgic_shockley", "h
 ```
 
 Fetch runs by names that match a regex pattern:
+```python
 specific_runs_df = my_project.fetch_runs_df(
     names_regex="tree_3[2-4]+"
 )
+```
+
+Fetch runs with a complex query:
+```python
+runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
+```
 
 ---
 
@@ -268,6 +276,7 @@ __Parameters__:
 | `sort_by`         | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                              |
 | `ascending`       | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                            |
 | `progress_bar`    | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                  |
+| `query`           | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                                                                  |                                                                                                                  |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
@@ -304,6 +313,11 @@ Fetch experiments by specific IDs:
 specific_experiments_df = my_project.fetch_experiments_df(
     custom_ids=["nostalgic_shockley", "high_albattani"]
 )
+```
+
+Fetch experiments with a complex query:
+```python
+experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
 ```
 
 ---

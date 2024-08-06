@@ -69,6 +69,18 @@ def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
     assert results["sys/custom_run_id"].values == ["alternative_tesla"]
 
 
+def test__fetch_runs_df__complex_query(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_runs_df(query="`fields/int`:int > 5")
+
+    # then
+    assert results is not None
+    assert results["sys/custom_run_id"].values == ["alternative_tesla"]
+
+
 def test__fetch_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -204,3 +216,15 @@ def test__fetch_experiments_df__with_names_regex(api_token, hosted_backend):
     # then
     assert results is not None
     assert results["sys/id"].values == ["EXP-2"]
+
+
+def test__fetch_experiments_df__complex_query(api_token, hosted_backend):
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+
+    # when
+    results = project.fetch_experiments_df(query="`fields/int`:int > 5")
+
+    # then
+    assert results is not None
+    assert results["sys/id"].values == ["EXP-1"]
