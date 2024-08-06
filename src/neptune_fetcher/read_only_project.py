@@ -323,7 +323,7 @@ class ReadOnlyProject:
             ascending: Whether to sort the entries in ascending order of the sorting column values.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
-            query: NQL query string. Syntax: https://docs.neptune.ai/usage/nql/
+            query: A query string to filter the results. Use the Neptune Query Language syntax.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
 
         Returns:
