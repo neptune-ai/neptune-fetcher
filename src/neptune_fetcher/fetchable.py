@@ -56,6 +56,7 @@ from neptune.api.models import (
 )
 from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.logger import get_logger
+from neptune.typing import ProgressBarType
 
 from neptune_fetcher.fields import (
     Bool,
@@ -121,23 +122,50 @@ class NoopFetchable(Fetchable):
 
 class FetchableAtom(Fetchable):
     def fetch(self):
+        """
+        Retrieves a value either from the internal cache (see `prefetch()`) or from the API.
+        """
         return self._cache[self._field.path].val
 
 
 class FetchableSeries(Fetchable):
     def fetch(self):
+        """
+        Retrieves the last value of a series, either from the internal cache (see `prefetch`) or from the API.
+        """
         return self._cache[self._field.path].last
 
     def fetch_last(self):
+        """
+        Retrieves the last value of a series, either from the internal cache (see `prefetch`) or from the API.
+        """
         return self.fetch()
 
-    def fetch_values(self, *, include_timestamp: bool = True) -> "DataFrame":
+    def fetch_values(
+        self,
+        *,
+        include_timestamp: bool = True,
+        include_inherited: bool = True,
+        progress_bar: "ProgressBarType" = None,
+    ) -> "DataFrame":
+        """
+        Retrieves all series values either from the internal cache (see `prefetch_series_values()`) or from the API.
+
+        Args:
+            include_timestamp: Whether the fetched data should include the timestamp field.
+            include_inherited: Whether the fetched data should include the values from parent runs.
+            progress_bar: Set to `False `to disable the download progress bar,
+                or pass a type of ProgressBarCallback to use your own progress bar.
+                If set to `None` or `True`, the default tqdm-based progress bar will be used.
+        """
         return self._cache[self._field.path].fetch_values(
             backend=self._backend,
             container_id=self._container_id,
             container_type=ContainerType.RUN,
             path=self._field.path,
             include_timestamp=include_timestamp,
+            include_inherited=include_inherited,
+            progress_bar=progress_bar,
         )
 
 

@@ -57,18 +57,35 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         self.cache_miss(paths)
 
     def prefetch_series_values(
-        self, paths: List[str], use_threads: bool, progress_bar: "ProgressBarType" = None
+        self,
+        paths: List[str],
+        use_threads: bool,
+        progress_bar: "ProgressBarType" = None,
+        include_inherited: bool = True,
     ) -> None:
         self.cache_miss(paths)
 
         with construct_progress_bar(progress_bar, description="Fetching metrics") as progress_bar:
             progress_bar.update(by=0, total=len(paths))
             if use_threads:
-                fetch_values_concurrently(self._fetch_single_series_values, paths=paths, progress_bar=progress_bar)
+                fetch_values_concurrently(
+                    partial(self._fetch_single_series_values, include_inherited=include_inherited),
+                    paths=paths,
+                    progress_bar=progress_bar,
+                )
             else:
-                fetch_values_sequentially(self._fetch_single_series_values, paths, progress_bar)
+                fetch_values_sequentially(
+                    partial(self._fetch_single_series_values, include_inherited=include_inherited),
+                    paths=paths,
+                    progress_bar=progress_bar,
+                )
 
-    def _fetch_single_series_values(self, path: str, progress_bar: ProgressBarCallback) -> None:
+    def _fetch_single_series_values(
+        self,
+        path: str,
+        progress_bar: ProgressBarCallback,
+        include_inherited: bool,
+    ) -> None:
         if not isinstance(self[path], Series):
             return None
 
@@ -78,10 +95,12 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 container_id=self._container_id,
                 container_type=ContainerType.RUN,
                 path=parse_path(path),
+                include_inherited=include_inherited,
             ),
             path=path,
             progress_bar=False,
         )
+        self[path].include_inherited = include_inherited
         self[path].prefetched_data = list(data)
 
         progress_bar.update(by=1)

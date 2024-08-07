@@ -464,10 +464,11 @@ By default, the maximum number of workers is 10. You can change this number by s
 
 __Parameters__:
 
-| Name          | Type        | Default | Description                               |
-|---------------|-------------|---------|-------------------------------------------|
-| `paths`       | `List[str]`, required | None      | List of paths to prefetch to the internal cache.      |
-| `use_threads` | `bool`, optional      | `False` | Whether to use threads to fetch the data. |
+| Name                | Type                  | Default | Description                                                         |
+|---------------------|-----------------------|---------|---------------------------------------------------------------------|
+| `paths`             | `List[str]`, required | `None`  | List of paths to prefetch to the internal cache.                    |
+| `use_threads`       | `bool`, optional      | `False` | Whether to use threads to fetch the data.                           |
+| `include_inherited` | `bool`                | `True`  | Whether the fetched data should include the values from parent runs |
 
 __Example__:
 ```python
@@ -546,9 +547,10 @@ Retrieves all series values either from the internal cache (see [`prefetch_serie
 
 __Parameters:__
 
-| Name                | Type   | Default | Description                                                  |
-|---------------------|--------|---------|--------------------------------------------------------------|
-| `include_timestamp` | `bool` | True    | Whether the fetched data should include the timestamp field. |
+| Name                | Type   | Default | Description                                                         |
+|---------------------|--------|---------|---------------------------------------------------------------------|
+| `include_timestamp` | `bool` | `True`  | Whether the fetched data should include the timestamp field.        |
+| `include_inherited` | `bool` | `True`  | Whether the fetched data should include the values from parent runs |
 
 __Returns:__ `pandas.DataFrame`
 

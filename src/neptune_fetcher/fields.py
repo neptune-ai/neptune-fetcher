@@ -54,6 +54,7 @@ from neptune.api.models import (
 )
 from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.paths import parse_path
+from neptune.typing import ProgressBarType
 
 if TYPE_CHECKING:
     from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
@@ -78,6 +79,7 @@ def make_row(entry: Row, include_timestamp: bool = True) -> Dict[str, Union[str,
 @dataclass
 class Series(ABC, Generic[T]):
     type: FieldType
+    include_inherited: bool = True
     last: Optional[T] = None
     prefetched_data: Optional[List[PointValue]] = None
 
@@ -88,10 +90,12 @@ class Series(ABC, Generic[T]):
         container_type: ContainerType,
         path: str,
         include_timestamp: bool = True,
+        include_inherited: bool = True,
+        progress_bar: "ProgressBarType" = None,
     ) -> "DataFrame":
         import pandas as pd
 
-        if self.prefetched_data is None:  # `prefetch_values` was not called
+        if self.prefetched_data is None or self.include_inherited != include_inherited:
             data = fetch_series_values(
                 getter=partial(
                     self._fetch_values_from_backend,
@@ -99,9 +103,10 @@ class Series(ABC, Generic[T]):
                     container_id=container_id,
                     container_type=container_type,
                     path=parse_path(path),
+                    include_inherited=include_inherited,
                 ),
                 path=path,
-                progress_bar=None,
+                progress_bar=progress_bar,
             )
         else:
             data = self.prefetched_data
@@ -118,6 +123,7 @@ class Series(ABC, Generic[T]):
         path: List[str],
         limit: int,
         from_step: Optional[float] = None,
+        include_inherited: bool = True,
     ):
         ...
 
@@ -134,6 +140,7 @@ class FloatSeries(Series[float]):
         path: List[str],
         limit: int,
         from_step: Optional[float] = None,
+        include_inherited: bool = True,
     ) -> FloatSeriesValues:
         return backend.get_float_series_values(
             container_id=container_id,
@@ -141,6 +148,7 @@ class FloatSeries(Series[float]):
             path=path,
             from_step=from_step,
             limit=limit,
+            include_inherited=include_inherited,
         )
 
 
