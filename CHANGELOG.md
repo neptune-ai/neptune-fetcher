@@ -5,6 +5,7 @@
 - Added method to prefetch series values ([#42](https://github.com/neptune-ai/neptune-fetcher/pull/42))
 - Added `progress_bar` parameter to `prefetch_series_values` ([#43](https://github.com/neptune-ai/neptune-fetcher/pull/43))
 - Added support for filtering with Neptune Query Language ([#45](https://github.com/neptune-ai/neptune-fetcher/pull/45))
+- Added support for include_inherited and progress_bar in series values fetching ([#47](https://github.com/neptune-ai/neptune-fetcher/pull/47))
 
 
 ## neptune-fetcher 0.4.0
