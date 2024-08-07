@@ -528,27 +528,6 @@ def build_extended_nql_query(query: str, trashed: Optional[bool], is_run: bool =
     )
 
 
-def build_extended_nql_query(query: str, trashed: Optional[bool], is_run: bool = True) -> NQLQuery:
-    items: List[Union[str, NQLQuery]] = [
-        RawNQLQuery("(" + query + ")"),
-    ]
-
-    if not is_run:
-        items.append(query_for_experiments_not_runs())
-
-    if trashed is not None:
-        items.append(
-            NQLQueryAttribute(
-                name="sys/trashed", type=NQLAttributeType.BOOLEAN, operator=NQLAttributeOperator.EQUALS, value=trashed
-            ),
-        )
-
-    return NQLQueryAggregate(
-        items=items,
-        aggregator=NQLAggregator.AND,
-    )
-
-
 def filter_columns_regex(
     columns_regex: str,
     columns: Set[str],
