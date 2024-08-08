@@ -117,7 +117,11 @@ class ReadOnlyRun:
         self._cache.prefetch(paths=paths)
 
     def prefetch_series_values(
-        self, paths: List[str], use_threads: bool = False, progress_bar: "ProgressBarType" = None
+        self,
+        paths: List[str],
+        use_threads: bool = False,
+        progress_bar: "ProgressBarType" = None,
+        include_inherited: bool = True,
     ) -> None:
         """
         Prefetches values of a list of series and stores them in the local cache.
@@ -127,6 +131,7 @@ class ReadOnlyRun:
             use_threads: If True, fetching is done concurrently.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            include_inherited: If `False`, values from the parent runs will not be included.
 
         To control the number of workers in the thread pool, set the
         NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
@@ -140,4 +145,9 @@ class ReadOnlyRun:
         print(run["metrics/accuracy"].fetch_values())
         ```
         """
-        self._cache.prefetch_series_values(paths=paths, use_threads=use_threads, progress_bar=progress_bar)
+        self._cache.prefetch_series_values(
+            paths=paths,
+            use_threads=use_threads,
+            progress_bar=progress_bar,
+            include_inherited=include_inherited,
+        )

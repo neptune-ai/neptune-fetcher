@@ -19,7 +19,10 @@ import json
 from typing import Optional
 
 import pytest
-from mock import patch
+from mock import (
+    MagicMock,
+    patch,
+)
 from neptune.api.models import (
     BoolField,
     DateTimeField,
@@ -76,181 +79,191 @@ def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, 
     )
 
 
-class BackendMock:
-    def __init__(self, *args, **kwargs):
-        pass
+def get_project(project_id: UniqueId) -> Project:
+    return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
-    def get_project(self, project_id: UniqueId) -> Project:
-        return Project(id=project_id, name="test_project", workspace="test_workspace", sys_id=SysId("PROJ-123"))
 
-    def search_leaderboard_entries(self, columns, query, *args, **kwargs):
-        output = []
+def search_leaderboard_entries(columns, query, *args, **kwargs):
+    output = []
 
-        query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
-        query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")))'
-        complex_query_run = "((`fields/int`:int > 5) AND (`sys/trashed`:bool = false))"
-        query_all_runs = "(`sys/trashed`:bool = false)"
+    query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
+    query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")))'
+    complex_query_run = "((`fields/int`:int > 5) AND (`sys/trashed`:bool = false))"
+    query_all_runs = "(`sys/trashed`:bool = false)"
 
-        query_exp1_only = (
-            '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
-        )
-        query_exp2_only = (
-            '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
-        )
-        complex_query_exp = '((`fields/int`:int > 5) AND (`sys/name`:string != "") AND (`sys/trashed`:bool = false))'
-        query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
+    query_exp1_only = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
+    query_exp2_only = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
+    complex_query_exp = '((`fields/int`:int > 5) AND (`sys/name`:string != "") AND (`sys/trashed`:bool = false))'
+    query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
-        run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
-        run2 = create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns=columns)
+    run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
+    run2 = create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns=columns)
 
-        exp1 = create_leaderboard_entry("EXP-1", "custom_experiment_id", name="powerful-sun-2", columns=columns)
-        exp2 = create_leaderboard_entry("EXP-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
+    exp1 = create_leaderboard_entry("EXP-1", "custom_experiment_id", name="powerful-sun-2", columns=columns)
+    exp2 = create_leaderboard_entry("EXP-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
 
-        if str(query) == query_run1 or str(query) == complex_query_run:
-            output = [run1]
+    if str(query) == query_run1 or str(query) == complex_query_run:
+        output = [run1]
 
-        elif str(query) == query_all_runs:
-            output = [
-                run1,
-                run2,
-            ]
+    elif str(query) == query_all_runs:
+        output = [
+            run1,
+            run2,
+        ]
 
-        elif str(query) == query_exp1_only or str(query) == query_exp1 or str(query) == complex_query_exp:
-            output = [exp1]
+    elif str(query) == query_exp1_only or str(query) == query_exp1 or str(query) == complex_query_exp:
+        output = [exp1]
 
-        elif str(query) == query_exp2_only:
-            output = [exp2]
+    elif str(query) == query_exp2_only:
+        output = [exp2]
 
-        elif str(query) == query_all_exps:
-            output = [
-                exp1,
-                exp2,
-            ]
+    elif str(query) == query_all_exps:
+        output = [
+            exp1,
+            exp2,
+        ]
 
-        return iter(output)
+    return iter(output)
 
-    def get_fields_definitions(self, *args, **kwargs):
-        return [
+
+def get_fields_definitions(*args, **kwargs):
+    return [
+        FieldDefinition(path="sys/id", type=FieldType.STRING),
+        FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
+        FieldDefinition(path="sys/name", type=FieldType.STRING),
+        FieldDefinition(path="sys/failed", type=FieldType.BOOL),
+        FieldDefinition(path="metrics/string", type=FieldType.STRING),
+        FieldDefinition(path="metrics/bool", type=FieldType.BOOL),
+        FieldDefinition(path="metrics/stringSeries", type=FieldType.STRING_SERIES),
+        FieldDefinition(path="metrics/float", type=FieldType.FLOAT),
+        FieldDefinition(path="metrics/int", type=FieldType.INT),
+        FieldDefinition(path="metrics/floatSeries", type=FieldType.FLOAT_SERIES),
+        FieldDefinition(path="metrics/datetime", type=FieldType.DATETIME),
+        FieldDefinition(path="metrics/file", type=FieldType.FILE),
+        FieldDefinition(path="metrics/fileSet", type=FieldType.FILE_SET),
+        FieldDefinition(path="metrics/imageSeries", type=FieldType.IMAGE_SERIES),
+        FieldDefinition(path="metrics/stringSet", type=FieldType.STRING_SET),
+        FieldDefinition(path="metrics/gitRef", type=FieldType.GIT_REF),
+        FieldDefinition(path="metrics/objectState", type=FieldType.OBJECT_STATE),
+        FieldDefinition(path="metrics/notebookRef", type=FieldType.NOTEBOOK_REF),
+        FieldDefinition(path="metrics/artifact", type=FieldType.ARTIFACT),
+    ]
+
+
+def get_fields_with_paths_filter(*args, **kwargs):
+    return [
+        FloatField(path="metrics/float", value=25.97),
+        IntField(path="metrics/int", value=97),
+        StringField(path="metrics/string", value="Test string"),
+        StringSetField(path="metrics/stringSet", values={"a", "b", "c"}),
+        BoolField(path="metrics/bool", value=True),
+        DateTimeField(path="metrics/datetime", value=datetime.datetime(2024, 1, 1, 12, 34, 56)),
+        ObjectStateField(path="metrics/objectState", value="Inactive"),
+        FloatSeriesField(path="metrics/floatSeries", last=25.97),
+    ]
+
+
+def get_float_series_values(*args, **kwargs):
+    return FloatSeriesValues(
+        total=3,
+        values=[
+            FloatPointValue(step=1, value=1.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 56)),
+            FloatPointValue(step=2, value=2.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 57)),
+            FloatPointValue(step=3, value=3.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 58)),
+        ],
+    )
+
+
+def query_fields_definitions_within_project(*args, **kwargs):
+    return QueryFieldDefinitionsResult(
+        entries=[
             FieldDefinition(path="sys/id", type=FieldType.STRING),
-            FieldDefinition(path="sys/custom_run_id", type=FieldType.STRING),
             FieldDefinition(path="sys/name", type=FieldType.STRING),
             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
-            FieldDefinition(path="metrics/string", type=FieldType.STRING),
-            FieldDefinition(path="metrics/bool", type=FieldType.BOOL),
-            FieldDefinition(path="metrics/stringSeries", type=FieldType.STRING_SERIES),
-            FieldDefinition(path="metrics/float", type=FieldType.FLOAT),
-            FieldDefinition(path="metrics/int", type=FieldType.INT),
-            FieldDefinition(path="metrics/floatSeries", type=FieldType.FLOAT_SERIES),
-            FieldDefinition(path="metrics/datetime", type=FieldType.DATETIME),
-            FieldDefinition(path="metrics/file", type=FieldType.FILE),
-            FieldDefinition(path="metrics/fileSet", type=FieldType.FILE_SET),
-            FieldDefinition(path="metrics/imageSeries", type=FieldType.IMAGE_SERIES),
-            FieldDefinition(path="metrics/stringSet", type=FieldType.STRING_SET),
-            FieldDefinition(path="metrics/gitRef", type=FieldType.GIT_REF),
-            FieldDefinition(path="metrics/objectState", type=FieldType.OBJECT_STATE),
-            FieldDefinition(path="metrics/notebookRef", type=FieldType.NOTEBOOK_REF),
-            FieldDefinition(path="metrics/artifact", type=FieldType.ARTIFACT),
-        ]
+        ],
+        next_page=NextPage(next_page_token=None, limit=None),
+    )
 
-    def get_fields_with_paths_filter(self, *args, **kwargs):
-        return [
-            FloatField(path="metrics/float", value=25.97),
-            IntField(path="metrics/int", value=97),
-            StringField(path="metrics/string", value="Test string"),
-            StringSetField(path="metrics/stringSet", values={"a", "b", "c"}),
-            BoolField(path="metrics/bool", value=True),
-            DateTimeField(path="metrics/datetime", value=datetime.datetime(2024, 1, 1, 12, 34, 56)),
-            ObjectStateField(path="metrics/objectState", value="Inactive"),
-            FloatSeriesField(path="metrics/floatSeries", last=25.97),
-        ]
 
-    def get_float_series_values(self, *args, **kwargs):
-        return FloatSeriesValues(
-            total=3,
-            values=[
-                FloatPointValue(step=1, value=1.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 56)),
-                FloatPointValue(step=2, value=2.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 57)),
-                FloatPointValue(step=3, value=3.0, timestamp=datetime.datetime(2024, 1, 1, 12, 34, 58)),
-            ],
-        )
-
-    def query_fields_definitions_within_project(self, *args, **kwargs):
-        return QueryFieldDefinitionsResult(
-            entries=[
-                FieldDefinition(path="sys/id", type=FieldType.STRING),
-                FieldDefinition(path="sys/name", type=FieldType.STRING),
-                FieldDefinition(path="sys/failed", type=FieldType.BOOL),
-            ],
-            next_page=NextPage(next_page_token=None, limit=None),
-        )
-
-    def query_fields_within_project(self, field_names_filter, *args, **kwargs):
-        if field_names_filter == ["sys/name"]:
-            return QueryFieldsResult(
-                entries=[
-                    QueryFieldsExperimentResult(
-                        object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                        object_key="EXP-1",
-                        fields=[
-                            StringField(path="sys/name", value="powerful-sun-2"),
-                        ],
-                    ),
-                    QueryFieldsExperimentResult(
-                        object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                        object_key="EXP-2",
-                        fields=[
-                            StringField(path="sys/name", value="lazy-moon-2"),
-                        ],
-                    ),
-                ],
-                next_page=NextPage(next_page_token=None, limit=None),
-            )
+def query_fields_within_project(field_names_filter, *args, **kwargs):
+    if field_names_filter == ["sys/name"]:
         return QueryFieldsResult(
             entries=[
                 QueryFieldsExperimentResult(
                     object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                    object_key="RUN-1",
-                    fields=[
-                        StringField(path="sys/custom_run_id", value="alternative_tesla"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                    object_key="RUN-2",
-                    fields=[
-                        StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
                     object_key="EXP-1",
                     fields=[
-                        StringField(path="sys/custom_run_id", value="custom_experiment_id"),
+                        StringField(path="sys/name", value="powerful-sun-2"),
+                    ],
+                ),
+                QueryFieldsExperimentResult(
+                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                    object_key="EXP-2",
+                    fields=[
+                        StringField(path="sys/name", value="lazy-moon-2"),
                     ],
                 ),
             ],
             next_page=NextPage(next_page_token=None, limit=None),
         )
+    return QueryFieldsResult(
+        entries=[
+            QueryFieldsExperimentResult(
+                object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
+                object_key="RUN-1",
+                fields=[
+                    StringField(path="sys/custom_run_id", value="alternative_tesla"),
+                ],
+            ),
+            QueryFieldsExperimentResult(
+                object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                object_key="RUN-2",
+                fields=[
+                    StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
+                ],
+            ),
+            QueryFieldsExperimentResult(
+                object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
+                object_key="EXP-1",
+                fields=[
+                    StringField(path="sys/custom_run_id", value="custom_experiment_id"),
+                ],
+            ),
+        ],
+        next_page=NextPage(next_page_token=None, limit=None),
+    )
 
-    def get_metadata_container(self, container_id, *args, **kwargs):
-        if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
-            internal_id = UniqueId("440ee146-442e-4d7c-a8ac-276ba940a071")
-            sys_id = SysId("RUN-1")
-        else:
-            internal_id = UniqueId("2f24214f-c315-4c96-a82e-6d05aa017532")
-            sys_id = SysId("RUN-2")
 
-        return ApiExperiment(
-            id=internal_id,
-            type=ContainerType.RUN,
-            sys_id=sys_id,
-            workspace="test-workspace",
-            project_name="test-project",
-            trashed=False,
-        )
+def get_metadata_container(container_id, *args, **kwargs):
+    if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
+        internal_id = UniqueId("440ee146-442e-4d7c-a8ac-276ba940a071")
+        sys_id = SysId("RUN-1")
+    else:
+        internal_id = UniqueId("2f24214f-c315-4c96-a82e-6d05aa017532")
+        sys_id = SysId("RUN-2")
+
+    return ApiExperiment(
+        id=internal_id,
+        type=ContainerType.RUN,
+        sys_id=sys_id,
+        workspace="test-workspace",
+        project_name="test-project",
+        trashed=False,
+    )
 
 
 @pytest.fixture(scope="function")
 def hosted_backend() -> HostedNeptuneBackend:
-    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend", return_value=BackendMock()) as mock:
-        yield mock
+    with patch("neptune_fetcher.read_only_project.HostedNeptuneBackend") as mock:
+        backend_instance = MagicMock()
+        backend_instance.get_project.side_effect = get_project
+        backend_instance.get_float_series_values.side_effect = get_float_series_values
+        backend_instance.get_fields_definitions.side_effect = get_fields_definitions
+        backend_instance.get_fields_with_paths_filter.side_effect = get_fields_with_paths_filter
+        backend_instance.query_fields_definitions_within_project.side_effect = query_fields_definitions_within_project
+        backend_instance.query_fields_within_project.side_effect = query_fields_within_project
+        backend_instance.get_metadata_container.side_effect = get_metadata_container
+        backend_instance.search_leaderboard_entries.side_effect = search_leaderboard_entries
+
+        mock.return_value = backend_instance
+        yield backend_instance
