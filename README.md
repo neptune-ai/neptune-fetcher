@@ -468,7 +468,7 @@ __Parameters__:
 |---------------------|-----------------------|---------|---------------------------------------------------------------------|
 | `paths`             | `List[str]`, required | `None`  | List of paths to prefetch to the internal cache.                    |
 | `use_threads`       | `bool`, optional      | `False` | Whether to use threads to fetch the data.                           |
-| `include_inherited` | `bool`                | `True`  | Whether the fetched data should include the values from parent runs |
+| `include_inherited` | `bool`, optional                | `True`  | Whether the fetched data should include values from the parent runs. |
 
 __Example__:
 ```python
