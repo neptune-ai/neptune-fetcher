@@ -131,7 +131,7 @@ class ReadOnlyRun:
             use_threads: If True, fetching is done concurrently.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
-            include_inherited: If `False` values from parent runs will not be included. `True` at default.
+            include_inherited: If `False`, values from the parent runs will not be included.
 
         To control the number of workers in the thread pool, set the
         NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
