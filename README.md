@@ -550,7 +550,7 @@ __Parameters:__
 | Name                | Type   | Default | Description                                                         |
 |---------------------|--------|---------|---------------------------------------------------------------------|
 | `include_timestamp` | `bool` | `True`  | Whether the fetched data should include the timestamp field.        |
-| `include_inherited` | `bool` | `True`  | Whether the fetched data should include the values from parent runs |
+| `include_inherited` | `bool` | `True`  | Whether the fetched data should include values from the parent runs. |
 
 __Returns:__ `pandas.DataFrame`
 
