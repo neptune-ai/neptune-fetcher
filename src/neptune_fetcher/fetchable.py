@@ -153,7 +153,7 @@ class FetchableSeries(Fetchable):
 
         Args:
             include_timestamp: Whether the fetched data should include the timestamp field.
-            include_inherited: Whether the fetched data should include the values from parent runs.
+            include_inherited: Whether the fetched data should include values from the parent runs.
             progress_bar: Set to `False `to disable the download progress bar,
                 or pass a type of ProgressBarCallback to use your own progress bar.
                 If set to `None` or `True`, the default tqdm-based progress bar will be used.
