@@ -21,7 +21,7 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 
 for run in project.list_runs():
-    print(run)  # dicts with Neptune ID and custom ID
+    print(run)  # dicts with identifiers
 ```
 
 ### Listing experiments of a project
@@ -32,7 +32,7 @@ from neptune_fetcher import ReadOnlyProject
 project = ReadOnlyProject("workspace/project")
 
 for experiment in project.list_experiments():
-    print(experiment)
+    print(experiment)  # dicts with identifiers
 ```
 
 ### Fetching runs data frame with specific columns
@@ -454,6 +454,7 @@ print(run["parameter/init_lr"].fetch())
 ```
 
 ### `prefetch_series_values()`
+
 Prefetches a batch of series to the internal cache.
 
 Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
@@ -468,9 +469,11 @@ __Parameters__:
 |---------------------|-----------------------|---------|---------------------------------------------------------------------|
 | `paths`             | `List[str]`, required | `None`  | List of paths to prefetch to the internal cache.                    |
 | `use_threads`       | `bool`, optional      | `False` | Whether to use threads to fetch the data.                           |
-| `include_inherited` | `bool`, optional                | `True`  | Whether the fetched data should include values from the parent runs. |
+| `progress_bar`      | `ProgressBarType`     | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
+| `include_inherited` | `bool`, optional      | `True`  | Whether the fetched data should include values from the parent runs. |
 
 __Example__:
+
 ```python
 run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
 # No more calls to the API
@@ -551,6 +554,7 @@ __Parameters:__
 |---------------------|--------|---------|---------------------------------------------------------------------|
 | `include_timestamp` | `bool` | `True`  | Whether the fetched data should include the timestamp field.        |
 | `include_inherited` | `bool` | `True`  | Whether the fetched data should include values from the parent runs. |
+| `progress_bar`      | `ProgressBarType`     | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
 
 __Returns:__ `pandas.DataFrame`
 
