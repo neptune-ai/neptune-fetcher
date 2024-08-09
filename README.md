@@ -75,7 +75,7 @@ run.prefetch_series_values(["metrics/loss", "metrics/accuracy"], use_threads=Tru
 
 print(run["parameters/optimizer"].fetch())
 print(run["parameters/init_lr"].fetch())
-print(run["metrics/loss"].fetch_last())
+print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_values())
 ```
 
