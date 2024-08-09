@@ -75,6 +75,8 @@ run.prefetch_series_values(["metrics/loss", "metrics/accuracy"], use_threads=Tru
 
 print(run["parameters/optimizer"].fetch())
 print(run["parameters/init_lr"].fetch())
+print(run["metrics/loss"].fetch_last())
+print(run["metrics/accuracy"].fetch_values())
 ```
 
 ## API reference
@@ -459,8 +461,9 @@ Prefetches a batch of series to the internal cache.
 
 Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
 
-To speed up the fetching process, this method can use Python's `ThreadPoolExecutor`.
+To speed up the fetching process, this method can use multithreading.
 To enable it, set the `use_threads` parameter to `True`.
+
 By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
 
 __Parameters__:
@@ -470,7 +473,7 @@ __Parameters__:
 | `paths`             | `List[str]`, required | `None`  | List of paths to prefetch to the internal cache.                    |
 | `use_threads`       | `bool`, optional      | `False` | Whether to use threads to fetch the data.                           |
 | `progress_bar`      | `ProgressBarType`     | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
-| `include_inherited` | `bool`, optional      | `True`  | Whether the fetched data should include values from the parent runs. |
+| `include_inherited` | `bool`, optional      | `True`  | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False. |
 
 __Example__:
 
@@ -553,8 +556,8 @@ __Parameters:__
 | Name                | Type   | Default | Description                                                         |
 |---------------------|--------|---------|---------------------------------------------------------------------|
 | `include_timestamp` | `bool` | `True`  | Whether the fetched data should include the timestamp field.        |
-| `include_inherited` | `bool` | `True`  | Whether the fetched data should include values from the parent runs. |
-| `progress_bar`      | `ProgressBarType`     | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
+| `include_inherited` | `bool` | `True`  | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False. |
+| `progress_bar`      | `ProgressBarType` | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
 
 __Returns:__ `pandas.DataFrame`
 
