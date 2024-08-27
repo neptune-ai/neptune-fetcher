@@ -412,23 +412,6 @@ class ReadOnlyProject:
                     "Please limit the number of columns to 10 000 or fewer."
                 )
 
-        if names_regex is not None:
-            with_ids = filter_sys_name_regex(
-                names_regex=names_regex,
-                backend=self._backend,
-                project_qualified_name=self._project_qualified_name,
-                with_ids=with_ids,
-            )
-
-        if custom_id_regex is not None:
-            with_ids = filter_custom_id_regex(
-                custom_id_regex=custom_id_regex,
-                backend=self._backend,
-                project_qualified_name=self._project_qualified_name,
-                limit=limit,
-                with_ids=with_ids,
-            )
-
         if query is not None:
             prepared_query = build_extended_nql_query(
                 query=query,
@@ -443,6 +426,8 @@ class ReadOnlyProject:
                 owners=owners,
                 tags=tags,
                 trashed=trashed,
+                custom_id_regex=custom_id_regex,
+                names_regex=names_regex,
                 is_run=object_type == "run",
             )
 
@@ -473,6 +458,8 @@ def prepare_extended_nql_query(
     owners: Optional[Iterable[str]] = None,
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
+    names_regex: Optional[str] = None,
+    custom_id_regex: Optional[str] = None,
     is_run: bool = True,
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
@@ -495,6 +482,34 @@ def prepare_extended_nql_query(
                 ),
             ],
             aggregator=NQLAggregator.AND,
+        )
+
+    if names_regex is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAttribute(
+                            name="sys/name",
+                            type=NQLAttributeType.STRING,
+                            operator=NQLAttributeOperator.MATCHES,
+                            value=names_regex,
+                )
+                ],
+            aggregator=NQLAggregator.AND
+        )
+
+    if custom_id_regex is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAttribute(
+                            name="sys/custom_run_id",
+                            type=NQLAttributeType.STRING,
+                            operator=NQLAttributeOperator.MATCHES,
+                            value=custom_id_regex,
+                )
+                ],
+            aggregator=NQLAggregator.AND
         )
 
     items = [query] if is_run else [query, query_for_experiments_not_runs()]
@@ -549,46 +564,6 @@ def filter_columns_regex(
         columns.add(field_definition.path)
 
     return columns
-
-
-def filter_custom_id_regex(
-    custom_id_regex: str,
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    limit: Optional[int],
-    with_ids: Optional[List[str]] = None,
-) -> List[str]:
-    objects = paginate_over(
-        getter=backend.query_fields_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-        field_names_filter=["sys/custom_run_id"],
-        experiment_ids_filter=with_ids,
-    )
-    regex = re.compile(custom_id_regex)
-    filtered_with_ids = []
-
-    should_continue = True
-
-    for experiment in objects:
-        if not should_continue:
-            break
-        for field in experiment.fields:
-            if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
-                filtered_with_ids.append(experiment.object_key)
-                if len(filtered_with_ids) == limit:
-                    should_continue = False
-                    break
-                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                    raise ValueError(
-                        "Too many runs matched the custom ID regex. "
-                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                    )
-
-    if with_ids is None:
-        return filtered_with_ids
-    else:
-        return list(set(with_ids) & set(filtered_with_ids))
 
 
 def query_for_not_trashed() -> NQLQuery:
@@ -649,36 +624,3 @@ def list_objects_from_project(
         }
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
-
-
-def filter_sys_name_regex(
-    names_regex: str,
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    with_ids: Optional[List[str]] = None,
-) -> List[str]:
-    objects = paginate_over(
-        getter=backend.query_fields_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-        field_names_filter=["sys/name"],
-        experiment_ids_filter=with_ids,
-    )
-    regex = re.compile(names_regex)
-    filtered_with_ids = []
-
-    for experiment in objects:
-        for field in experiment.fields:
-            if field.path == "sys/name" and regex.match(field.value) is not None:
-                filtered_with_ids.append(experiment.object_key)
-
-                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                    raise ValueError(
-                        "Too many runs matched the names regex. "
-                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                    )
-
-    if with_ids is None:
-        return filtered_with_ids
-    else:
-        return list(set(with_ids) & set(filtered_with_ids))
