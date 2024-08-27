@@ -388,6 +388,9 @@ class ReadOnlyProject:
                 "or 'tags' parameters."
             )
 
+        if columns_regex is not None and columns is None:
+            columns = []
+
         if columns is not None:
             # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
             columns = set(columns)
