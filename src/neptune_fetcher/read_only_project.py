@@ -18,7 +18,6 @@ __all__ = [
 ]
 
 import os
-import re
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -489,13 +488,13 @@ def prepare_extended_nql_query(
             items=[
                 query,
                 NQLQueryAttribute(
-                            name="sys/name",
-                            type=NQLAttributeType.STRING,
-                            operator=NQLAttributeOperator.MATCHES,
-                            value=names_regex,
-                )
-                ],
-            aggregator=NQLAggregator.AND
+                    name="sys/name",
+                    type=NQLAttributeType.STRING,
+                    operator=NQLAttributeOperator.MATCHES,
+                    value=names_regex,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
         )
 
     if custom_id_regex is not None:
@@ -503,13 +502,13 @@ def prepare_extended_nql_query(
             items=[
                 query,
                 NQLQueryAttribute(
-                            name="sys/custom_run_id",
-                            type=NQLAttributeType.STRING,
-                            operator=NQLAttributeOperator.MATCHES,
-                            value=custom_id_regex,
-                )
-                ],
-            aggregator=NQLAggregator.AND
+                    name="sys/custom_run_id",
+                    type=NQLAttributeType.STRING,
+                    operator=NQLAttributeOperator.MATCHES,
+                    value=custom_id_regex,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
         )
 
     items = [query] if is_run else [query, query_for_experiments_not_runs()]
