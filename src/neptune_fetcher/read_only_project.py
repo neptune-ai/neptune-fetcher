@@ -411,7 +411,7 @@ class ReadOnlyProject:
             if len(columns) > MAX_COLUMNS_ALLOWED:
                 raise ValueError(
                     f"Too many columns requested ({len(columns)}). "
-                    "Please limit the number of columns to 10 000 or fewer."
+                    f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
                 )
 
         if query is not None:
