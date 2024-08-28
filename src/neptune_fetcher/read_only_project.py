@@ -31,6 +31,7 @@ from typing import (
     Union,
 )
 
+from neptune.api.models import StringField
 from neptune.api.pagination import paginate_over
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
@@ -388,6 +389,30 @@ class ReadOnlyProject:
                 "or 'tags' parameters."
             )
 
+        prepared_query = resolve_query(
+            query,
+            trashed,
+            object_type,
+            names_regex,
+            custom_id_regex,
+            with_ids,
+            custom_ids,
+            states,
+            owners,
+            tags,
+        )
+
+        with_ids = resolve_ids(
+            backend=self._backend,
+            project_id=self._project_id,
+            prepared_query=prepared_query,
+            limit=limit,
+            sort_by=sort_by,
+            ascending=ascending,
+            step_size=step_size,
+            with_ids=with_ids,
+        )
+
         columns = resolve_columns(
             backend=self._backend,
             project_qualified_name=self._project_qualified_name,
@@ -396,25 +421,6 @@ class ReadOnlyProject:
             with_ids=with_ids,
             object_type=object_type,
         )
-
-        if query is not None:
-            prepared_query = build_extended_nql_query(
-                query=query,
-                trashed=trashed,
-                is_run=object_type == "run",
-            )
-        else:
-            prepared_query = prepare_extended_nql_query(
-                with_ids=with_ids,
-                custom_ids=custom_ids,
-                states=states,
-                owners=owners,
-                tags=tags,
-                trashed=trashed,
-                custom_id_regex=custom_id_regex,
-                names_regex=names_regex,
-                is_run=object_type == "run",
-            )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
@@ -434,6 +440,72 @@ class ReadOnlyProject:
             container_type=ContainerType.RUN,
             entries=leaderboard_entries,
         ).to_pandas()
+
+
+def resolve_query(
+    query: Optional[str],
+    trashed: bool,
+    object_type: Literal["run", "experiment"],
+    names_regex: Optional[str],
+    custom_id_regex: Optional[str],
+    with_ids: Optional[Iterable[str]],
+    custom_ids: Optional[Iterable[str]],
+    states: Optional[Iterable[str]],
+    owners: Optional[Iterable[str]],
+    tags: Optional[Iterable[str]],
+) -> NQLQuery:
+    if query is not None:
+        return build_extended_nql_query(
+            query=query,
+            trashed=trashed,
+            is_run=object_type == "run",
+        )
+
+    return prepare_extended_nql_query(
+        with_ids=with_ids,
+        custom_ids=custom_ids,
+        states=states,
+        owners=owners,
+        tags=tags,
+        trashed=trashed,
+        custom_id_regex=custom_id_regex,
+        names_regex=names_regex,
+        is_run=object_type == "run",
+    )
+
+
+def resolve_ids(
+    backend: HostedNeptuneBackend,
+    project_id: UniqueId,
+    prepared_query: NQLQuery,
+    limit: Optional[int],
+    sort_by: str,
+    ascending: bool,
+    step_size: int,
+    with_ids: Optional[Iterable[str]],
+) -> Iterable[str]:
+    with_ids = with_ids or set()
+    all_matching_objects = backend.search_leaderboard_entries(
+        project_id=project_id,
+        types=[ContainerType.RUN],
+        query=prepared_query,
+        columns=["sys/id"],
+        limit=limit,
+        sort_by=sort_by,
+        step_size=step_size,
+        ascending=ascending,
+        progress_bar=False,
+        use_proto=True,
+    )
+    all_ids_matching_query = set()
+
+    for entry in all_matching_objects:
+        id_field = entry.fields[0]
+        if not isinstance(id_field, StringField):
+            continue
+        all_ids_matching_query.add(id_field.value)
+
+    return set(with_ids) | all_ids_matching_query
 
 
 def resolve_columns(
