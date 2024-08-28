@@ -210,7 +210,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 10k.
+                Defaults to None, which includes all available columns up to 100.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
@@ -296,7 +296,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 10k.
+                Defaults to None, which includes all available columns up to 100.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
@@ -388,31 +388,14 @@ class ReadOnlyProject:
                 "or 'tags' parameters."
             )
 
-        if columns_regex is not None and columns is None:
-            columns = []
-
-        if columns is not None:
-            # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
-            columns = set(columns)
-            columns.add("sys/id")
-            columns.add("sys/custom_run_id")
-            if object_type == "experiment":
-                columns.add("sys/name")
-
-            if columns_regex is not None:
-                columns = filter_columns_regex(
-                    columns_regex=columns_regex,
-                    columns=columns,
-                    backend=self._backend,
-                    project_qualified_name=self._project_qualified_name,
-                    with_ids=with_ids,
-                )
-
-            if len(columns) > MAX_COLUMNS_ALLOWED:
-                raise ValueError(
-                    f"Too many columns requested ({len(columns)}). "
-                    f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
-                )
+        columns = resolve_columns(
+            backend=self._backend,
+            project_qualified_name=self._project_qualified_name,
+            columns=columns,
+            columns_regex=columns_regex,
+            with_ids=with_ids,
+            object_type=object_type,
+        )
 
         if query is not None:
             prepared_query = build_extended_nql_query(
@@ -451,6 +434,65 @@ class ReadOnlyProject:
             container_type=ContainerType.RUN,
             entries=leaderboard_entries,
         ).to_pandas()
+
+
+def resolve_columns(
+    backend: "HostedNeptuneBackend",
+    project_qualified_name: Optional[str],
+    columns: Optional[Iterable[str]],
+    columns_regex: Optional[str],
+    with_ids: Optional[Iterable[str]],
+    object_type: Literal["run", "experiment"],
+) -> Iterable[str]:
+    # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
+    required_columns = {"sys/id", "sys/custom_run_id"}
+    if object_type == "experiment":
+        required_columns.add("sys/name")
+
+    if columns_regex is not None and columns is None:
+        columns = []
+
+    if columns is not None:
+        columns = set(columns) | required_columns
+
+        if columns_regex is not None:
+            columns = filter_columns_regex(
+                columns_regex=columns_regex,
+                columns=columns,
+                backend=backend,
+                project_qualified_name=project_qualified_name,
+                with_ids=with_ids,
+            )
+
+        if len(columns) > MAX_COLUMNS_ALLOWED:
+            raise ValueError(
+                f"Too many columns requested ({len(columns)}). "
+                f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
+            )
+    else:
+        columns = _get_all_columns_up_to_max(backend, project_qualified_name, required_columns)
+
+    return columns
+
+
+def _get_all_columns_up_to_max(
+    backend: HostedNeptuneBackend,
+    project_qualified_name: str,
+    required_columns: Set[str],
+) -> Set[str]:
+    all_cols_gen = paginate_over(
+        getter=backend.query_fields_definitions_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+    )
+    columns = required_columns
+    for entry in all_cols_gen:
+        columns.add(entry.path)
+
+        if len(columns) == MAX_COLUMNS_ALLOWED:
+            break
+
+    return columns
 
 
 def prepare_extended_nql_query(
