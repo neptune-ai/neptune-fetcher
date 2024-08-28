@@ -389,20 +389,20 @@ class ReadOnlyProject:
                 "or 'tags' parameters."
             )
 
-        prepared_query = resolve_query(
-            query,
-            trashed,
-            object_type,
-            names_regex,
-            custom_id_regex,
-            with_ids,
-            custom_ids,
-            states,
-            owners,
-            tags,
+        prepared_query = _resolve_query(
+            query=query,
+            trashed=trashed,
+            object_type=object_type,
+            names_regex=names_regex,
+            custom_id_regex=custom_id_regex,
+            with_ids=with_ids,
+            custom_ids=custom_ids,
+            states=states,
+            owners=owners,
+            tags=tags,
         )
 
-        with_ids = resolve_ids(
+        with_ids = _resolve_ids(
             backend=self._backend,
             project_id=self._project_id,
             prepared_query=prepared_query,
@@ -413,7 +413,7 @@ class ReadOnlyProject:
             with_ids=with_ids,
         )
 
-        columns = resolve_columns(
+        columns = _resolve_columns(
             backend=self._backend,
             project_qualified_name=self._project_qualified_name,
             columns=columns,
@@ -442,7 +442,7 @@ class ReadOnlyProject:
         ).to_pandas()
 
 
-def resolve_query(
+def _resolve_query(
     query: Optional[str],
     trashed: bool,
     object_type: Literal["run", "experiment"],
@@ -474,7 +474,7 @@ def resolve_query(
     )
 
 
-def resolve_ids(
+def _resolve_ids(
     backend: HostedNeptuneBackend,
     project_id: UniqueId,
     prepared_query: NQLQuery,
@@ -508,7 +508,7 @@ def resolve_ids(
     return set(with_ids) | all_ids_matching_query
 
 
-def resolve_columns(
+def _resolve_columns(
     backend: "HostedNeptuneBackend",
     project_qualified_name: Optional[str],
     columns: Optional[Iterable[str]],
