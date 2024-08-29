@@ -483,7 +483,7 @@ def _resolve_ids(
     ascending: bool,
     step_size: int,
     with_ids: Optional[Iterable[str]],
-) -> Iterable[str]:
+) -> Optional[List[str]]:
     with_ids = with_ids or set()
     all_matching_objects = backend.search_leaderboard_entries(
         project_id=project_id,
@@ -505,7 +505,8 @@ def _resolve_ids(
             continue
         all_ids_matching_query.add(id_field.value)
 
-    return set(with_ids) | all_ids_matching_query
+    with_ids = list(set(with_ids) | all_ids_matching_query) or None
+    return with_ids
 
 
 def _resolve_columns(
