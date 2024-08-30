@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 5000
+MAX_COLUMNS_ALLOWED = 1000
 MAX_REGEXABLE_RUNS = 100
 
 
@@ -211,13 +211,13 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 5000.
+                Defaults to None, which includes all available columns up to 1000.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 5000.
+                the total number of matched columns must not exceed 1000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 5000.
+                the total number of matched columns must not exceed 1000.
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
@@ -297,13 +297,13 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 5000.
+                Defaults to None, which includes all available columns up to 1000.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 5000.
+                the total number of matched columns must not exceed 1000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 5000.
+                the total number of matched columns must not exceed 1000.
             names_regex: A regex pattern to filter the experiments by name.
                 When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
@@ -542,10 +542,19 @@ def _resolve_columns(
                 f"Too many columns requested ({len(columns)}). "
                 f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
             )
+
+        if _total_column_name_size_exceeds_limit(columns):
+            raise ValueError("Total size of column names is too big. Please limit the number of columns adn try again.")
     else:
         columns = _get_all_columns_up_to_max(backend, project_qualified_name, required_columns)
 
     return columns
+
+
+def _total_column_name_size_exceeds_limit(columns: Iterable[str]) -> bool:
+    total_size = sum(len(col.encode("utf-8")) for col in columns)
+
+    return total_size > 128 * 1024
 
 
 def _get_all_columns_up_to_max(
