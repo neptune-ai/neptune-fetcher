@@ -213,11 +213,11 @@ class ReadOnlyProject:
             columns: Columns to include in the result, as a list of field names.
                 Defaults to None, which includes all available columns up to 5000.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
@@ -299,7 +299,7 @@ class ReadOnlyProject:
             columns: Columns to include in the result, as a list of field names.
                 Defaults to None, which includes all available columns up to 5000.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
