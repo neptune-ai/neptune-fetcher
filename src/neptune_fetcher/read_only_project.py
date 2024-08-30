@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 100
+MAX_COLUMNS_ALLOWED = 1000
 MAX_REGEXABLE_RUNS = 100
 
 
@@ -211,7 +211,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 100.
+                Defaults to None, which includes all available columns up to 1000.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
@@ -297,7 +297,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 100.
+                Defaults to None, which includes all available columns up to 1000.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
