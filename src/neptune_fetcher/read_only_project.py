@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 1000
+MAX_COLUMNS_ALLOWED = 5000
 MAX_REGEXABLE_RUNS = 100
 
 
@@ -211,13 +211,13 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 1000.
+                Defaults to None, which includes only `sys/custom_id` column.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 1000.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 1000.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the runs by name.
                 When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
@@ -297,13 +297,13 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 1000.
+                Defaults to None, which includes `sys/custom_id` and `sys/name` columns.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 1000.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 1000.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
                 When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
@@ -518,30 +518,26 @@ def _resolve_columns(
     object_type: Literal["run", "experiment"],
 ) -> Iterable[str]:
     # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
-    required_columns = {"sys/id", "sys/custom_run_id"}
+    required_columns = {"sys/custom_run_id"}
     if object_type == "experiment":
         required_columns.add("sys/name")
 
-    if columns_regex is not None and columns is None:
-        columns = []
+    columns = set(columns) | required_columns if columns else required_columns
 
-    if columns is not None:
-        columns = set(columns) | required_columns
+    if columns_regex is not None:
+        columns = filter_columns_regex(
+            columns_regex=columns_regex,
+            columns=columns,
+            backend=backend,
+            project_qualified_name=project_qualified_name,
+            with_ids=with_ids,
+        )
 
-        if columns_regex is not None:
-            columns = filter_columns_regex(
-                columns_regex=columns_regex,
-                columns=columns,
-                backend=backend,
-                project_qualified_name=project_qualified_name,
-                with_ids=with_ids,
-            )
-
-        if len(columns) > MAX_COLUMNS_ALLOWED:
-            raise ValueError(
-                f"Too many columns requested ({len(columns)}). "
-                f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
-            )
+    if len(columns) > MAX_COLUMNS_ALLOWED:
+        raise ValueError(
+            f"Too many columns requested ({len(columns)}). "
+            f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
+        )
 
     return columns
 
