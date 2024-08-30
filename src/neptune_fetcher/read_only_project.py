@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 1000
+MAX_COLUMNS_ALLOWED = 5000
 MAX_REGEXABLE_RUNS = 100
 
 
@@ -211,7 +211,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 1000.
+                Defaults to None, which includes all available columns up to 5000.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
@@ -297,13 +297,13 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 1000.
+                Defaults to None, which includes all available columns up to 5000.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 100.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
                 When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
@@ -667,14 +667,12 @@ def filter_columns_regex(
     project_qualified_name: str,
     with_ids: Optional[List[str]] = None,
 ) -> Set[str]:
-    field_definitions = list(
-        paginate_over(
-            getter=backend.query_fields_definitions_within_project,
-            extract_entries=lambda data: data.entries,
-            project_id=project_qualified_name,
-            field_name_regex=columns_regex,
-            experiment_ids_filter=with_ids,
-        )
+    field_definitions = paginate_over(
+        getter=backend.query_fields_definitions_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+        field_name_regex=columns_regex,
+        experiment_ids_filter=with_ids,
     )
 
     for field_definition in field_definitions:
