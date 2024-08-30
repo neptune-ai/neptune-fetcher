@@ -543,16 +543,7 @@ def _resolve_columns(
                 f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
             )
 
-        if _total_column_name_size_exceeds_limit(columns):
-            raise ValueError("Total size of column names is too big. Please limit the number of columns adn try again.")
-
     return columns
-
-
-def _total_column_name_size_exceeds_limit(columns: Iterable[str]) -> bool:
-    total_size = sum(len(col.encode("utf-8")) for col in columns)
-
-    return total_size > 128 * 1024
 
 
 def prepare_extended_nql_query(
