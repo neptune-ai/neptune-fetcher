@@ -545,8 +545,6 @@ def _resolve_columns(
 
         if _total_column_name_size_exceeds_limit(columns):
             raise ValueError("Total size of column names is too big. Please limit the number of columns adn try again.")
-    else:
-        columns = _get_all_columns_up_to_max(backend, project_qualified_name, required_columns)
 
     return columns
 
@@ -555,26 +553,6 @@ def _total_column_name_size_exceeds_limit(columns: Iterable[str]) -> bool:
     total_size = sum(len(col.encode("utf-8")) for col in columns)
 
     return total_size > 128 * 1024
-
-
-def _get_all_columns_up_to_max(
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    required_columns: Set[str],
-) -> Set[str]:
-    all_cols_gen = paginate_over(
-        getter=backend.query_fields_definitions_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-    )
-    columns = required_columns
-    for entry in all_cols_gen:
-        columns.add(entry.path)
-
-        if len(columns) == MAX_COLUMNS_ALLOWED:
-            break
-
-    return columns
 
 
 def prepare_extended_nql_query(
