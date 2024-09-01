@@ -517,7 +517,7 @@ def _resolve_columns(
     with_ids: Optional[Iterable[str]],
     object_type: Literal["run", "experiment"],
 ) -> Iterable[str]:
-    # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
+    # always return entries with `sys/custom_run_id` column when filter applied
     required_columns = {"sys/custom_run_id"}
     if object_type == "experiment":
         required_columns.add("sys/name")
