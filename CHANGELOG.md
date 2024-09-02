@@ -2,7 +2,7 @@
 
 ### Breaking Changes
 - Removed `sys/id` from the columns that are always returned in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
-- Made passing `None` as `columns` parameter return only `sys/custom_run_id` and `sys/name` (in case of experiments) in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Made passing `None` as `columns` parameter return only `sys/custom_run_id` (and `sys/name` in case of experiments) in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
 
 ### Changes
 - Increased the limit of total columns fetched to 5000 in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
