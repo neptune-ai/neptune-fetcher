@@ -1,5 +1,4 @@
 -e .
-git+https://github.com/neptune-ai/neptune-client@aw/endpoint-updates  # TODO: to remove
 behave
 mock
 pre-commit

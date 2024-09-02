@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.7"
 
 # Base neptune package
-# neptune = "2.0.0a5"  # TODO: bring back with a6 once client is released
+ neptune = "2.0.0a6"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0", optional = true }
