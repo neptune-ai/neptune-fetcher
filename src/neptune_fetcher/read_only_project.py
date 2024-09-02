@@ -396,7 +396,7 @@ class ReadOnlyProject:
             owners=owners,
             tags=tags,
         )
-        if columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids, states, owners, tags]):
+        if columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids]):
             with_ids = _get_ids_matching_filtering_conditions(
                 backend=self._backend,
                 project_id=self._project_id,
