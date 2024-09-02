@@ -30,7 +30,7 @@ def test__fetch_runs_df(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results["sys/id"].values) == sorted(["RUN-1", "RUN-2"])
+    assert sorted(results["sys/custom_run_id"].values) == sorted(["alternative_tesla", "nostalgic_stallman"])
 
 
 def test__fetch_runs_df__with_columns_regex(api_token, hosted_backend):
@@ -54,7 +54,7 @@ def test__fetch_runs_df__with_names_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert results["sys/id"].values == ["EXP-1"]
+    assert results["sys/custom_run_id"].values == ["custom_experiment_id"]
 
 
 def test__fetch_runs_df__with_custom_id_regex(api_token, hosted_backend):
@@ -148,7 +148,7 @@ def test__list_experiments(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted([result["sys/id"] for result in results]) == sorted(["EXP-1", "EXP-2"])
+    assert sorted([result["sys/name"] for result in results]) == sorted(["powerful-sun-2", "lazy-moon-2"])
 
 
 def test__fetch_experiments(api_token, hosted_backend):
@@ -160,7 +160,7 @@ def test__fetch_experiments(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results["sys/id"].values) == sorted(["EXP-1", "EXP-2"])
+    assert sorted(results["sys/name"].values) == sorted(["powerful-sun-2", "lazy-moon-2"])
 
 
 def test__fetch_experiments_df(api_token, hosted_backend):
@@ -172,7 +172,7 @@ def test__fetch_experiments_df(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert sorted(results["sys/id"].values) == sorted(["EXP-1", "EXP-2"])
+    assert sorted(results["sys/name"].values) == sorted(["powerful-sun-2", "lazy-moon-2"])
 
 
 def test__fetch_experiments_df__with_custom_id_regex(api_token, hosted_backend):
@@ -208,14 +208,15 @@ def test__fetch_experiments_df__with_names_regex(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert results["sys/id"].values == ["EXP-1"]
+
+    assert results["sys/name"].values == ["powerful-sun-2"]
 
     # when
     results = project.fetch_experiments_df(names_regex="lazy.*")
 
     # then
     assert results is not None
-    assert results["sys/id"].values == ["EXP-2"]
+    assert results["sys/name"].values == ["lazy-moon-2"]
 
 
 def test__fetch_experiments_df__complex_query(api_token, hosted_backend):
@@ -227,4 +228,4 @@ def test__fetch_experiments_df__complex_query(api_token, hosted_backend):
 
     # then
     assert results is not None
-    assert results["sys/id"].values == ["EXP-1"]
+    assert results["sys/custom_run_id"].values == ["custom_experiment_id"]
