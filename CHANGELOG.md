@@ -1,3 +1,17 @@
+## neptune-fetcher 0.6.0
+
+## Changes
+- Removed `sys/id` from the columns that are always returned in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Made passing `None` as `columns` parameter return only `sys/custom_run_id` and `sys/name` (in case of experiments) in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Increased the limit of total columns fetched to 5000 in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Moved regex matching for table filtering to the server side with `NQL` `MATCHES` operator in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+
+## Fixes
+- Fixed bug where passing `columns` as `None` invalidated `columns_regex` parameter in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Fixed bug where passing a `names_regex` not matching any experiment resulted in returning entire table ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Fixed misleading error message related to hitting a column number limit ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Made column regexing look only in the subset of filtered runs/experiments ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+
 ## neptune-fetcher 0.5.0
 
 ## Features
