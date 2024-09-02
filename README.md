@@ -190,8 +190,8 @@ __Parameters:__
 |-------------------|-----------------------------------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune Custom ID (`sys/custom_run_id`) is always included. If `None`, only Custom ID is included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000. |
 | `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000.                             |
-| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the runs by name. When applied, it needs to limit the number of runs to 100 or fewer.                                                                                                                                                                                                        |
-| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID. When applied, the total number of matched runs must not exceed 100.                                                                                                                                                                                                   |
+| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the runs by name.                                                                                                                                                                                                                                                                            |
+| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID.                                                                                                                                                                                                                                                                       |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                     |
 | `custom_ids`      | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                |
 | `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                                     |
@@ -208,13 +208,11 @@ __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the f
 
 > [!IMPORTANT]
 > When using a regular expression to filter columns, the total number of matched fields must not exceed 5000.
-> For runs this limit is 100 matched entries.
-> Column `sys/custom_run_id` is always included.
+> Column `sys/custom_run_id` and what is passed as `sort_by` are always included.
 
 Specifically, you can fetch a data frame with a maximum of:
 
 - 5000 columns, when using `columns` or `columns_regex` to filter columns.
-- 100 runs, when using `custom_id_regex` to filter runs.
 
 __Examples:__
 
@@ -268,8 +266,8 @@ __Parameters__:
 |-------------------|-----------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`         | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The Neptune Custom ID (`sys/custom_run_id`) and Experiment Name (`sys/name`) are always included. If `None`, only Custom ID and Name are included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000. |
 | `columns_regex`   | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000.                                                                         |
-| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                                                                                                      |
-| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID. When applied, it needs to limit the number of experiments to 100 or fewer.                                                                                                                                                                                                                                 |
+| `names_regex`     | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name.                                                                                                                                                                                                                                                                                                                 |
+| `custom_id_regex` | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID.                                                                                                                                                                                                                                                                                                            |
 | `with_ids`        | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                                 |
 | `custom_ids`      | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                            |
 | `states`          | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                          |
@@ -286,13 +284,11 @@ __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the f
 
 > [!IMPORTANT]
 > When using a regular expression to filter columns, the total number of matched fields must not exceed 5000.
-> For runs this limit is 100 matched entries.
-> Columns `sys/custom_run_id` and `sys/name` are always included.
+> Columns `sys/custom_run_id` and `sys/name` and what is passed as `sort_by` are always included.
 
 Specifically, you can fetch a data frame with a maximum of:
 
 - 5000 columns, when using `columns` or `columns_regex` to filter columns.
-- 100 experiments, when using `names_regex` or `custom_id_regex` to filter experiments.
 
 __Examples:__
 

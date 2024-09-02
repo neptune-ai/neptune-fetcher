@@ -72,7 +72,6 @@ if TYPE_CHECKING:
 
 
 MAX_COLUMNS_ALLOWED = 5000
-MAX_REGEXABLE_RUNS = 100  # TODO: verify if this is still applicable
 
 
 class ReadOnlyProject:
@@ -219,9 +218,7 @@ class ReadOnlyProject:
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the runs by name.
-                When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
-                When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
             custom_ids: A list of custom run IDs to filter the results.
             states: A list of run states to filter the results.
@@ -305,9 +302,7 @@ class ReadOnlyProject:
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
-                When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
-                When applied, it needs to limit the number of experiments to 100 or fewer.
             with_ids: A list of experiment IDs to filter the results.
             custom_ids: A list of custom experiment IDs to filter the results.
             states: A list of experiment states to filter the results.
@@ -507,8 +502,6 @@ def _resolve_ids(
 
     with_ids = list(set(with_ids) | all_ids_matching_query) or None
 
-    if with_ids and len(with_ids) > MAX_REGEXABLE_RUNS:
-        raise ValueError("Too many runs matched. " f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer.")
     return with_ids
 
 

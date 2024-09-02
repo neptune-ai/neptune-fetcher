@@ -7,6 +7,7 @@
 ### Changes
 - Increased the limit of total columns fetched to 5000 in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
 - Moved regex matching for table filtering to the server side with `NQL` `MATCHES` operator in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+- Removed the limit on regexable run number ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
 
 ### Fixes
 - Fixed bug where passing `columns` as `None` invalidated `columns_regex` parameter in `fetch_*_df()` ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
