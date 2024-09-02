@@ -396,17 +396,17 @@ class ReadOnlyProject:
             owners=owners,
             tags=tags,
         )
-
-        with_ids = _resolve_ids(
-            backend=self._backend,
-            project_id=self._project_id,
-            prepared_query=prepared_query,
-            limit=limit,
-            sort_by=sort_by,
-            ascending=ascending,
-            step_size=step_size,
-            with_ids=with_ids,
-        )
+        if columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids, states, owners, tags]):
+            with_ids = _get_ids_matching_filtering_conditions(
+                backend=self._backend,
+                project_id=self._project_id,
+                prepared_query=prepared_query,
+                limit=limit,
+                sort_by=sort_by,
+                ascending=ascending,
+                step_size=step_size,
+                with_ids=with_ids,
+            )
 
         columns = _resolve_columns(
             backend=self._backend,
@@ -469,7 +469,7 @@ def _resolve_query(
     )
 
 
-def _resolve_ids(
+def _get_ids_matching_filtering_conditions(
     backend: HostedNeptuneBackend,
     project_id: UniqueId,
     prepared_query: NQLQuery,
