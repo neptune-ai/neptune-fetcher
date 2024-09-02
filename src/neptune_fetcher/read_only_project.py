@@ -72,7 +72,7 @@ if TYPE_CHECKING:
 
 
 MAX_COLUMNS_ALLOWED = 5000
-MAX_REGEXABLE_RUNS = 100
+MAX_REGEXABLE_RUNS = 100  # TODO: verify if this is still applicable
 
 
 class ReadOnlyProject:
@@ -506,6 +506,9 @@ def _resolve_ids(
         all_ids_matching_query.add(id_field.value)
 
     with_ids = list(set(with_ids) | all_ids_matching_query) or None
+
+    if with_ids and len(with_ids) > MAX_REGEXABLE_RUNS:
+        raise ValueError("Too many runs matched. " f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer.")
     return with_ids
 
 
