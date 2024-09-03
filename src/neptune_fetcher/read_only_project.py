@@ -72,6 +72,7 @@ if TYPE_CHECKING:
 
 
 MAX_COLUMNS_ALLOWED = 5000
+MAX_RUNS_ALLOWED = 5000
 
 
 class ReadOnlyProject:
@@ -502,6 +503,9 @@ def _get_ids_matching_filtering_conditions(
         if not isinstance(id_field, StringField):
             continue
         all_ids_matching_query.add(id_field.value)
+
+        if len(all_ids_matching_query) == MAX_RUNS_ALLOWED:
+            raise ValueError("Too many runs matching the filtering conditions. Please narrow down the query.")
 
     return all_ids_matching_query
 
