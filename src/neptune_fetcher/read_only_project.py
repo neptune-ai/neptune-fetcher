@@ -397,6 +397,7 @@ class ReadOnlyProject:
             tags=tags,
         )
         if columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids]):
+            # make sure filtering columns will be done only on requested runs - not the entire project
             with_ids = _get_ids_matching_filtering_conditions(
                 backend=self._backend,
                 project_id=self._project_id,
@@ -404,8 +405,8 @@ class ReadOnlyProject:
                 limit=limit,
                 sort_by=sort_by,
                 ascending=ascending,
-                step_size=step_size,
                 with_ids=with_ids,
+                custom_ids=custom_ids,
             )
 
         columns = _resolve_columns(
@@ -476,10 +477,12 @@ def _get_ids_matching_filtering_conditions(
     limit: Optional[int],
     sort_by: str,
     ascending: bool,
-    step_size: int,
     with_ids: Optional[Iterable[str]],
-) -> Optional[List[str]]:
-    with_ids = with_ids or set()
+    custom_ids: Optional[Iterable[str]],
+) -> Optional[Iterable[str]]:
+    if with_ids or custom_ids:
+        return with_ids
+
     all_matching_objects = backend.search_leaderboard_entries(
         project_id=project_id,
         types=[ContainerType.RUN],
@@ -487,7 +490,7 @@ def _get_ids_matching_filtering_conditions(
         columns=["sys/id"],
         limit=limit,
         sort_by=sort_by,
-        step_size=step_size,
+        step_size=1000,
         ascending=ascending,
         progress_bar=False,
         use_proto=True,
@@ -500,9 +503,7 @@ def _get_ids_matching_filtering_conditions(
             continue
         all_ids_matching_query.add(id_field.value)
 
-    with_ids = list(set(with_ids) | all_ids_matching_query) or None
-
-    return with_ids
+    return all_ids_matching_query
 
 
 def _resolve_columns(
