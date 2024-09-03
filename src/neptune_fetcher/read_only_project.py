@@ -206,7 +206,7 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
-        match_columns_to_run_filters: bool = False,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
@@ -238,7 +238,7 @@ class ReadOnlyProject:
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
-            match_columns_to_run_filters: Whether to subset the columns filtered by `columns_regex`, to only look
+            match_columns_to_filters: Whether to subset the columns filtered by `columns_regex`, to only look
                 at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
                 If set to `True`, the total number of runs that match the filters must not exceed 5000.
                 The default value of `False` will result in matching the `column_regex` to all columns in the project.
@@ -276,7 +276,7 @@ class ReadOnlyProject:
             ascending=ascending,
             progress_bar=progress_bar,
             query=query,
-            match_columns_to_run_filters=match_columns_to_run_filters,
+            match_columns_to_filters=match_columns_to_filters,
         )
 
     def fetch_experiments_df(
@@ -296,7 +296,7 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
-        match_columns_to_run_filters: bool = False,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
@@ -328,7 +328,7 @@ class ReadOnlyProject:
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
-            match_columns_to_run_filters: Whether to subset the columns filtered by `columns_regex`, to only look
+            match_columns_to_filters: Whether to subset the columns filtered by `columns_regex`, to only look
                 at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
                 If set to `True`, the total number of experiments that match the filters must not exceed 5000.
 
@@ -366,7 +366,7 @@ class ReadOnlyProject:
             progress_bar=progress_bar,
             object_type="experiment",
             query=query,
-            match_columns_to_run_filters=match_columns_to_run_filters,
+            match_columns_to_filters=match_columns_to_filters,
         )
 
     def _fetch_project_objects_df(
@@ -387,7 +387,7 @@ class ReadOnlyProject:
         progress_bar: ProgressBarType = None,
         object_type: Literal["run", "experiment"] = "run",
         query: Optional[str] = None,
-        match_columns_to_run_filters: bool = False,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
@@ -411,7 +411,7 @@ class ReadOnlyProject:
         )
 
         if _should_subset_columns(
-            match_columns_to_run_filters=match_columns_to_run_filters,
+            match_columns_to_filters=match_columns_to_filters,
             columns_regex=columns_regex,
             names_regex=names_regex,
             custom_id_regex=custom_id_regex,
@@ -460,14 +460,14 @@ class ReadOnlyProject:
 
 
 def _should_subset_columns(
-    match_columns_to_run_filters: bool,
+    match_columns_to_filters: bool,
     columns_regex: Optional[str],
     names_regex: Optional[str],
     custom_id_regex: Optional[str],
     with_ids: Optional[Iterable[str]],
     custom_ids: Optional[Iterable[str]],
 ) -> bool:
-    if not match_columns_to_run_filters:
+    if not match_columns_to_filters:
         return False
 
     return columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids])
