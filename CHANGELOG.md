@@ -15,6 +15,9 @@
 - Fixed misleading error message related to hitting a column number limit ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
 - Made column regexing look only in the subset of filtered runs/experiments ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
 
+### Features
+- Added `match_columns_to_run_filters` to conditionally enable column matching based on run filters ([#51](https://github.com/neptune-ai/neptune-fetcher/pull/51))
+
 
 ## neptune-fetcher 0.5.0
 
