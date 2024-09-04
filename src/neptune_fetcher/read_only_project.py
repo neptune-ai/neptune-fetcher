@@ -18,7 +18,6 @@ __all__ = [
 ]
 
 import os
-import re
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -32,6 +31,7 @@ from typing import (
     Union,
 )
 
+from neptune.api.models import StringField
 from neptune.api.pagination import paginate_over
 from neptune.envs import (
     NEPTUNE_FETCH_TABLE_STEP_SIZE,
@@ -71,8 +71,8 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-MAX_COLUMNS_ALLOWED = 100
-MAX_REGEXABLE_RUNS = 100
+MAX_COLUMNS_ALLOWED = 5000
+MAX_RUNS_ALLOWED = 5000
 
 
 class ReadOnlyProject:
@@ -206,22 +206,21 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 10k.
+                Defaults to None, which includes only `sys/custom_run_id` column.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the runs by name.
-                When applied, it limits the number of returned runs to 100.
             custom_id_regex: A regex pattern to filter the runs by custom ID.
-                When applied, it needs to limit the number of runs to 100 or fewer.
             with_ids: A list of run IDs to filter the results.
             custom_ids: A list of custom run IDs to filter the results.
             states: A list of run states to filter the results.
@@ -239,6 +238,10 @@ class ReadOnlyProject:
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+            match_columns_to_filters: Whether to subset the columns filtered by `columns_regex`, to only look
+                at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
+                If set to `True`, the total number of runs that match the filters must not exceed 5000.
+                The default value of `False` will result in matching the `column_regex` to all columns in the project.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched runs.
@@ -273,6 +276,7 @@ class ReadOnlyProject:
             ascending=ascending,
             progress_bar=progress_bar,
             query=query,
+            match_columns_to_filters=match_columns_to_filters,
         )
 
     def fetch_experiments_df(
@@ -292,22 +296,21 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes all available columns up to 10k.
+                Defaults to None, which includes `sys/custom_run_id` and `sys/name` columns.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
                 Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
                 When using one or both of the `columns` and `columns_regex` parameters,
-                the total number of matched columns must not exceed 100.
+                the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
-                When applied, it needs to limit the number of experiments to 100 or fewer.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
-                When applied, it needs to limit the number of experiments to 100 or fewer.
             with_ids: A list of experiment IDs to filter the results.
             custom_ids: A list of custom experiment IDs to filter the results.
             states: A list of experiment states to filter the results.
@@ -325,6 +328,9 @@ class ReadOnlyProject:
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+            match_columns_to_filters: Whether to subset the columns filtered by `columns_regex`, to only look
+                at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
+                If set to `True`, the total number of experiments that match the filters must not exceed 5000.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched experiments.
@@ -360,6 +366,7 @@ class ReadOnlyProject:
             progress_bar=progress_bar,
             object_type="experiment",
             query=query,
+            match_columns_to_filters=match_columns_to_filters,
         )
 
     def _fetch_project_objects_df(
@@ -380,6 +387,7 @@ class ReadOnlyProject:
         progress_bar: ProgressBarType = None,
         object_type: Literal["run", "experiment"] = "run",
         query: Optional[str] = None,
+        match_columns_to_filters: bool = False,
     ) -> "DataFrame":
         step_size = int(os.getenv(NEPTUNE_FETCH_TABLE_STEP_SIZE, "200"))
 
@@ -389,62 +397,47 @@ class ReadOnlyProject:
                 "or 'tags' parameters."
             )
 
-        if columns is not None:
-            # always return entries with `sys/id` and `sys/custom_run_id` column when filter applied
-            columns = set(columns)
-            columns.add("sys/id")
-            columns.add("sys/custom_run_id")
-            if object_type == "experiment":
-                columns.add("sys/name")
+        prepared_query = _resolve_query(
+            query=query,
+            trashed=trashed,
+            object_type=object_type,
+            names_regex=names_regex,
+            custom_id_regex=custom_id_regex,
+            with_ids=with_ids,
+            custom_ids=custom_ids,
+            states=states,
+            owners=owners,
+            tags=tags,
+        )
 
-            if columns_regex is not None:
-                columns = filter_columns_regex(
-                    columns_regex=columns_regex,
-                    columns=columns,
-                    backend=self._backend,
-                    project_qualified_name=self._project_qualified_name,
-                    with_ids=with_ids,
-                )
-
-            if len(columns) > MAX_COLUMNS_ALLOWED:
-                raise ValueError(
-                    f"Too many columns requested ({len(columns)}). "
-                    "Please limit the number of columns to 10 000 or fewer."
-                )
-
-        if names_regex is not None:
-            with_ids = filter_sys_name_regex(
-                names_regex=names_regex,
+        if _should_subset_columns(
+            match_columns_to_filters=match_columns_to_filters,
+            columns_regex=columns_regex,
+            names_regex=names_regex,
+            custom_id_regex=custom_id_regex,
+            with_ids=with_ids,
+            custom_ids=custom_ids,
+        ):
+            # make sure filtering columns will be done only on requested runs - not the entire project
+            with_ids = _get_ids_matching_filtering_conditions(
                 backend=self._backend,
-                project_qualified_name=self._project_qualified_name,
-                with_ids=with_ids,
-            )
-
-        if custom_id_regex is not None:
-            with_ids = filter_custom_id_regex(
-                custom_id_regex=custom_id_regex,
-                backend=self._backend,
-                project_qualified_name=self._project_qualified_name,
+                project_id=self._project_id,
+                prepared_query=prepared_query,
                 limit=limit,
-                with_ids=with_ids,
-            )
-
-        if query is not None:
-            prepared_query = build_extended_nql_query(
-                query=query,
-                trashed=trashed,
-                is_run=object_type == "run",
-            )
-        else:
-            prepared_query = prepare_extended_nql_query(
+                sort_by=sort_by,
+                ascending=ascending,
                 with_ids=with_ids,
                 custom_ids=custom_ids,
-                states=states,
-                owners=owners,
-                tags=tags,
-                trashed=trashed,
-                is_run=object_type == "run",
             )
+
+        columns = _resolve_columns(
+            backend=self._backend,
+            project_qualified_name=self._project_qualified_name,
+            columns=columns,
+            columns_regex=columns_regex,
+            with_ids=with_ids,
+            object_type=object_type,
+        )
 
         leaderboard_entries = self._backend.search_leaderboard_entries(
             project_id=self._project_id,
@@ -466,6 +459,124 @@ class ReadOnlyProject:
         ).to_pandas()
 
 
+def _should_subset_columns(
+    match_columns_to_filters: bool,
+    columns_regex: Optional[str],
+    names_regex: Optional[str],
+    custom_id_regex: Optional[str],
+    with_ids: Optional[Iterable[str]],
+    custom_ids: Optional[Iterable[str]],
+) -> bool:
+    if not match_columns_to_filters:
+        return False
+
+    return columns_regex and any([names_regex, custom_id_regex, custom_ids, with_ids])
+
+
+def _resolve_query(
+    query: Optional[str],
+    trashed: bool,
+    object_type: Literal["run", "experiment"],
+    names_regex: Optional[str],
+    custom_id_regex: Optional[str],
+    with_ids: Optional[Iterable[str]],
+    custom_ids: Optional[Iterable[str]],
+    states: Optional[Iterable[str]],
+    owners: Optional[Iterable[str]],
+    tags: Optional[Iterable[str]],
+) -> NQLQuery:
+    if query is not None:
+        return build_extended_nql_query(
+            query=query,
+            trashed=trashed,
+            is_run=object_type == "run",
+        )
+
+    return prepare_extended_nql_query(
+        with_ids=with_ids,
+        custom_ids=custom_ids,
+        states=states,
+        owners=owners,
+        tags=tags,
+        trashed=trashed,
+        custom_id_regex=custom_id_regex,
+        names_regex=names_regex,
+        is_run=object_type == "run",
+    )
+
+
+def _get_ids_matching_filtering_conditions(
+    backend: HostedNeptuneBackend,
+    project_id: UniqueId,
+    prepared_query: NQLQuery,
+    limit: Optional[int],
+    sort_by: str,
+    ascending: bool,
+    with_ids: Optional[Iterable[str]],
+    custom_ids: Optional[Iterable[str]],
+) -> Optional[Iterable[str]]:
+    if with_ids or custom_ids:
+        return with_ids
+
+    all_matching_objects = backend.search_leaderboard_entries(
+        project_id=project_id,
+        types=[ContainerType.RUN],
+        query=prepared_query,
+        columns=["sys/id"],
+        limit=limit,
+        sort_by=sort_by,
+        step_size=1000,
+        ascending=ascending,
+        progress_bar=False,
+        use_proto=True,
+    )
+    all_ids_matching_query = set()
+
+    for entry in all_matching_objects:
+        id_field = entry.fields[0]
+        if not isinstance(id_field, StringField):
+            continue
+        all_ids_matching_query.add(id_field.value)
+
+        if len(all_ids_matching_query) == MAX_RUNS_ALLOWED:
+            raise ValueError("Too many runs matching the filtering conditions. Please narrow down the query.")
+
+    return all_ids_matching_query
+
+
+def _resolve_columns(
+    backend: "HostedNeptuneBackend",
+    project_qualified_name: Optional[str],
+    columns: Optional[Iterable[str]],
+    columns_regex: Optional[str],
+    with_ids: Optional[Iterable[str]],
+    object_type: Literal["run", "experiment"],
+) -> Iterable[str]:
+    # always return entries with `sys/custom_run_id` column when filter applied
+    required_columns = {"sys/custom_run_id"}
+    if object_type == "experiment":
+        required_columns.add("sys/name")
+
+    columns = set(columns) | required_columns if columns else required_columns
+
+    if columns_regex is not None:
+        columns = filter_columns_regex(
+            columns_regex=columns_regex,
+            columns=columns,
+            backend=backend,
+            project_qualified_name=project_qualified_name,
+            with_ids=with_ids,
+        )
+
+    if len(columns) > MAX_COLUMNS_ALLOWED:
+        raise ValueError(
+            f"Too many columns requested ({len(columns)}). "
+            f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
+        )
+
+    return columns
+
+
 def prepare_extended_nql_query(
     with_ids: Optional[Iterable[str]] = None,
     custom_ids: Optional[Iterable[str]] = None,
@@ -473,6 +584,8 @@ def prepare_extended_nql_query(
     owners: Optional[Iterable[str]] = None,
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
+    names_regex: Optional[str] = None,
+    custom_id_regex: Optional[str] = None,
     is_run: bool = True,
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
@@ -492,6 +605,34 @@ def prepare_extended_nql_query(
                         for custom_id in custom_ids
                     ],
                     aggregator=NQLAggregator.OR,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
+        )
+
+    if names_regex is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAttribute(
+                    name="sys/name",
+                    type=NQLAttributeType.STRING,
+                    operator=NQLAttributeOperator.MATCHES,
+                    value=names_regex,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
+        )
+
+    if custom_id_regex is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAttribute(
+                    name="sys/custom_run_id",
+                    type=NQLAttributeType.STRING,
+                    operator=NQLAttributeOperator.MATCHES,
+                    value=custom_id_regex,
                 ),
             ],
             aggregator=NQLAggregator.AND,
@@ -535,60 +676,18 @@ def filter_columns_regex(
     project_qualified_name: str,
     with_ids: Optional[List[str]] = None,
 ) -> Set[str]:
-    field_definitions = list(
-        paginate_over(
-            getter=backend.query_fields_definitions_within_project,
-            extract_entries=lambda data: data.entries,
-            project_id=project_qualified_name,
-            field_name_regex=columns_regex,
-            experiment_ids_filter=with_ids,
-        )
+    field_definitions = paginate_over(
+        getter=backend.query_fields_definitions_within_project,
+        extract_entries=lambda data: data.entries,
+        project_id=project_qualified_name,
+        field_name_regex=columns_regex,
+        experiment_ids_filter=with_ids,
     )
 
     for field_definition in field_definitions:
         columns.add(field_definition.path)
 
     return columns
-
-
-def filter_custom_id_regex(
-    custom_id_regex: str,
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    limit: Optional[int],
-    with_ids: Optional[List[str]] = None,
-) -> List[str]:
-    objects = paginate_over(
-        getter=backend.query_fields_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-        field_names_filter=["sys/custom_run_id"],
-        experiment_ids_filter=with_ids,
-    )
-    regex = re.compile(custom_id_regex)
-    filtered_with_ids = []
-
-    should_continue = True
-
-    for experiment in objects:
-        if not should_continue:
-            break
-        for field in experiment.fields:
-            if field.path == "sys/custom_run_id" and regex.match(field.value) is not None:
-                filtered_with_ids.append(experiment.object_key)
-                if len(filtered_with_ids) == limit:
-                    should_continue = False
-                    break
-                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                    raise ValueError(
-                        "Too many runs matched the custom ID regex. "
-                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                    )
-
-    if with_ids is None:
-        return filtered_with_ids
-    else:
-        return list(set(with_ids) & set(filtered_with_ids))
 
 
 def query_for_not_trashed() -> NQLQuery:
@@ -649,36 +748,3 @@ def list_objects_from_project(
         }
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
-
-
-def filter_sys_name_regex(
-    names_regex: str,
-    backend: HostedNeptuneBackend,
-    project_qualified_name: str,
-    with_ids: Optional[List[str]] = None,
-) -> List[str]:
-    objects = paginate_over(
-        getter=backend.query_fields_within_project,
-        extract_entries=lambda data: data.entries,
-        project_id=project_qualified_name,
-        field_names_filter=["sys/name"],
-        experiment_ids_filter=with_ids,
-    )
-    regex = re.compile(names_regex)
-    filtered_with_ids = []
-
-    for experiment in objects:
-        for field in experiment.fields:
-            if field.path == "sys/name" and regex.match(field.value) is not None:
-                filtered_with_ids.append(experiment.object_key)
-
-                if len(filtered_with_ids) > MAX_REGEXABLE_RUNS:
-                    raise ValueError(
-                        "Too many runs matched the names regex. "
-                        f"Please limit the number of runs to {MAX_REGEXABLE_RUNS} or fewer."
-                    )
-
-    if with_ids is None:
-        return filtered_with_ids
-    else:
-        return list(set(with_ids) & set(filtered_with_ids))

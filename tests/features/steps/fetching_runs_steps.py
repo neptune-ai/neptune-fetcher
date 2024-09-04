@@ -78,13 +78,13 @@ def step_impl(context):
 @then("we should get first run")
 def step_impl(context):
     assert len(context.dataframe) == 1
-    assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-1"
+    assert context.dataframe["sys/custom_run_id"].values[0] == "fetcher-aa-1"
 
 
 @then("we should get second run")
 def step_impl(context):
     assert len(context.dataframe) == 1
-    assert context.dataframe["sys/id"].values[0] == f"{context.project_key}-2"
+    assert context.dataframe["sys/custom_run_id"].values[0] == "fetcher-bb-2"
 
 
 @then("we should have selected columns included")
@@ -93,8 +93,8 @@ def step_impl(context):
     assert sorted(
         context.expected_columns
         + [
-            "sys/id",
             "sys/custom_run_id",
+            "sys/creation_time",
         ]
     ) == sorted(context.dataframe.columns.tolist())
 

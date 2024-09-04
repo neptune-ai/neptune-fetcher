@@ -37,8 +37,6 @@ from neptune.api.models import (
     NextPage,
     ObjectStateField,
     QueryFieldDefinitionsResult,
-    QueryFieldsExperimentResult,
-    QueryFieldsResult,
     StringField,
     StringSetField,
 )
@@ -85,14 +83,23 @@ def get_project(project_id: UniqueId) -> Project:
 
 def search_leaderboard_entries(columns, query, *args, **kwargs):
     output = []
-
-    query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "RUN-1")))'
-    query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")))'
+    query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/custom_run_id`:string MATCHES "alternative_*")))'
+    query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/name`:string MATCHES "powerful.*")))'
     complex_query_run = "((`fields/int`:int > 5) AND (`sys/trashed`:bool = false))"
     query_all_runs = "(`sys/trashed`:bool = false)"
 
-    query_exp1_only = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-1")) AND (`sys/name`:string != ""))'
+    query_exp1_only_by_name = (
+        '(((`sys/trashed`:bool = false) AND (`sys/name`:string MATCHES "powerful.*")) AND (`sys/name`:string != ""))'
+    )
+    query_exp1_only_by_custom_id = (
+        "(((`sys/trashed`:bool = false)"
+        + ' AND (`sys/custom_run_id`:string MATCHES "custom_experiment_*"))'
+        + ' AND (`sys/name`:string != ""))'
+    )
     query_exp2_only = '(((`sys/trashed`:bool = false) AND (`sys/id`:string = "EXP-2")) AND (`sys/name`:string != ""))'
+    query_exp2_only_by_name = (
+        '(((`sys/trashed`:bool = false) AND (`sys/name`:string MATCHES "lazy.*")) AND (`sys/name`:string != ""))'
+    )
     complex_query_exp = '((`fields/int`:int > 5) AND (`sys/name`:string != "") AND (`sys/trashed`:bool = false))'
     query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
@@ -111,10 +118,15 @@ def search_leaderboard_entries(columns, query, *args, **kwargs):
             run2,
         ]
 
-    elif str(query) == query_exp1_only or str(query) == query_exp1 or str(query) == complex_query_exp:
+    elif (
+        str(query) == query_exp1_only_by_name
+        or str(query) == query_exp1_only_by_custom_id
+        or str(query) == query_exp1
+        or str(query) == complex_query_exp
+    ):
         output = [exp1]
 
-    elif str(query) == query_exp2_only:
+    elif str(query) == query_exp2_only or str(query) == query_exp2_only_by_name:
         output = [exp2]
 
     elif str(query) == query_all_exps:
@@ -185,55 +197,6 @@ def query_fields_definitions_within_project(*args, **kwargs):
     )
 
 
-def query_fields_within_project(field_names_filter, *args, **kwargs):
-    if field_names_filter == ["sys/name"]:
-        return QueryFieldsResult(
-            entries=[
-                QueryFieldsExperimentResult(
-                    object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                    object_key="EXP-1",
-                    fields=[
-                        StringField(path="sys/name", value="powerful-sun-2"),
-                    ],
-                ),
-                QueryFieldsExperimentResult(
-                    object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                    object_key="EXP-2",
-                    fields=[
-                        StringField(path="sys/name", value="lazy-moon-2"),
-                    ],
-                ),
-            ],
-            next_page=NextPage(next_page_token=None, limit=None),
-        )
-    return QueryFieldsResult(
-        entries=[
-            QueryFieldsExperimentResult(
-                object_id="440ee146-442e-4d7c-a8ac-276ba940a071",
-                object_key="RUN-1",
-                fields=[
-                    StringField(path="sys/custom_run_id", value="alternative_tesla"),
-                ],
-            ),
-            QueryFieldsExperimentResult(
-                object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                object_key="RUN-2",
-                fields=[
-                    StringField(path="sys/custom_run_id", value="nostalgic_stallman"),
-                ],
-            ),
-            QueryFieldsExperimentResult(
-                object_id="2f24214f-c315-4c96-a82e-6d05aa017532",
-                object_key="EXP-1",
-                fields=[
-                    StringField(path="sys/custom_run_id", value="custom_experiment_id"),
-                ],
-            ),
-        ],
-        next_page=NextPage(next_page_token=None, limit=None),
-    )
-
-
 def get_metadata_container(container_id, *args, **kwargs):
     if container_id == QualifiedName("CUSTOM/test_workspace/test_project/alternative_tesla"):
         internal_id = UniqueId("440ee146-442e-4d7c-a8ac-276ba940a071")
@@ -261,7 +224,6 @@ def hosted_backend() -> HostedNeptuneBackend:
         backend_instance.get_fields_definitions.side_effect = get_fields_definitions
         backend_instance.get_fields_with_paths_filter.side_effect = get_fields_with_paths_filter
         backend_instance.query_fields_definitions_within_project.side_effect = query_fields_definitions_within_project
-        backend_instance.query_fields_within_project.side_effect = query_fields_within_project
         backend_instance.get_metadata_container.side_effect = get_metadata_container
         backend_instance.search_leaderboard_entries.side_effect = search_leaderboard_entries
 
