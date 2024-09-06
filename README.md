@@ -354,6 +354,29 @@ for run in project.fetch_read_only_runs(custom_ids=["nostalgic_shockley", "high_
 
 ---
 
+#### `fetch_read_only_experiments()`
+
+Lists experiments of the project in the form of ReadOnlyRun.
+
+__Parameters:__
+
+| Name         | Type                  | Default | Description                        |
+|--------------|-----------------------|---------|------------------------------------|
+| `names`      | `Optional[List[str]]` | `None`  | List of experiment names to fetch. |
+
+__Returns:__ Iterator of ReadOnlyRun objects.
+
+__Example:__
+
+```python
+project = ReadOnlyProject()
+
+for run in project.fetch_read_only_experiments(names=["yolo-v2", "yolo-v3"]):
+    ...
+```
+
+---
+
 ### `ReadOnlyRun`
 
 Representation of a Neptune run in a limited read-only mode.
@@ -379,11 +402,12 @@ Can be created
 
 __Parameters:__
 
-| Name                | Type              | Default | Description                                                      |
-|---------------------|-------------------|---------|------------------------------------------------------------------|
-| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched.                   |
-| `with_id`           | `Optional[str]`   | `None`  | ID of the Neptune run to fetch. Example: `RUN-1`. Exclusive with the `custom_id` parameter. |
-| `custom_id`         | `Optional[str]`   | `None`  | Custom ID of the Neptune run to fetch. Example: `high_albattani`. Exclusive with the `with_id` parameter. |
+| Name                | Type              | Default | Description                                                                                                                      |
+|---------------------|-------------------|---------|----------------------------------------------------------------------------------------------------------------------------------|
+| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched.                                                                                   |
+| `with_id`           | `Optional[str]`   | `None`  | ID of the Neptune run to fetch. Example: `RUN-1`. Exclusive with the `custom_id` and `experiment_name` parameters.               |
+| `custom_id`         | `Optional[str]`   | `None`  | Custom ID of the Neptune run to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `experiment_name` parameters. |
+| `experiment_name`   | `Optional[str]`   | `None`  | Name of the Neptune experiment to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `custom_id` parameters.     |
 
 __Example:__
 

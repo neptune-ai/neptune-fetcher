@@ -54,15 +54,20 @@ def get_attribute_value_from_entry(entry: TableEntry, name: str) -> Optional[str
 
 class ReadOnlyRun:
     def __init__(
-        self, read_only_project: "ReadOnlyProject", with_id: Optional[str] = None, custom_id: Optional[str] = None
+        self,
+        read_only_project: "ReadOnlyProject",
+        with_id: Optional[str] = None,
+        custom_id: Optional[str] = None,
+        experiment_name: Optional[str] = None,
     ) -> None:
         self.project = read_only_project
 
         verify_type("with_id", with_id, (str, type(None)))
         verify_type("custom_id", custom_id, (str, type(None)))
+        verify_type("experiment_name", experiment_name, (str, type(None)))
 
-        if with_id is None and custom_id is None:
-            raise ValueError("Either `with_id` or `custom_id` must be provided.")
+        if with_id is None and custom_id is None and experiment_name is None:
+            raise ValueError("Either `with_id`, `custom_id` or `experiment_name` must be provided.")
 
         if custom_id is not None:
             experiment = read_only_project._backend.get_metadata_container(
@@ -70,6 +75,13 @@ class ReadOnlyRun:
                 expected_container_type=None,
             )
             self.with_id = experiment.sys_id
+        elif experiment_name is not None:
+            experiment = read_only_project.fetch_experiments_df(
+                query=f"`sys/name`:string = '{experiment_name}'", limit=1, columns=["sys/id"]
+            )
+            if len(experiment) == 0:
+                raise ValueError(f"No experiment found with name '{experiment_name}'")
+            self.with_id = experiment.iloc[0]["sys/id"]
         else:
             self.with_id = with_id
 

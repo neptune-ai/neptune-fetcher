@@ -20,6 +20,13 @@ def step_impl(context):
     context.run = ReadOnlyRun(custom_id="fetcher-aa-1", read_only_project=context.project)
 
 
+@when("we initialize the read-only run with experiment name")
+def step_impl(context):
+    from neptune_fetcher.read_only_run import ReadOnlyRun
+
+    context.run = ReadOnlyRun(experiment_name="my-lovely-experiment", read_only_project=context.project)
+
+
 @given("we have a read-only run")
 def step_impl(context):
     context.execute_steps("given we have a read-only project")
