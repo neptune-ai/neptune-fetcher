@@ -68,7 +68,7 @@ class ReadOnlyRun:
         verify_type("experiment_name", experiment_name, (str, type(None)))
 
         if with_id is None and custom_id is None and experiment_name is None:
-            raise ValueError("Either `with_id`, `custom_id` or `experiment_name` must be provided.")
+            raise ValueError("Either `with_id`, `custom_id`, or `experiment_name` must be provided.")
 
         if sum([with_id is not None, custom_id is not None, experiment_name is not None]) > 1:
             raise ValueError("Only one of `with_id`, `custom_id` or `experiment_name` can be provided.")
