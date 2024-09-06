@@ -26,6 +26,7 @@ from typing import (
     Union,
 )
 
+from neptune.exceptions import MetadataContainerNotFound
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
 from neptune.internal.utils import verify_type
@@ -69,12 +70,18 @@ class ReadOnlyRun:
         if with_id is None and custom_id is None and experiment_name is None:
             raise ValueError("Either `with_id`, `custom_id` or `experiment_name` must be provided.")
 
+        if sum([with_id is not None, custom_id is not None, experiment_name is not None]) > 1:
+            raise ValueError("Only one of `with_id`, `custom_id` or `experiment_name` can be provided.")
+
         if custom_id is not None:
-            experiment = read_only_project._backend.get_metadata_container(
-                container_id=QualifiedName(f"CUSTOM/{read_only_project.project_identifier}/{custom_id}"),
-                expected_container_type=None,
-            )
-            self.with_id = experiment.sys_id
+            try:
+                experiment = read_only_project._backend.get_metadata_container(
+                    container_id=QualifiedName(f"CUSTOM/{read_only_project.project_identifier}/{custom_id}"),
+                    expected_container_type=None,
+                )
+                self.with_id = experiment.sys_id
+            except MetadataContainerNotFound as e:
+                raise ValueError(f"No experiment found with custom id '{custom_id}'") from e
         elif experiment_name is not None:
             experiment = read_only_project.fetch_experiments_df(
                 query=f"`sys/name`:string = '{experiment_name}'", limit=1, columns=["sys/id"]
@@ -83,7 +90,15 @@ class ReadOnlyRun:
                 raise ValueError(f"No experiment found with name '{experiment_name}'")
             self.with_id = experiment.iloc[0]["sys/id"]
         else:
-            self.with_id = with_id
+            try:
+                # Just to check if the experiment exists
+                _ = read_only_project._backend.get_metadata_container(
+                    container_id=QualifiedName(f"{read_only_project.project_identifier}/{with_id}"),
+                    expected_container_type=None,
+                )
+                self.with_id = with_id
+            except MetadataContainerNotFound as e:
+                raise ValueError(f"No experiment found with Neptune ID '{with_id}'") from e
 
         self._container_id = QualifiedName(f"{self.project.project_identifier}/{self.with_id}")
         self._cache = FieldsCache(
