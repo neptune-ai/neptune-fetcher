@@ -1,7 +1,7 @@
 # Neptune Fetcher
 
 > [!NOTE]
-> This package is **experimental**.
+> This package is **experimental** and works only with the experimental Neptune 2.x client. This cannot be used with `neptune<2.0`.
 
 Neptune Fetcher is designed to separate data retrieval capabilities from the regular `neptune` package. This separation makes data fetching more efficient and improves performance.
 
