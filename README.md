@@ -404,7 +404,7 @@ __Parameters:__
 
 | Name                | Type              | Default | Description                                                                                                                      |
 |---------------------|-------------------|---------|----------------------------------------------------------------------------------------------------------------------------------|
-| `read_only_project` | `ReadOnlyProject` | -       | Source project from which run will be fetched.                                                                                   |
+| `read_only_project` | `ReadOnlyProject` | -       | Project from which the run is fetched.                                                                                   |
 | `with_id`           | `Optional[str]`   | `None`  | ID of the Neptune run to fetch. Example: `RUN-1`. Exclusive with the `custom_id` and `experiment_name` parameters.               |
 | `custom_id`         | `Optional[str]`   | `None`  | Custom ID of the Neptune run to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `experiment_name` parameters. |
 | `experiment_name`   | `Optional[str]`   | `None`  | Name of the Neptune experiment to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `custom_id` parameters.     |
