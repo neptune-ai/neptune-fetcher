@@ -542,13 +542,13 @@ files = [
 
 [[package]]
 name = "neptune"
-version = "1.10.2"
+version = "1.11.1"
 description = "Neptune Client"
 optional = false
 python-versions = "<4.0,>=3.7"
 files = [
-    {file = "neptune-1.10.2-py3-none-any.whl", hash = "sha256:75cf8e58a349d9510b03dd5ce941ab34d40b33dc5f9c35442ef4a706ab8acfab"},
-    {file = "neptune-1.10.2.tar.gz", hash = "sha256:c6d9c7d9ea7344a2359c4ee47c50cc519121622b34e55e83eebd6bfd3638ddbd"},
+    {file = "neptune-1.11.1-py3-none-any.whl", hash = "sha256:de1ebb9ca40c3dc8add2b3c30b4e32cf92919046b87e52178fd41d71e01a2631"},
+    {file = "neptune-1.11.1.tar.gz", hash = "sha256:4e34dc9352ac3ebbd8f80e6eccbec7207386dd853900c3659d0e486006f9f0ed"},
 ]
 
 [package.dependencies]
@@ -1327,4 +1327,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "9f79d594bfe13ccad1231a43988789c002cf3483dee7256194bca3e811cf1359"
+content-hash = "d631267c000babd90cef33cbd38120eb6904f75ba9c7326ef30f38f867fd1903"
