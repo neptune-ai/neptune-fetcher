@@ -71,7 +71,7 @@ class ReadOnlyRun:
             raise ValueError("Either `with_id`, `custom_id`, or `experiment_name` must be provided.")
 
         if sum([with_id is not None, custom_id is not None, experiment_name is not None]) != 1:
-            raise ValueError("Exactly one of `with_id`, `custom_id` or `experiment_name` can be provided.")
+            raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
 
         if custom_id is not None:
             try:
