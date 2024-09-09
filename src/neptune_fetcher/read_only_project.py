@@ -171,6 +171,12 @@ class ReadOnlyProject:
 
         Args:
             names: List of experiment names to fetch.
+        Example:
+            ```
+            project = ReadOnlyProject()
+            for run in project.fetch_read_only_experiments(names=["yolo-v2", "yolo-v3"]):
+                ...
+            ```
         """
         for name in names or []:
             yield ReadOnlyRun(read_only_project=self, experiment_name=name)
