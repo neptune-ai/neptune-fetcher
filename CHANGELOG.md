@@ -1,8 +1,11 @@
-## [UNRELEASED] neptune-fetcher
+## neptune-fetcher 0.7.0
 
 ### Features
 - Added support for initializing `ReadOnlyRun` based on experiment name ([#54](https://github.com/neptune-ai/neptune-fetcher/pull/54))
 - Added `fetch_read_only_experiments()` method for fetching experiments in read-only mode ([#54](https://github.com/neptune-ai/neptune-fetcher/pull/54))
+
+### Changes
+- Fixed `columns_regex` not respecting 5k column limit ([#55](https://github.com/neptune-ai/neptune-fetcher/pull/55))
 
 
 ## neptune-fetcher 0.6.0
