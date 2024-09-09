@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.7"
 
 # Base neptune package
-neptune = { git = "https://github.com/neptune-ai/neptune-client.git", branch = "rj/pagination-limit-and-page-size" }
+neptune = "2.0.0a7"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0", optional = true }
