@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 
 MAX_COLUMNS_ALLOWED = 5000
 MAX_RUNS_ALLOWED = 5000
+NEPTUNE_FETCH_COLUMNS_STEP_SIZE = "NEPTUNE_FETCH_COLUMNS_STEP_SIZE"
 
 
 class ReadOnlyProject:
@@ -456,6 +457,7 @@ class ReadOnlyProject:
             project_qualified_name=self._project_qualified_name,
             columns=columns,
             columns_regex=columns_regex,
+            sort_by=sort_by,
             with_ids=with_ids,
             object_type=object_type,
         )
@@ -572,27 +574,28 @@ def _resolve_columns(
     columns_regex: Optional[str],
     with_ids: Optional[Iterable[str]],
     object_type: Literal["run", "experiment"],
+    sort_by: str,
 ) -> Iterable[str]:
     # always return entries with `sys/custom_run_id` column when filter applied
-    required_columns = {"sys/custom_run_id"}
+    required_columns = {"sys/custom_run_id", sort_by}
     if object_type == "experiment":
         required_columns.add("sys/name")
 
     columns = set(columns) | required_columns if columns else required_columns
 
-    if columns_regex is not None:
+    if len(columns) > MAX_COLUMNS_ALLOWED:
+        raise ValueError(
+            f"Too many columns requested ({len(columns)}). "
+            f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
+        )
+
+    if columns_regex is not None and len(columns) < MAX_COLUMNS_ALLOWED:
         columns = filter_columns_regex(
             columns_regex=columns_regex,
             columns=columns,
             backend=backend,
             project_qualified_name=project_qualified_name,
             with_ids=with_ids,
-        )
-
-    if len(columns) > MAX_COLUMNS_ALLOWED:
-        raise ValueError(
-            f"Too many columns requested ({len(columns)}). "
-            f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
         )
 
     return columns
@@ -697,12 +700,18 @@ def filter_columns_regex(
     project_qualified_name: str,
     with_ids: Optional[List[str]] = None,
 ) -> Set[str]:
+    if MAX_COLUMNS_ALLOWED <= len(columns):
+        return columns
+
+    page_size = int(os.getenv(NEPTUNE_FETCH_COLUMNS_STEP_SIZE, "1000"))
     field_definitions = paginate_over(
         getter=backend.query_fields_definitions_within_project,
         extract_entries=lambda data: data.entries,
         project_id=project_qualified_name,
         field_name_regex=columns_regex,
         experiment_ids_filter=with_ids,
+        page_size=page_size,
+        limit=MAX_COLUMNS_ALLOWED - len(columns),
     )
 
     for field_definition in field_definitions:
