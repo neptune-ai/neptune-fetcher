@@ -1,3 +1,10 @@
+## [UNRELEASED] neptune-fetcher
+
+### Features
+- Added support for initializing `ReadOnlyRun` based on experiment name ([#54](https://github.com/neptune-ai/neptune-fetcher/pull/54))
+- Added `fetch_read_only_experiments()` method for fetching experiments in read-only mode ([#54](https://github.com/neptune-ai/neptune-fetcher/pull/54))
+
+
 ## neptune-fetcher 0.6.0
 
 ### Breaking Changes

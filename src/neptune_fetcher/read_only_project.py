@@ -161,6 +161,27 @@ class ReadOnlyProject:
         for custom_id in custom_ids or []:
             yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
 
+    def fetch_read_only_experiments(
+        self,
+        names: Optional[List[str]] = None,
+    ) -> Iterator[ReadOnlyRun]:
+        """Lists experiments of the project in the form of read-only runs.
+
+        Returns a generator of `ReadOnlyRun` instances.
+
+        Args:
+            names: List of experiment names to fetch.
+
+        Example:
+            ```
+            project = ReadOnlyProject()
+            for run in project.fetch_read_only_experiments(names=["yolo-v2", "yolo-v3"]):
+                ...
+            ```
+        """
+        for name in names or []:
+            yield ReadOnlyRun(read_only_project=self, experiment_name=name)
+
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing identifiers and names of runs in the project.
 
