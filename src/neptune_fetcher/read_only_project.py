@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+MAX_CUMULATIVE_COLUMN_LENGTH = 100000
 MAX_COLUMNS_ALLOWED = 5000
 MAX_RUNS_ALLOWED = 5000
 NEPTUNE_FETCH_COLUMNS_STEP_SIZE = "NEPTUNE_FETCH_COLUMNS_STEP_SIZE"
@@ -582,6 +583,12 @@ def _resolve_columns(
         required_columns.add("sys/name")
 
     columns = set(columns) | required_columns if columns else required_columns
+
+    if sum(map(len, columns)) > MAX_CUMULATIVE_COLUMN_LENGTH:
+        raise ValueError(
+            f"Too many characters in the columns requested ({sum(map(len, columns))}). "
+            f"Please limit the total number of characters to {MAX_CUMULATIVE_COLUMN_LENGTH} or fewer."
+        )
 
     if len(columns) > MAX_COLUMNS_ALLOWED:
         raise ValueError(
