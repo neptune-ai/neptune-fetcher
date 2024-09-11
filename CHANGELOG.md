@@ -1,3 +1,9 @@
+## neptune-fetcher 0.7.1
+
+### Fixes
+- Fixed `SwaggerMappingError` when using `match_columns_to_filters` parameter ([]())
+
+
 ## neptune-fetcher 0.7.0
 
 ### Features
