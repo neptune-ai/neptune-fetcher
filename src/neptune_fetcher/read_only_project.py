@@ -564,7 +564,7 @@ def _get_ids_matching_filtering_conditions(
         if len(all_ids_matching_query) == MAX_RUNS_ALLOWED:
             raise ValueError("Too many runs matching the filtering conditions. Please narrow down the query.")
 
-    return all_ids_matching_query
+    return list(all_ids_matching_query)
 
 
 def _resolve_columns(
