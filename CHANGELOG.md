@@ -4,7 +4,7 @@
 - Fixed `SwaggerMappingError` when using `match_columns_to_filters` parameter ([#57](https://github.com/neptune-ai/neptune-fetcher/pull/57))
 
 ### Changes
-- Added exception when cumulative length of columns was exceeded ([]())
+- Added exception when cumulative length of columns was exceeded ([#58](https://github.com/neptune-ai/neptune-fetcher/pull/58))
 
 
 ## neptune-fetcher 0.7.0
