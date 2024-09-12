@@ -72,7 +72,10 @@ if TYPE_CHECKING:
 
 
 MAX_CUMULATIVE_COLUMN_LENGTH = 100000
+MAX_CUMULATIVE_LENGTH = 100000
+MAX_QUERY_LENGTH = 250000
 MAX_COLUMNS_ALLOWED = 5000
+MAX_ELEMENTS_ALLOWED = 5000
 MAX_RUNS_ALLOWED = 5000
 NEPTUNE_FETCH_COLUMNS_STEP_SIZE = "NEPTUNE_FETCH_COLUMNS_STEP_SIZE"
 
@@ -433,6 +436,10 @@ class ReadOnlyProject:
             tags=tags,
         )
 
+        from icecream import ic
+
+        ic(len(str(prepared_query)), str(prepared_query)[:128])
+
         if _should_subset_columns(
             match_columns_to_filters=match_columns_to_filters,
             columns_regex=columns_regex,
@@ -510,13 +517,24 @@ def _resolve_query(
     tags: Optional[Iterable[str]],
 ) -> NQLQuery:
     if query is not None:
+        if len(query) > MAX_QUERY_LENGTH:
+            raise ValueError(
+                f"The `query` parameter is too long ({len(query)} characters). "
+                f"Please limit the query to {MAX_QUERY_LENGTH} characters or fewer."
+            )
+
         return build_extended_nql_query(
             query=query,
             trashed=trashed,
             is_run=object_type == "run",
         )
 
-    return prepare_extended_nql_query(
+    verify_string_collection(with_ids, "with_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
+    verify_string_collection(custom_ids, "custom_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
+    verify_string_collection(owners, "owners", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
+    verify_string_collection(tags, "tags", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
+
+    query = prepare_extended_nql_query(
         with_ids=with_ids,
         custom_ids=custom_ids,
         states=states,
@@ -527,6 +545,14 @@ def _resolve_query(
         names_regex=names_regex,
         is_run=object_type == "run",
     )
+
+    if len(str(query)) > MAX_QUERY_LENGTH:
+        raise ValueError(
+            "Please narrow down the filtering rules. Including parameters like `with_ids`, `custom_ids`, `states`, "
+            "`tags`, or `owners` will help to reduce the query length."
+        )
+
+    return query
 
 
 def _get_ids_matching_filtering_conditions(
@@ -584,17 +610,7 @@ def _resolve_columns(
 
     columns = set(columns) | required_columns if columns else required_columns
 
-    if sum(map(len, columns)) > MAX_CUMULATIVE_COLUMN_LENGTH:
-        raise ValueError(
-            f"Too many characters in the columns requested ({sum(map(len, columns))}). "
-            f"Please limit the total number of characters to {MAX_CUMULATIVE_COLUMN_LENGTH} or fewer."
-        )
-
-    if len(columns) > MAX_COLUMNS_ALLOWED:
-        raise ValueError(
-            f"Too many columns requested ({len(columns)}). "
-            f"Please limit the number of columns to {MAX_COLUMNS_ALLOWED} or fewer."
-        )
+    verify_string_collection(list(columns), "columns", MAX_COLUMNS_ALLOWED, MAX_CUMULATIVE_COLUMN_LENGTH)
 
     if columns_regex is not None and len(columns) < MAX_COLUMNS_ALLOWED:
         columns = filter_columns_regex(
@@ -785,3 +801,25 @@ def list_objects_from_project(
         }
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
+
+
+def verify_string_collection(
+    collection: Optional[List[str]],
+    collection_name: str,
+    max_elements_allowed: int,
+    max_cumulative_length: int,
+) -> None:
+    if collection is None:
+        return
+
+    if len(collection) > max_elements_allowed:
+        raise ValueError(
+            f"Too many {collection_name} provided ({len(collection)}). "
+            f"Please limit the number of {collection_name} to {max_elements_allowed} or fewer."
+        )
+
+    if sum(map(len, collection)) > max_cumulative_length:
+        raise ValueError(
+            f"Too many characters in the {collection_name} provided ({sum(map(len, collection))}). "
+            f"Please limit the total number of characters in {collection_name} to {max_cumulative_length} or fewer."
+        )
