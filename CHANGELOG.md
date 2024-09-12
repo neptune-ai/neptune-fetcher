@@ -5,6 +5,7 @@
 
 ### Changes
 - Added exception when cumulative length of columns was exceeded ([#58](https://github.com/neptune-ai/neptune-fetcher/pull/58))
+- Added better input validation for `fetch_*_df()` methods ([#59](https://github.com/neptune-ai/neptune-fetcher/pull/59))
 
 
 ## neptune-fetcher 0.7.0
