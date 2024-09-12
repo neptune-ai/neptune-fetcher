@@ -436,10 +436,6 @@ class ReadOnlyProject:
             tags=tags,
         )
 
-        from icecream import ic
-
-        ic(len(str(prepared_query)), str(prepared_query)[:128])
-
         if _should_subset_columns(
             match_columns_to_filters=match_columns_to_filters,
             columns_regex=columns_regex,
