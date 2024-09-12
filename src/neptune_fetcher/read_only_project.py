@@ -513,17 +513,20 @@ def _resolve_query(
     tags: Optional[Iterable[str]],
 ) -> NQLQuery:
     if query is not None:
-        if len(query) > MAX_QUERY_LENGTH:
-            raise ValueError(
-                f"The `query` parameter is too long ({len(query)} characters). "
-                f"Please limit the query to {MAX_QUERY_LENGTH} characters or fewer."
-            )
-
-        return build_extended_nql_query(
+        query = build_extended_nql_query(
             query=query,
             trashed=trashed,
             is_run=object_type == "run",
         )
+
+        if len(str(query)) > MAX_QUERY_LENGTH:
+            raise ValueError(
+                "Please narrow down the filtering rules in the 'query' parameter. "
+                "To shorten the query, you can use parameters like `with_ids`, "
+                "`custom_ids`, `states`, `tags`, or `owners`."
+            )
+
+        return query
 
     verify_string_collection(with_ids, "with_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
     verify_string_collection(custom_ids, "custom_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
