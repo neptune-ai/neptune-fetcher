@@ -544,8 +544,8 @@ def _resolve_query(
 
     if len(str(query)) > MAX_QUERY_LENGTH:
         raise ValueError(
-            "Please narrow down the filtering rules. To shorten the query, you can use parameters like `with_ids`, `custom_ids`, `states`, "
-            "`tags`, or `owners`."
+            "Please narrow down the filtering rules. To shorten the query, you can use parameters like `with_ids`, "
+            "`custom_ids`, `states`, `tags`, or `owners`."
         )
 
     return query
