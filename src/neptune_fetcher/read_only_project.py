@@ -740,7 +740,7 @@ def filter_columns_regex(
 
     for field_definition in field_definitions:
         if cumulative_length + len(field_definition.path) > MAX_CUMULATIVE_COLUMN_LENGTH:
-            logger.warning(f"Too many characters in the columns requested. Fetching only {len(columns)} first columns.")
+            logger.warning(f"Too many characters in the combined column titles. Fetching only the first {len(columns)} columns.")
             break
 
         columns.add(field_definition.path)
