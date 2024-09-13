@@ -56,6 +56,7 @@ from neptune.internal.id_formats import (
     UniqueId,
     conform_optional,
 )
+from neptune.internal.utils.logger import get_logger
 from neptune.management.internal.utils import normalize_project_name
 from neptune.objects.utils import prepare_nql_query
 from neptune.table import Table
@@ -69,6 +70,9 @@ from neptune_fetcher.read_only_run import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+
+
+logger = get_logger()
 
 
 MAX_CUMULATIVE_COLUMN_LENGTH = 100000
@@ -722,6 +726,7 @@ def filter_columns_regex(
     if MAX_COLUMNS_ALLOWED <= len(columns):
         return columns
 
+    cumulative_length = sum(map(len, columns))
     page_size = int(os.getenv(NEPTUNE_FETCH_COLUMNS_STEP_SIZE, "1000"))
     field_definitions = paginate_over(
         getter=backend.query_fields_definitions_within_project,
@@ -734,7 +739,14 @@ def filter_columns_regex(
     )
 
     for field_definition in field_definitions:
+        if cumulative_length + len(field_definition.path) > MAX_CUMULATIVE_COLUMN_LENGTH:
+            logger.warning(
+                f"Too many characters in the combined column titles. Fetching only the first {len(columns)} columns."
+            )
+            break
+
         columns.add(field_definition.path)
+        cumulative_length += len(field_definition.path)
 
     return columns
 
