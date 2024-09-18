@@ -1,16 +1,23 @@
 import pytest
 
 
-@pytest.mark.parametrize("limit", [1, 2, 15, 100, 1000])
-def test__all_runs_limit(project, limit):
-    df = project.fetch_runs_df(limit=limit)
-    assert df.count().sum() == limit
+@pytest.mark.parametrize("limit", [1, 2, 20, 100, 1000])
+def test__all_runs_limit(project, all_run_ids, all_experiment_ids, sys_columns, limit):
+    df = project.fetch_runs_df(limit=limit, columns=sys_columns)
+    expect = min(limit, len(all_run_ids + all_experiment_ids))
+    assert len(df) == expect
 
 
-@pytest.mark.parametrize("limit", [1, 2, 15, 100, 1000])
-def test__all_experiments_limit(project, limit):
-    df = project.fetch_experiments_df(limit=limit)
-    assert df.count().sum() == limit
+@pytest.mark.parametrize("limit", [1, 2, 10, 100, 1000])
+def test__all_experiments_limit(project, all_experiment_ids, sys_columns, limit):
+    df = project.fetch_experiments_df(limit=limit, columns=sys_columns)
+    expect = min(limit, len(all_experiment_ids))
+    assert len(df) == expect
+
+
+def test__too_high_limit_raises_error(project):
+    with pytest.raises(ValueError, match="limit.*is greater than the maximum.*"):
+        project.fetch_runs_df(limit=1000000)
 
 
 @pytest.mark.parametrize("limit", [0, -1, -12345])

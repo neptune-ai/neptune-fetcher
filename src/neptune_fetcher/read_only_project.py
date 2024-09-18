@@ -88,7 +88,7 @@ MAX_CUMULATIVE_LENGTH = 100000
 MAX_QUERY_LENGTH = 250000
 MAX_COLUMNS_ALLOWED = 5000
 MAX_ELEMENTS_ALLOWED = 5000
-# MAX_RUNS_ALLOWED = 5000
+MAX_RUNS_ALLOWED = 5000
 FETCH_COLUMNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_COLUMNS_BATCH_SIZE", 10_000)
 FETCH_RUNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_RUNS_BATCH_SIZE", 1000)
 
@@ -274,7 +274,7 @@ class ReadOnlyProject:
                 If True: return only trashed runs.
                 If False (default): return only non-trashed runs.
                 If None: return all runs.
-            limit: How many nonempty DataFrame cells to return at most. If `None`, all entries are returned.
+            limit: The maximum number of rows (runs) to return.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
@@ -358,7 +358,7 @@ class ReadOnlyProject:
                 If True: return only trashed experiments.
                 If False (default): return only non-trashed experiments.
                 If None: return all experiments.
-            limit: How many nonempty DataFrame cells to return at most. If `None`, all entries are returned.
+            limit: The maximum number of rows (experiments) to return.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
@@ -431,8 +431,13 @@ class ReadOnlyProject:
                 "or 'tags' arguments."
             )
 
-        if limit is not None and limit <= 0:
-            raise ValueError("The 'limit' argument must be greater than 0.")
+        if limit is not None:
+            if limit <= 0:
+                raise ValueError("The 'limit' argument must be greater than 0.")
+            elif limit > MAX_RUNS_ALLOWED:
+                raise ValueError(
+                    f"The 'limit' argument is greater than the maximum allowed value of {MAX_RUNS_ALLOWED}."
+                )
 
         # Filter out the matching runs based on the provided criteria
         runs_filter = _make_runs_filter_nql(
@@ -476,12 +481,11 @@ class ReadOnlyProject:
                 columns=columns,
                 columns_regex=columns_regex,
                 batch_size=FETCH_COLUMNS_BATCH_SIZE,
-                limit=limit,
             ):
                 acc[run_id][attr.path] = _extract_value(attr)
                 count += 1
 
-                if not limit and count > WARN_AT_DATASET_SIZE:
+                if count > WARN_AT_DATASET_SIZE:
                     _warn_large_dataset(WARN_AT_DATASET_SIZE)
 
         df = _to_pandas_df(all_run_ids, acc, columns)
@@ -496,7 +500,8 @@ class ReadOnlyProject:
         in batches of `batch_size` values per HTTP request.
 
         The returned generator yields tuples of (run_id, attribute) for each attribute returned, until
-        there is no more data, or the provided `limit` is reached.
+        there is no more data, or the provided `limit` is reached. Limit is calculated as the number of
+        non-null data cells returned.
         """
 
         # `remaining` tracks the number of attributes left to yield, if limit is provided.
@@ -842,9 +847,8 @@ def _verify_string_collection(
 
 def _warn_large_dataset(max_size):
     warn_once(
-        f"You have requested a dataset that is over {max_size} entries large "
-        "without providing the 'limit' argument. "
-        "This might result in long data fetching. Consider narrowing down your query. "
+        f"You have requested a dataset that is over {max_size} entries large. "
+        "This might result in long data fetching. Consider narrowing down your query or using the `limit` parameter. "
         "You can use the NEPTUNE_WARN_AT_DATASET_SIZE environment variable to raise the warning threshold, "
         "or set it to 0 to disable this warning.",
         exception=NeptuneWarning,
