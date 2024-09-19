@@ -438,6 +438,8 @@ class ReadOnlyProject:
                 raise ValueError(
                     f"The 'limit' argument is greater than the maximum allowed value of {MAX_RUNS_ALLOWED}."
                 )
+        else:
+            limit = math.inf
 
         # Filter out the matching runs based on the provided criteria
         runs_filter = _make_runs_filter_nql(
@@ -475,6 +477,13 @@ class ReadOnlyProject:
         count = 0
         for run_ids in _batch_run_ids(runs_generator, batch_size=FETCH_RUNS_BATCH_SIZE):
             all_run_ids.extend(run_ids)
+
+            if len(all_run_ids) > limit:
+                raise ValueError(
+                    f"The number of runs returned exceeds the limit of {limit}. "
+                    "Please narrow down your query or provide a smaller 'limit' "
+                    "as an argument"
+                )
 
             for run_id, attr in self._stream_attributes(
                 run_ids,
