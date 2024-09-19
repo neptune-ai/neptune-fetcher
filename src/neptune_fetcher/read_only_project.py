@@ -274,7 +274,8 @@ class ReadOnlyProject:
                 If True: return only trashed runs.
                 If False (default): return only non-trashed runs.
                 If None: return all runs.
-            limit: The maximum number of rows (runs) to return.
+            limit: The maximum number of rows (runs) to return. If `None`, all entries are returned, up to
+                   the hard limit of 50000.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
@@ -358,7 +359,8 @@ class ReadOnlyProject:
                 If True: return only trashed experiments.
                 If False (default): return only non-trashed experiments.
                 If None: return all experiments.
-            limit: The maximum number of rows (experiments) to return.
+            limit: The maximum number of rows (experiments) to return. If `None`, all entries are returned, up to
+                   the hard limit of 50000.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
