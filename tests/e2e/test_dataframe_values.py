@@ -35,6 +35,7 @@ def test__nonexistent_column_is_returned_as_null(project, sys_columns):
 
 
 @pytest.mark.parametrize(
+    # The expected count doesn't include the default columns. It's adjusted in the test code.
     "regex, run_ids, expect_count",
     [
         ("config/.*unique-id-run-2", None, 100),
@@ -45,15 +46,18 @@ def test__nonexistent_column_is_returned_as_null(project, sys_columns):
     ],
 )
 def test__column_regex(project, regex, run_ids, expect_count):
+    """Request columns using a regex, keeping in mind that we always return custom_run_id and the sorting column"""
     df = project.fetch_runs_df(columns_regex=regex, custom_ids=run_ids)
-    assert len(df.columns) == expect_count
+    assert len(df.columns) == expect_count + 2
 
 
 def test__columns_regex_and_list_together(project, sys_columns):
     """Request both specific columns and columns_regex. The returned set must strictly match."""
 
     # Both sys attributes and metrics should be returned
-    df = project.fetch_runs_df(columns_regex="metrics/foo999.+", columns=sys_columns, custom_ids=["id-run-3"])
+    df = project.fetch_runs_df(
+        columns_regex="metrics/foo999.+", columns=sys_columns, sort_by="sys/id", custom_ids=["id-run-3"]
+    )
     assert set(df.columns) == set(sys_columns + [f"metrics/foo999{x}" for x in range(10)])
 
     # Passing a strict column name should return only that column even if
@@ -77,20 +81,24 @@ def test__columns_not_present_in_all_runs_are_null(project, sys_columns):
     )
 
     assert len(df) == 2
-    assert len(df.columns) == 1
+    assert len(df.columns) == 2  # sys/custom_run_id is always included
     assert df["config/foo1-unique-id-run-10"].isnull().sum() == 1  # Only id-run-10 has this column
 
 
 def test__columns_present_in_all_experiments(project, all_experiment_ids):
     """Fetch columns that we know are part of all experiments"""
 
-    df = project.fetch_experiments_df(columns_regex="metrics/foo.*")
+    df = project.fetch_experiments_df(columns_regex="metrics/foo.*", sort_by="sys/custom_run_id")
     assert len(df) == len(all_experiment_ids)
-    assert df.count().sum() == len(all_experiment_ids) * 10000  # 10000 metrics/foo* per experiment
+    # 10000 metrics/foo* per experiment + the sorting column + sys/name for experiments
+    assert df.count().sum() == len(all_experiment_ids) * 10002
 
 
 def test__columns_must_match_runs(project, all_run_ids):
-    """Check if the returned columns match their expected rows (runs)"""
+    """
+    Check if the returned columns match their expected rows (runs).
+    Columns that don't exist in a run should be null.
+    """
 
     ids = all_run_ids[:3]
 
@@ -100,10 +108,14 @@ def test__columns_must_match_runs(project, all_run_ids):
     )
 
     assert len(df) == len(ids)
-    assert df.apply(lambda column: column.notna().sum() == 1).all(), "Each column must have only one non-null value"
 
     # Make sure non-null columns actually match the run IDs
     for col in df.columns:
+        if col.startswith("sys/"):
+            continue
+
+        assert df[col].notna().sum() == 1, f"Column {col} must have only one non-null value"
+
         row_with_value = df[col].notna().idxmax()
         assert ids[row_with_value] in col, f"Column {col} must match the run ID {ids[row_with_value]}"
 
@@ -111,11 +123,12 @@ def test__columns_must_match_runs(project, all_run_ids):
 def test__default_columns(project):
     """We should always return sys/custom_run_id as well as the sorting column. The columns must be unique."""
 
-    df = project.fetch_experiments_df(columns=["no-such-column"])
+    df = project.fetch_runs_df(columns=["no-such-column"])
     assert set(df.columns) == {"sys/custom_run_id", "sys/creation_time", "no-such-column"}
 
-    df = project.fetch_experiments_df(sort_by="sys/name", columns=["no-such-column"])
+    df = project.fetch_runs_df(sort_by="sys/name", columns=["no-such-column"])
     assert set(df.columns) == {"sys/custom_run_id", "sys/name", "no-such-column"}
 
-    df = project.fetch_experiments_df(sort_by="sys/name", columns_regex="^no-such-column")
-    assert set(df.columns) == {"sys/custom_run_id", "sys/name"}
+    # Experiments always include sys/name next to the other default column
+    df = project.fetch_experiments_df(columns_regex="^no-such-column")
+    assert set(df.columns) == {"sys/custom_run_id", "sys/name", "sys/creation_time"}

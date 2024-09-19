@@ -389,6 +389,11 @@ class ReadOnlyProject:
         if names_regex is not None and not names_regex:
             raise ValueError("The `names_regex` parameter cannot be an empty string.")
 
+        if columns is None:
+            columns = []
+
+        columns = list(columns) + ["sys/name"]
+
         return self._fetch_df(
             columns=columns,
             columns_regex=columns_regex,
