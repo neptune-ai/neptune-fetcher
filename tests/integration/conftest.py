@@ -36,7 +36,8 @@ from neptune.api.models import (
     LeaderboardEntry,
     NextPage,
     ObjectStateField,
-    QueryFieldDefinitionsResult,
+    QueryFieldsExperimentResult,
+    QueryFieldsResult,
     StringField,
     StringSetField,
 )
@@ -186,12 +187,35 @@ def get_float_series_values(*args, **kwargs):
     )
 
 
-def query_fields_definitions_within_project(*args, **kwargs):
-    return QueryFieldDefinitionsResult(
+# def query_fields_definitions_within_project(*args, **kwargs):
+#     return QueryFieldDefinitionsResult(
+#         entries=[
+#             FieldDefinition(path="sys/id", type=FieldType.STRING),
+#             FieldDefinition(path="sys/name", type=FieldType.STRING),
+#             FieldDefinition(path="sys/failed", type=FieldType.BOOL),
+#         ],
+#         next_page=NextPage(next_page_token=None, limit=None),
+#     )
+
+
+def make_query_fields_entry(sys_id, custom_run_id):
+    return QueryFieldsExperimentResult(
+        object_key=sys_id,
+        object_id=custom_run_id,
+        fields=[
+            StringField(path="sys/id", value=sys_id),
+            StringField(path="sys/custom_run_id", value=custom_run_id),
+        ],
+    )
+
+
+def query_fields_within_project(*args, **kwargs) -> QueryFieldsResult:
+    return QueryFieldsResult(
         entries=[
-            FieldDefinition(path="sys/id", type=FieldType.STRING),
-            FieldDefinition(path="sys/name", type=FieldType.STRING),
-            FieldDefinition(path="sys/failed", type=FieldType.BOOL),
+            make_query_fields_entry("RUN-1", "alternative_tesla"),
+            make_query_fields_entry("RUN-2", "nostalgic_stallman"),
+            make_query_fields_entry("EXP-1", "custom_experiment_id"),
+            make_query_fields_entry("EXP-2", "nostalgic_stallman"),
         ],
         next_page=NextPage(next_page_token=None, limit=None),
     )
@@ -223,7 +247,8 @@ def hosted_backend() -> HostedNeptuneBackend:
         backend_instance.get_float_series_values.side_effect = get_float_series_values
         backend_instance.get_fields_definitions.side_effect = get_fields_definitions
         backend_instance.get_fields_with_paths_filter.side_effect = get_fields_with_paths_filter
-        backend_instance.query_fields_definitions_within_project.side_effect = query_fields_definitions_within_project
+        # backend_instance.query_fields_definitions_within_project.side_effect = query_fields_definitions_within_project
+        backend_instance.query_fields_within_project.side_effect = query_fields_within_project
         backend_instance.get_metadata_container.side_effect = get_metadata_container
         backend_instance.search_leaderboard_entries.side_effect = search_leaderboard_entries
 

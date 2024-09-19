@@ -10,13 +10,12 @@ on:
 
 jobs:
   test:
-    if: false # Disable temporarirly
     timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.12"]
-        os: [ubuntu, windows]
+        python-version: [ "3.7", "3.12" ]
+        os: [ ubuntu, windows ]
         include:
           - python-version: "3.8"
             os: macos
