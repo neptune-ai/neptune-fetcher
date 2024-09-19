@@ -94,7 +94,7 @@ FETCH_RUNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_RUNS_BATCH_SIZE", 1000)
 
 # Issue a warning about a large dataset when no limit is provided by the user,
 # and we've reached that many entries. Value of 0 means "Don't warn".
-WARN_AT_DATASET_SIZE = getenv_int("NEPTUNE_WARN_AT_DATASET_SIZE", 10_000_000, positive=False)
+WARN_AT_DATASET_SIZE = getenv_int("NEPTUNE_WARN_AT_DATASET_SIZE", 1_000_000, positive=False)
 if WARN_AT_DATASET_SIZE <= 0:
     WARN_AT_DATASET_SIZE = math.inf
 
