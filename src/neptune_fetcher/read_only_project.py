@@ -527,6 +527,7 @@ class ReadOnlyProject:
                 field_names_filter=columns,
                 field_name_regex=columns_regex,
                 next_page=next_page,
+                use_proto=True,
             )
 
             # We're assuming that the backend does not return more entries than requested
@@ -541,7 +542,7 @@ class ReadOnlyProject:
             next_page_token = response.next_page.next_page_token
 
             # Limit reached, or server doesn't have more data
-            if remaining <= 0 or next_page_token is None:
+            if remaining <= 0 or not next_page_token:
                 break
 
 
