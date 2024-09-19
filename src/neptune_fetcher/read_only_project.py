@@ -443,6 +443,8 @@ class ReadOnlyProject:
         else:
             limit = math.inf
 
+        columns = _ensure_default_columns(columns, sort_by=sort_by)
+
         # Filter out the matching runs based on the provided criteria
         runs_filter = _make_runs_filter_nql(
             query=query,
@@ -546,6 +548,24 @@ class ReadOnlyProject:
             # Limit reached, or server doesn't have more data
             if remaining <= 0 or not next_page_token:
                 break
+
+
+def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> List[str]:
+    """
+    Extend the columns to fetch to include the sorting column and sys/custom_run_id, if it's not already present.
+    As a side effect, all columns will be unique.
+    """
+
+    if columns is None:
+        columns = []
+
+    columns = set(columns)
+
+    for col in (sort_by, "sys/custom_run_id"):
+        if col not in columns:
+            columns.add(col)
+
+    return list(columns)
 
 
 def _extract_value(attr: Field):

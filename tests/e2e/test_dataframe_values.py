@@ -106,3 +106,16 @@ def test__columns_must_match_runs(project, all_run_ids):
     for col in df.columns:
         row_with_value = df[col].notna().idxmax()
         assert ids[row_with_value] in col, f"Column {col} must match the run ID {ids[row_with_value]}"
+
+
+def test__default_columns(project):
+    """We should always return sys/custom_run_id as well as the sorting column. The columns must be unique."""
+
+    df = project.fetch_experiments_df(columns=["no-such-column"])
+    assert set(df.columns) == {"sys/custom_run_id", "sys/creation_time", "no-such-column"}
+
+    df = project.fetch_experiments_df(sort_by="sys/name", columns=["no-such-column"])
+    assert set(df.columns) == {"sys/custom_run_id", "sys/name", "no-such-column"}
+
+    df = project.fetch_experiments_df(sort_by="sys/name", columns_regex="^no-such-column")
+    assert set(df.columns) == {"sys/custom_run_id", "sys/name"}
