@@ -94,9 +94,9 @@ FETCH_RUNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_RUNS_BATCH_SIZE", 1000)
 
 # Issue a warning about a large dataset when no limit is provided by the user,
 # and we've reached that many entries. Value of 0 means "Don't warn".
-WARN_AT_DATASET_SIZE = getenv_int("NEPTUNE_WARN_AT_DATASET_SIZE", 1_000_000, positive=False)
-if WARN_AT_DATASET_SIZE <= 0:
-    WARN_AT_DATASET_SIZE = math.inf
+WARN_AT_DATAFRAME_SIZE = getenv_int("NEPTUNE_WARN_AT_DATAFRAME_SIZE", 1_000_000, positive=False)
+if WARN_AT_DATAFRAME_SIZE <= 0:
+    WARN_AT_DATAFRAME_SIZE = math.inf
 
 
 class ReadOnlyProject:
@@ -517,8 +517,8 @@ class ReadOnlyProject:
                 acc[run_id][attr.path] = _extract_value(attr)
                 count += 1
 
-                if count > WARN_AT_DATASET_SIZE:
-                    _warn_large_dataset(WARN_AT_DATASET_SIZE)
+                if count > WARN_AT_DATAFRAME_SIZE:
+                    _warn_large_dataframe(WARN_AT_DATAFRAME_SIZE)
 
         df = _to_pandas_df(all_run_ids, acc, columns)
 
@@ -896,11 +896,11 @@ def _verify_string_collection(
         )
 
 
-def _warn_large_dataset(max_size):
+def _warn_large_dataframe(max_size):
     warn_once(
         f"You have requested a dataset that is over {max_size} entries large. "
         "This might result in long data fetching. Consider narrowing down your query or using the `limit` parameter. "
-        "You can use the NEPTUNE_WARN_AT_DATASET_SIZE environment variable to raise the warning threshold, "
+        "You can use the NEPTUNE_WARN_AT_DATAFRAME_SIZE environment variable to raise the warning threshold, "
         "or set it to 0 to disable this warning.",
         exception=NeptuneWarning,
     )
