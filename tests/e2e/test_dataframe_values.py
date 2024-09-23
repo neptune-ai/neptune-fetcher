@@ -16,7 +16,7 @@ def test__all_experiments_limit(project, all_experiment_ids, sys_columns, limit)
 
 
 def test__too_high_limit_raises_error(project):
-    with pytest.raises(ValueError, match="limit.*is greater than the maximum.*"):
+    with pytest.raises(ValueError, match="limit.*can't be higher than.*"):
         project.fetch_runs_df(limit=1000000)
 
 
