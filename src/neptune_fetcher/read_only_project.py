@@ -276,7 +276,7 @@ class ReadOnlyProject:
                 If False (default): return only non-trashed runs.
                 If None: return all runs.
             limit: The maximum number of rows (runs) to return. If `None`, all entries are returned, up to
-                   the hard limit of 50000.
+                   the hard limit of 5000.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
@@ -368,7 +368,7 @@ class ReadOnlyProject:
                 If False (default): return only non-trashed experiments.
                 If None: return all experiments.
             limit: The maximum number of rows (experiments) to return. If `None`, all entries are returned, up to
-                   the hard limit of 50000.
+                   the hard limit of 5000.
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
@@ -401,7 +401,7 @@ class ReadOnlyProject:
             ```
         """
         if names_regex is not None and not names_regex:
-            raise ValueError("The `names_regex` parameter cannot be an empty string.")
+            raise ValueError("The `names_regex` argument can't be an empty string.")
 
         if columns is None:
             columns = []
@@ -457,7 +457,7 @@ class ReadOnlyProject:
                 raise ValueError("The 'limit' argument must be greater than 0.")
             elif limit > MAX_RUNS_ALLOWED:
                 raise ValueError(
-                    f"The 'limit' argument is greater than the maximum allowed value of {MAX_RUNS_ALLOWED}."
+                    f"The 'limit' argument can't be higher than {MAX_RUNS_ALLOWED}."
                 )
         else:
             limit = math.inf
