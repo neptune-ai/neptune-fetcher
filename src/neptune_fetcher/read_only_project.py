@@ -456,9 +456,7 @@ class ReadOnlyProject:
             if limit <= 0:
                 raise ValueError("The 'limit' argument must be greater than 0.")
             elif limit > MAX_RUNS_ALLOWED:
-                raise ValueError(
-                    f"The 'limit' argument can't be higher than {MAX_RUNS_ALLOWED}."
-                )
+                raise ValueError(f"The 'limit' argument can't be higher than {MAX_RUNS_ALLOWED}.")
         else:
             limit = math.inf
 
