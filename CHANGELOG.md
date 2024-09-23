@@ -1,3 +1,16 @@
+## neptune-fetcher 0.8.0
+
+### Breaking changes
+
+- Deprecated the `match_columns_to_filters` in `fetch_*_df()`. The current behaviour
+  is as if it was set to `True`
+- The `progress_bar` in `fetch_*_df()` is temporarily ignored in this release
+
+### Changes
+
+- Removed the limit of columns that can be fetched in `fetch_*_df()`
+- Added a warning when fetching a large dataframe
+
 ## neptune-fetcher 0.7.1
 
 ### Fixes
