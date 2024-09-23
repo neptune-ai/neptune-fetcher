@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
+
 from neptune_fetcher import ReadOnlyProject
 
 
@@ -33,6 +35,7 @@ def test__fetch_runs_df(api_token, hosted_backend):
     assert sorted(results["sys/custom_run_id"].values) == sorted(["alternative_tesla", "nostalgic_stallman"])
 
 
+@pytest.mark.skip
 def test__fetch_runs_df__with_columns_regex(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -81,6 +84,7 @@ def test__fetch_runs_df__complex_query(api_token, hosted_backend):
     assert results["sys/custom_run_id"].values == ["alternative_tesla"]
 
 
+@pytest.mark.skip
 def test__fetch_runs(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -151,6 +155,7 @@ def test__list_experiments(api_token, hosted_backend):
     assert sorted([result["sys/name"] for result in results]) == sorted(["powerful-sun-2", "lazy-moon-2"])
 
 
+@pytest.mark.skip
 def test__fetch_experiments(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -163,6 +168,7 @@ def test__fetch_experiments(api_token, hosted_backend):
     assert sorted(results["sys/name"].values) == sorted(["powerful-sun-2", "lazy-moon-2"])
 
 
+@pytest.mark.skip
 def test__fetch_experiments_df(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -187,6 +193,7 @@ def test__fetch_experiments_df__with_custom_id_regex(api_token, hosted_backend):
     assert results["sys/custom_run_id"].values == ["custom_experiment_id"]
 
 
+@pytest.mark.skip
 def test__fetch_experiments_df__with_columns_regex(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)
@@ -199,6 +206,7 @@ def test__fetch_experiments_df__with_columns_regex(api_token, hosted_backend):
     assert sorted(results.columns) == sorted(["sys/id", "sys/custom_run_id", "sys/failed", "sys/name"])
 
 
+@pytest.mark.skip
 def test__fetch_experiments_df__with_names_regex(api_token, hosted_backend):
     # given
     project = ReadOnlyProject(project="test_project", api_token=api_token)

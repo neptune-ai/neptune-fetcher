@@ -190,8 +190,8 @@ __Parameters:__
 
 | Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                    |
 |----------------------------|-----------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The custom run identifier (`sys/custom_run_id`) is always included. If `None`, only the custom ID is included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000. |
-| `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000.                                     |
+| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The custom run identifier (`sys/custom_run_id`) is always included. If `None`, only the custom ID and the sorting column are included.
+| `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
 | `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the runs by name.                                                                                                                                                                                                                                                                                    |
 | `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID.                                                                                                                                                                                                                                                                               |
 | `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                             |
@@ -205,21 +205,19 @@ __Parameters:__
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                   |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                         |
 | `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                         |                                                                                                                  |
-| `match_columns_to_filters` | `bool`, optional                              | `False`             | If `True`, the columns regex will only match columns that are present in the runs that pass the run filters. The run filters must match up to 5000 entries. If `False`, the columns regex will match all columns in the project.                                                                                               |
+| `match_columns_to_filters` | `bool`, optional                              | `True`             | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project.                                                                                                                                           |
 
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
 > [!IMPORTANT]
-> When using a regular expression to filter columns, the total number of matched fields must not exceed 5000.
 > The following fields are always included:
 >
 > - `sys/custom_run_id`: the custom run identifier.
 > - The field to sort by. That is, the field name passed to the `sort_by` argument.
+>
+> The maximum number of runs that can be returned is 5000.
 
-Specifically, you can fetch a data frame with a maximum of:
-
-- 5000 columns, when using `columns` or `columns_regex` to filter columns.
 
 __Examples:__
 
@@ -271,8 +269,8 @@ __Parameters__:
 
 | Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                                                |
 |----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The custom run identifier (`sys/custom_run_id`) and experiment name (`sys/name`) are always included. If `None`, only the custom ID and name are included. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000. |
-| `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter. **Note:** When using one or both of the `columns` and `columns_regex` parameters, the total number of matched columns must not exceed 5000.                                                                                 |
+| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The sorting column, custom run identifier (`sys/custom_run_id`), and experiment name (`sys/name`) are always included. `None` results in returning only the default columns.
+| `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
 | `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name.                                                                                                                                                                                                                                                                                                                         |
 | `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID.                                                                                                                                                                                                                                                                                                                    |
 | `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                                         |
@@ -286,17 +284,18 @@ __Parameters__:
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                                               |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                                                     |
 | `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                                                     |                                                                                                                  |
-| `match_columns_to_filters` | `bool`, optional                              | `False`             | If `True`, the columns regex will only match columns that are present in the runs that pass the run filters. The run filters must match up to 5000 entries. If `False`, the columns regex will match all columns in the project.                                                                                                                                           |
+| `match_columns_to_filters` | `bool`, optional                              | `True`             | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project.                                                                                                                                           |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
 > [!IMPORTANT]
-> When using a regular expression to filter columns, the total number of matched fields must not exceed 5000.
-> Columns `sys/custom_run_id` and `sys/name` and what is passed as `sort_by` are always included.
-
-Specifically, you can fetch a data frame with a maximum of:
-
-- 5000 columns, when using `columns` or `columns_regex` to filter columns.
+> The following fields are always included:
+>
+> - `sys/custom_run_id`: the custom run identifier.
+> - `sys/name`: the experiment name.
+> - The field to sort by. That is, the field name passed to the `sort_by` argument.
+>
+> The maximum number of runs that can be returned is 5000.
 
 __Examples:__
 

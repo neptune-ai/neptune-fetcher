@@ -1,3 +1,15 @@
+## neptune-fetcher 0.8.0
+
+### Breaking changes
+
+- Deprecated the `match_columns_to_filters` in `fetch_*_df()`. The current behaviour is as if it was set to `True` ([#63](https://github.com/neptune-ai/neptune-fetcher/pull/63))
+- The `progress_bar` argument to `fetch_*_df()` is temporarily ignored in this release ([#63](https://github.com/neptune-ai/neptune-fetcher/pull/63))
+
+### Changes
+
+- Removed the limit of columns that can be fetched in `fetch_*_df()` ([#63](https://github.com/neptune-ai/neptune-fetcher/pull/63))
+- Added a warning when fetching a large dataframe ([#63](https://github.com/neptune-ai/neptune-fetcher/pull/63))
+
 ## neptune-fetcher 0.7.1
 
 ### Fixes
