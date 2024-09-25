@@ -18,6 +18,7 @@ __all__ = [
 ]
 
 import collections
+import concurrent.futures
 import math
 import os
 from enum import Enum
@@ -91,6 +92,7 @@ MAX_ELEMENTS_ALLOWED = 5000
 MAX_RUNS_ALLOWED = 5000
 FETCH_COLUMNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_COLUMNS_BATCH_SIZE", 10_000)
 FETCH_RUNS_BATCH_SIZE = getenv_int("NEPTUNE_FETCH_RUNS_BATCH_SIZE", 1000)
+MAX_WORKERS = getenv_int("NEPTUNE_FETCHER_MAX_WORKERS", 32)
 
 # Issue a warning about a large dataset when no limit is provided by the user,
 # and we've reached that many entries. Value of 0 means "Don't warn".
@@ -495,32 +497,61 @@ class ReadOnlyProject:
         # This is because the request for field values always sorts the result by (run_id, path).
         all_run_ids = []
 
-        count = 0
-        for run_ids in _batch_run_ids(runs_generator, batch_size=FETCH_RUNS_BATCH_SIZE):
-            all_run_ids.extend(run_ids)
+        # Workers fetching attributes in parallel
+        futures = []
 
-            if len(all_run_ids) > limit:
-                raise ValueError(
-                    f"The number of runs returned exceeds the limit of {limit}. "
-                    "Please narrow down your query or provide a smaller 'limit' "
-                    "as an argument"
+        value_count = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            for run_ids in _batch_run_ids(runs_generator, batch_size=FETCH_RUNS_BATCH_SIZE):
+                all_run_ids.extend(run_ids)
+
+                if len(all_run_ids) > limit:
+                    raise ValueError(
+                        f"The number of runs returned exceeds the limit of {limit}. "
+                        "Please narrow down your query or provide a smaller 'limit' "
+                        "as an argument"
+                    )
+
+                # Scatter
+                futures.append(
+                    executor.submit(self._fetch_columns_batch, run_ids, columns=columns, columns_regex=columns_regex)
                 )
 
-            for run_id, attr in self._stream_attributes(
-                run_ids,
-                columns=columns,
-                columns_regex=columns_regex,
-                batch_size=FETCH_COLUMNS_BATCH_SIZE,
-            ):
-                acc[run_id][attr.path] = _extract_value(attr)
-                count += 1
+            # Gather
+            for future in concurrent.futures.as_completed(futures):
+                count, values = future.result()
+                value_count += count
 
-                if count > WARN_AT_DATAFRAME_SIZE:
+                if value_count > WARN_AT_DATAFRAME_SIZE:
                     _warn_large_dataframe(WARN_AT_DATAFRAME_SIZE)
+
+                for run_id, attrs in values.items():
+                    acc[run_id].update(attrs)
 
         df = _to_pandas_df(all_run_ids, acc, columns)
 
         return df
+
+    def _fetch_columns_batch(
+        self, run_ids: List[str], columns: Optional[Iterable[str]] = None, columns_regex: Optional[str] = None
+    ) -> Tuple[int, Dict[str, Dict[str, Any]]]:
+        """
+        Called as a worker function concurrently.
+
+        Fetch a batch of columns for the given runs. Return a tuple of the number of
+        values fetched, and a dictionary mapping run_id -> (attr_path -> value).
+        """
+
+        acc = collections.defaultdict(dict)
+        count = 0
+
+        for run_id, attr in self._stream_attributes(
+            run_ids, columns=columns, columns_regex=columns_regex, batch_size=FETCH_COLUMNS_BATCH_SIZE
+        ):
+            acc[run_id][attr.path] = _extract_value(attr)
+            count += 1
+
+        return count, acc
 
     def _stream_attributes(
         self, run_ids, *, columns=None, columns_regex=None, limit: Optional[int] = None, batch_size=10_000
@@ -688,7 +719,7 @@ def _stream_runs(
         columns=["sys/id"],
         limit=limit,
         sort_by=sort_by,
-        step_size=1000,
+        step_size=FETCH_RUNS_BATCH_SIZE,
         ascending=ascending,
         progress_bar=False,
         use_proto=True,
