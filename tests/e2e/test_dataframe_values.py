@@ -109,15 +109,18 @@ def test__columns_must_match_runs(project, all_run_ids):
 
     assert len(df) == len(ids)
 
-    # Make sure non-null columns actually match the run IDs
+    # Make sure non-null columns actually match the run IDs. There should be a single non-null value in each column.
+    # The column name should contain the run ID, as this is how the data is laid out by populate_projects.py.
     for col in df.columns:
         if col.startswith("sys/"):
             continue
 
         assert df[col].notna().sum() == 1, f"Column {col} must have only one non-null value"
 
+        # Index of a row with a non-null value in the column
         row_with_value = df[col].notna().idxmax()
-        assert ids[row_with_value] in col, f"Column {col} must match the run ID {ids[row_with_value]}"
+        # Check if the column name contains the run ID.
+        assert col.endswith(ids[row_with_value]), f"Column {col} must match the run ID {ids[row_with_value]}"
 
 
 def test__default_columns(project):
