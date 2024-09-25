@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 
@@ -132,3 +134,70 @@ def test__default_columns(project):
     # Experiments always include sys/name next to the other default column
     df = project.fetch_experiments_df(columns_regex="^no-such-column")
     assert set(df.columns) == {"sys/custom_run_id", "sys/name", "sys/creation_time"}
+
+
+def _validate_sys_attr(row, index, column, value):
+    if column == "sys/name":
+        if isinstance(value, str):
+            assert index > 10, "Experiment name must be present only for experiments"
+            assert value == f"exp{index - 10}"  # Account for the first 10 rows being runs
+        else:
+            assert index <= 10, "Experiment name must be present only for experiments"
+    else:
+        assert row[column] is not None, f"Column {column} must not be null"
+
+    if value == "sys/custom_run_id":
+        if row["sys/name"]:
+            assert value == f"id-exp-{index}"
+        else:
+            assert value == f"id-run-{index}"
+
+
+# Regex patterns to extract the expected integer value given a column name
+INT_COLUMNS = (
+    re.compile(r"config/bar(\d+)$"),
+    re.compile(r"metrics/foo(\d+)$"),
+    re.compile(r"metrics/bar(\d+)$"),
+)
+
+
+def expected_int_value(column_name):
+    for regex in INT_COLUMNS:
+        if match := regex.match(column_name):
+            return int(match.group(1))
+
+    assert False, "No expected column was matched"
+
+
+def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
+    """
+    Test all columns for all runs and experiments. The data must be consistent
+    with the assumptions made in populate_projects.py.
+    This test is quite heavy because of the amount of data loaded.
+    """
+
+    # Additional assumptions:
+    #  - runs are created by the populate_projects.py script. Runs first, experiments after, hence the sort_by
+    #  - because of that we can assume that i >= 10 in the loop below means an experiment
+    df = project.fetch_runs_df(sort_by="sys/creation_time", columns_regex=".*", ascending=True)
+
+    # All runs should be present
+    assert len(df) == len(all_run_ids + all_experiment_ids)
+    # All columns that are not system columns: 20k * config/* + 20k * metrics/* + 4k unique metrics
+    assert len([col for col in df.columns if not col.startswith("sys/")]) == 44000
+
+    for i, (_, row) in enumerate(df.iterrows(), start=1):
+        for column in df.columns[1:]:
+            value = row[column]
+
+            if column.startswith("sys/"):
+                _validate_sys_attr(row, i, column, value)
+            elif "unique" in column:
+                if isinstance(value, str):
+                    # Column format: "config/fooX-unique-CUSTOM_RUN_ID", custom run id must match
+                    assert column.endswith(row["sys/custom_run_id"])
+            elif column.startswith("config/foo"):
+                assert value == f"valfoo{column.replace('config/foo', '')}"
+            else:
+                # Any other column must be an integer column
+                assert value == expected_int_value(column), f"Column {column} does not have the expected value"
