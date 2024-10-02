@@ -6,11 +6,12 @@ import pytest
 #
 
 
-def shortid(num):
+def make_shortids(project, indices):
     """
-    Generate an existing short ID for a run/experiment. The function assumes a specific project key.
+    Generate an existing short ID for a run/experiment, assuming they were created in
+    order and indices match keys (eg [1, 2] -> ["PROJECTKEY-1", "PROJECTKEY-2"])
     """
-    return f"MANY-{num}"
+    return [f"{project._project_key}-{i}" for i in indices]
 
 
 def test__runs_no_filter(project, all_run_ids, all_experiment_ids, sys_columns):
@@ -64,32 +65,40 @@ def test__experiments_by_custom_id_regex(project, sys_columns, regex, expect_ids
 
 
 @pytest.mark.parametrize(
-    "short_id, expect_ids, expect_names",
+    "short_run_id_index, expect_ids, expect_names",
     [
-        ([shortid(1)], ["id-run-1"], [pd.NA]),
-        ([shortid(2), shortid(3)], ["id-run-2", "id-run-3"], [pd.NA, pd.NA]),
-        ([shortid(15)], ["id-exp-5"], ["exp5"]),  # Experiments are also runs
+        ([1], ["id-run-1"], [pd.NA]),
+        ([2, 3], ["id-run-2", "id-run-3"], [pd.NA, pd.NA]),
+        ([15], ["id-exp-5"], ["exp5"]),  # Experiments are also runs
         ("nonexistent", [], []),
     ],
 )
-def test__runs_by_short_id(project, sys_columns, short_id, expect_ids, expect_names):
-    df = project.fetch_runs_df(with_ids=short_id, columns=sys_columns, sort_by="sys/custom_run_id", ascending=True)
+def test__runs_by_short_id(project, sys_columns, short_run_id_index, expect_ids, expect_names):
+    df = project.fetch_runs_df(
+        with_ids=make_shortids(project, short_run_id_index),
+        columns=sys_columns,
+        sort_by="sys/custom_run_id",
+        ascending=True,
+    )
     assert df["sys/custom_run_id"].tolist() == expect_ids
     assert df["sys/name"].tolist() == expect_names
 
 
 @pytest.mark.parametrize(
-    "short_id, expect_ids, expect_names",
+    "short_run_id_index, expect_ids, expect_names",
     [
-        ([shortid(15)], ["id-exp-5"], ["exp5"]),
-        ([shortid(11), shortid(12)], ["id-exp-1", "id-exp-2"], ["exp1", "exp2"]),
-        ([shortid(1)], [], []),  # This is a run, so it shouldn't be returned
+        ([15], ["id-exp-5"], ["exp5"]),
+        ([11, 12], ["id-exp-1", "id-exp-2"], ["exp1", "exp2"]),
+        ([1], [], []),  # This is a run, so it shouldn't be returned
         ("nonexistent", [], []),
     ],
 )
-def test__experiments_by_short_id(project, sys_columns, short_id, expect_ids, expect_names):
+def test__experiments_by_short_id(project, sys_columns, short_run_id_index, expect_ids, expect_names):
     df = project.fetch_experiments_df(
-        with_ids=short_id, columns=sys_columns, sort_by="sys/custom_run_id", ascending=True
+        with_ids=make_shortids(project, short_run_id_index),
+        columns=sys_columns,
+        sort_by="sys/custom_run_id",
+        ascending=True,
     )
     assert df["sys/custom_run_id"].tolist() == expect_ids
     assert df["sys/name"].tolist() == expect_names
