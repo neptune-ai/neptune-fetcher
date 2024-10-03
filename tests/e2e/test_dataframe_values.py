@@ -150,8 +150,8 @@ def _validate_sys_attr(row, index, column, value):
         assert row[column] is not None, f"Column {column} must not be null"
 
     if column == "sys/custom_run_id":
-        if row["sys/name"]:
-            assert value == f"id-exp-{index}"
+        if isinstance(row["sys/name"], str):
+            assert value == f"id-exp-{index - 10}"  # Account for the first 10 rows being runs
         else:
             assert value == f"id-run-{index}"
 
