@@ -1,3 +1,9 @@
+## neptune-fetcher 0.8.1
+
+### Changes
+
+- `fetch_*_df()` now fetches data concurrently ([#68](https://github.com/neptune-ai/neptune-fetcher/pull/68))
+
 ## neptune-fetcher 0.8.0
 
 ### Breaking changes
