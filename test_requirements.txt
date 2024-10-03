@@ -1,0 +1,6 @@
+mock
+pytest
+pytest-mock
+pytest-timeout
+pytest-xdist
+neptune-scale
