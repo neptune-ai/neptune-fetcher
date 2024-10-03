@@ -149,7 +149,7 @@ def _validate_sys_attr(row, index, column, value):
     else:
         assert row[column] is not None, f"Column {column} must not be null"
 
-    if value == "sys/custom_run_id":
+    if column == "sys/custom_run_id":
         if row["sys/name"]:
             assert value == f"id-exp-{index}"
         else:
