@@ -1,0 +1,23 @@
+name: Test Neptune packages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull Docker image
+        run: docker pull ghcr.io/${{ github.repository }}/neptune-tests:latest
+
+      - name: Run Tests in Docker
+        run: |
+          docker run --rm \
+            -e NEPTUNE_WORKSPACE="${{ secrets.E2E_WORKSPACE }}" \
+            -e NEPTUNE_API_TOKEN="${{ secrets.E2E_API_TOKEN }}" \
+            -e NEPTUNE_OPERATIONS_TIMEOUT_SECONDS=${{ vars.E2E_OPERATIONS_TIMEOUT_SECONDS }} \
+            -v $PWD/reports:/reports \
+            ghcr.io/${{ github.repository }}/neptune-tests:latest
