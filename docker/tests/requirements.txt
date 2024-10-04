@@ -1,0 +1,17 @@
+-e neptune-client
+
+# Install some common dev dependencies at build time, to cut on e2e execution time
+behave
+mock
+pytest
+pytest-mock
+pytest-timeout
+pytest-xdist
+freezegun
+icecream
+ruff
+isort
+mypy
+mypy-protobuf
+protoletariat
+pre-commit
