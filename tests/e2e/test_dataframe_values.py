@@ -3,14 +3,14 @@ import re
 import pytest
 
 
-@pytest.mark.parametrize("limit", [1, 2, 20, 100, 1000])
+@pytest.mark.parametrize("limit", [1, 2, 6, 12, 1000])
 def test__all_runs_limit(project, all_run_ids, all_experiment_ids, sys_columns, limit):
     df = project.fetch_runs_df(limit=limit, columns=sys_columns)
     expect = min(limit, len(all_run_ids + all_experiment_ids))
     assert len(df) == expect
 
 
-@pytest.mark.parametrize("limit", [1, 2, 10, 100, 1000])
+@pytest.mark.parametrize("limit", [1, 2, 6, 1000])
 def test__all_experiments_limit(project, all_experiment_ids, sys_columns, limit):
     df = project.fetch_experiments_df(limit=limit, columns=sys_columns)
     expect = min(limit, len(all_experiment_ids))
@@ -40,10 +40,10 @@ def test__nonexistent_column_is_returned_as_null(project, sys_columns):
     # The expected count doesn't include the default columns. It's adjusted in the test code.
     "regex, run_ids, expect_count",
     [
-        ("config/.*unique-id-run-2", None, 100),
-        ("config/.*unique-id-run-1.*", None, 200),
-        (".*unique-id-run-2", None, 200),  # 100 unique config/* and metrics/*
-        ("metrics/.*|config/.*", ["id-run-5"], 40200),  # All columns in a project
+        ("config/.*unique-id-run-2", None, 10),
+        ("config/.*unique-id-.*-1", None, 20),
+        (".*unique-id-run-2", None, 20),  # 10 unique config/* and metrics/*
+        ("metrics/.*|config/.*", ["id-run-5"], 60),  # All columns
         ("non_existent_column", None, 0),
     ],
 )
@@ -58,9 +58,9 @@ def test__columns_regex_and_list_together(project, sys_columns):
 
     # Both sys attributes and metrics should be returned
     df = project.fetch_runs_df(
-        columns_regex="metrics/foo999.+", columns=sys_columns, sort_by="sys/id", custom_ids=["id-run-3"]
+        columns_regex="metrics/foo.+", columns=sys_columns, sort_by="sys/id", custom_ids=["id-run-3"]
     )
-    assert set(df.columns) == set(sys_columns + [f"metrics/foo999{x}" for x in range(10)])
+    assert set(df.columns) == set(sys_columns + [f"metrics/foo{x}" for x in range(1, 11)])
 
     # Passing a strict column name should return only that column even if
     # we provide additional regex
@@ -76,15 +76,15 @@ def test__columns_not_present_in_all_runs_are_null(project, sys_columns):
 
     # The requested column is unique for id-run-10
     df = project.fetch_runs_df(
-        columns=["config/foo1-unique-id-run-10"],
-        custom_ids=["id-run-3", "id-run-10"],
+        columns=["config/foo1-unique-id-run-1"],
+        custom_ids=["id-run-3", "id-run-1"],
         sort_by="sys/custom_run_id",
         ascending=True,
     )
 
     assert len(df) == 2
     assert len(df.columns) == 2  # sys/custom_run_id is always included
-    assert df["config/foo1-unique-id-run-10"].isnull().sum() == 1  # Only id-run-10 has this column
+    assert df["config/foo1-unique-id-run-1"].isnull().sum() == 1  # Only id-run-10 has this column
 
 
 def test__columns_present_in_all_experiments(project, all_experiment_ids):
@@ -92,8 +92,8 @@ def test__columns_present_in_all_experiments(project, all_experiment_ids):
 
     df = project.fetch_experiments_df(columns_regex="metrics/foo.*", sort_by="sys/custom_run_id")
     assert len(df) == len(all_experiment_ids)
-    # 10000 metrics/foo* per experiment + the sorting column + sys/name for experiments
-    assert df.count().sum() == len(all_experiment_ids) * 10002
+    # 10 metrics/foo* per experiment + the sorting column + sys/name for experiments
+    assert df.count().sum() == len(all_experiment_ids) * 12
 
 
 def test__columns_must_match_runs(project, all_run_ids):
@@ -142,18 +142,18 @@ def test__default_columns(project):
 def _validate_sys_attr(row, index, column, value):
     if column == "sys/name":
         if isinstance(value, str):
-            assert index > 10, "Experiment name must be present only for experiments"
-            assert value == f"exp{index - 10}"  # Account for the first 10 rows being runs
+            assert index <= 6, "Experiment name must be present only for experiments"
+            assert value == f"exp{index}"
         else:
-            assert index <= 10, "Experiment name must be present only for experiments"
+            assert index >= 6, "Experiment name must be present only for experiments"
     else:
         assert row[column] is not None, f"Column {column} must not be null"
 
     if column == "sys/custom_run_id":
         if isinstance(row["sys/name"], str):
-            assert value == f"id-exp-{index - 10}"  # Account for the first 10 rows being runs
+            assert value == f"id-exp-{index}"
         else:
-            assert value == f"id-run-{index}"
+            assert value == f"id-run-{index - 6}"  # Account for the first 6 rows being experiments
 
 
 # Regex patterns to extract the expected integer value given a column name
@@ -180,14 +180,14 @@ def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
     """
 
     # Additional assumptions:
-    #  - runs are created by the populate_projects.py script. Runs first, experiments after, hence the sort_by
-    #  - because of that we can assume that i >= 10 in the loop below means an experiment
-    df = project.fetch_runs_df(sort_by="sys/creation_time", columns_regex=".*", ascending=True)
+    #  - we sort by custom_run_id, so the first 6 rows are experiments, then runs
+    #  - because of that we can assume that i >= 6 in the loop below means an experiment
+    df = project.fetch_runs_df(sort_by="sys/custom_run_id", columns_regex=".*", ascending=True)
 
     # All runs should be present
     assert len(df) == len(all_run_ids + all_experiment_ids)
-    # All columns that are not system columns: 20k * config/* + 20k * metrics/* + 4k unique metrics
-    assert len([col for col in df.columns if not col.startswith("sys/")]) == 44000
+    # All columns that are not system columns: 10 * config/* + 10 * metrics/* + 20 unique metrics * 12 runs
+    assert len([col for col in df.columns if not col.startswith("sys/")]) == 280
 
     for i, (_, row) in enumerate(df.iterrows(), start=1):
         for column in df.columns[1:]:
