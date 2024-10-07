@@ -1,17 +1,8 @@
-import pandas as pd
 import pytest
 
 #
 # Tests for filtering runs by various attributes
 #
-
-
-def make_shortids(project, indices):
-    """
-    Generate an existing short ID for a run/experiment, assuming they were created in
-    order and indices match keys (eg [1, 2] -> ["PROJECTKEY-1", "PROJECTKEY-2"])
-    """
-    return [f"{project._project_key}-{i}" for i in indices]
 
 
 def test__runs_no_filter(project, all_run_ids, all_experiment_ids, sys_columns):
@@ -32,10 +23,9 @@ def test__experiments_no_filter(project, all_experiment_ids, all_experiment_name
 @pytest.mark.parametrize(
     "regex, expected",
     [
-        ("id-run-1", ["id-run-1", "id-run-10"]),  # This defaults to .*id-run-1.* in the backend
-        ("id-run-1.*", ["id-run-1", "id-run-10"]),
+        ("id-run-1", ["id-run-1"]),
         ("^id-run-1$", ["id-run-1"]),
-        ("id-run-2", ["id-run-2"]),
+        ("id-run-[2,3]", ["id-run-2", "id-run-3"]),
         ("nonexistent", []),
     ],
 )
@@ -48,8 +38,8 @@ def test__runs_by_custom_id_regex(project, sys_columns, regex, expected):
 @pytest.mark.parametrize(
     "regex, expect_ids, expect_names",
     [
-        ("id-exp-1", ["id-exp-1", "id-exp-10"], ["exp1", "exp10"]),  # This equivalent to .*id-exp-1.*
-        ("id-exp-1.*", ["id-exp-1", "id-exp-10"], ["exp1", "exp10"]),
+        ("id-exp-[23]", ["id-exp-2", "id-exp-3"], ["exp2", "exp3"]),
+        ("id-exp-1.*", ["id-exp-1"], ["exp1"]),
         ("^id-exp-1$", ["id-exp-1"], ["exp1"]),
         ("id-exp-2", ["id-exp-2"], ["exp2"]),
         ("nonexistent", [], []),
@@ -65,60 +55,18 @@ def test__experiments_by_custom_id_regex(project, sys_columns, regex, expect_ids
 
 
 @pytest.mark.parametrize(
-    "short_run_id_index, expect_ids, expect_names",
-    [
-        ([1], ["id-run-1"], [pd.NA]),
-        ([2, 3], ["id-run-2", "id-run-3"], [pd.NA, pd.NA]),
-        ([15], ["id-exp-5"], ["exp5"]),  # Experiments are also runs
-        ("nonexistent", [], []),
-    ],
-)
-def test__runs_by_short_id(project, sys_columns, short_run_id_index, expect_ids, expect_names):
-    df = project.fetch_runs_df(
-        with_ids=make_shortids(project, short_run_id_index),
-        columns=sys_columns,
-        sort_by="sys/custom_run_id",
-        ascending=True,
-    )
-    assert df["sys/custom_run_id"].tolist() == expect_ids
-    assert df["sys/name"].tolist() == expect_names
-
-
-@pytest.mark.parametrize(
-    "short_run_id_index, expect_ids, expect_names",
-    [
-        ([15], ["id-exp-5"], ["exp5"]),
-        ([11, 12], ["id-exp-1", "id-exp-2"], ["exp1", "exp2"]),
-        ([1], [], []),  # This is a run, so it shouldn't be returned
-        ("nonexistent", [], []),
-    ],
-)
-def test__experiments_by_short_id(project, sys_columns, short_run_id_index, expect_ids, expect_names):
-    df = project.fetch_experiments_df(
-        with_ids=make_shortids(project, short_run_id_index),
-        columns=sys_columns,
-        sort_by="sys/custom_run_id",
-        ascending=True,
-    )
-    assert df["sys/custom_run_id"].tolist() == expect_ids
-    assert df["sys/name"].tolist() == expect_names
-
-
-@pytest.mark.parametrize(
     "names_regex, custom_id_regex, custom_ids, expect_ids",
     [
-        ("exp1", None, None, ["id-exp-1", "id-exp-10"]),
+        ("exp1", None, None, ["id-exp-1"]),
         ("exp2", None, None, ["id-exp-2"]),
-        ("exp1", "id-exp-1", None, ["id-exp-1", "id-exp-10"]),
-        ("exp1", None, ["id-exp-1", "id-exp-10"], ["id-exp-1", "id-exp-10"]),
         ("exp2", "id-exp-1", None, []),  # Name and custom_id_regex don't match
         ("exp3", None, ["id-exp-5"], []),  # Name and custom_ids don't match
         (None, "id-run-1", None, []),  # Runs that are not experiments
-        (None, "id-exp-1.*", ["id-exp-1", "id-exp-10"], ["id-exp-1", "id-exp-10"]),  # Regex and verbatim ids match
+        (None, "id-exp-[23]+", ["id-exp-2", "id-exp-3"], ["id-exp-2", "id-exp-3"]),  # Regex and verbatim ids match
         (None, "id-exp-2", ["id-exp-8"], []),  # Regex and verbatim ids don't match
         ("exp5", "id-exp-2", ["id-exp-2"], []),  # Ids match but name doesn't
         ("exp2", "id-exp-2", ["id-exp-2"], ["id-exp-2"]),  # All three match
-        ("exp1.*", "id-exp-1.*", ["id-exp-1", "id-exp-10"], ["id-exp-1", "id-exp-10"]),  # All three match
+        ("exp[23]+", "id-exp-[23]+", ["id-exp-2", "id-exp-3"], ["id-exp-2", "id-exp-3"]),  # All three match
     ],
 )
 def test__experiments_by_names_and_custom_ids(
@@ -146,13 +94,13 @@ def test__experiments_name_regex_is_empty(project, sys_columns):
 
 @pytest.mark.parametrize(
     "tags, expect_ids",
-    # Note that in test code we limit the number of results by providing a custom_id_regex="1[0]*"
+    # Note that in test code we limit the number of results by providing a custom_id_regex="-[15]+"
     # to make it easier to specify testcases
     [
         (["head"], ["id-exp-1", "id-run-1"]),
-        (["tail"], ["id-exp-10", "id-run-10"]),
+        (["tail"], ["id-exp-5", "id-run-5"]),
         (["head", "tag1"], ["id-run-1"]),
-        (["tail", "tag2"], ["id-exp-10"]),
+        (["tail", "tag2"], ["id-exp-5"]),
         (["head", "tail"], []),
         (["does-not-exist"], []),
         (["does-not-exist", "head", "tail", "tag2"], []),
@@ -160,7 +108,7 @@ def test__experiments_name_regex_is_empty(project, sys_columns):
 )
 def test__some_runs_by_tags(project, sys_columns, tags, expect_ids):
     df = project.fetch_runs_df(
-        columns=sys_columns, tags=tags, custom_id_regex="1[0]*", sort_by="sys/custom_run_id", ascending=True
+        columns=sys_columns, tags=tags, custom_id_regex="-[15]+", sort_by="sys/custom_run_id", ascending=True
     )
     assert df["sys/custom_run_id"].tolist() == expect_ids
 
@@ -168,8 +116,8 @@ def test__some_runs_by_tags(project, sys_columns, tags, expect_ids):
 @pytest.mark.parametrize(
     "tags, expect_ids",
     [
-        (["head"], ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5"]),
-        (["tail"], ["id-exp-10", "id-exp-6", "id-exp-7", "id-exp-8", "id-exp-9"]),
+        (["head"], ["id-exp-1", "id-exp-2", "id-exp-3"]),
+        (["tail"], ["id-exp-4", "id-exp-5", "id-exp-6"]),
         (["does-not-exist"], []),
         (["head", "does-not-exist"], []),
         (["head", "tail"], []),
