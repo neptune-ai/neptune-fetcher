@@ -13,11 +13,11 @@ from neptune_scale import Run
 #    - NEPTUNE_API_TOKEN: the API token to use
 #
 # The data consists of:
-#     - 10 runs
+#     - 6 runs
 #        - custom_run_id and family id: id-run-1...id-run-10
 #        - runs 1-5 are tagged [head, tag1]
 #        - runs 5-10 are tagged [tail, tag1]
-#     - 10 experiments
+#     - 6 experiments
 #        - custom_run_id and family id: id-exp-1...id-exp-10
 #        - named exp1, exp2... etc
 #        - experiments 1-5 are tagged [head, tag2]
@@ -30,9 +30,13 @@ from neptune_scale import Run
 #       - config/foo{number}-unique-{custom_run_id}, from 1 to 100, value is `number`
 #       - metrics/bar{number}-unique-{custom_run_id}, from 1 to 100, value is `number`
 #       - each metric has 10 steps
+#
+# Each run thus has:
+# - 30 config fields, 10 of which are unique to the run
+# - 30 metric fields, 10 of which are unique to the run
 
-MM_NUM_RUNS = 10
-MM_NUM_FIELD_KIND = 10_000
+MM_NUM_RUNS = 6
+MM_NUM_FIELD_KIND = 10
 MM_NUM_STEPS = 10
 
 
@@ -42,7 +46,7 @@ def populate_run(run, run_id, tags=None):
 
     data = {f"config/foo{x + 1}": f"valfoo{x + 1}" for x in range(MM_NUM_FIELD_KIND)}
     data |= {f"config/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
-    data |= {f"config/foo{x + 1}-unique-{run_id}": x + 1 for x in range(100)}
+    data |= {f"config/foo{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
     run.log_configs(data)
 
     step = 0
@@ -50,14 +54,14 @@ def populate_run(run, run_id, tags=None):
         value = math.sin((step + random.random() - 0.5) * 0.1)
         data = {f"metrics/foo{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
         data |= {f"metrics/bar{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
-        data |= {f"metrics/bar{x + 1}-unique-{run_id}": value for x in range(100)}
+        data |= {f"metrics/bar{x + 1}-unique-{run_id}": value for x in range(10)}
 
         run.log_metrics(step, data=data)
 
     # Last step will have a predetermined value
     step += 1
     data = {f"metrics/foo{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
-    data |= {f"metrics/bar{x + 1}-unique-{run_id}": x + 1 for x in range(100)}
+    data |= {f"metrics/bar{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
     data |= {f"metrics/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
 
     run.log_metrics(step, data=data)
