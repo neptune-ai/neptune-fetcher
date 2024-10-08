@@ -20,17 +20,17 @@ def project():
 
 @fixture
 def all_run_ids():
-    return sorted([f"id-run-{i + 1}" for i in range(10)])
+    return sorted([f"id-run-{i + 1}" for i in range(6)])
 
 
 @fixture
 def all_experiment_ids():
-    return sorted([f"id-exp-{i + 1}" for i in range(10)])
+    return sorted([f"id-exp-{i + 1}" for i in range(6)])
 
 
 @fixture
 def all_experiment_names():
-    return sorted([f"exp{i + 1}" for i in range(10)])
+    return sorted([f"exp{i + 1}" for i in range(6)])
 
 
 @fixture
@@ -46,7 +46,7 @@ def sys_columns():
 @fixture
 def id_to_name():
     """Expected sys/custom_run_id -> sys/name"""
-    d = {f"id-run-{num}": "" for num in range(1, 11)}
-    d |= {f"id-exp-{num}": f"exp{num}" for num in range(1, 11)}
+    d = {f"id-run-{num}": "" for num in range(1, 7)}
+    d |= {f"id-exp-{num}": f"exp{num}" for num in range(1, 7)}
 
     return d
