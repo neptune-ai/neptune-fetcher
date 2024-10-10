@@ -1,0 +1,14 @@
+name: E2E Tests
+
+on:
+  push:
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run E2E Tests
+        run: |
+          echo "Hello World!"
+    environment: e2e-env
