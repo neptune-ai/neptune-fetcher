@@ -5,7 +5,7 @@ on:
 
 jobs:
   e2e-tests:
-    runs-on: [self-hosted, arc-runner-set]
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
       - name: Run E2E Tests
