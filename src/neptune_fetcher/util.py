@@ -41,6 +41,7 @@ def getenv_int(name: str, default: int, *, positive=True) -> int:
 
     return value
 
+
 def fetch_series_values(
     getter: Callable[..., Any], path: str, step_size: int = 10000, progress_bar: Optional[ProgressBarType] = None
 ) -> Iterator[PointValue]:

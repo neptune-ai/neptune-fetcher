@@ -62,7 +62,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         use_threads: bool,
         progress_bar: "ProgressBarType" = None,
         include_inherited: bool = True,
-        step_range=(None, None)
+        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         self.cache_miss(paths)
 
@@ -70,15 +70,17 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             progress_bar.update(by=0, total=len(paths))
             if use_threads:
                 fetch_values_concurrently(
-                    partial(self._fetch_single_series_values, include_inherited=include_inherited,
-                            step_range=step_range),
+                    partial(
+                        self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range
+                    ),
                     paths=paths,
                     progress_bar=progress_bar,
                 )
             else:
                 fetch_values_sequentially(
-                    partial(self._fetch_single_series_values, include_inherited=include_inherited,
-                            step_range=step_range),
+                    partial(
+                        self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range
+                    ),
                     paths=paths,
                     progress_bar=progress_bar,
                 )
@@ -88,7 +90,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         path: str,
         progress_bar: ProgressBarCallback,
         include_inherited: bool,
-        step_range=(None, None),
+        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         if not isinstance(self[path], Series):
             return None

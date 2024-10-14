@@ -160,9 +160,10 @@ class ReadOnlyRun:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             include_inherited: If `False`, values from the parent runs will not be included.
-            step_range: tuple(left, right) where:
-                - left: left boundary of the range (exclusive). If None, it's open on the left.
-                - right: (currently not supported) right boundary of the range (inclusive). If None, it's open on the right.
+            step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
+                - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.
+                - `right`: (currently not supported) The right boundary of the range (inclusive).
+                            If `None`, the range is open on the right.
         To control the number of workers in the thread pool, set the
         NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
 

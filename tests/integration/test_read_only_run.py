@@ -500,6 +500,7 @@ def test__fetch_values__float_series__prefetch__different_inheritance(api_token,
     assert df["value"].to_list() == [1.0, 2.0, 3.0]
     assert df["step"].to_list() == [1, 2, 3]
 
+
 def test__fetch_values__float_series__prefetch__with_step_range(api_token, hosted_backend):
     # given
     hosted_backend.get_float_series_values.side_effect = [
@@ -517,7 +518,7 @@ def test__fetch_values__float_series__prefetch__with_step_range(api_token, hoste
     run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
 
     # when
-    run.prefetch_series_values(["metrics/floatSeries"], step_range=(2., None))
+    run.prefetch_series_values(["metrics/floatSeries"], step_range=(2.0, None))
 
     # then
     hosted_backend.get_float_series_values.assert_has_calls(
@@ -527,7 +528,7 @@ def test__fetch_values__float_series__prefetch__with_step_range(api_token, hoste
                 container_type=ContainerType.RUN,
                 path=["metrics", "floatSeries"],
                 include_inherited=True,
-                from_step=2.,
+                from_step=2.0,
                 limit=10000,
             )
         ]
@@ -535,7 +536,7 @@ def test__fetch_values__float_series__prefetch__with_step_range(api_token, hoste
 
     # when
     hosted_backend.get_float_series_values.reset_mock()
-    df = run["metrics/floatSeries"].fetch_values(step_range=(2., None))
+    df = run["metrics/floatSeries"].fetch_values(step_range=(2.0, None))
 
     # then
     assert not hosted_backend.get_float_series_values.called

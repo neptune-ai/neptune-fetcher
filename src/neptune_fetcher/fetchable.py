@@ -155,7 +155,8 @@ class FetchableSeries(Fetchable):
             include_inherited: Whether the fetched data should include values from the parent runs.
             step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
                 - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.
-                - `right`: (currently not supported) The right boundary of the range (inclusive). If `None`, the range is open on the right.
+                - `right`: (currently not supported) The right boundary of the range (inclusive).
+                            If `None`, the range is open on the right.
             progress_bar: Set to `False `to disable the download progress bar,
                 or pass a type of ProgressBarCallback to use your own progress bar.
                 If set to `None` or `True`, the default tqdm-based progress bar will be used.

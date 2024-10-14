@@ -39,7 +39,8 @@ from typing import (
     Optional,
     Set,
     TypeVar,
-    Union, )
+    Union,
+)
 
 from neptune.api.fetching_series_values import PointValue
 from neptune.api.models import (
@@ -91,7 +92,7 @@ class Series(ABC, Generic[T]):
         include_timestamp: bool = True,
         include_inherited: bool = True,
         progress_bar: "ProgressBarType" = None,
-        step_range=(None, None),
+        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> "DataFrame":
         import pandas as pd
 
