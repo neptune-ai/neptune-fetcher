@@ -153,9 +153,9 @@ class FetchableSeries(Fetchable):
         Args:
             include_timestamp: Whether the fetched data should include the timestamp field.
             include_inherited: Whether the fetched data should include values from the parent runs.
-            step_range: tuple(left, right) where:
-                - left: left boundary of the range (exclusive). If None, it's open on the left.
-                - right: (currently not supported) right boundary of the range (inclusive). If None, it's open on the right.
+            step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
+                - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.
+                - `right`: (currently not supported) The right boundary of the range (inclusive). If `None`, the range is open on the right.
             progress_bar: Set to `False `to disable the download progress bar,
                 or pass a type of ProgressBarCallback to use your own progress bar.
                 If set to `None` or `True`, the default tqdm-based progress bar will be used.
