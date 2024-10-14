@@ -149,6 +149,7 @@ class ReadOnlyRun:
         use_threads: bool = False,
         progress_bar: "ProgressBarType" = None,
         include_inherited: bool = True,
+        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         """
         Prefetches values of a list of series and stores them in the local cache.
@@ -159,7 +160,9 @@ class ReadOnlyRun:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             include_inherited: If `False`, values from the parent runs will not be included.
-
+            step_range: tuple(left, right) where:
+                - left: left boundary of the range (exclusive). If None, it's open on the left.
+                - right: (currently not supported) right boundary of the range (inclusive). If None, it's open on the right.
         To control the number of workers in the thread pool, set the
         NEPTUNE_FETCHER_MAX_WORKERS environment variable. The default value is 10.
 
@@ -177,4 +180,5 @@ class ReadOnlyRun:
             use_threads=use_threads,
             progress_bar=progress_bar,
             include_inherited=include_inherited,
+            step_range=step_range,
         )

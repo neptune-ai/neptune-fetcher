@@ -10,7 +10,6 @@ from typing import (
     Union,
 )
 
-from neptune.api.fetching_series_values import fetch_series_values
 from neptune.internal.backends.neptune_backend import NeptuneBackend
 from neptune.internal.backends.utils import construct_progress_bar
 from neptune.internal.container_type import ContainerType
@@ -26,6 +25,7 @@ from neptune_fetcher.fields import (
     Field,
     Series,
 )
+from neptune_fetcher.util import fetch_series_values
 
 
 class FieldsCache(Dict[str, Union[Field, Series]]):
@@ -62,6 +62,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         use_threads: bool,
         progress_bar: "ProgressBarType" = None,
         include_inherited: bool = True,
+        step_range=(None, None)
     ) -> None:
         self.cache_miss(paths)
 
@@ -69,13 +70,15 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             progress_bar.update(by=0, total=len(paths))
             if use_threads:
                 fetch_values_concurrently(
-                    partial(self._fetch_single_series_values, include_inherited=include_inherited),
+                    partial(self._fetch_single_series_values, include_inherited=include_inherited,
+                            step_range=step_range),
                     paths=paths,
                     progress_bar=progress_bar,
                 )
             else:
                 fetch_values_sequentially(
-                    partial(self._fetch_single_series_values, include_inherited=include_inherited),
+                    partial(self._fetch_single_series_values, include_inherited=include_inherited,
+                            step_range=step_range),
                     paths=paths,
                     progress_bar=progress_bar,
                 )
@@ -85,6 +88,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         path: str,
         progress_bar: ProgressBarCallback,
         include_inherited: bool,
+        step_range=(None, None),
     ) -> None:
         if not isinstance(self[path], Series):
             return None
@@ -96,11 +100,13 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 container_type=ContainerType.RUN,
                 path=parse_path(path),
                 include_inherited=include_inherited,
+                from_step=step_range[0],
             ),
             path=path,
             progress_bar=False,
         )
         self[path].include_inherited = include_inherited
+        self[path].step_range = step_range
         self[path].prefetched_data = list(data)
 
         progress_bar.update(by=1)
