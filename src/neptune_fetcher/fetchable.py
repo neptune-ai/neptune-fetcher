@@ -31,6 +31,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Tuple,
     Union,
 )
 
@@ -144,7 +145,7 @@ class FetchableSeries(Fetchable):
         *,
         include_timestamp: bool = True,
         include_inherited: bool = True,
-        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
         progress_bar: "ProgressBarType" = None,
     ) -> "DataFrame":
         """

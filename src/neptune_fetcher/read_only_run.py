@@ -23,6 +23,7 @@ from typing import (
     Generator,
     List,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -149,7 +150,7 @@ class ReadOnlyRun:
         use_threads: bool = False,
         progress_bar: "ProgressBarType" = None,
         include_inherited: bool = True,
-        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         """
         Prefetches values of a list of series and stores them in the local cache.

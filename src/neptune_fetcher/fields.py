@@ -38,6 +38,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -92,7 +93,7 @@ class Series(ABC, Generic[T]):
         include_timestamp: bool = True,
         include_inherited: bool = True,
         progress_bar: "ProgressBarType" = None,
-        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> "DataFrame":
         import pandas as pd
 

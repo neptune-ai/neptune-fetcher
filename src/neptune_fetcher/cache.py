@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Tuple,
     Union,
 )
 
@@ -62,7 +63,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         use_threads: bool,
         progress_bar: "ProgressBarType" = None,
         include_inherited: bool = True,
-        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         self.cache_miss(paths)
 
@@ -90,7 +91,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         path: str,
         progress_bar: ProgressBarCallback,
         include_inherited: bool,
-        step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
         if not isinstance(self[path], Series):
             return None
