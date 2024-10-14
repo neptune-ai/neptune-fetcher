@@ -39,7 +39,7 @@ def getenv_int(name: str, default: int, *, positive=True) -> int:
     return value
 
 
-def fetch_series_values(getter: Callable[..., Any], step_size: int = 10) -> Iterator[PointValue]:
+def fetch_series_values(getter: Callable[..., Any], step_size: int = 10_000) -> Iterator[PointValue]:
     batch = getter(limit=step_size)
     yield from batch.values
 
