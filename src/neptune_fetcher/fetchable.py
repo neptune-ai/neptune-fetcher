@@ -31,6 +31,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Tuple,
     Union,
 )
 
@@ -77,9 +78,7 @@ if TYPE_CHECKING:
 
     from neptune_fetcher.cache import FieldsCache
 
-
 logger = get_logger()
-
 
 SUPPORTED_ATOMS = {
     FieldType.INT,
@@ -146,6 +145,7 @@ class FetchableSeries(Fetchable):
         *,
         include_timestamp: bool = True,
         include_inherited: bool = True,
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
         progress_bar: "ProgressBarType" = None,
     ) -> "DataFrame":
         """
@@ -154,6 +154,10 @@ class FetchableSeries(Fetchable):
         Args:
             include_timestamp: Whether the fetched data should include the timestamp field.
             include_inherited: Whether the fetched data should include values from the parent runs.
+            step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
+                - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.
+                - `right`: (currently not supported) The right boundary of the range (inclusive).
+                            If `None`, the range is open on the right.
             progress_bar: Set to `False `to disable the download progress bar,
                 or pass a type of ProgressBarCallback to use your own progress bar.
                 If set to `None` or `True`, the default tqdm-based progress bar will be used.
@@ -166,6 +170,7 @@ class FetchableSeries(Fetchable):
             include_timestamp=include_timestamp,
             include_inherited=include_inherited,
             progress_bar=progress_bar,
+            step_range=step_range,
         )
 
 

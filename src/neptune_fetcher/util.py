@@ -15,6 +15,13 @@
 #
 
 import os
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+)
+
+from neptune.api.fetching_series_values import PointValue
 
 
 def getenv_int(name: str, default: int, *, positive=True) -> int:
@@ -30,3 +37,19 @@ def getenv_int(name: str, default: int, *, positive=True) -> int:
         raise ValueError(f"Environment variable {name} must be a positive integer, got '{value}'")
 
     return value
+
+
+def fetch_series_values(getter: Callable[..., Any], step_size: int = 10_000) -> Iterator[PointValue]:
+    batch = getter(limit=step_size)
+    yield from batch.values
+
+    current_batch_size = len(batch.values)
+    last_step_value = batch.values[-1].step if batch.values else None
+
+    while current_batch_size == step_size:
+        batch = getter(from_step=last_step_value, limit=step_size)
+
+        yield from batch.values
+
+        current_batch_size = len(batch.values)
+        last_step_value = batch.values[-1].step if batch.values else None

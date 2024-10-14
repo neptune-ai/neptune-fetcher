@@ -3,9 +3,11 @@
 > [!NOTE]
 > This package is experimental and only works with Neptune Scale, which is in beta.
 >
-> You can't use this package with `neptune<2.0` or the currently available Neptune app version. For the corresponding Python API, see [neptune-client](https://github.com/neptune-ai/neptune-client).
+> You can't use this package with `neptune<2.0` or the currently available Neptune app version. For the corresponding
+> Python API, see [neptune-client](https://github.com/neptune-ai/neptune-client).
 
-Neptune Fetcher is designed to separate data retrieval capabilities from the regular `neptune` package. This separation makes data fetching more efficient and improves performance.
+Neptune Fetcher is designed to separate data retrieval capabilities from the regular `neptune` package. This separation
+makes data fetching more efficient and improves performance.
 
 ## Installation
 
@@ -100,11 +102,11 @@ project = ReadOnlyProject("workspace/project", api_token="...")
 
 __Parameters:__
 
-| Name        | Type             | Default | Description                                                               |
-|-------------|------------------|---------|---------------------------------------------------------------------------|
-| `project`   | `str`, optional  | `None`  | Name of a project in the form `workspace-name/project-name`. If `None`, the value of the `NEPTUNE_PROJECT` environment variable is used. |
+| Name        | Type             | Default | Description                                                                                                                                                                                                                                       |
+|-------------|------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `project`   | `str`, optional  | `None`  | Name of a project in the form `workspace-name/project-name`. If `None`, the value of the `NEPTUNE_PROJECT` environment variable is used.                                                                                                          |
 | `api_token` | `str`, optional  | `None`  | Your Neptune API token (or a service account's API token). If `None`, the value of the `NEPTUNE_API_TOKEN` environment variable is used. To keep your token secure, avoid placing it in source code. Instead, save it as an environment variable. |
-| `proxies`   | `dict`, optional | `None`  | Dictionary of proxy settings, if needed. This argument is passed to HTTP calls made via the Requests library. For details on proxies, see the [Requests documentation](https://requests.readthedocs.io/). |
+| `proxies`   | `dict`, optional | `None`  | Dictionary of proxy settings, if needed. This argument is passed to HTTP calls made via the Requests library. For details on proxies, see the [Requests documentation](https://requests.readthedocs.io/).                                         |
 
 ---
 
@@ -127,7 +129,6 @@ for run in project.list_runs():
 
 ---
 
-
 #### `list_experiments()`
 
 Lists all experiments of a project.
@@ -149,13 +150,12 @@ __Returns:__ `Iterator` of dictionaries with Neptune experiment identifiers, cus
 
 ---
 
-
 #### `fetch_runs()`
 
 Fetches a table containing Neptune IDs, custom run IDs and names of runs in the project.
 
 __Returns:__ `pandas.DataFrame` `pandas.DataFrame` with three columns (`sys/id`, `sys/name` and `sys/custom_run_id`)
-    and one row for each run.
+and one row for each run.
 
 __Example:__
 
@@ -166,12 +166,12 @@ df = project.fetch_runs()
 
 ---
 
-
 #### `fetch_experiments()`
 
 Fetches a table containing Neptune IDs, custom IDs and names of experiments in the project.
 
 __Example__:
+
 ```python
 df = project.fetch_experiments()
 ```
@@ -181,32 +181,30 @@ __Returns__:
 
 ---
 
-
 #### `fetch_runs_df()`
 
 Fetches the runs' metadata and returns them as a pandas DataFrame.
 
 __Parameters:__
 
-| Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                    |
-|----------------------------|-----------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                        |
+|----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The custom run identifier (`sys/custom_run_id`) is always included. If `None`, only the custom ID and the sorting column are included.
 | `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
-| `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the runs by name.                                                                                                                                                                                                                                                                                    |
-| `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID.                                                                                                                                                                                                                                                                               |
-| `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                             |
-| `custom_ids`               | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                        |
-| `states`                   | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                                             |
-| `owners`                   | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                    |
-| `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                                                                  |
-| `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones.                                                                                                                 |
-| `limit`                    | `int`, optional                               | `None`              | Maximum number of runs to fetch. If `None`, all runs are fetched.                                                                                                                                                                                                                                                              |
-| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                     |
-| `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                   |
-| `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                         |
-| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                         |                                                                                                                  |
-| `match_columns_to_filters` | `bool`, optional                              | `True`             | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project.                                                                                                                                           |
-
+| `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the runs by name.                                                                                                                                                                                                                                                                                                        |
+| `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID.                                                                                                                                                                                                                                                                                                   |
+| `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                 |
+| `custom_ids`               | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                            |
+| `states`                   | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                 |
+| `owners`                   | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the run. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                        |
+| `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                                                                                      |
+| `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones.                                                                                                                                     |
+| `limit`                    | `int`, optional                               | `None`              | Maximum number of runs to fetch. If `None`, all runs are fetched.                                                                                                                                                                                                                                                                                  |
+| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
+| `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
+| `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
+| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                             |                                                                                                                  |
+| `match_columns_to_filters` | `bool`, optional                              | `True`              | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project. |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
@@ -247,6 +245,7 @@ specific_runs_df = my_project.fetch_runs_df(custom_ids=["nostalgic_shockley", "h
 ```
 
 Fetch runs by names that match a regex pattern:
+
 ```python
 specific_runs_df = my_project.fetch_runs_df(
     names_regex="tree_3[2-4]+"
@@ -254,12 +253,12 @@ specific_runs_df = my_project.fetch_runs_df(
 ```
 
 Fetch runs with a complex query:
+
 ```python
 runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
 ```
 
 ---
-
 
 #### `fetch_experiments_df()`
 
@@ -267,24 +266,24 @@ Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
 __Parameters__:
 
-| Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                                                |
-|----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                        |
+|----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The sorting column, custom run identifier (`sys/custom_run_id`), and experiment name (`sys/name`) are always included. `None` results in returning only the default columns.
 | `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
-| `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name.                                                                                                                                                                                                                                                                                                                         |
-| `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID.                                                                                                                                                                                                                                                                                                                    |
-| `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                                         |
-| `custom_ids`               | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                    |
-| `states`                   | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                  |
-| `owners`                   | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the experiement. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                        |
-| `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                                                                                                       |
-| `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                                                                                                                 |
-| `limit`                    | `int`, optional                               | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                                                                                                            |
-| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                                                 |
-| `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                                               |
-| `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                                                     |
-| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                                                     |                                                                                                                  |
-| `match_columns_to_filters` | `bool`, optional                              | `True`             | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project.                                                                                                                                           |
+| `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name.                                                                                                                                                                                                                                                                                                 |
+| `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the experiments by custom ID.                                                                                                                                                                                                                                                                                            |
+| `with_ids`                 | `List[str]`, optional                         | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                                                 |
+| `custom_ids`               | `List[str]`, optional                         | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                            |
+| `states`                   | `List[str]`, optional                         | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                          |
+| `owners`                   | `List[str]`, optional                         | `None`              | List of multiple owners. Example:  `["frederic", "josh"]`. The owner is the user who created the experiement. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                |
+| `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                                                                               |
+| `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                                                                                         |
+| `limit`                    | `int`, optional                               | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                                                                                    |
+| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
+| `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
+| `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
+| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                                             |                                                                                                                  |
+| `match_columns_to_filters` | `bool`, optional                              | `True`              | DEPRECATED: The argument is assumed to be `True` and will be removed in a future release.<br/><br/>If `True`, the columns regex only matches against fields that are present in the runs that pass the run filters. The run filters must match no more than 5000 entries. If `False`, the columns regex matches against all fields in the project. |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
@@ -325,6 +324,7 @@ specific_experiments_df = my_project.fetch_experiments_df(
 ```
 
 Fetch experiments with a complex query:
+
 ```python
 experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
 ```
@@ -361,9 +361,9 @@ Lists experiments of the project in the form of ReadOnlyRun.
 
 __Parameters:__
 
-| Name         | Type                  | Default | Description                        |
-|--------------|-----------------------|---------|------------------------------------|
-| `names`      | `Optional[List[str]]` | `None`  | List of experiment names to fetch. |
+| Name    | Type                  | Default | Description                        |
+|---------|-----------------------|---------|------------------------------------|
+| `names` | `Optional[List[str]]` | `None`  | List of experiment names to fetch. |
 
 __Returns:__ Iterator of ReadOnlyRun objects.
 
@@ -405,7 +405,7 @@ __Parameters:__
 
 | Name                | Type              | Default | Description                                                                                                                      |
 |---------------------|-------------------|---------|----------------------------------------------------------------------------------------------------------------------------------|
-| `read_only_project` | `ReadOnlyProject` | -       | Project from which the run is fetched.                                                                                   |
+| `read_only_project` | `ReadOnlyProject` | -       | Project from which the run is fetched.                                                                                           |
 | `with_id`           | `Optional[str]`   | `None`  | ID of the Neptune run to fetch. Example: `RUN-1`. Exclusive with the `custom_id` and `experiment_name` parameters.               |
 | `custom_id`         | `Optional[str]`   | `None`  | Custom ID of the Neptune run to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `experiment_name` parameters. |
 | `experiment_name`   | `Optional[str]`   | `None`  | Name of the Neptune experiment to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `custom_id` parameters.     |
@@ -495,16 +495,18 @@ Improves the performance of access to consecutive field values. Works only for s
 To speed up the fetching process, this method can use multithreading.
 To enable it, set the `use_threads` parameter to `True`.
 
-By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS` environment variable.
+By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS`
+environment variable.
 
 __Parameters__:
 
-| Name                | Type                  | Default | Description                                                         |
-|---------------------|-----------------------|---------|---------------------------------------------------------------------|
-| `paths`             | `List[str]`, required | `None`  | List of paths to prefetch to the internal cache.                    |
-| `use_threads`       | `bool`, optional      | `False` | Whether to use threads to fetch the data.                           |
-| `progress_bar`      | `ProgressBarType`     | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
-| `include_inherited` | `bool`, optional      | `True`  | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False. |
+| Name                | Type                  | Default      | Description                                                                                                                                                                                                                                                                                                                |
+|---------------------|-----------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `paths`             | `List[str]`, required | `None`       | List of paths to prefetch to the internal cache.                                                                                                                                                                                                                                                                           |
+| `use_threads`       | `bool`, optional      | `False`      | Whether to use threads to fetch the data.                                                                                                                                                                                                                                                                                  |
+| `progress_bar`      | `ProgressBarType`     | `None`       | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used.                                                                                                                                  |
+| `include_inherited` | `bool`, optional      | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                                                                                                                                                                              |
+| `step_range`        | `tuple[float, float]` | (None, None) | Limits the range of steps to fetch. This must be a 2-tuple: <br> - `left`: The left boundary of the range (exclusive). If `None`, the range extends indefinitely on the left.<br>- `right`: (currently not supported) The right boundary of the range (inclusive). If `None`, the range extends indefinitely on the right. |
 
 __Example__:
 
@@ -514,7 +516,6 @@ run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
 print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_values())
 ```
-
 
 ## Available types
 
@@ -580,15 +581,17 @@ loss = run["loss"].fetch_last()
 
 #### `fetch_values()`
 
-Retrieves all series values either from the internal cache (see [`prefetch_series_values()`](#prefetch_series_values)) or from the API.
+Retrieves all series values either from the internal cache (see [`prefetch_series_values()`](#prefetch_series_values))
+or from the API.
 
 __Parameters:__
 
-| Name                | Type   | Default | Description                                                         |
-|---------------------|--------|---------|---------------------------------------------------------------------|
-| `include_timestamp` | `bool` | `True`  | Whether the fetched data should include the timestamp field.        |
-| `include_inherited` | `bool` | `True`  | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False. |
-| `progress_bar`      | `ProgressBarType` | `None`  | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
+| Name                | Type                  | Default      | Description                                                                                                                                                                                         |
+|---------------------|-----------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `include_timestamp` | `bool`                | `True`       | Whether the fetched data should include the timestamp field.                                                                                                                                        |
+| `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                                                       |
+| `progress_bar`      | `ProgressBarType`     | `None`       | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used.           |
+| `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (exclusive). If None, it\'s open on the left. <br> - right: (currently not supported) right boundary of the range (inclusive). If None, it\'s open on the right. |
 
 __Returns:__ `pandas.DataFrame`
 
@@ -624,7 +627,8 @@ __Returns:__ `str`
 
 > [!NOTE]
 > The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
-> To learn more about this field, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune docs.
+> To learn more about this field, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune
+> docs.
 
 __Example:__
 
@@ -662,4 +666,5 @@ groups = run["sys/group_tags"].fetch()
 
 ## License
 
-This project is licensed under the Apache License Version 2.0. For more details, see [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+This project is licensed under the Apache License Version 2.0. For more details,
+see [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

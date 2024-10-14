@@ -38,14 +38,12 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
 
-from neptune.api.fetching_series_values import (
-    PointValue,
-    fetch_series_values,
-)
+from neptune.api.fetching_series_values import PointValue
 from neptune.api.models import (
     FieldType,
     FloatPointValue,
@@ -55,6 +53,8 @@ from neptune.api.models import (
 from neptune.internal.container_type import ContainerType
 from neptune.internal.utils.paths import parse_path
 from neptune.typing import ProgressBarType
+
+from neptune_fetcher.util import fetch_series_values
 
 if TYPE_CHECKING:
     from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
@@ -82,6 +82,7 @@ class Series(ABC, Generic[T]):
     include_inherited: bool = True
     last: Optional[T] = None
     prefetched_data: Optional[List[PointValue]] = None
+    step_range = (None, None)
 
     def fetch_values(
         self,
@@ -92,10 +93,11 @@ class Series(ABC, Generic[T]):
         include_timestamp: bool = True,
         include_inherited: bool = True,
         progress_bar: "ProgressBarType" = None,
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> "DataFrame":
         import pandas as pd
 
-        if self.prefetched_data is None or self.include_inherited != include_inherited:
+        if self.prefetched_data is None or self.include_inherited != include_inherited or self.step_range != step_range:
             data = fetch_series_values(
                 getter=partial(
                     self._fetch_values_from_backend,
@@ -104,9 +106,8 @@ class Series(ABC, Generic[T]):
                     container_type=container_type,
                     path=parse_path(path),
                     include_inherited=include_inherited,
-                ),
-                path=path,
-                progress_bar=progress_bar,
+                    from_step=step_range[0],
+                )
             )
         else:
             data = self.prefetched_data
