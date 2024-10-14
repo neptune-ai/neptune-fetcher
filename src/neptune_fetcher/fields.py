@@ -107,9 +107,7 @@ class Series(ABC, Generic[T]):
                     path=parse_path(path),
                     include_inherited=include_inherited,
                     from_step=step_range[0],
-                ),
-                path=path,
-                progress_bar=progress_bar,
+                )
             )
         else:
             data = self.prefetched_data

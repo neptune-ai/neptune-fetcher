@@ -104,9 +104,7 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
                 path=parse_path(path),
                 include_inherited=include_inherited,
                 from_step=step_range[0],
-            ),
-            path=path,
-            progress_bar=False,
+            )
         )
         self[path].include_inherited = include_inherited
         self[path].step_range = step_range
