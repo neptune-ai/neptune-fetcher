@@ -1,13 +1,11 @@
-## neptune-fetcher 0.8.1
+## neptune-fetcher 0.8.2
 
 ### Changes
-
 - Add step filter in `FetchableSeries.fetch_values()` and `ReadOnlyRun.prefetch_series_values()`  ([#78](https://github.com/neptune-ai/neptune-fetcher/pull/78)
 
 ## neptune-fetcher 0.8.1
 
 ### Changes
-
 - `fetch_*_df()` now fetches data concurrently ([#68](https://github.com/neptune-ai/neptune-fetcher/pull/68))
 
 ## neptune-fetcher 0.8.0
