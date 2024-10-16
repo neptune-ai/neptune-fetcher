@@ -26,7 +26,13 @@ from neptune_fetcher.fields import (
     Field,
     Series,
 )
-from neptune_fetcher.util import fetch_series_values
+from neptune_fetcher.util import (
+    fetch_series_values,
+    getenv_int,
+)
+
+# Maximum number of paths to fetch in a single request for fields definitions.
+MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
 
 
 class FieldsCache(Dict[str, Union[Field, Series]]):
@@ -45,14 +51,19 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
 
         missed_paths = list(set(missed_paths))
 
-        data = self._backend.get_fields_with_paths_filter(
-            container_id=self._container_id,
-            container_type=ContainerType.RUN,
-            paths=missed_paths,
-            use_proto=True,
-        )
-        fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
-        self.update(fetched)
+        # Split paths into chunks to avoid hitting the server limit in a single request
+        for start in range(0, len(missed_paths), MAX_PATHS_PER_REQUEST):
+            end = start + MAX_PATHS_PER_REQUEST
+            chunk = missed_paths[start:end]
+
+            data = self._backend.get_fields_with_paths_filter(
+                container_id=self._container_id,
+                container_type=ContainerType.RUN,
+                paths=chunk,
+                use_proto=True,
+            )
+            fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
+            self.update(fetched)
 
     def prefetch(self, paths: List[str]) -> None:
         self.cache_miss(paths)
