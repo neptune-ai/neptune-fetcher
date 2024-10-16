@@ -27,6 +27,7 @@ from typing import (
     Union,
 )
 
+from neptune.api.models import FieldDefinition
 from neptune.exceptions import MetadataContainerNotFound
 from neptune.internal.container_type import ContainerType
 from neptune.internal.id_formats import QualifiedName
@@ -123,7 +124,19 @@ class ReadOnlyRun:
         }
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
-        return self._structure[item]
+        try:
+            return self._structure[item]
+        except KeyError:
+            # If the item is not found, it could have been logged after the Run object is created.
+            # We need to fetch it from the backend (this is what self._cache[item] actually does),
+            # and fill in the missing structure entry. Note that self._caehe[item] will also
+            # raise KeyError if the field does not indeed exist backend-side.
+            field = self._cache[item]
+            self._structure[item] = which_fetchable(
+                FieldDefinition(path=item, type=field.type), self.project._backend, self._container_id, self._cache
+            )
+
+            return self._structure[item]
 
     def __delitem__(self, key: str) -> None:
         del self._cache[key]
