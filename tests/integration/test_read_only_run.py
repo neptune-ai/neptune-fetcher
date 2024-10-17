@@ -15,10 +15,12 @@
 #
 import datetime
 
+import pytest
 from mock import call
 from neptune.api.models import (
     FloatPointValue,
     FloatSeriesValues,
+    IntField,
 )
 from neptune.internal.container_type import ContainerType
 
@@ -542,3 +544,61 @@ def test__fetch_values__float_series__prefetch__with_step_range(api_token, hoste
     assert not hosted_backend.get_float_series_values.called
     assert df["value"].to_list() == [2.0, 3.0]
     assert df["step"].to_list() == [2, 3]
+
+
+def test__getitem_on_missing_and_existing_field(api_token, hosted_backend):
+    """Fetching a field that is not present when the Run is created,
+    but does not exist in the backend, should fetch it from the backend"""
+
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # and
+    hosted_backend.get_fields_with_paths_filter.side_effect = [
+        [
+            IntField(path="metrics/new_metric", value=11),
+        ]
+    ]
+
+    # when
+    value = run["metrics/new_metric"].fetch()
+
+    # then
+    hosted_backend.get_fields_with_paths_filter.assert_has_calls(
+        [
+            call(
+                container_id="test_workspace/test_project/RUN-1",
+                container_type=ContainerType.RUN,
+                paths=["metrics/new_metric"],
+                use_proto=True,
+            )
+        ]
+    )
+
+    assert value == 11
+
+
+def test__getitem_on_missing_nonexistent_field(api_token, hosted_backend):
+    """Fetching a field that is not present when the Run is created,
+    but does not exist in the backend, should raise KeyError"""
+
+    # given
+    project = ReadOnlyProject(project="test_project", api_token=api_token)
+    run = ReadOnlyRun(read_only_project=project, with_id="RUN-1")
+
+    # when
+    with pytest.raises(KeyError):
+        run["metrics/does-not-exist"].fetch()
+
+    # then
+    hosted_backend.get_fields_with_paths_filter.assert_has_calls(
+        [
+            call(
+                container_id="test_workspace/test_project/RUN-1",
+                container_type=ContainerType.RUN,
+                paths=["metrics/does-not-exist"],
+                use_proto=True,
+            )
+        ]
+    )
