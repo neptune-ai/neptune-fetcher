@@ -24,10 +24,9 @@ The tests that rely on this data are:
 * `NEPTUNE_API_TOKEN` - API token to use
 
 Test that populate data during execution could interfere with those that rely on a
-specific data shape. To avoid this, set `NEPTUNE_E2E_PROJECT` to a different project.
+specific data shape. To avoid this, set `NEPTUNE_E2E_PROJECT` to a different project
+that already exists.
 
 If the env variable `NEPTUNE_E2E_CUSTOM_RUN_ID` is set, it should be `sys/custom_run_id`
-of an existing Run.
-
-This Run will be used for all tests in `test_read_only_run.py`. Otherwise, a new
-Run will be created and used for the tests.
+of an existing Run. This avoids creating a new Run for tests that log data, if this
+is for some reason required.
