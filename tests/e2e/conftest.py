@@ -22,12 +22,18 @@ from neptune_fetcher import (
 # around names and values of the metadata.
 
 
-@fixture(scope="session")
-def project():
-    # Assume project name and API token are set in the environment.
-    # As ReadOnlyProject is basically stateless, we can reuse the same
-    # instance across all tests.
-    return ReadOnlyProject()
+@fixture(scope="module")
+def project(request):
+    # Assume the project name and API token are set in the environment using the standard
+    # NEPTUNE_PROJECT and NEPTUNE_API_TOKEN variables.
+    #
+    # Since ReadOnlyProject is essentially stateless, we can reuse the same
+    # instance across all tests in a module.
+    #
+    # We also allow overriding the project name per module by setting the
+    # module-level `NEPTUNE_PROJECT` variable.
+    project_name = getattr(request.module, "NEPTUNE_PROJECT", None)
+    return ReadOnlyProject(project=project_name)
 
 
 @fixture
@@ -99,15 +105,15 @@ def sync_run(run):
     return SyncRun(run)
 
 
-@fixture(scope="session")
-def run():
+@fixture(scope="module")
+def run(project):
     """Plain neptune_scale.Run instance. We're scoping it to "session", as it seems to be a
     good compromise, mostly because of execution time."""
 
     # TODO: if a test fails the run could be left in an indefinite state
     #       Maybe we should just have it scoped 'function' and require passing
     #       an existing run id
-    kwargs = {}
+    kwargs = {"project": project.project_identifier}
     run_id = os.getenv("NEPTUNE_E2E_CUSTOM_RUN_ID")
     if run_id is None:
         run_id = str(uuid.uuid4())
