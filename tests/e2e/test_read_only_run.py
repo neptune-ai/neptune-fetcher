@@ -1,3 +1,4 @@
+import os
 import random
 import time
 import uuid
@@ -5,6 +6,8 @@ from datetime import (
     datetime,
     timezone,
 )
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 def unique_path(prefix):
