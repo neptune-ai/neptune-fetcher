@@ -360,7 +360,7 @@ class ReadOnlyProject:
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
-            names_regex_neg: A regex pattern to filter out experiments by name. Any experiment matching this regex
+            names_regex_neg: A regex pattern to exclude experiments by name. Any experiment matching this regex
                 will not be returned in the result.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
             with_ids: A list of experiment IDs to filter the results.
