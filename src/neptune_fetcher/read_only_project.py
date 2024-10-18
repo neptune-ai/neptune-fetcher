@@ -332,8 +332,8 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
-        names_regex: Optional[str] = None,
-        names_regex_neg: Optional[str] = None,
+        names_regex: Optional[Union[str, Iterable[str]]] = None,
+        names_regex_neg: Optional[Union[str, Iterable[str]]] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -405,11 +405,9 @@ class ReadOnlyProject:
             experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
             ```
         """
-        if names_regex is not None and not names_regex:
-            raise ValueError("The `names_regex` argument can't be an empty string.")
 
-        if names_regex_neg is not None and not names_regex_neg:
-            raise ValueError("The `names_regex_neg` argument can't be an empty string.")
+        _verify_name_regex("names_regex", names_regex)
+        _verify_name_regex("names_regex_neg", names_regex_neg)
 
         if columns is None:
             columns = []
@@ -440,8 +438,8 @@ class ReadOnlyProject:
         self,
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
-        names_regex: Optional[str] = None,
-        names_regex_neg: Optional[str] = None,
+        names_regex: Optional[Union[str, Iterable[str]]] = None,
+        names_regex_neg: Optional[Union[str, Iterable[str]]] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -666,8 +664,8 @@ def _make_runs_filter_nql(
     query: Optional[str],
     trashed: bool,
     object_type: Literal["run", "experiment"],
-    names_regex: Optional[str],
-    names_regex_neg: Optional[str],
+    names_regex: Optional[Union[str, Iterable[str]]],
+    names_regex_neg: Optional[Union[str, Iterable[str]]],
     custom_id_regex: Optional[str],
     with_ids: Optional[Iterable[str]],
     custom_ids: Optional[Iterable[str]],
@@ -766,8 +764,8 @@ def _make_leaderboard_nql(
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
     names_regex: Optional[str] = None,
-    names_regex_neg: Optional[str] = None,
-    custom_id_regex: Optional[str] = None,
+    names_regex_neg: Optional[Union[str, Iterable[str]]] = None,
+    custom_id_regex: Optional[Union[str, Iterable[str]]] = None,
     is_run: bool = True,
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
@@ -792,33 +790,41 @@ def _make_leaderboard_nql(
             aggregator=NQLAggregator.AND,
         )
 
+    if isinstance(names_regex, str):
+        names_regex = [names_regex]
+
     if names_regex is not None:
-        query = NQLQueryAggregate(
-            items=[
-                query,
-                NQLQueryAttribute(
-                    name="sys/name",
-                    type=NQLAttributeType.STRING,
-                    operator=NQLAttributeOperator.MATCHES,
-                    value=names_regex,
-                ),
-            ],
-            aggregator=NQLAggregator.AND,
-        )
+        for regex in names_regex:
+            query = NQLQueryAggregate(
+                items=[
+                    query,
+                    NQLQueryAttribute(
+                        name="sys/name",
+                        type=NQLAttributeType.STRING,
+                        operator=NQLAttributeOperator.MATCHES,
+                        value=regex,
+                    ),
+                ],
+                aggregator=NQLAggregator.AND,
+            )
+
+    if isinstance(names_regex_neg, str):
+        names_regex_neg = [names_regex_neg]
 
     if names_regex_neg is not None:
-        query = NQLQueryAggregate(
-            items=[
-                query,
-                NQLQueryAttribute(
-                    name="sys/name",
-                    type=NQLAttributeType.STRING,
-                    operator=NQLAttributeOperator.NOT_MATCHES,
-                    value=names_regex_neg,
-                ),
-            ],
-            aggregator=NQLAggregator.AND,
-        )
+        for regex in names_regex_neg:
+            query = NQLQueryAggregate(
+                items=[
+                    query,
+                    NQLQueryAttribute(
+                        name="sys/name",
+                        type=NQLAttributeType.STRING,
+                        operator=NQLAttributeOperator.NOT_MATCHES,
+                        value=regex,
+                    ),
+                ],
+                aggregator=NQLAggregator.AND,
+            )
 
     if custom_id_regex is not None:
         query = NQLQueryAggregate(
@@ -927,6 +933,21 @@ def list_objects_from_project(
         }
         for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
     ]
+
+
+def _verify_name_regex(collection_name: str, name_or_list: Optional[Union[str, Iterable[str]]]) -> None:
+    if name_or_list is None:
+        return
+
+    if isinstance(name_or_list, str):
+        if not name_or_list:
+            raise ValueError(f"The {collection_name} regex provided is an empty string, which is not allowed")
+    else:
+        if not name_or_list:
+            raise ValueError(f"The {collection_name} regex list provided cannot be empty")
+
+        if not all(name_or_list):
+            raise ValueError(f"The {collection_name} regex list provided contains empty strings, which are not allowed")
 
 
 def _verify_string_collection(
