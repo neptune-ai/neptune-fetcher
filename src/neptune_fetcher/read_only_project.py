@@ -333,6 +333,7 @@ class ReadOnlyProject:
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
+        names_regex_neg: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -359,6 +360,8 @@ class ReadOnlyProject:
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
             names_regex: A regex pattern to filter the experiments by name.
+            names_regex_neg: A regex pattern to filter out experiments by name. Any experiment matching this regex
+                will not be returned in the result.
             custom_id_regex: A regex pattern to filter the experiments by custom ID.
             with_ids: A list of experiment IDs to filter the results.
             custom_ids: A list of custom experiment IDs to filter the results.
@@ -405,6 +408,9 @@ class ReadOnlyProject:
         if names_regex is not None and not names_regex:
             raise ValueError("The `names_regex` argument can't be an empty string.")
 
+        if names_regex_neg is not None and not names_regex_neg:
+            raise ValueError("The `names_regex_neg` argument can't be an empty string.")
+
         if columns is None:
             columns = []
 
@@ -414,6 +420,7 @@ class ReadOnlyProject:
             columns=columns,
             columns_regex=columns_regex,
             names_regex=names_regex,
+            names_regex_neg=names_regex_neg,
             custom_id_regex=custom_id_regex,
             with_ids=with_ids,
             custom_ids=custom_ids,
@@ -434,6 +441,7 @@ class ReadOnlyProject:
         columns: Optional[Iterable[str]] = None,
         columns_regex: Optional[str] = None,
         names_regex: Optional[str] = None,
+        names_regex_neg: Optional[str] = None,
         custom_id_regex: Optional[str] = None,
         with_ids: Optional[Iterable[str]] = None,
         custom_ids: Optional[Iterable[str]] = None,
@@ -470,6 +478,7 @@ class ReadOnlyProject:
             trashed=trashed,
             object_type=object_type,
             names_regex=names_regex,
+            names_regex_neg=names_regex_neg,
             custom_id_regex=custom_id_regex,
             with_ids=with_ids,
             custom_ids=custom_ids,
@@ -658,6 +667,7 @@ def _make_runs_filter_nql(
     trashed: bool,
     object_type: Literal["run", "experiment"],
     names_regex: Optional[str],
+    names_regex_neg: Optional[str],
     custom_id_regex: Optional[str],
     with_ids: Optional[Iterable[str]],
     custom_ids: Optional[Iterable[str]],
@@ -692,6 +702,7 @@ def _make_runs_filter_nql(
         trashed=trashed,
         custom_id_regex=custom_id_regex,
         names_regex=names_regex,
+        names_regex_neg=names_regex_neg,
         is_run=object_type == "run",
     )
 
@@ -755,6 +766,7 @@ def _make_leaderboard_nql(
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
     names_regex: Optional[str] = None,
+    names_regex_neg: Optional[str] = None,
     custom_id_regex: Optional[str] = None,
     is_run: bool = True,
 ) -> NQLQuery:
@@ -789,6 +801,20 @@ def _make_leaderboard_nql(
                     type=NQLAttributeType.STRING,
                     operator=NQLAttributeOperator.MATCHES,
                     value=names_regex,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
+        )
+
+    if names_regex_neg is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAttribute(
+                    name="sys/name",
+                    type=NQLAttributeType.STRING,
+                    operator=NQLAttributeOperator.NOT_MATCHES,
+                    value=names_regex_neg,
                 ),
             ],
             aggregator=NQLAggregator.AND,
