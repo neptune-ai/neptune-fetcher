@@ -92,6 +92,11 @@ def test__experiments_name_regex_is_empty(project, sys_columns):
         project.fetch_experiments_df(columns=sys_columns, names_regex="")
 
 
+def test__experiments_name_regex_neg_is_empty(project, sys_columns):
+    with pytest.raises(ValueError, match="names_exclude_regex.*empty string"):
+        project.fetch_experiments_df(columns=sys_columns, names_exclude_regex="")
+
+
 @pytest.mark.parametrize(
     "tags, expect_ids",
     # Note that in test code we limit the number of results by providing a custom_id_regex="-[15]+"
@@ -149,3 +154,29 @@ def test__custom_nql_query(project, all_run_ids, all_experiment_ids):
 
     df = project.fetch_experiments_df(columns_regex="config/foo.*", query=query)
     assert len(df) == len(all_experiment_ids), "Not all experiments returned"
+
+
+@pytest.mark.parametrize(
+    "regex, regex_neg, expect_ids",
+    [
+        ("exp.*", None, ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        ("exp.*", "exp[23]", ["id-exp-1", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (None, "exp[23]", ["id-exp-1", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        ("exp[234]", "exp[4]", ["id-exp-2", "id-exp-3"]),
+        (None, "exp", []),
+        (["exp", "1"], None, ["id-exp-1"]),
+        (["e", "x", "p"], None, ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (["exp1", "exp2"], None, []),
+        (None, ["exp1", "exp2"], ["id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (None, ["foo", "exp"], []),
+    ],
+)
+def test__experiments_by_name_regex_and_regex_neg(project, sys_columns, regex, regex_neg, expect_ids):
+    df = project.fetch_experiments_df(
+        columns=sys_columns,
+        names_regex=regex,
+        names_exclude_regex=regex_neg,
+        sort_by="sys/custom_run_id",
+        ascending=True,
+    )
+    assert df["sys/custom_run_id"].tolist() == expect_ids

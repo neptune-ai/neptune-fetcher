@@ -1,3 +1,8 @@
+## [UNRELEASED] neptune-fetcher 0.8.3
+
+### Changes
+- Add names_exclude_regex parameter to `fetch_experiments_df()` ([#84](https://github.com/neptune-ai/neptune-fetcher/pull/84)
+
 ## neptune-fetcher 0.8.2
 
 ### Changes
