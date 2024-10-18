@@ -107,7 +107,7 @@ def sync_run(run):
 
 @fixture(scope="module")
 def run(project):
-    """Plain neptune_scale.Run instance. We're scoping it to "session", as it seems to be a
+    """Plain neptune_scale.Run instance. We're scoping it to "module", as it seems to be a
     good compromise, mostly because of execution time."""
 
     # TODO: if a test fails the run could be left in an indefinite state
