@@ -93,8 +93,8 @@ def test__experiments_name_regex_is_empty(project, sys_columns):
 
 
 def test__experiments_name_regex_neg_is_empty(project, sys_columns):
-    with pytest.raises(ValueError, match="names_regex_neg.*empty string"):
-        project.fetch_experiments_df(columns=sys_columns, names_regex_neg="")
+    with pytest.raises(ValueError, match="names_exclude_regex.*empty string"):
+        project.fetch_experiments_df(columns=sys_columns, names_exclude_regex="")
 
 
 @pytest.mark.parametrize(
@@ -173,6 +173,10 @@ def test__custom_nql_query(project, all_run_ids, all_experiment_ids):
 )
 def test__experiments_by_name_regex_and_regex_neg(project, sys_columns, regex, regex_neg, expect_ids):
     df = project.fetch_experiments_df(
-        columns=sys_columns, names_regex=regex, names_regex_neg=regex_neg, sort_by="sys/custom_run_id", ascending=True
+        columns=sys_columns,
+        names_regex=regex,
+        names_exclude_regex=regex_neg,
+        sort_by="sys/custom_run_id",
+        ascending=True,
     )
     assert df["sys/custom_run_id"].tolist() == expect_ids
