@@ -164,6 +164,11 @@ def test__custom_nql_query(project, all_run_ids, all_experiment_ids):
         (None, "exp[23]", ["id-exp-1", "id-exp-4", "id-exp-5", "id-exp-6"]),
         ("exp[234]", "exp[4]", ["id-exp-2", "id-exp-3"]),
         (None, "exp", []),
+        (["exp", "1"], None, ["id-exp-1"]),
+        (["e", "x", "p"], None, ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (["exp1", "exp2"], None, []),
+        (None, ["exp1", "exp2"], ["id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (None, ["foo", "exp"], []),
     ],
 )
 def test__experiments_by_name_regex_and_regex_neg(project, sys_columns, regex, regex_neg, expect_ids):
