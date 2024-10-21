@@ -1,13 +1,17 @@
 ## [RELEASE-CANDIDATE] neptune-fetcher-0.7.0b0
 
-- Custom NQL queries passed to fetch_runs_df() and fetch_experiments_df() are now combined
+### Breaking changes
+
+- Custom NQL queries passed to `fetch_runs_df()` and `fetch_experiments_df()` are now combined
   with other filtering parameters using the AND logical operator, instead of ignoring them.
   logical operator with other criteria [#88](https://github.com/neptune-ai/neptune-fetcher/pull/88)
+- Removed the deprecated `match_columns_to_filters` parameter to `fetch_runs_df()` and
+  `fetch_experiments_df()`
 
 ## [UNRELEASED] neptune-fetcher 0.8.3
 
 ### Changes
-- Add names_exclude_regex parameter to `fetch_experiments_df()` ([#84](https://github.com/neptune-ai/neptune-fetcher/pull/84)
+- Add `names_exclude_regex` parameter to `fetch_experiments_df()` ([#84](https://github.com/neptune-ai/neptune-fetcher/pull/84)
 - Clarify documentation ([#85](https://github.com/neptune-ai/neptune-fetcher/pull/85)
 
 ## neptune-fetcher 0.8.2
