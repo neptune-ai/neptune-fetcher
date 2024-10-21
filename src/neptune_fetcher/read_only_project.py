@@ -285,7 +285,8 @@ class ReadOnlyProject:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
-                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+                The query is applied on top of other criteria like, `custom_ids`, `tags` etc,
+                using the logical AND operator.
             match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
                 original description:
                   Whether to subset the columns filtered by `columns_regex`, to only look
@@ -306,8 +307,9 @@ class ReadOnlyProject:
             specific_run_ids = ["RUN-123", "RUN-456"]
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
 
-            # Fetch runs with a complex query
+            # Fetch runs with a complex query coupled with other filters
             runs_df = my_project.fetch_runs_df(
+                with_ids=specific_run_ids,
                 query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
             )
             ```
@@ -383,7 +385,8 @@ class ReadOnlyProject:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
-                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+                The query is applied on top of other criteria like, `names_regex`, `tags` etc,
+                using the logical AND operator.
             match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
                 original description:
                   Whether to subset the columns filtered by `columns_regex`, to only look
@@ -404,8 +407,9 @@ class ReadOnlyProject:
             specific_experiment_ids = ["RUN-123", "RUN-456"]
             specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
 
-            # Fetch experiments with a complex query
+            # Fetch experiments with a complex query coupled with other filters
             experiments_df = my_project.fetch_experiments_df(
+                names_regex="tests-.*"
                 query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
             )
             ```
