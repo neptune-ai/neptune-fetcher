@@ -47,7 +47,7 @@ To fetch experiments in bulk, call a fetching method on the project:
 experiments_df = my_project.fetch_experiments_df(
     names_regex="tree/.*",
     columns=["sys/custom_run_id", "sys/modification_time"],
-    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)',
 )
 ```
 
@@ -57,14 +57,19 @@ To fetch metadata from an individual experiment or run, create and use a [`ReadO
 from neptune_fetcher import ReadOnlyRun
 
 run = ReadOnlyRun(
-    project=my_project,
+    read_only_project=my_project,
     experiment_name="seagull-flying-kills",
 )
 
-run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
+# Fetch value
+print(run["parameters/optimizer"].fetch())
 
-print(run["metrics/loss"].fetch_values())
-print(run["metrics/accuracy"].fetch_last())
+# Fecth last value of metric
+print(run["metrics/loss"].fetch_last())
+
+# Fetch all metric values, with optional pre-fetching to speed up subsequent access to the field
+run.prefetch_series_values(["metrics/accuracy"])
+print(run["metrics/accuracy"].fetch_values())
 ```
 
 For details, see the Neptune documentation:
