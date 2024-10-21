@@ -1,4 +1,4 @@
-## [RELEASE-CANDIDATE] neptune-fetcher-0.7.0b0
+## [RELEASE-CANDIDATE] neptune-fetcher-0.9.0b0
 
 ### Breaking changes
 
