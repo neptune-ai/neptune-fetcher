@@ -5,7 +5,7 @@
 - Custom NQL queries passed to `fetch_runs_df()` and `fetch_experiments_df()` are now combined
   with other filtering parameters using the AND logical operator, instead of ignoring them.
   logical operator with other criteria [#88](https://github.com/neptune-ai/neptune-fetcher/pull/88)
-- Removed the deprecated `match_columns_to_filters` parameter to `fetch_runs_df()` and
+- Removed the deprecated `match_columns_to_filters` parameter from `fetch_runs_df()` and
   `fetch_experiments_df()`
 
 ## [UNRELEASED] neptune-fetcher 0.8.3
