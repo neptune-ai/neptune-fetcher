@@ -307,7 +307,9 @@ class ReadOnlyProject:
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
 
             # Fetch runs with a complex query
-            runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
+            runs_df = my_project.fetch_runs_df(
+                query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+            )
             ```
         """
         return self._fetch_df(
@@ -403,7 +405,9 @@ class ReadOnlyProject:
             specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
 
             # Fetch experiments with a complex query
-            experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
+            experiments_df = my_project.fetch_experiments_df(
+                query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+            )
             ```
         """
 
