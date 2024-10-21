@@ -459,12 +459,6 @@ class ReadOnlyProject:
         object_type: Literal["run", "experiment"] = "run",
         query: Optional[str] = None,
     ) -> "DataFrame":
-        if any((with_ids, custom_ids, states, owners, tags)) and query is not None:
-            raise ValueError(
-                "You can't use the 'query' argument together with the 'with_ids', 'custom_ids', 'states', 'owners', "
-                "or 'tags' arguments."
-            )
-
         if limit is not None:
             if limit <= 0:
                 raise ValueError("The 'limit' argument must be greater than 0.")

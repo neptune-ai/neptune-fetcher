@@ -214,6 +214,50 @@ def test__runs_nql_query_with_custom_id_regex(project, regex, query, expect_ids)
     assert df["sys/custom_run_id"].tolist() == expect_ids
 
 
+def test__runs_nql_query_with_tags(project):
+    df = project.fetch_runs_df(
+        tags=["head"],
+        query="(`config/foo1-unique-id-run-1`:int = 1)",
+        sort_by="sys/custom_run_id",
+        ascending=True,
+    )
+
+    assert df["sys/custom_run_id"].tolist() == ["id-run-1"]
+
+
+def test__runs_nql_query_with_custom_ids(project):
+    df = project.fetch_runs_df(
+        sort_by="sys/custom_run_id",
+        ascending=True,
+        custom_ids=["id-run-1", "id-run-2"],
+        query="(`config/foo1-unique-id-run-1`:int = 1)",
+    )
+
+    assert df["sys/custom_run_id"].tolist() == ["id-run-1"]
+
+
+def test__experiments_nql_query_with_tags(project):
+    df = project.fetch_experiments_df(
+        tags=["head"],
+        query="(`config/foo1-unique-id-exp-1`:int = 1)",
+        sort_by="sys/custom_run_id",
+        ascending=True,
+    )
+
+    assert df["sys/custom_run_id"].tolist() == ["id-exp-1"]
+
+
+def test__experiments_nql_query_with_custom_ids(project):
+    df = project.fetch_experiments_df(
+        sort_by="sys/custom_run_id",
+        ascending=True,
+        custom_ids=["id-exp-1", "id-exp-2"],
+        query="(`config/foo1-unique-id-exp-1`:int = 1)",
+    )
+
+    assert df["sys/custom_run_id"].tolist() == ["id-exp-1"]
+
+
 @pytest.mark.parametrize(
     "regex, regex_neg, expect_ids",
     [
