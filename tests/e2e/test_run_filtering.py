@@ -146,7 +146,7 @@ def test__all_experiments_by_tags(project, sys_columns, all_experiment_ids):
     assert df["sys/custom_run_id"].tolist() == all_experiment_ids
 
 
-def test__custom_nql_query(project, all_run_ids, all_experiment_ids):
+def test__custom_nql_query_simple(project, all_run_ids, all_experiment_ids):
     # All runs & experiments have this value
     query = '(`config/foo1`:string = "valfoo1")'
     df = project.fetch_runs_df(columns=["config/foo1"], query=query)
@@ -154,6 +154,64 @@ def test__custom_nql_query(project, all_run_ids, all_experiment_ids):
 
     df = project.fetch_experiments_df(columns_regex="config/foo.*", query=query)
     assert len(df) == len(all_experiment_ids), "Not all experiments returned"
+
+
+@pytest.mark.parametrize(
+    "regex, regex_exclude, query, expect_ids",
+    [
+        ("exp[23]", None, "`config/foo1-unique-id-exp-2`:int = 1", ["id-exp-2"]),
+        ("exp[23]", None, "`config/bar1`:int = 1", ["id-exp-2", "id-exp-3"]),
+        ("exp", "exp1", "`config/foo1-unique-id-exp-2`:int = 1", ["id-exp-2"]),
+        (None, "exp[^2]", "`config/bar1`:int = 1", ["id-exp-2"]),
+        (
+            "exp[234]",
+            "exp4",
+            "`config/bar1`:int = 1 OR `config/foo1-unique-id-exp-2`:int = 1",
+            ["id-exp-2", "id-exp-3"],
+        ),
+        (
+            "exp",
+            None,
+            "`config/foo1-unique-id-exp-2`:int = 1 OR `config/foo1-unique-id-exp-3`:int = 1",
+            ["id-exp-2", "id-exp-3"],
+        ),
+    ],
+)
+def test__experiments_nql_query_with_names_regex(project, regex, regex_exclude, query, expect_ids):
+    df = project.fetch_experiments_df(
+        names_regex=regex, names_exclude_regex=regex_exclude, query=query, sort_by="sys/custom_run_id", ascending=True
+    )
+
+    assert df["sys/custom_run_id"].tolist() == expect_ids
+
+
+@pytest.mark.parametrize(
+    "regex, query, expect_ids",
+    [
+        ("id-run-[23]", "`config/foo1-unique-id-run-2`:int = 1", ["id-run-2"]),
+        (None, "`config/foo1-unique-id-run-2`:int = 1", ["id-run-2"]),
+        ("id-run-[23]", "`config/bar1`:int = 1", ["id-run-2", "id-run-3"]),
+        (
+            "id-run",
+            "`config/foo1-unique-id-run-2`:int = 1 OR `config/foo1-unique-id-run-3`:int = 1",
+            ["id-run-2", "id-run-3"],
+        ),
+        (
+            None,
+            "`config/foo1-unique-id-run-2`:int = 1 OR `config/foo1-unique-id-run-3`:int = 1",
+            ["id-run-2", "id-run-3"],
+        ),
+    ],
+)
+def test__runs_nql_query_with_custom_id_regex(project, regex, query, expect_ids):
+    # Query narrows down a broader regex, so only one run  is returned
+    df = project.fetch_runs_df(
+        custom_id_regex=regex,
+        query=query,
+        sort_by="sys/custom_run_id",
+        ascending=True,
+    )
+    assert df["sys/custom_run_id"].tolist() == expect_ids
 
 
 @pytest.mark.parametrize(
