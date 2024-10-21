@@ -15,7 +15,59 @@ makes data fetching more efficient and improves performance.
 pip install neptune-fetcher
 ```
 
-## Example usage
+## Usage
+
+1. Set your Neptune API token and project name as environment variables:
+
+    ```bash
+    export NEPTUNE_API_TOKEN="h0dHBzOi8aHR0cHM.4kl0jvYh3Kb8...ifQ=="
+    ```
+
+    ```bash
+    export NEPTUNE_PROJECT="workspace-name/project-name"
+    ```
+
+    For help, see https://docs-beta.neptune.ai/setup.
+
+1. In your Python code, create a [`ReadOnlyProject`](#readonlyproject) instance:
+
+    ```python
+    from neptune_fetcher import ReadOnlyProject
+
+    my_project = ReadOnlyProject()
+    ```
+
+Now you have a Neptune project to operate on.
+
+> If you don't set the Neptune environment variables, you can pass your credentials through arguments when creating a project or run object.
+
+To fetch experiments in bulk, call a fetching method on the project:
+
+```python
+experiments_df = my_project.fetch_experiments_df(
+    names_regex="tree/.*",
+    columns=["sys/custom_run_id", "sys/modification_time"],
+    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+)
+```
+
+To fetch metadata from an individual experiment or run, create and use a [`ReadOnlyRun`](#readonlyrun) object:
+
+```python
+from neptune_fetcher import ReadOnlyRun
+
+run = ReadOnlyRun(
+    project=my_project,
+    experiment_name="seagull-flying-kills",
+)
+
+run.prefetch_series_values(["metrics/loss", "metrics/accuracy"])
+
+print(run["metrics/loss"].fetch_values())
+print(run["metrics/accuracy"].fetch_last())
+```
+
+## Examples
 
 ### Listing runs of a project
 
@@ -255,7 +307,9 @@ specific_runs_df = my_project.fetch_runs_df(
 Fetch runs with a complex query:
 
 ```python
-runs_df = my_project.fetch_runs_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
+runs_df = my_project.fetch_runs_df(
+    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+)
 ```
 
 ---
@@ -328,7 +382,9 @@ specific_experiments_df = my_project.fetch_experiments_df(
 Fetch experiments with a complex query:
 
 ```python
-experiments_df = my_project.fetch_experiments_df(query="(accuracy: float > 0.88) AND (loss: float < 0.2)")
+experiments_df = my_project.fetch_experiments_df(
+    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+)
 ```
 
 ---
