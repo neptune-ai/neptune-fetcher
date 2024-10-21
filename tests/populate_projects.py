@@ -68,18 +68,27 @@ def populate_run(run, run_id, tags=None):
 
 
 def populate_many_metrics(project):
+    futures = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
         for x in range(MM_NUM_RUNS // 2):
-            executor.submit(create_runs, project, x + 1, tags=["head", "tag1"])
+            futures.append(executor.submit(create_runs, project, x + 1, tags=["head", "tag1"]))
 
         for x in range(MM_NUM_RUNS // 2, MM_NUM_RUNS):
-            executor.submit(create_runs, project, x + 1, tags=["tail", "tag1"])
+            futures.append(executor.submit(create_runs, project, x + 1, tags=["tail", "tag1"]))
 
         for x in range(MM_NUM_RUNS // 2):
-            executor.submit(create_runs, project, x + 1, tags=["head", "tag2"], experiment_name=f"exp{x+1}")
+            futures.append(
+                executor.submit(create_runs, project, x + 1, tags=["head", "tag2"], experiment_name=f"exp{x+1}")
+            )
 
         for x in range(MM_NUM_RUNS // 2, MM_NUM_RUNS):
-            executor.submit(create_runs, project, x + 1, tags=["tail", "tag2"], experiment_name=f"exp{x+1}")
+            futures.append(
+                executor.submit(create_runs, project, x + 1, tags=["tail", "tag2"], experiment_name=f"exp{x+1}")
+            )
+
+        done, _ = concurrent.futures.wait(futures)
+        for f in done:
+            f.result()  # This will raise any exceptions that were raised in workers
 
 
 def create_runs(project, index, tags, experiment_name=None):
