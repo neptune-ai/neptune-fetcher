@@ -285,7 +285,8 @@ class ReadOnlyProject:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
-                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+                The query is applied on top of other criteria like, `custom_ids`, `tags` etc,
+                using the logical AND operator.
             match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
                 original description:
                   Whether to subset the columns filtered by `columns_regex`, to only look
@@ -306,8 +307,9 @@ class ReadOnlyProject:
             specific_run_ids = ["RUN-123", "RUN-456"]
             specific_runs_df = my_project.fetch_runs_df(with_ids=specific_run_ids)
 
-            # Fetch runs with a complex query
+            # Fetch runs with a complex query coupled with other filters
             runs_df = my_project.fetch_runs_df(
+                with_ids=specific_run_ids,
                 query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
             )
             ```
@@ -383,7 +385,8 @@ class ReadOnlyProject:
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
-                Exclusive with the `with_ids`, `custom_ids`, `states`, `owners`, and `tags` parameters.
+                The query is applied on top of other criteria like, `names_regex`, `tags` etc,
+                using the logical AND operator.
             match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
                 original description:
                   Whether to subset the columns filtered by `columns_regex`, to only look
@@ -404,8 +407,9 @@ class ReadOnlyProject:
             specific_experiment_ids = ["RUN-123", "RUN-456"]
             specific_experiments_df = my_project.fetch_experiments_df(with_ids=specific_experiments_ids)
 
-            # Fetch experiments with a complex query
+            # Fetch experiments with a complex query coupled with other filters
             experiments_df = my_project.fetch_experiments_df(
+                names_regex="tests-.*"
                 query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
             )
             ```
@@ -459,12 +463,6 @@ class ReadOnlyProject:
         object_type: Literal["run", "experiment"] = "run",
         query: Optional[str] = None,
     ) -> "DataFrame":
-        if any((with_ids, custom_ids, states, owners, tags)) and query is not None:
-            raise ValueError(
-                "You can't use the 'query' argument together with the 'with_ids', 'custom_ids', 'states', 'owners', "
-                "or 'tags' arguments."
-            )
-
         if limit is not None:
             if limit <= 0:
                 raise ValueError("The 'limit' argument must be greater than 0.")
@@ -689,7 +687,9 @@ def _make_runs_filter_nql(
                 f"Please limit the query to {MAX_QUERY_LENGTH} characters or fewer."
             )
 
-        return enrich_user_query(query=query, trashed=trashed, is_run=object_type == "run")
+        user_query = RawNQLQuery("(" + query + ")")
+    else:
+        user_query = None
 
     _verify_string_collection(with_ids, "with_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
     _verify_string_collection(custom_ids, "custom_ids", MAX_ELEMENTS_ALLOWED, MAX_CUMULATIVE_LENGTH)
@@ -707,6 +707,7 @@ def _make_runs_filter_nql(
         names_regex=names_regex,
         names_exclude_regex=names_exclude_regex,
         is_run=object_type == "run",
+        user_query=user_query,
     )
 
     if len(str(query)) > MAX_QUERY_LENGTH:
@@ -772,6 +773,7 @@ def _make_leaderboard_nql(
     names_exclude_regex: Optional[Union[str, Iterable[str]]] = None,
     custom_id_regex: Optional[Union[str, Iterable[str]]] = None,
     is_run: bool = True,
+    user_query: Optional[NQLQuery] = None,
 ) -> NQLQuery:
     query = prepare_nql_query(ids=with_ids, states=states, owners=owners, tags=tags, trashed=trashed)
 
@@ -846,6 +848,8 @@ def _make_leaderboard_nql(
         )
 
     items = [query] if is_run else [query, query_for_experiments_not_runs()]
+    if user_query is not None:
+        items.append(user_query)
 
     query = NQLQueryAggregate(
         items=items,
@@ -853,32 +857,6 @@ def _make_leaderboard_nql(
     )
 
     return query
-
-
-def enrich_user_query(query: str, trashed: Optional[bool], is_run: bool = True) -> NQLQuery:
-    """
-    Enriches the user-provided NQL query string with additional conditions based on
-    the `trashed` flag and whether we're looking for runs or experiments.
-    """
-
-    items: List[Union[str, NQLQuery]] = [
-        RawNQLQuery("(" + query + ")"),
-    ]
-
-    if not is_run:
-        items.append(query_for_experiments_not_runs())
-
-    if trashed is not None:
-        items.append(
-            NQLQueryAttribute(
-                name="sys/trashed", type=NQLAttributeType.BOOLEAN, operator=NQLAttributeOperator.EQUALS, value=trashed
-            ),
-        )
-
-    return NQLQueryAggregate(
-        items=items,
-        aggregator=NQLAggregator.AND,
-    )
 
 
 def query_for_not_trashed() -> NQLQuery:
