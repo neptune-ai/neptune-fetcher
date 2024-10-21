@@ -86,7 +86,7 @@ def search_leaderboard_entries(columns, query, *args, **kwargs):
     output = []
     query_run1 = '(((`sys/trashed`:bool = false) AND (`sys/custom_run_id`:string MATCHES "alternative_*")))'
     query_exp1 = '(((`sys/trashed`:bool = false) AND (`sys/name`:string MATCHES "powerful.*")))'
-    complex_query_run = "((`fields/int`:int > 5) AND (`sys/trashed`:bool = false))"
+    complex_query_run = "((`sys/trashed`:bool = false) AND (`fields/int`:int > 5))"
     query_all_runs = "(`sys/trashed`:bool = false)"
 
     query_exp1_only_by_name = (
@@ -101,7 +101,7 @@ def search_leaderboard_entries(columns, query, *args, **kwargs):
     query_exp2_only_by_name = (
         '(((`sys/trashed`:bool = false) AND (`sys/name`:string MATCHES "lazy.*")) AND (`sys/name`:string != ""))'
     )
-    complex_query_exp = '((`fields/int`:int > 5) AND (`sys/name`:string != "") AND (`sys/trashed`:bool = false))'
+    complex_query_exp = '((`sys/trashed`:bool = false) AND (`sys/name`:string != "") AND (`fields/int`:int > 5))'
     query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
     run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
