@@ -67,6 +67,12 @@ print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_last())
 ```
 
+For details, see the Neptune documentation:
+
+- [Fetch runs or experiments](https://docs-beta.neptune.ai/fetch_runs)
+- [Fetch metadata from a run or experiment](https://docs-beta.neptune.ai/fetch_run_data)
+- [Neptune Query Language (NQL)](https://docs-beta.neptune.ai/nql)
+
 ## Examples
 
 ### Listing runs of a project
