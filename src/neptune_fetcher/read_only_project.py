@@ -253,7 +253,6 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
-        match_columns_to_filters: bool = True,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
@@ -287,12 +286,6 @@ class ReadOnlyProject:
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 The query is applied on top of other criteria like, `custom_ids`, `tags` etc,
                 using the logical AND operator.
-            match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
-                original description:
-                  Whether to subset the columns filtered by `columns_regex`, to only look
-                  at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
-                  If set to `True`, the total number of runs that match the filters must not exceed 5000.
-                  The default value of `False` will result in matching the `column_regex` to all columns in the project.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched runs.
@@ -350,7 +343,6 @@ class ReadOnlyProject:
         ascending: bool = False,
         progress_bar: Union[bool, Optional[ProgressBarType]] = None,
         query: Optional[str] = None,
-        match_columns_to_filters: bool = True,
     ) -> "DataFrame":
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
@@ -387,12 +379,6 @@ class ReadOnlyProject:
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 The query is applied on top of other criteria like, `names_regex`, `tags` etc,
                 using the logical AND operator.
-            match_columns_to_filters: This argument is deprecated, and always assumed to be `True` as per the
-                original description:
-                  Whether to subset the columns filtered by `columns_regex`, to only look
-                  at the runs that match the filters (e.g. `names_regex`, `custom_id_regex`, `with_ids`, `custom_ids`).
-                  If set to `True`, the total number of runs that match the filters must not exceed 5000.
-                  The default value of `False` will result in matching the `column_regex` to all columns in the project.
 
         Returns:
             DataFrame: A pandas DataFrame containing information about the fetched experiments.
