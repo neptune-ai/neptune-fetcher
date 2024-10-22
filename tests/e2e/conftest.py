@@ -4,7 +4,6 @@ from datetime import (
     datetime,
     timezone,
 )
-from typing import Callable
 
 from neptune_scale import Run
 from pytest import fixture
@@ -70,45 +69,20 @@ def id_to_name():
     return d
 
 
-class SyncRun:
-    """Wraps a neptune_scale.Run instance to make it wait for processing
+class SyncRun(Run):
+    """A neptune_scale.Run instance that waits for processing to complete
     after each logging method call. This is useful for e2e tests, where we
     usually want to wait for the data to be available before fetching it."""
 
-    def __init__(self, run):
-        self.run = run
-
-    def __getattr__(self, name):
-        attr = getattr(self.run, name)
-
-        # Wrap only log*() methods, don't wrap already wrapped ones
-        if name.startswith("log") and callable(attr) and not hasattr(attr, "_is_wrapped"):
-            return self._wrap(attr)
-
-        return attr
-
-    def _wrap(self, fn: Callable):
-        def wrapped(*args, **kwargs):
-            result = fn(*args, **kwargs)
-            self.run.wait_for_processing()
-            return result
-
-        wrapped._is_wrapped = True
-        setattr(self.run, fn.__name__, wrapped)
-
-        return wrapped
-
-
-@fixture
-def sync_run(run):
-    """Blocking run for logging data"""
-    return SyncRun(run)
+    def log(self, *args, **kwargs):
+        result = super().log(*args, **kwargs)
+        self.wait_for_processing()
+        return result
 
 
 @fixture(scope="module")
-def run(project):
-    """Plain neptune_scale.Run instance. We're scoping it to "module", as it seems to be a
-    good compromise, mostly because of execution time."""
+def run_init_kwargs(project):
+    """Arguments to initialize a neptune_scale.Run instance"""
 
     # TODO: if a test fails the run could be left in an indefinite state
     #       Maybe we should just have it scoped 'function' and require passing
@@ -123,10 +97,24 @@ def run(project):
 
     kwargs["run_id"] = kwargs["family"] = run_id
 
-    run = Run(**kwargs)
+    return kwargs
+
+
+@fixture(scope="module")
+def run(project, run_init_kwargs):
+    """Plain neptune_scale.Run instance. We're scoping it to "module", as it seems to be a
+    good compromise, mostly because of execution time."""
+
+    run = Run(**run_init_kwargs)
     run.log_configs({"test_start_time": datetime.now(timezone.utc)})
 
     return run
+
+
+@fixture(scope="module")
+def sync_run(project, run_init_kwargs):
+    """Blocking run for logging data"""
+    return SyncRun(**run_init_kwargs)
 
 
 @fixture

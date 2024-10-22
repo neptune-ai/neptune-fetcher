@@ -1,6 +1,9 @@
+import os
 import re
 
 import pytest
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
 
 
 @pytest.mark.parametrize("limit", [1, 2, 6, 12, 1000])
