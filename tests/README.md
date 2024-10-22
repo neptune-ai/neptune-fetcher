@@ -19,14 +19,14 @@ The tests that rely on this data are:
 
 ## Environment variables
 
-* `NEPTUNE_PROJECT` - project name to use. It is set by the test runner script in
-  GitHub setup.
 * `NEPTUNE_API_TOKEN` - API token to use
-
-Test that populate data during execution could interfere with those that rely on a
-specific data shape. To avoid this, set `NEPTUNE_E2E_PROJECT` to a different project
-that already exists.
-
-If the env variable `NEPTUNE_E2E_CUSTOM_RUN_ID` is set, it should be `sys/custom_run_id`
-of an existing Run. This avoids creating a new Run for tests that log data, if this
-is for some reason required.
+* `NEPTUNE_E2E_FIXED_PROJECT` - project name to use for tests that require a project
+  with fixed data populated by `populate_projects.py` and **do not** populate the
+  project during execution. The test runner script creates a temporary project for
+  that purpose. If not set, `NEPTUNE_PROJECT` is used.
+* `NEPTUNE_E2E_PROJECT` - project name to use for tests that create Runs during
+  execution. This can be an existing project in which it's fine to create multiple
+  Runs with different data. If not set, `NEPTUNE_PROJECT` is used.
+* `NEPTUNE_E2E_CUSTOM_RUN_ID` (optional) - if set, it should be `sys/custom_run_id`
+  of an existing Run. This avoids creating a new Run for tests that log data,
+  if this is for some reason required.
