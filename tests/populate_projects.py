@@ -56,7 +56,7 @@ def populate_run(run, run_id, tags=None):
         data |= {f"metrics/bar{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
         data |= {f"metrics/bar{x + 1}-unique-{run_id}": value for x in range(10)}
 
-        run.log_metrics(step, data=data)
+        run.log_metrics(data, step)
 
     # Last step will have a predetermined value
     step += 1
@@ -64,7 +64,7 @@ def populate_run(run, run_id, tags=None):
     data |= {f"metrics/bar{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
     data |= {f"metrics/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
 
-    run.log_metrics(step, data=data)
+    run.log_metrics(data, step)
 
 
 def populate_many_metrics(project):
