@@ -31,7 +31,7 @@ cleanup() {
 }
 
 # Make sure cleanup is called at exit
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup SIGINT SIGTERM EXIT ERR
 
 run_tests() {
   export NEPTUNE_PROJECT="$NEPTUNE_WORKSPACE/$PROJECT"
