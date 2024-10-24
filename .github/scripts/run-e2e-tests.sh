@@ -21,7 +21,6 @@ EXIT_CODE=-1
 PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM"
 
 cleanup() {
-  set +e
   echo "Cleaning up..."
 
   echo "Deleting project $NEPTUNE_WORKSPACE/$PROJECT"
