@@ -1,4 +1,5 @@
 import os
+from operator import itemgetter
 
 import pytest
 
@@ -56,6 +57,32 @@ def test__experiments_by_custom_id_regex(project, sys_columns, regex, expect_ids
     )
     assert df["sys/custom_run_id"].tolist() == expect_ids
     assert df["sys/name"].tolist() == expect_names
+
+
+def test__runs_by_sys_id(project, sys_columns, all_run_ids, all_experiment_ids):
+    runs = sorted(project.list_runs(), key=itemgetter("sys/custom_run_id"))
+    # Take every 2nd run to test the actual filtering
+    sys_ids = [run["sys/id"] for i, run in enumerate(runs) if i % 2 == 0]
+
+    df = project.fetch_runs_df(columns=sys_columns, with_ids=sys_ids, sort_by="sys/custom_run_id", ascending=True)
+
+    expect_ids = (all_experiment_ids + all_run_ids)[::2]
+    assert df["sys/custom_run_id"].tolist() == expect_ids
+    assert df["sys/id"].tolist() == sys_ids
+
+
+def test__experiments_by_sys_id(project, sys_columns, all_experiment_ids):
+    runs = sorted(project.list_experiments(), key=itemgetter("sys/custom_run_id"))
+    # Take every 2nd experiment to test the actual filtering
+    sys_ids = [run["sys/id"] for i, run in enumerate(runs) if i % 2 == 0]
+
+    df = project.fetch_experiments_df(
+        columns=sys_columns, with_ids=sys_ids, sort_by="sys/custom_run_id", ascending=True
+    )
+
+    expect_ids = all_experiment_ids[::2]
+    assert df["sys/custom_run_id"].tolist() == expect_ids
+    assert df["sys/id"].tolist() == sys_ids
 
 
 @pytest.mark.parametrize(
