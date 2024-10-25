@@ -1,8 +1,12 @@
+import os
+
 import pytest
 
 #
 # Tests for filtering runs by various attributes
 #
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
 
 
 def test__runs_no_filter(project, all_run_ids, all_experiment_ids, sys_columns):

@@ -1,3 +1,8 @@
+import os
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
+
+
 def test__list_runs(project, all_run_ids, all_experiment_ids, sys_columns_set):
     result = list(project.list_runs())
     ids = all_run_ids + all_experiment_ids

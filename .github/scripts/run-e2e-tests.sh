@@ -21,7 +21,9 @@ EXIT_CODE=-1
 PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM"
 
 cleanup() {
+  # Don't fail tests if cleanup fails
   set +e
+
   echo "Cleaning up..."
 
   echo "Deleting project $NEPTUNE_WORKSPACE/$PROJECT"
@@ -32,7 +34,7 @@ cleanup() {
 }
 
 # Make sure cleanup is called at exit
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup SIGINT SIGTERM EXIT ERR
 
 run_tests() {
   export NEPTUNE_PROJECT="$NEPTUNE_WORKSPACE/$PROJECT"
