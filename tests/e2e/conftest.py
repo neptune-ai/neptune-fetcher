@@ -95,7 +95,7 @@ def run_init_kwargs(project):
     else:
         kwargs["resume"] = True
 
-    kwargs["run_id"] = kwargs["family"] = run_id
+    kwargs["run_id"] = run_id
 
     return kwargs
 
