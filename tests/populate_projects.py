@@ -94,7 +94,7 @@ def create_runs(project, index, tags, experiment_name=None):
     print(f"create_runs({project}, {index}, {tags}, {experiment_name})")
     kind = "run" if not experiment_name else "exp"
     run_id = f"id-{kind}-{index}"
-    with Run(project=project, run_id=run_id, family=run_id, experiment_name=experiment_name) as run:
+    with Run(project=project, run_id=run_id, experiment_name=experiment_name) as run:
         print("Populating run", run_id)
         populate_run(run, run_id, tags=tags)
 
