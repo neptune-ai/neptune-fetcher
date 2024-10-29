@@ -319,7 +319,7 @@ specific_runs_df = my_project.fetch_runs_df(
 )
 ```
 
-Fetch runs with a complex query:
+Fetch runs with a complex query using NQL.
 
 ```python
 runs_df = my_project.fetch_runs_df(
@@ -393,11 +393,20 @@ specific_experiments_df = my_project.fetch_experiments_df(
 )
 ```
 
-Fetch experiments with a complex query:
+Use the Neptune Query Language to fetch experiments with a complex query. Note that for regular strings, the `\` character needs to be escaped:
 
 ```python
 experiments_df = my_project.fetch_experiments_df(
-    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+    query='(`learning_rate`:float < 0.01) AND (`sys/name`:string MATCHES "experiment-\\\\d+")'
+)
+```
+
+As a less cluttered alternative, pass a raw Python string to the `query` argument:
+
+
+```python
+experiments_df = my_project.fetch_experiments_df(
+    query=r'(`learning_rate`:float < 0.01) AND (`sys/name`:string MATCHES "experiment-\\d+")'
 )
 ```
 
