@@ -43,10 +43,10 @@ def test__nonexistent_column_is_returned_as_null(project, sys_columns):
     # The expected count doesn't include the default columns. It's adjusted in the test code.
     "regex, run_ids, expect_count",
     [
-        ("config/.*unique-id-run-2", None, 10),
+        (r"\Donfig/.*unique-id-run-2", None, 10),
         ("config/.*unique-id-.*-1", None, 20),
         (".*unique-id-run-2", None, 20),  # 10 unique config/* and metrics/*
-        ("metrics/.*|config/.*", ["id-run-5"], 60),  # All columns
+        (r"metrics/.*|config/.*\d$", ["id-run-5"], 60),  # All columns
         ("non_existent_column", None, 0),
     ],
 )
