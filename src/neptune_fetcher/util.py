@@ -53,3 +53,11 @@ def fetch_series_values(getter: Callable[..., Any], step_size: int = 10_000) -> 
 
         current_batch_size = len(batch.values)
         last_step_value = batch.values[-1].step if batch.values else None
+
+
+def escape_nql_criterion(criterion):
+    """
+    Escape backslash and (double-)quotes in the string, to match what the NQL engine expects.
+    """
+
+    return criterion.replace("\\", r"\\").replace('"', r"\"")

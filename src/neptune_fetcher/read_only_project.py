@@ -79,7 +79,10 @@ from neptune_fetcher.read_only_run import (
     ReadOnlyRun,
     get_attribute_value_from_entry,
 )
-from neptune_fetcher.util import getenv_int
+from neptune_fetcher.util import (
+    escape_nql_criterion,
+    getenv_int,
+)
 
 logger = get_logger()
 
@@ -773,7 +776,7 @@ def _make_leaderboard_nql(
                             name="sys/custom_run_id",
                             type=NQLAttributeType.STRING,
                             operator=NQLAttributeOperator.EQUALS,
-                            value=custom_id,
+                            value=escape_nql_criterion(custom_id),
                         )
                         for custom_id in custom_ids
                     ],
@@ -795,7 +798,7 @@ def _make_leaderboard_nql(
                         name="sys/name",
                         type=NQLAttributeType.STRING,
                         operator=NQLAttributeOperator.MATCHES,
-                        value=regex,
+                        value=escape_nql_criterion(regex),
                     ),
                 ],
                 aggregator=NQLAggregator.AND,
@@ -813,7 +816,7 @@ def _make_leaderboard_nql(
                         name="sys/name",
                         type=NQLAttributeType.STRING,
                         operator=NQLAttributeOperator.NOT_MATCHES,
-                        value=regex,
+                        value=escape_nql_criterion(regex),
                     ),
                 ],
                 aggregator=NQLAggregator.AND,
@@ -827,7 +830,7 @@ def _make_leaderboard_nql(
                     name="sys/custom_run_id",
                     type=NQLAttributeType.STRING,
                     operator=NQLAttributeOperator.MATCHES,
-                    value=custom_id_regex,
+                    value=escape_nql_criterion(custom_id_regex),
                 ),
             ],
             aggregator=NQLAggregator.AND,

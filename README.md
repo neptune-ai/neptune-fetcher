@@ -148,6 +148,11 @@ print(run["metrics/accuracy"].fetch_values())
 
 ## API reference
 
+### Supported regular expressions
+
+Neptune uses the [RE2](https://github.com/google/re2) regular expression library. For supported regex features and limitations, see the official [syntax guide](https://github.com/google/re2/wiki/syntax).
+
+
 ### `ReadOnlyProject`
 
 Representation of a Neptune project in a limited read-only mode.
@@ -266,7 +271,7 @@ __Parameters:__
 | `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
-| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                       |
+| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs.                                                       |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
@@ -314,7 +319,7 @@ specific_runs_df = my_project.fetch_runs_df(
 )
 ```
 
-Fetch runs with a complex query:
+Fetch runs with a complex query using NQL.
 
 ```python
 runs_df = my_project.fetch_runs_df(
@@ -348,7 +353,7 @@ __Parameters__:
 | `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
-| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `names_regex`, `tags` etc, using the logical AND operator. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in Neptune docs.                                                      |                                                          |
+| `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs.                                                       |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
@@ -388,11 +393,20 @@ specific_experiments_df = my_project.fetch_experiments_df(
 )
 ```
 
-Fetch experiments with a complex query:
+Use the Neptune Query Language to fetch experiments with a complex query. Note that for regular strings, the `\` character needs to be escaped:
 
 ```python
 experiments_df = my_project.fetch_experiments_df(
-    query='(last(`accuracy`:floatSeries) > 0.88) AND (`learning_rate`:float < 0.01)'
+    query='(`learning_rate`:float < 0.01) AND (`sys/name`:string MATCHES "experiment-\\\\d+")'
+)
+```
+
+As a less cluttered alternative, pass a raw Python string to the `query` argument:
+
+
+```python
+experiments_df = my_project.fetch_experiments_df(
+    query=r'(`learning_rate`:float < 0.01) AND (`sys/name`:string MATCHES "experiment-\\d+")'
 )
 ```
 

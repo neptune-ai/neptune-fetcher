@@ -45,6 +45,7 @@ def test__runs_by_custom_id_regex(project, sys_columns, regex, expected):
     [
         ("id-exp-[23]", ["id-exp-2", "id-exp-3"], ["exp2", "exp3"]),
         ("id-exp-1.*", ["id-exp-1"], ["exp1"]),
+        (r"id-exp\D1", ["id-exp-1"], ["exp1"]),
         ("^id-exp-1$", ["id-exp-1"], ["exp1"]),
         ("id-exp-2", ["id-exp-2"], ["exp2"]),
         ("nonexistent", [], []),
@@ -86,10 +87,31 @@ def test__experiments_by_sys_id(project, sys_columns, all_experiment_ids):
 
 
 @pytest.mark.parametrize(
+    "regex, expect_ids",
+    [
+        (r"exp\d", ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (r"exp\D", []),
+        (r"exp[[:digit:]]", ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"]),
+        (r"[^\d]1", ["id-exp-1"]),
+        (r"[\D][23]", ["id-exp-2", "id-exp-3"]),
+        (r"\x65.*1", ["id-exp-1"]),
+        (r"expA?1", ["id-exp-1"]),
+        (r'exp"foo"', []),
+    ],
+)
+def test__experiments_by_name_regex(project, sys_columns, regex, expect_ids):
+    df = project.fetch_experiments_df(
+        columns=sys_columns, names_regex=regex, sort_by="sys/custom_run_id", ascending=True
+    )
+    assert df["sys/custom_run_id"].tolist() == expect_ids
+
+
+@pytest.mark.parametrize(
     "names_regex, custom_id_regex, custom_ids, expect_ids",
     [
         ("exp1", None, None, ["id-exp-1"]),
         ("exp2", None, None, ["id-exp-2"]),
+        (r"exp\d", r"2", None, ["id-exp-2"]),
         ("exp2", "id-exp-1", None, []),  # Name and custom_id_regex don't match
         ("exp3", None, ["id-exp-5"], []),  # Name and custom_ids don't match
         (None, "id-run-1", None, []),  # Runs that are not experiments
@@ -177,14 +199,20 @@ def test__all_experiments_by_tags(project, sys_columns, all_experiment_ids):
     assert df["sys/custom_run_id"].tolist() == all_experiment_ids
 
 
-def test__custom_nql_query_simple(project, all_run_ids, all_experiment_ids):
-    # All runs & experiments have this value
-    query = '(`config/foo1`:string = "valfoo1")'
-    df = project.fetch_runs_df(columns=["config/foo1"], query=query)
-    assert len(df) == len(all_run_ids + all_experiment_ids), "Not all runs returned"
-
-    df = project.fetch_experiments_df(columns_regex="config/foo.*", query=query)
-    assert len(df) == len(all_experiment_ids), "Not all experiments returned"
+@pytest.mark.parametrize(
+    "query, expect_ids",
+    (
+        ('`sys/name`:string MATCHES "exp1"', ["id-exp-1"]),
+        (
+            r'`sys/name`:string MATCHES "exp\\d"',
+            ["id-exp-1", "id-exp-2", "id-exp-3", "id-exp-4", "id-exp-5", "id-exp-6"],
+        ),
+        (r'`config/foo1`:string = "valfoo1" AND `sys/name`:string MATCHES "exp[23]"', ["id-exp-2", "id-exp-3"]),
+    ),
+)
+def test__experiments_with_custom_nql_query(project, query, expect_ids):
+    df = project.fetch_experiments_df(query=query, sort_by="sys/custom_run_id", ascending=True)
+    assert df["sys/custom_run_id"].tolist() == expect_ids
 
 
 @pytest.mark.parametrize(
