@@ -150,6 +150,7 @@ class FloatSeries(Series[float]):
             from_step=from_step,
             limit=limit,
             include_inherited=include_inherited,
+            use_proto=True,
         )
 
 

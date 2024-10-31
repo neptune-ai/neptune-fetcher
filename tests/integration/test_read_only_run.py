@@ -389,6 +389,7 @@ def test__fetch_values__float_series__no_inherited(api_token, hosted_backend):
                 include_inherited=False,
                 from_step=None,
                 limit=10000,
+                use_proto=True,
             ),
         ]
     )
@@ -496,6 +497,7 @@ def test__fetch_values__float_series__prefetch__different_inheritance(api_token,
                 include_inherited=True,
                 from_step=None,
                 limit=10000,
+                use_proto=True,
             ),
         ]
     )
