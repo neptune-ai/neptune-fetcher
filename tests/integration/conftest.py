@@ -201,7 +201,7 @@ def get_float_series_values(*args, **kwargs):
 def make_query_fields_entry(sys_id, custom_run_id):
     return QueryFieldsExperimentResult(
         object_key=sys_id,
-        object_id=custom_run_id,
+        object_id=sys_id,
         fields=[
             StringField(path="sys/id", value=sys_id),
             StringField(path="sys/custom_run_id", value=custom_run_id),
