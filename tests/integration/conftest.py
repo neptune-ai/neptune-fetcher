@@ -59,11 +59,11 @@ def api_token() -> str:
     return base64.b64encode(json.dumps({"api_address": ""}).encode()).decode()
 
 
-def create_leaderboard_entry(sys_id, custom_run_id, name: Optional[str] = None, columns=None):
+def create_leaderboard_entry(sys_id, run_uuid, custom_run_id, name: Optional[str] = None, columns=None):
     name = name if name is not None else ""
 
     return LeaderboardEntry(
-        object_id=sys_id,
+        object_id=run_uuid,
         fields=list(
             filter(
                 lambda field: columns is None or field.path in columns,
@@ -104,11 +104,13 @@ def search_leaderboard_entries(columns, query, *args, **kwargs):
     complex_query_exp = '((`sys/trashed`:bool = false) AND (`sys/name`:string != "") AND (`fields/int`:int > 5))'
     query_all_exps = '((`sys/trashed`:bool = false) AND (`sys/name`:string != ""))'
 
-    run1 = create_leaderboard_entry("RUN-1", "alternative_tesla", columns=columns)
-    run2 = create_leaderboard_entry("RUN-2", "nostalgic_stallman", columns=columns)
+    run1 = create_leaderboard_entry("RUN-1", "RUN-UUID-1", "alternative_tesla", columns=columns)
+    run2 = create_leaderboard_entry("RUN-2", "RUN-UUID-2", "nostalgic_stallman", columns=columns)
 
-    exp1 = create_leaderboard_entry("EXP-1", "custom_experiment_id", name="powerful-sun-2", columns=columns)
-    exp2 = create_leaderboard_entry("EXP-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
+    exp1 = create_leaderboard_entry(
+        "EXP-1", "EXP-UUID-1", "custom_experiment_id", name="powerful-sun-2", columns=columns
+    )
+    exp2 = create_leaderboard_entry("EXP-2", "EXP-UUID-2", "nostalgic_stallman", name="lazy-moon-2", columns=columns)
 
     if str(query) == query_run1 or str(query) == complex_query_run:
         output = [run1]
@@ -198,10 +200,10 @@ def get_float_series_values(*args, **kwargs):
 #     )
 
 
-def make_query_fields_entry(sys_id, custom_run_id):
+def make_query_fields_entry(sys_id, run_uuid, custom_run_id):
     return QueryFieldsExperimentResult(
         object_key=sys_id,
-        object_id=sys_id,
+        object_id=run_uuid,
         fields=[
             StringField(path="sys/id", value=sys_id),
             StringField(path="sys/custom_run_id", value=custom_run_id),
@@ -212,10 +214,10 @@ def make_query_fields_entry(sys_id, custom_run_id):
 def query_fields_within_project(*args, **kwargs) -> QueryFieldsResult:
     return QueryFieldsResult(
         entries=[
-            make_query_fields_entry("RUN-1", "alternative_tesla"),
-            make_query_fields_entry("RUN-2", "nostalgic_stallman"),
-            make_query_fields_entry("EXP-1", "custom_experiment_id"),
-            make_query_fields_entry("EXP-2", "nostalgic_stallman"),
+            make_query_fields_entry("RUN-1", "RUN-UUID-1", "alternative_tesla"),
+            make_query_fields_entry("RUN-2", "RUN-UUID-2", "nostalgic_stallman"),
+            make_query_fields_entry("EXP-1", "EXP-UUID-1", "custom_experiment_id"),
+            make_query_fields_entry("EXP-2", "EXP-UUID-2", "nostalgic_stallman"),
         ],
         next_page=NextPage(next_page_token=None, limit=None),
     )

@@ -740,7 +740,7 @@ def _batch_run_ids(
         batch.append(run.object_id)
         if len(batch) == batch_size:
             yield batch
-            batch.clear()
+            batch = []
 
     # We could have a leftover partial batch, smaller than requested max size
     if batch:
