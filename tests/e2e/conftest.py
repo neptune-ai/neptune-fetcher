@@ -114,10 +114,10 @@ def run(project, run_init_kwargs):
 @fixture(scope="module")
 def sync_run(project, run_init_kwargs):
     """Blocking run for logging data"""
-    return SyncRun(**run_init_kwargs)
+    return SyncRun(project=run_init_kwargs["project"], run_id=run_init_kwargs["run_id"], resume=True)
 
 
 @fixture
-def ro_run(run, project):
+def ro_run(project, run_init_kwargs):
     """ReadOnlyRun pointing to the same run as the neptune_scale.Run"""
-    return ReadOnlyRun(read_only_project=project, custom_id=run._run_id)
+    return ReadOnlyRun(read_only_project=project, custom_id=run_init_kwargs["run_id"])
