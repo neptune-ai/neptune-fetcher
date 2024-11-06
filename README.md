@@ -58,7 +58,7 @@ from neptune_fetcher import ReadOnlyRun
 
 run = ReadOnlyRun(
     read_only_project=my_project,
-    experiment_name="seagull-flying-kills",
+    experiment_name="seagull-flying-skills",
 )
 
 # Fetch value
