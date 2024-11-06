@@ -18,19 +18,20 @@ __all__ = [
     "Float",
     "FloatSeries",
     "Integer",
-    "Series",
     "String",
     "Bool",
     "DateTime",
     "ObjectState",
     "StringSet",
+    "FieldType",
+    "FieldDefinition",
+    "FloatPointValue",
 ]
 
-import abc
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from functools import partial
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -43,52 +44,52 @@ from typing import (
     Union,
 )
 
-from neptune.api.fetching_series_values import PointValue
-from neptune.api.models import (
-    FieldType,
-    FloatPointValue,
-    FloatSeriesValues,
-    StringPointValue,
-)
-from neptune.internal.container_type import ContainerType
-from neptune.internal.utils.paths import parse_path
-from neptune.typing import ProgressBarType
-
-from neptune_fetcher.util import fetch_series_values
+from neptune_fetcher.util import ProgressBarType
 
 if TYPE_CHECKING:
-    from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
     from pandas import DataFrame
 
+    from neptune_fetcher.api.api_client import ApiClient
+
 T = TypeVar("T")
-Row = TypeVar("Row", StringPointValue, FloatPointValue)
 
 
-def make_row(entry: Row, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
-    row: Dict[str, Union[str, float, datetime]] = {
-        "step": entry.step,
-        "value": entry.value,
-    }
-
-    if include_timestamp:
-        row["timestamp"] = entry.timestamp
-
-    return row
+class FieldType(Enum):
+    FLOAT = "float"
+    INT = "int"
+    BOOL = "bool"
+    STRING = "string"
+    DATETIME = "datetime"
+    FLOAT_SERIES = "floatSeries"
+    STRING_SET = "stringSet"
+    OBJECT_STATE = "experimentState"
 
 
 @dataclass
-class Series(ABC, Generic[T]):
+class FieldDefinition:
+    path: str
+    type: FieldType
+
+
+@dataclass
+class FloatPointValue:
+    timestamp: datetime
+    value: float
+    step: float
+
+
+@dataclass
+class FloatSeries:
     type: FieldType
     include_inherited: bool = True
     last: Optional[T] = None
-    prefetched_data: Optional[List[PointValue]] = None
+    prefetched_data: Optional[List[FloatPointValue]] = None
     step_range = (None, None)
 
     def fetch_values(
         self,
-        backend: "HostedNeptuneBackend",
+        backend: "ApiClient",
         container_id: str,
-        container_type: ContainerType,
         path: str,
         include_timestamp: bool = True,
         include_inherited: bool = True,
@@ -98,60 +99,18 @@ class Series(ABC, Generic[T]):
         import pandas as pd
 
         if self.prefetched_data is None or self.include_inherited != include_inherited or self.step_range != step_range:
-            data = fetch_series_values(
-                getter=partial(
-                    self._fetch_values_from_backend,
-                    backend=backend,
-                    container_id=container_id,
-                    container_type=container_type,
-                    path=parse_path(path),
-                    include_inherited=include_inherited,
-                    from_step=step_range[0],
-                )
+            data = backend.fetch_series_values(
+                path=path, container_id=container_id, include_inherited=include_inherited, step_range=step_range
             )
+
         else:
             data = self.prefetched_data
 
         rows = dict((n, make_row(entry=entry, include_timestamp=include_timestamp)) for (n, entry) in enumerate(data))
         return pd.DataFrame.from_dict(data=rows, orient="index")
 
-    @abc.abstractmethod
-    def _fetch_values_from_backend(
-        self,
-        backend: "HostedNeptuneBackend",
-        container_id: str,
-        container_type: ContainerType,
-        path: List[str],
-        limit: int,
-        from_step: Optional[float] = None,
-        include_inherited: bool = True,
-    ):
-        ...
-
     def fetch_last(self) -> Optional[T]:
         return self.last
-
-
-class FloatSeries(Series[float]):
-    def _fetch_values_from_backend(
-        self,
-        backend: "HostedNeptuneBackend",
-        container_id: str,
-        container_type: ContainerType,
-        path: List[str],
-        limit: int,
-        from_step: Optional[float] = None,
-        include_inherited: bool = True,
-    ) -> FloatSeriesValues:
-        return backend.get_float_series_values(
-            container_id=container_id,
-            container_type=container_type,
-            path=path,
-            from_step=from_step,
-            limit=limit,
-            include_inherited=include_inherited,
-            use_proto=True,
-        )
 
 
 @dataclass
@@ -189,3 +148,15 @@ class ObjectState(Field[str]):
 
 class StringSet(Field[Set[str]]):
     ...
+
+
+def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
+    row: Dict[str, Union[str, float, datetime]] = {
+        "step": entry.step,
+        "value": entry.value,
+    }
+
+    if include_timestamp:
+        row["timestamp"] = entry.timestamp
+
+    return row

@@ -14,14 +14,16 @@
 # limitations under the License.
 #
 
+import abc
+import contextlib
 import os
+import warnings
 from typing import (
     Any,
-    Callable,
-    Iterator,
+    Optional,
+    Type,
+    Union,
 )
-
-from neptune.api.fetching_series_values import PointValue
 
 
 def getenv_int(name: str, default: int, *, positive=True) -> int:
@@ -39,20 +41,34 @@ def getenv_int(name: str, default: int, *, positive=True) -> int:
     return value
 
 
-def fetch_series_values(getter: Callable[..., Any], step_size: int = 10_000) -> Iterator[PointValue]:
-    batch = getter(limit=step_size)
-    yield from batch.values
+class ProgressBarCallback(contextlib.AbstractContextManager):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        ...
 
-    current_batch_size = len(batch.values)
-    last_step_value = batch.values[-1].step if batch.values else None
+    @abc.abstractmethod
+    def update(self, *, by: int, total: Optional[int] = None) -> None:
+        ...
 
-    while current_batch_size == step_size:
-        batch = getter(from_step=last_step_value, limit=step_size)
 
-        yield from batch.values
+ProgressBarType = Union[bool, Type[ProgressBarCallback]]
 
-        current_batch_size = len(batch.values)
-        last_step_value = batch.values[-1].step if batch.values else None
+
+class NeptuneException(Exception):
+    def __eq__(self, other: Any) -> bool:
+        if type(other) is type(self):
+            return super().__eq__(other) and str(self).__eq__(str(other))
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), str(self)))
+
+
+class NeptuneWarning(Warning):
+    pass
+
+
+warnings.simplefilter("once", category=NeptuneWarning)
 
 
 def escape_nql_criterion(criterion):

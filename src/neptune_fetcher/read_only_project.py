@@ -19,8 +19,12 @@ __all__ = [
 
 import collections
 import concurrent.futures
+import datetime
+import logging
 import math
 import os
+import warnings
+from dataclasses import dataclass
 from enum import Enum
 from typing import (
     Any,
@@ -29,22 +33,24 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Optional,
     Tuple,
     Union,
 )
 
 import pandas
-from neptune.api.models import (
-    Field,
-    FieldType,
-    LeaderboardEntry,
-    NextPage,
+from neptune_api.models import ProjectDTO
+from neptune_retrieval_api.models import (
+    AttributeNameFilterDTO,
+    QueryAttributesBodyDTO,
+    SearchLeaderboardEntriesParamsDTO,
 )
-from neptune.envs import PROJECT_ENV_NAME
-from neptune.internal.backends.api_model import Project
-from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
-from neptune.internal.backends.nql import (
+from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import ProtoAttributeDTO
+from pandas import DataFrame
+
+from neptune_fetcher.api.api_client import ApiClient
+from neptune_fetcher.nql import (
     NQLAggregator,
     NQLAttributeOperator,
     NQLAttributeType,
@@ -52,38 +58,19 @@ from neptune.internal.backends.nql import (
     NQLQueryAggregate,
     NQLQueryAttribute,
     RawNQLQuery,
+    prepare_nql_query,
 )
-from neptune.internal.backends.project_name_lookup import project_name_lookup
-from neptune.internal.container_type import ContainerType
-from neptune.internal.credentials import Credentials
-from neptune.internal.id_formats import (
-    QualifiedName,
-    UniqueId,
-    conform_optional,
-)
-from neptune.internal.utils.logger import get_logger
-from neptune.internal.warnings import (
-    NeptuneWarning,
-    warn_once,
-)
-from neptune.management.internal.utils import normalize_project_name
-from neptune.objects.utils import prepare_nql_query
-from neptune.table import Table
-from neptune.typing import ProgressBarType
-from pandas import DataFrame
-from typing_extensions import Literal
-
-from neptune_fetcher.read_only_run import (
-    ReadOnlyRun,
-    get_attribute_value_from_entry,
-)
+from neptune_fetcher.read_only_run import ReadOnlyRun
 from neptune_fetcher.util import (
+    NeptuneWarning,
+    ProgressBarType,
     escape_nql_criterion,
     getenv_int,
 )
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
+PROJECT_ENV_NAME = "NEPTUNE_PROJECT"
 SYS_COLUMNS = ["sys/id", "sys/name", "sys/custom_run_id"]
 
 MAX_CUMULATIVE_LENGTH = 100000
@@ -100,6 +87,12 @@ MAX_WORKERS = getenv_int("NEPTUNE_FETCHER_MAX_WORKERS", 32)
 WARN_AT_DATAFRAME_SIZE = getenv_int("NEPTUNE_WARN_AT_DATAFRAME_SIZE", 1_000_000, positive=False)
 if WARN_AT_DATAFRAME_SIZE <= 0:
     WARN_AT_DATAFRAME_SIZE = math.inf
+
+
+@dataclass
+class _AttributeContainer:
+    id: str
+    attributes: Dict[str, Optional[str]]
 
 
 class ReadOnlyProject:
@@ -126,18 +119,19 @@ class ReadOnlyProject:
         if self._project is None:
             raise ValueError("Could not find project name in environment. Make sure NEPTUNE_PROJECT is set.")
 
-        self._backend: HostedNeptuneBackend = HostedNeptuneBackend(
-            credentials=Credentials.from_token(api_token=api_token), proxies=proxies
-        )
+        self._backend = ApiClient(api_token=api_token, proxies=proxies)
 
-        self._project_api_object: Project = project_name_lookup(
-            backend=self._backend, name=conform_optional(self._project, QualifiedName)
-        )
-        self._project_key: str = self._project_api_object.sys_id
-        self._project_id: UniqueId = self._project_api_object.id
-        self.project_identifier = normalize_project_name(
-            name=self._project, workspace=self._project_api_object.workspace
-        )
+        _project = self._project_name_lookup(self._project)
+        self._project_key: str = _project.project_key
+        self._project_id: str = _project.id
+        self.project_identifier = f"{_project.organization_name}/{_project.name}"
+
+    def _project_name_lookup(self, name: Optional[str] = None) -> ProjectDTO:
+        if not name:
+            name = os.getenv(PROJECT_ENV_NAME)
+        if not name:
+            raise ValueError("Project name is not provided.")
+        return self._backend.project_name_lookup(name=name)
 
     def list_runs(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists all runs of a project.
@@ -152,7 +146,8 @@ class ReadOnlyProject:
                 print(run)
             ```
         """
-        yield from list_objects_from_project(self._backend, self._project_id, object_type="run")
+        for run in list_objects_from_project(self._backend, self._project_id, object_type="run", columns=SYS_COLUMNS):
+            yield {column: run.attributes.get(column, None) for column in SYS_COLUMNS}
 
     def list_experiments(self) -> Generator[Dict[str, Optional[str]], None, None]:
         """Lists all experiments of a project.
@@ -167,7 +162,10 @@ class ReadOnlyProject:
                 print(experiment)
             ```
         """
-        yield from list_objects_from_project(self._backend, self._project_id, object_type="experiment")
+        for exp in list_objects_from_project(
+            self._backend, self._project_id, object_type="experiment", columns=SYS_COLUMNS
+        ):
+            yield {column: exp.attributes.get(column, None) for column in SYS_COLUMNS}
 
     def fetch_read_only_runs(
         self,
@@ -510,9 +508,15 @@ class ReadOnlyProject:
                     )
 
                 # Scatter
-                futures.append(
-                    executor.submit(self._fetch_columns_batch, run_uuids, columns=columns, columns_regex=columns_regex)
-                )
+                if columns:
+                    futures.append(
+                        executor.submit(self._fetch_columns_batch, run_uuids, columns=columns, columns_regex=None)
+                    )
+
+                if columns_regex:
+                    futures.append(
+                        executor.submit(self._fetch_columns_batch, run_uuids, columns=None, columns_regex=columns_regex)
+                    )
 
             # Gather
             for future in concurrent.futures.as_completed(futures):
@@ -542,17 +546,17 @@ class ReadOnlyProject:
         acc = collections.defaultdict(dict)
         count = 0
 
-        for run_id, attr in self._stream_attributes(
+        for run_id, attr_name, value in self._stream_attributes(
             run_uuids, columns=columns, columns_regex=columns_regex, batch_size=FETCH_COLUMNS_BATCH_SIZE
         ):
-            acc[run_id][attr.path] = _extract_value(attr)
+            acc[run_id][attr_name] = value
             count += 1
 
         return count, acc
 
     def _stream_attributes(
         self, run_uuids, *, columns=None, columns_regex=None, limit: Optional[int] = None, batch_size=10_000
-    ) -> Generator[Tuple[str, Field], None, None]:
+    ) -> Generator[Tuple[str, str, Any], None, None]:
         """
         Download attributes that match the given criteria, for the given runs. Attributes are downloaded
         in batches of `batch_size` values per HTTP request.
@@ -566,33 +570,59 @@ class ReadOnlyProject:
         remaining = limit or math.inf
         next_page_token = None
 
-        while True:
-            # Don't request more than the number or remaining items
-            next_page = NextPage(limit=min(remaining, batch_size), next_page_token=next_page_token)
+        if columns and columns_regex:
+            raise ValueError("Only one of 'columns' and 'columns_regex' can be provided.")
 
-            response = self._backend.query_fields_within_project(
-                project_id=self._project,
-                experiment_ids_filter=run_uuids,
-                field_names_filter=columns,
-                field_name_regex=columns_regex,
-                next_page=next_page,
-                use_proto=True,
+        while True:
+            body = QueryAttributesBodyDTO.from_dict(
+                {
+                    "experimentIdsFilter": run_uuids,
+                    "attributeNamesFilter": columns,
+                    "nextPage": {"limit": min(remaining, batch_size), "nextPageToken": next_page_token},
+                }
             )
+            if columns_regex:
+                body.attribute_name_filter = AttributeNameFilterDTO.from_dict({"mustMatchRegexes": [columns_regex]})
+
+            data = self._backend.query_attributes_within_project(self._project, body)
 
             # We're assuming that the backend does not return more entries than requested
-            for entry in response.entries:
-                for attr in entry.fields:
-                    yield entry.object_id, attr
+            for entry in data.entries:
+                for attr in entry.attributes:
+                    # Experiment state is not supported in proto
+                    if attr.type != "experimentState":
+                        yield entry.experimentId, attr.name, _extract_value(attr)
 
-                remaining -= len(entry.fields)
+                remaining -= len(entry.attributes)
                 if remaining <= 0:
                     break
 
-            next_page_token = response.next_page.next_page_token
+            next_page_token = data.nextPage.nextPageToken
 
             # Limit reached, or server doesn't have more data
             if remaining <= 0 or not next_page_token:
                 break
+
+
+def _extract_value(attr: ProtoAttributeDTO) -> Any:
+    if attr.type == "string":
+        return attr.string_properties.value
+    elif attr.type == "int":
+        return attr.int_properties.value
+    elif attr.type == "float":
+        return attr.float_properties.value
+    elif attr.type == "bool":
+        return attr.bool_properties.value
+    elif attr.type == "datetime":
+        return datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
+    elif attr.type == "stringSet":
+        return ",".join(attr.string_set_properties.value)
+    elif attr.type == "floatSeries":
+        return attr.float_series_properties.last
+    elif attr.type == "experimentState":
+        return "experiment_state"
+    else:
+        raise ValueError(f"Unsupported attribute type: {attr.type}, please update the client")
 
 
 def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> List[str]:
@@ -611,15 +641,6 @@ def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> Li
             columns.add(col)
 
     return list(columns)
-
-
-def _extract_value(attr: Field):
-    if attr.type == FieldType.FLOAT_SERIES:
-        return attr.last
-    elif attr.type == FieldType.STRING_SET:
-        return ",".join(attr.values)
-
-    return attr.value
 
 
 def _to_pandas_df(run_uuids: List[str], items: Dict[str, Any], ensure_columns=None) -> DataFrame:
@@ -707,29 +728,49 @@ def _make_runs_filter_nql(
 
 
 def _stream_runs(
-    backend: HostedNeptuneBackend,
-    project_id: UniqueId,
+    backend: ApiClient,
+    project_id: str,
     query: NQLQuery,
     limit: Optional[int],
     sort_by: str,
     ascending: bool,
-) -> Generator[LeaderboardEntry, None, None]:
-    return backend.search_leaderboard_entries(
+) -> Generator[_AttributeContainer, None, None]:
+    sort_type: str = _find_sort_type(backend, project_id, sort_by)
+
+    return list_objects_from_project(
+        backend=backend,
         project_id=project_id,
-        types=[ContainerType.RUN],
-        query=query,
-        columns=["sys/id"],
+        object_type="run",
+        columns=[],
+        query=str(query),
         limit=limit,
-        sort_by=sort_by,
-        step_size=FETCH_RUNS_BATCH_SIZE,
-        ascending=ascending,
-        progress_bar=False,
-        use_proto=True,
+        sort_by=(sort_by, sort_type, "ascending" if ascending else "descending"),
     )
 
 
+def _find_sort_type(backend, project_id, sort_by):
+    if sort_by == "sys/id":
+        return "string"
+    elif sort_by == "sys/creation_time":
+        return "datetime"
+    else:
+        types = backend.find_field_type_within_project(project_id, sort_by)
+        if len(types) == 0:
+            warnings.warn(f"Could not find sorting column type for field '{sort_by}'.", NeptuneWarning)
+            return "string"
+        elif len(types) == 1:
+            return types.pop()
+        else:
+            sorted_types = sorted(types)
+            warnings.warn(
+                f"Found multiple types for sorting field '{sort_by}': {sorted_types}. Using {sorted_types[0]}.",
+                NeptuneWarning,
+            )
+            return sorted_types[0]
+
+
 def _batch_run_ids(
-    runs: Generator[LeaderboardEntry, None, None], *, batch_size: int
+    runs: Generator[_AttributeContainer, None, None], *, batch_size: int
 ) -> Generator[List[str], None, None]:
     """
     Consumes the `runs` generator, yielding lists of Run UUIDs. The length of a single list is limited by `batch_size`.
@@ -737,7 +778,7 @@ def _batch_run_ids(
 
     batch = []
     for run in runs:
-        batch.append(run.object_id)
+        batch.append(run.id)
         if len(batch) == batch_size:
             yield batch
             batch = []
@@ -871,36 +912,50 @@ def query_for_experiments_not_runs() -> NQLQuery:
 
 
 def list_objects_from_project(
-    backend: HostedNeptuneBackend,
-    project_id: UniqueId,
+    backend: ApiClient,
+    project_id: str,
     object_type: Literal["run", "experiment"],
-) -> List[Dict[str, Optional[str]]]:
-    queries = [query_for_not_trashed()]
-    if object_type == "experiment":
-        queries.append(query_for_experiments_not_runs())
+    columns: Iterable[str] = None,
+    query: str = "(`sys/trashed`:bool = false)",
+    limit: Optional[int] = None,
+    sort_by: Tuple[str, str, Literal["ascending", "descending"]] = ("sys/id", "string", "descending"),
+) -> Generator[_AttributeContainer, None, None]:
+    offset = 0
+    batch_size = 10_000
+    while True:
 
-    query = NQLQueryAggregate(
-        items=queries,
-        aggregator=NQLAggregator.AND,
-    )
+        page_limit = min(batch_size, limit - offset) if limit else batch_size
+        sort_name, sort_type, sort_direction = sort_by
+        body = SearchLeaderboardEntriesParamsDTO.from_dict(
+            {
+                "attributeFilters": [{"path": name} for name in columns],
+                "pagination": {"limit": page_limit, "offset": offset},
+                "experimentLeader": object_type == "experiment",
+                "query": {"query": query},
+                "sorting": {
+                    "aggregationMode": "none",
+                    "dir": sort_direction,
+                    "sortBy": {"name": sort_name, "type": sort_type},
+                },
+            }
+        )
+        proto_data = backend.search_entries(project_id, body)
 
-    leaderboard_entries = backend.search_leaderboard_entries(
-        project_id=project_id,
-        types=[ContainerType.RUN],
-        query=query,
-        sort_by="sys/id",
-        step_size=FETCH_RUNS_BATCH_SIZE,
-        columns=SYS_COLUMNS,
-        use_proto=True,
-    )
-    return [
-        {
-            "sys/id": get_attribute_value_from_entry(entry=row, name="sys/id"),
-            "sys/name": get_attribute_value_from_entry(entry=row, name="sys/name"),
-            "sys/custom_run_id": get_attribute_value_from_entry(entry=row, name="sys/custom_run_id"),
-        }
-        for row in Table(backend=backend, container_type=ContainerType.RUN, entries=leaderboard_entries).to_rows()
-    ]
+        runs = []
+        for run in proto_data.entries:
+            attributes = {}
+            for attr in run.attributes:
+                attributes[attr.name] = attr.string_properties.value
+            runs.append(_AttributeContainer(run.experiment_id, attributes))
+
+        yield from runs
+        if len(runs) < page_limit:
+            break  # No more results to fetch
+
+        offset += len(runs)
+
+        if limit and offset >= limit:
+            break
 
 
 def _verify_name_regex(collection_name: str, name_or_list: Optional[Union[str, Iterable[str]]]) -> None:
@@ -941,10 +996,12 @@ def _verify_string_collection(
 
 
 def _warn_large_dataframe(max_size):
-    warn_once(
+    from neptune_fetcher.util import NeptuneWarning
+
+    warnings.warn(
         f"You have requested a dataset that is over {max_size} entries large. "
         "This might result in long data fetching. Consider narrowing down your query or using the `limit` parameter. "
         "You can use the NEPTUNE_WARN_AT_DATAFRAME_SIZE environment variable to raise the warning threshold, "
         "or set it to 0 to disable this warning.",
-        exception=NeptuneWarning,
+        NeptuneWarning,
     )

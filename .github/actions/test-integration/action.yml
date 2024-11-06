@@ -22,7 +22,7 @@ runs:
     - name: Test
       working-directory: ${{ inputs.working_directory }}
       run: |
-        pytest -v -n 2 ./tests/integration/ \
+        pytest -v -n 2 ./tests/unit/ \
         --timeout=120 --timeout_method=thread \
         --color=yes \
         --junitxml="${{ inputs.working_directory }}/test-results/test-integration-${{ inputs.os }}-${{ inputs.python-version }}.xml"
