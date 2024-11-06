@@ -1,4 +1,4 @@
-## [RELEASE-CANDIDATE] neptune-fetcher-0.9.0b0
+## neptune-fetcher 0.9.1
 
 ### Breaking changes
 
@@ -6,8 +6,6 @@
   with other filtering parameters using the AND logical operator ([#88](https://github.com/neptune-ai/neptune-fetcher/pull/88))
 - Removed the deprecated `match_columns_to_filters` parameter from `fetch_runs_df()` and
   `fetch_experiments_df()` ([#89](https://github.com/neptune-ai/neptune-fetcher/pull/89))
-
-## [UNRELEASED] neptune-fetcher 0.8.3
 
 ### Changes
 - Add `names_exclude_regex` parameter to `fetch_experiments_df()` ([#84](https://github.com/neptune-ai/neptune-fetcher/pull/84))
