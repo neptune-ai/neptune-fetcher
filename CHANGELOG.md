@@ -10,6 +10,9 @@
 ### Changes
 - Add `names_exclude_regex` parameter to `fetch_experiments_df()` ([#84](https://github.com/neptune-ai/neptune-fetcher/pull/84))
 - Clarify documentation ([#85](https://github.com/neptune-ai/neptune-fetcher/pull/85))
+- Don't override other filtering arguments if a custom NQL query is passed
+- Escape all user input that is part of an NQL query (eg. `names_regex` in `fetch_experiments_df()`
+- Make `FloatSeries.fetch_values()` use the Protobuf endpoint
 
 ## neptune-fetcher 0.8.2
 
