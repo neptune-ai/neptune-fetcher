@@ -68,7 +68,8 @@ def populate_run(run, run_id, tags=None):
 
 def populate_many_metrics(project):
     futures = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
         for x in range(MM_NUM_RUNS // 2):
             futures.append(executor.submit(create_runs, project, x + 1, tags=["head", "tag1"]))
 
