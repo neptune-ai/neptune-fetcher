@@ -13,10 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = [
-    "ReadOnlyRun",
-    "get_attribute_value_from_entry",
-]
+__all__ = ["ReadOnlyRun"]
 
 from typing import (
     TYPE_CHECKING,
@@ -27,13 +24,6 @@ from typing import (
     Union,
 )
 
-from neptune.api.models import FieldDefinition
-from neptune.exceptions import MetadataContainerNotFound
-from neptune.internal.container_type import ContainerType
-from neptune.internal.id_formats import QualifiedName
-from neptune.internal.utils import verify_type
-from neptune.table import TableEntry
-
 from neptune_fetcher.cache import FieldsCache
 from neptune_fetcher.fetchable import (
     SUPPORTED_TYPES,
@@ -41,18 +31,14 @@ from neptune_fetcher.fetchable import (
     FetchableSeries,
     which_fetchable,
 )
+from neptune_fetcher.fields import (
+    FieldDefinition,
+    FieldType,
+)
 
 if TYPE_CHECKING:
-    from neptune.typing import ProgressBarType
-
     from neptune_fetcher.read_only_project import ReadOnlyProject
-
-
-def get_attribute_value_from_entry(entry: TableEntry, name: str) -> Optional[str]:
-    try:
-        return entry.get_attribute_value(name)
-    except ValueError:
-        return None
+    from neptune_fetcher.util import ProgressBarType
 
 
 class ReadOnlyRun:
@@ -65,10 +51,6 @@ class ReadOnlyRun:
     ) -> None:
         self.project = read_only_project
 
-        verify_type("with_id", with_id, (str, type(None)))
-        verify_type("custom_id", custom_id, (str, type(None)))
-        verify_type("experiment_name", experiment_name, (str, type(None)))
-
         if with_id is None and custom_id is None and experiment_name is None:
             raise ValueError("You must provide one of: `with_id`, `custom_id`, and `experiment_name`.")
 
@@ -76,14 +58,13 @@ class ReadOnlyRun:
             raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
 
         if custom_id is not None:
-            try:
-                experiment = read_only_project._backend.get_metadata_container(
-                    container_id=QualifiedName(f"CUSTOM/{read_only_project.project_identifier}/{custom_id}"),
-                    expected_container_type=None,
-                )
-                self.with_id = experiment.sys_id
-            except MetadataContainerNotFound as e:
-                raise ValueError(f"No experiment found with custom id '{custom_id}'") from e
+            run = read_only_project.fetch_runs_df(
+                query=f"`sys/custom_run_id`:string = '{custom_id}'", limit=1, columns=["sys/id"]
+            )
+
+            if len(run) == 0:
+                raise ValueError(f"No experiment found with custom id '{custom_id}'")
+            self.with_id = run.iloc[0]["sys/id"]
         elif experiment_name is not None:
             experiment = read_only_project.fetch_experiments_df(
                 query=f"`sys/name`:string = '{experiment_name}'", limit=1, columns=["sys/id"]
@@ -92,35 +73,27 @@ class ReadOnlyRun:
                 raise ValueError(f"No experiment found with name '{experiment_name}'")
             self.with_id = experiment.iloc[0]["sys/id"]
         else:
-            try:
-                # Just to check if the experiment exists
-                _ = read_only_project._backend.get_metadata_container(
-                    container_id=QualifiedName(f"{read_only_project.project_identifier}/{with_id}"),
-                    expected_container_type=None,
-                )
-                self.with_id = with_id
-            except MetadataContainerNotFound as e:
-                raise ValueError(f"No experiment found with Neptune ID '{with_id}'") from e
+            run = read_only_project.fetch_runs_df(query=f"`sys/id`:string = '{with_id}'", limit=1, columns=["sys/id"])
+            if len(run) == 0:
+                raise ValueError(f"No experiment found with Neptune ID '{with_id}'")
+            self.with_id = with_id
 
-        self._container_id = QualifiedName(f"{self.project.project_identifier}/{self.with_id}")
+        self._container_id = f"{self.project.project_identifier}/{self.with_id}"
         self._cache = FieldsCache(
             backend=self.project._backend,
             container_id=self._container_id,
-            container_type=ContainerType.RUN,
         )
+
+        definitions = self.project._backend.query_attribute_definitions(self._container_id)
         self._structure = {
-            field_definition.path: which_fetchable(
-                field_definition,
+            definition.path: which_fetchable(
+                definition,
                 self.project._backend,
                 self._container_id,
                 self._cache,
             )
-            for field_definition in self.project._backend.get_fields_definitions(
-                container_id=self._container_id,
-                container_type=ContainerType.RUN,
-                use_proto=True,
-            )
-            if field_definition.type in SUPPORTED_TYPES
+            for definition in definitions
+            if FieldType(definition.type) in SUPPORTED_TYPES
         }
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:

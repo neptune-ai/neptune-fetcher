@@ -1,22 +1,33 @@
 import sys
 
-from neptune.internal.backends.hosted_neptune_backend import HostedNeptuneBackend
-from neptune.internal.credentials import Credentials
+from neptune_fetcher.api.api_client import ApiClient
 
 
-def create_project(backend, organization, name):
-    backend.api.createProject(
-        projectToCreate=dict(organizationIdentifier=organization, name=name, visibility="workspace")
-    )
+def create_project(backend: ApiClient, organization, name):
+    body = {"organizationIdentifier": organization, "name": name, "visibility": "priv"}
+    args = {
+        "method": "post",
+        "url": "/api/backend/v1/projects",
+        "json": body,
+    }
+
+    response = backend._backend.get_httpx_client().request(**args)
+    response.raise_for_status()
 
 
 def delete_project(backend, organization, name):
-    backend.api.deleteProject(projectIdentifier="/".join([organization, name]))
+    project_identifier = f"{organization}/{name}"
+    args = {
+        "method": "delete",
+        "url": "/api/backend/v1/projects",
+        "params": {"projectIdentifier": project_identifier},
+    }
+    response = backend._backend.get_httpx_client().request(**args)
+    response.raise_for_status()
 
 
 if __name__ == "__main__":
-    credentials = Credentials.from_token()
-    backend = HostedNeptuneBackend(credentials=credentials).backend_client
+    backend = ApiClient()
 
     cmd = sys.argv[1]
     if cmd == "create_project":

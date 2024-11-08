@@ -1,5 +1,7 @@
 __all__ = ("FieldsCache",)
 
+import datetime
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -11,37 +13,44 @@ from typing import (
     Union,
 )
 
-from neptune.internal.backends.neptune_backend import NeptuneBackend
-from neptune.internal.backends.utils import construct_progress_bar
-from neptune.internal.container_type import ContainerType
-from neptune.internal.id_formats import QualifiedName
-from neptune.internal.utils.paths import parse_path
-from neptune.typing import (
-    ProgressBarCallback,
-    ProgressBarType,
+from neptune_retrieval_api.api.default import get_attributes_with_paths_filter_proto
+from neptune_retrieval_api.models import AttributeQueryDTO
+from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
+    ProtoAttributeDTO,
+    ProtoAttributesDTO,
 )
+from tqdm import tqdm
 
-from neptune_fetcher.fetchable import FieldToFetchableVisitor
+from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fields import (
+    Bool,
+    DateTime,
     Field,
-    Series,
+    FieldType,
+    Float,
+    FloatSeries,
+    Integer,
+    ObjectState,
+    String,
+    StringSet,
 )
 from neptune_fetcher.util import (
-    fetch_series_values,
+    ProgressBarCallback,
+    ProgressBarType,
     getenv_int,
 )
 
 # Maximum number of paths to fetch in a single request for fields definitions.
 MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
 
+logger = logging.getLogger(__name__)
 
-class FieldsCache(Dict[str, Union[Field, Series]]):
-    def __init__(self, backend: NeptuneBackend, container_id: QualifiedName, container_type: ContainerType):
+
+class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
+    def __init__(self, backend: ApiClient, container_id: str):
         super().__init__()
-        self._backend: NeptuneBackend = backend
-        self._container_id: QualifiedName = container_id
-        self._container_type = container_type
-        self._field_to_fetchable_visitor = FieldToFetchableVisitor()
+        self._backend: ApiClient = backend
+        self._container_id: str = container_id
 
     def cache_miss(self, paths: List[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
@@ -56,13 +65,15 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
             end = start + MAX_PATHS_PER_REQUEST
             chunk = missed_paths[start:end]
 
-            data = self._backend.get_fields_with_paths_filter(
-                container_id=self._container_id,
-                container_type=ContainerType.RUN,
-                paths=chunk,
-                use_proto=True,
+            response = get_attributes_with_paths_filter_proto.sync_detailed(
+                client=self._backend._backend,
+                body=AttributeQueryDTO.from_dict({"attributePathsFilter": chunk}),
+                holder_type="experiment",
+                holder_identifier=self._container_id,
             )
-            fetched = {field.path: self._field_to_fetchable_visitor.visit(field) for field in data}
+            data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
+
+            fetched = {attr.name: _extract_value(attr) for attr in data.attributes}
             self.update(fetched)
 
     def prefetch(self, paths: List[str]) -> None:
@@ -78,52 +89,37 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
     ) -> None:
         self.cache_miss(paths)
 
-        with construct_progress_bar(progress_bar, description="Fetching metrics") as progress_bar:
-            progress_bar.update(by=0, total=len(paths))
-            if use_threads:
-                fetch_values_concurrently(
-                    partial(
-                        self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range
-                    ),
-                    paths=paths,
-                    progress_bar=progress_bar,
-                )
-            else:
-                fetch_values_sequentially(
-                    partial(
-                        self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range
-                    ),
-                    paths=paths,
-                    progress_bar=progress_bar,
-                )
+        with tqdm(desc="Fetching metrics", total=len(paths), unit="metrics") as progress_bar:
+            fetch_values_concurrently(
+                partial(self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range),
+                paths=paths,
+                progress_bar=progress_bar,
+            )
 
     def _fetch_single_series_values(
         self,
         path: str,
-        progress_bar: ProgressBarCallback,
+        progress_bar: tqdm,
         include_inherited: bool,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
-        if not isinstance(self[path], Series):
+        if not isinstance(self[path], FloatSeries):
+            progress_bar.update()
             return None
 
-        data = fetch_series_values(
-            getter=partial(
-                self._backend.get_float_series_values,
-                container_id=self._container_id,
-                container_type=ContainerType.RUN,
-                path=parse_path(path),
-                include_inherited=include_inherited,
-                from_step=step_range[0],
-            )
+        points = self._backend.fetch_series_values(
+            container_id=self._container_id,
+            path=path,
+            include_inherited=include_inherited,
+            step_range=step_range,
         )
         self[path].include_inherited = include_inherited
         self[path].step_range = step_range
-        self[path].prefetched_data = list(data)
+        self[path].prefetched_data = list(points)
 
-        progress_bar.update(by=1)
+        progress_bar.update()
 
-    def __getitem__(self, path: str) -> Union[Field, Series]:
+    def __getitem__(self, path: str) -> Union[Field, FloatSeries]:
         self.cache_miss(
             paths=[
                 path,
@@ -132,21 +128,36 @@ class FieldsCache(Dict[str, Union[Field, Series]]):
         return super().__getitem__(path)
 
 
-def fetch_values_sequentially(
-    getter: Callable[[str, ProgressBarCallback], None],
-    paths: List[str],
-    progress_bar: ProgressBarCallback,
-) -> None:
-    for path in paths:
-        getter(path, progress_bar)
-
-
 def fetch_values_concurrently(
     getter: Callable[[str, ProgressBarCallback], None],
     paths: List[str],
-    progress_bar: ProgressBarCallback,
+    progress_bar: tqdm,
 ) -> None:
     max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
 
     with ThreadPoolExecutor(max_workers) as executor:
-        executor.map(partial(getter, progress_bar=progress_bar), paths)
+        futures = executor.map(partial(getter, progress_bar=progress_bar), paths)
+        # Wait for all futures to finish
+        list(futures)
+
+
+def _extract_value(attr: ProtoAttributeDTO) -> Union[Field, FloatSeries]:
+    if attr.type == "floatSeries":
+        return FloatSeries(FieldType.FLOAT_SERIES, last=attr.float_series_properties.last)
+    elif attr.type == "string":
+        return String(FieldType.STRING, attr.string_properties.value)
+    elif attr.type == "int":
+        return Integer(FieldType.INT, attr.int_properties.value)
+    elif attr.type == "float":
+        return Float(FieldType.FLOAT, attr.float_properties.value)
+    elif attr.type == "bool":
+        return Bool(FieldType.BOOL, attr.bool_properties.value)
+    elif attr.type == "datetime":
+        timestamp = datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
+        return DateTime(FieldType.DATETIME, timestamp)
+    elif attr.type == "stringSet":
+        return StringSet(FieldType.STRING_SET, set(attr.string_set_properties.value))
+    elif attr.type == "experimentState":
+        return ObjectState(FieldType.OBJECT_STATE, "experiment_state")
+    else:
+        raise ValueError(f"Unsupported attribute type: {attr.type}, please update the neptune-fetcher")
