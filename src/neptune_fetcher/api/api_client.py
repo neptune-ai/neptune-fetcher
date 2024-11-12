@@ -70,6 +70,7 @@ from neptune_fetcher.fields import (
 from neptune_fetcher.util import NeptuneException
 
 API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
+NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
 
 
 class ApiClient:
@@ -227,7 +228,7 @@ class TokenRefreshingURLs:
 def get_config_and_token_urls(
     *, credentials: Credentials, proxies: Optional[Dict[str, str]]
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
-    with Client(base_url=credentials.base_url, httpx_args={"mounts": proxies}) as client:
+    with Client(base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=NEPTUNE_VERIFY_SSL) as client:
         config = get_client_config.sync(client=client)
         if config is None or isinstance(config, Error):
             raise RuntimeError(f"Failed to get client config: {config}")
@@ -249,6 +250,7 @@ def create_auth_api_client(
         client_id=config.security.client_id,
         token_refreshing_endpoint=token_refreshing_urls.token_endpoint,
         api_key_exchange_callback=exchange_api_key,
+        verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
     )
 
