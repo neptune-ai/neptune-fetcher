@@ -40,17 +40,23 @@ from neptune_api.models import (
 )
 from neptune_retrieval_api.api.default import (
     get_float_series_values_proto,
+    get_multiple_float_series_values_proto,
     query_attribute_definitions_proto,
     query_attribute_definitions_within_project,
     query_attributes_within_project_proto,
     search_leaderboard_entries_proto,
 )
 from neptune_retrieval_api.models import (
-    GetFloatSeriesValuesProtoLineage,
+    AttributesHolderIdentifier,
+    FloatTimeSeriesValuesRequest,
+    FloatTimeSeriesValuesRequestOrder,
+    FloatTimeSeriesValuesRequestSeries,
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
     QueryAttributesBodyDTO,
     SearchLeaderboardEntriesParamsDTO,
+    TimeSeries,
+    TimeSeriesLineage,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.model.attributes_pb2 import (
     ProtoAttributesSearchResultDTO,
@@ -59,7 +65,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.attributes_pb2 import (
 from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesDTO
+from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.fields import (
@@ -130,25 +136,36 @@ class ApiClient:
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
         limit: int = 10000,
     ) -> List[FloatPointValue]:
-        lineage = GetFloatSeriesValuesProtoLineage.FULL if include_inherited else GetFloatSeriesValuesProtoLineage.NONE
+        lineage = TimeSeriesLineage.FULL if include_inherited else TimeSeriesLineage.NONE
         response = backoff_retry(
-            lambda: get_float_series_values_proto.sync_detailed(
+            lambda: get_multiple_float_series_values_proto.sync_detailed(
                 client=self._backend,
-                attribute=path,
-                experiment_id=container_id,
-                lineage=lineage,
-                limit=limit,
-                skip_to_step=step_range[0],
+                body=FloatTimeSeriesValuesRequest(
+                    per_series_points_limit=limit,
+                    requests=[FloatTimeSeriesValuesRequestSeries(
+                        request_id="",
+                        series=TimeSeries(
+                            attribute=path,
+                            holder=AttributesHolderIdentifier(
+                                identifier=container_id,
+                                type="experiment",
+                            ),
+                            lineage=lineage
+                        ),
+                        after_step=step_range[0],
+                    )],
+                    order=FloatTimeSeriesValuesRequestOrder.ASCENDING,
+                ),
             )
         )
-        data: ProtoFloatSeriesValuesDTO = ProtoFloatSeriesValuesDTO.FromString(response.content)
+        data: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
         return [
             FloatPointValue(
                 timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
                 value=point.value,
                 step=point.step,
             )
-            for point in data.values
+            for point in data.series[0].series.values
         ]
 
     def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
