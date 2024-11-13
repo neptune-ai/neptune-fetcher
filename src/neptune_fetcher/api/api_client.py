@@ -15,6 +15,7 @@ from typing import (
     Callable,
     Dict,
     Final,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -54,6 +55,7 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
     QueryAttributesBodyDTO,
+    OpenRangeDTO,
     SearchLeaderboardEntriesParamsDTO,
     TimeSeries,
     TimeSeriesLineage,
@@ -101,27 +103,20 @@ class ApiClient:
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[Any]:
+        paths = [path]
         step_size: int = 10_000
-        batch = self._fetch_series_values(
-            path=path,
-            include_inherited=include_inherited,
-            container_id=container_id,
-            step_range=step_range,
-            limit=step_size,
-        )
-        yield from batch
 
-        current_batch_size = len(batch)
-        last_step_value = batch[-1].step if batch else None
-
-        while current_batch_size == step_size:
+        current_batch_size = None
+        last_step_value = None
+        while current_batch_size is None or current_batch_size == step_size:
             batch = self._fetch_series_values(
-                path=path,
+                paths=paths,
                 include_inherited=include_inherited,
                 container_id=container_id,
-                step_range=(last_step_value, None),
+                step_range=step_range,
+                after_step=last_step_value,
                 limit=step_size,
-            )
+            )[0]
 
             yield from batch
 
@@ -130,42 +125,57 @@ class ApiClient:
 
     def _fetch_series_values(
         self,
-        path: str,
+        paths: Iterable[str],
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+        after_step: Optional[float] = None,
         limit: int = 10000,
-    ) -> List[FloatPointValue]:
+    ) -> List[List[FloatPointValue]]:
         lineage = TimeSeriesLineage.FULL if include_inherited else TimeSeriesLineage.NONE
+        request = FloatTimeSeriesValuesRequest(
+            per_series_points_limit=limit,
+            requests=[
+                FloatTimeSeriesValuesRequestSeries(
+                    request_id=f"{ix}",
+                    series=TimeSeries(
+                        attribute=path,
+                        holder=AttributesHolderIdentifier(
+                            identifier=container_id,
+                            type="experiment",
+                        ),
+                        lineage=lineage
+                    ),
+                    after_step=after_step,
+                )
+                for ix, path in enumerate(paths)
+            ],
+            step_range=OpenRangeDTO(
+                from_=step_range[0],
+                to=step_range[1],
+            ),
+            order=FloatTimeSeriesValuesRequestOrder.ASCENDING,
+        )
+
         response = backoff_retry(
             lambda: get_multiple_float_series_values_proto.sync_detailed(
                 client=self._backend,
-                body=FloatTimeSeriesValuesRequest(
-                    per_series_points_limit=limit,
-                    requests=[FloatTimeSeriesValuesRequestSeries(
-                        request_id="",
-                        series=TimeSeries(
-                            attribute=path,
-                            holder=AttributesHolderIdentifier(
-                                identifier=container_id,
-                                type="experiment",
-                            ),
-                            lineage=lineage
-                        ),
-                        after_step=step_range[0],
-                    )],
-                    order=FloatTimeSeriesValuesRequestOrder.ASCENDING,
-                ),
+                body=request
             )
         )
+
         data: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+
         return [
-            FloatPointValue(
-                timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
-                value=point.value,
-                step=point.step,
-            )
-            for point in data.series[0].series.values
+            [
+                FloatPointValue(
+                    timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
+                    value=point.value,
+                    step=point.step,
+                )
+                for point in series.series.values
+            ]
+            for series in data.series
         ]
 
     def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
