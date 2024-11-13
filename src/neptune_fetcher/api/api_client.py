@@ -15,7 +15,6 @@ from typing import (
     Callable,
     Dict,
     Final,
-    Iterable,
     Iterator,
     List,
     Optional,
@@ -23,6 +22,7 @@ from typing import (
     Tuple,
     Union,
 )
+from tqdm import tqdm
 
 from neptune_api import (
     AuthenticatedClient,
@@ -40,7 +40,6 @@ from neptune_api.models import (
     ProjectDTO,
 )
 from neptune_retrieval_api.api.default import (
-    get_float_series_values_proto,
     get_multiple_float_series_values_proto,
     query_attribute_definitions_proto,
     query_attribute_definitions_within_project,
@@ -102,19 +101,22 @@ class ApiClient:
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> Iterator[Any]:
-        paths = [path]
+    ) -> Iterator[FloatPointValue]:
         step_size: int = 10_000
 
         current_batch_size = None
         last_step_value = None
         while current_batch_size is None or current_batch_size == step_size:
-            batch = self._fetch_series_values(
-                paths=paths,
-                include_inherited=include_inherited,
+            request = _SeriesRequest(
+                path=path,
                 container_id=container_id,
-                step_range=step_range,
+                include_inherited=include_inherited,
                 after_step=last_step_value,
+            )
+
+            batch = self._fetch_series_values(
+                requests=[request],
+                step_range=step_range,
                 limit=step_size,
             )[0]
 
@@ -123,32 +125,88 @@ class ApiClient:
             current_batch_size = len(batch)
             last_step_value = batch[-1].step if batch else None
 
+    def fetch_multiple_series_values(
+            self,
+            paths: List[str],
+            include_inherited: bool,
+            container_id: str,
+            step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+    ) -> Iterator[(str, List[FloatPointValue])]:
+        max_paths_per_request: int = 100
+        total_step_size: int = 100_000
+
+        paths_len = len(paths)
+        if paths_len > max_paths_per_request:
+            results = {}
+            for i in range(0, paths_len, max_paths_per_request):
+                batch_paths = paths[i:i + max_paths_per_request]
+                batch_result = self.fetch_multiple_series_values(
+                    paths=batch_paths,
+                    include_inherited=include_inherited,
+                    container_id=container_id,
+                    step_range=step_range,
+                )
+                results.update(batch_result)
+            return results
+
+        results = {
+            path: [] for path in paths
+        }
+        attribute_steps = {
+            path: None for path in paths
+        }
+
+        while attribute_steps:
+            step_size = total_step_size // len(attribute_steps)
+            requests = [
+                _SeriesRequest(
+                    path=path,
+                    container_id=container_id,
+                    include_inherited=include_inherited,
+                    after_step=after_step,
+                )
+                for path, after_step in attribute_steps.items()
+            ]
+
+            values = self._fetch_series_values(
+                requests=requests,
+                step_range=step_range,
+                limit=step_size,
+            )
+
+            new_attribute_steps = {}
+            for request, series_values in zip(requests, values):
+                path = request.path
+                results[path].extend(series_values)
+                if len(series_values) == step_size:
+                    new_attribute_steps[path] = series_values[-1].step
+                else:
+                    path_result = results.pop(path)
+                    yield path, path_result
+            attribute_steps = new_attribute_steps
+
     def _fetch_series_values(
         self,
-        paths: Iterable[str],
-        include_inherited: bool,
-        container_id: str,
+        requests: List[_SeriesRequest],
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-        after_step: Optional[float] = None,
-        limit: int = 10000,
+        limit: int = 10_000,
     ) -> List[List[FloatPointValue]]:
-        lineage = TimeSeriesLineage.FULL if include_inherited else TimeSeriesLineage.NONE
         request = FloatTimeSeriesValuesRequest(
             per_series_points_limit=limit,
             requests=[
                 FloatTimeSeriesValuesRequestSeries(
                     request_id=f"{ix}",
                     series=TimeSeries(
-                        attribute=path,
+                        attribute=request.path,
                         holder=AttributesHolderIdentifier(
-                            identifier=container_id,
+                            identifier=request.container_id,
                             type="experiment",
                         ),
-                        lineage=lineage
+                        lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE
                     ),
-                    after_step=after_step,
+                    after_step=request.after_step,
                 )
-                for ix, path in enumerate(paths)
+                for ix, request in enumerate(requests)
             ],
             step_range=OpenRangeDTO(
                 from_=step_range[0],
@@ -175,7 +233,7 @@ class ApiClient:
                 )
                 for point in series.series.values
             ]
-            for series in data.series
+            for series in sorted(data.series, key=lambda s: int(s.requestId))
         ]
 
     def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
@@ -238,6 +296,14 @@ class ApiClient:
             raise NeptuneException("Project not found")
         else:
             return response.parsed
+
+
+@dataclass(frozen=True)
+class _SeriesRequest:
+    path: str
+    container_id: str
+    include_inherited: bool
+    after_step: Optional[float]
 
 
 @dataclass

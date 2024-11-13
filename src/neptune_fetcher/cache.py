@@ -2,11 +2,7 @@ __all__ = ("FieldsCache",)
 
 import datetime
 import logging
-import os
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
 from typing import (
-    Callable,
     Dict,
     List,
     Tuple,
@@ -35,7 +31,6 @@ from neptune_fetcher.fields import (
     StringSet,
 )
 from neptune_fetcher.util import (
-    ProgressBarCallback,
     ProgressBarType,
     getenv_int,
 )
@@ -89,35 +84,21 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
     ) -> None:
         self.cache_miss(paths)
 
-        with tqdm(desc="Fetching metrics", total=len(paths), unit="metrics") as progress_bar:
-            fetch_values_concurrently(
-                partial(self._fetch_single_series_values, include_inherited=include_inherited, step_range=step_range),
-                paths=paths,
-                progress_bar=progress_bar,
+        float_series_paths = [path for path in paths if isinstance(self[path], FloatSeries)]
+
+        with tqdm(desc="Fetching metrics", total=len(float_series_paths), unit="metrics") as progress_bar:
+            result = self._backend.fetch_multiple_series_values(
+                float_series_paths,
+                include_inherited=include_inherited,
+                container_id=self._container_id,
+                step_range=step_range,
             )
 
-    def _fetch_single_series_values(
-        self,
-        path: str,
-        progress_bar: tqdm,
-        include_inherited: bool,
-        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> None:
-        if not isinstance(self[path], FloatSeries):
-            progress_bar.update()
-            return None
-
-        points = self._backend.fetch_series_values(
-            container_id=self._container_id,
-            path=path,
-            include_inherited=include_inherited,
-            step_range=step_range,
-        )
-        self[path].include_inherited = include_inherited
-        self[path].step_range = step_range
-        self[path].prefetched_data = list(points)
-
-        progress_bar.update()
+            for path, points in result:
+                self[path].include_inherited = include_inherited
+                self[path].step_range = step_range
+                self[path].prefetched_data = list(points)
+                progress_bar.update()
 
     def __getitem__(self, path: str) -> Union[Field, FloatSeries]:
         self.cache_miss(
@@ -126,19 +107,6 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             ]
         )
         return super().__getitem__(path)
-
-
-def fetch_values_concurrently(
-    getter: Callable[[str, ProgressBarCallback], None],
-    paths: List[str],
-    progress_bar: tqdm,
-) -> None:
-    max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
-
-    with ThreadPoolExecutor(max_workers) as executor:
-        futures = executor.map(partial(getter, progress_bar=progress_bar), paths)
-        # Wait for all futures to finish
-        list(futures)
 
 
 def _extract_value(attr: ProtoAttributeDTO) -> Union[Field, FloatSeries]:
