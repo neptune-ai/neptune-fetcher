@@ -22,7 +22,6 @@ from typing import (
     Tuple,
     Union,
 )
-from tqdm import tqdm
 
 from neptune_api import (
     AuthenticatedClient,
@@ -51,10 +50,10 @@ from neptune_retrieval_api.models import (
     FloatTimeSeriesValuesRequest,
     FloatTimeSeriesValuesRequestOrder,
     FloatTimeSeriesValuesRequestSeries,
+    OpenRangeDTO,
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
     QueryAttributesBodyDTO,
-    OpenRangeDTO,
     SearchLeaderboardEntriesParamsDTO,
     TimeSeries,
     TimeSeriesLineage,
@@ -126,11 +125,11 @@ class ApiClient:
             last_step_value = batch[-1].step if batch else None
 
     def fetch_multiple_series_values(
-            self,
-            paths: List[str],
-            include_inherited: bool,
-            container_id: str,
-            step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+        self,
+        paths: List[str],
+        include_inherited: bool,
+        container_id: str,
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[(str, List[FloatPointValue])]:
         max_paths_per_request: int = 100
         total_step_size: int = 100_000
@@ -139,7 +138,7 @@ class ApiClient:
         if paths_len > max_paths_per_request:
             results = {}
             for i in range(0, paths_len, max_paths_per_request):
-                batch_paths = paths[i:i + max_paths_per_request]
+                batch_paths = paths[i : i + max_paths_per_request]
                 batch_result = self.fetch_multiple_series_values(
                     paths=batch_paths,
                     include_inherited=include_inherited,
@@ -149,12 +148,8 @@ class ApiClient:
                 results.update(batch_result)
             return results
 
-        results = {
-            path: [] for path in paths
-        }
-        attribute_steps = {
-            path: None for path in paths
-        }
+        results = {path: [] for path in paths}
+        attribute_steps = {path: None for path in paths}
 
         while attribute_steps:
             step_size = total_step_size // len(attribute_steps)
@@ -202,7 +197,7 @@ class ApiClient:
                             identifier=request.container_id,
                             type="experiment",
                         ),
-                        lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE
+                        lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
                     ),
                     after_step=request.after_step,
                 )
@@ -216,10 +211,7 @@ class ApiClient:
         )
 
         response = backoff_retry(
-            lambda: get_multiple_float_series_values_proto.sync_detailed(
-                client=self._backend,
-                body=request
-            )
+            lambda: get_multiple_float_series_values_proto.sync_detailed(client=self._backend, body=request)
         )
 
         data: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
