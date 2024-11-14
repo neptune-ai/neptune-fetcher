@@ -132,7 +132,7 @@ class ApiClient:
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[(str, List[FloatPointValue])]:
         max_paths_per_request: int = 100
-        total_step_size: int = 100_000
+        total_step_size: int = 1_000_000
 
         paths_len = len(paths)
         if paths_len > max_paths_per_request:
