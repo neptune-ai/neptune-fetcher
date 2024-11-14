@@ -667,12 +667,12 @@ or from the API.
 
 __Parameters:__
 
-| Name                | Type                  | Default      | Description                                                                                                                                                                                         |
-|---------------------|-----------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `include_timestamp` | `bool`                | `True`       | Whether the fetched data should include the timestamp field.                                                                                                                                        |
-| `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                                                       |
-| `progress_bar`      | `ProgressBarType`     | `None`       | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used.           |
-| `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (exclusive). If None, it\'s open on the left. <br> - right: (currently not supported) right boundary of the range (inclusive). If None, it\'s open on the right. |
+| Name                | Type                  | Default      | Description                                                                                                                                                                               |
+|---------------------|-----------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `include_timestamp` | `bool`                | `True`       | Whether the fetched data should include the timestamp field.                                                                                                                              |
+| `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                                             |
+| `progress_bar`      | `ProgressBarType`     | `None`       | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
+| `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (inclusive). If None, it\'s open on the left. <br> - right: right boundary of the range (inclusive). If None, it\'s open on the right.                 |
 
 __Returns:__ `pandas.DataFrame`
 

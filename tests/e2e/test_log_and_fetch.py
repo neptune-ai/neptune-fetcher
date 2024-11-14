@@ -154,3 +154,18 @@ def test_series_fetch_and_append(run, ro_run):
     df = ro_run[path].fetch_values()
     assert df["step"].tolist() == steps + steps2
     assert df["value"].tolist() == values + values2
+
+
+def test_series_step_range(run, ro_run):
+    path = unique_path("test_series/series_step_range")
+
+    steps, values = random_series(length=20)
+
+    for step, value in zip(steps, values):
+        run.log_metrics(data={path: value}, step=step)
+
+    run.wait_for_processing()
+
+    df = ro_run[path].fetch_values(step_range=(steps[5], steps[15]))
+    assert df["step"].tolist() == steps[5:16]
+    assert df["value"].tolist() == values[5:16]
