@@ -97,9 +97,9 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             lock = threading.Lock()
             batch_size = 300
 
-            def fetch(batch):
+            def fetch(start_index: int):
                 result = self._backend.fetch_multiple_series_values(
-                    float_series_paths[batch : batch + batch_size],
+                    float_series_paths[start_index : start_index + batch_size],
                     include_inherited=include_inherited,
                     container_id=self._container_id,
                     step_range=step_range,
