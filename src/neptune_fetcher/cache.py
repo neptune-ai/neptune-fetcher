@@ -107,7 +107,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
 
                 for path, points in result:
                     points = list(points)
-                    with lock:
+                    with lock:  # lock is inside the loop because result is a generator that fetches data lazily
                         self[path].include_inherited = include_inherited
                         self[path].step_range = step_range
                         self[path].prefetched_data = points
