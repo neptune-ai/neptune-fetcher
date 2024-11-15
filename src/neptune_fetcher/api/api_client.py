@@ -131,28 +131,17 @@ class ApiClient:
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[(str, List[FloatPointValue])]:
-        max_paths_per_request: int = 300
-        total_step_size: int = 1_000_000
+        total_step_limit: int = 1_000_000
 
         paths_len = len(paths)
-        if paths_len > max_paths_per_request:
-            results = {}
-            for i in range(0, paths_len, max_paths_per_request):
-                batch_paths = paths[i : i + max_paths_per_request]
-                batch_result = self.fetch_multiple_series_values(
-                    paths=batch_paths,
-                    include_inherited=include_inherited,
-                    container_id=container_id,
-                    step_range=step_range,
-                )
-                results.update(batch_result)
-            return results
+        if paths_len > total_step_limit:
+            raise ValueError(f"The number of paths ({paths_len}) exceeds the step limit ({total_step_limit})")
 
         results = {path: [] for path in paths}
         attribute_steps = {path: None for path in paths}
 
         while attribute_steps:
-            step_size = total_step_size // len(attribute_steps)
+            series_step_limit = total_step_limit // len(attribute_steps)
             requests = [
                 _SeriesRequest(
                     path=path,
@@ -166,14 +155,14 @@ class ApiClient:
             values = self._fetch_series_values(
                 requests=requests,
                 step_range=step_range,
-                limit=step_size,
+                limit=series_step_limit,
             )
 
             new_attribute_steps = {}
             for request, series_values in zip(requests, values):
                 path = request.path
                 results[path].extend(series_values)
-                if len(series_values) == step_size:
+                if len(series_values) == series_step_limit:
                     new_attribute_steps[path] = series_values[-1].step
                 else:
                     path_result = results.pop(path)
