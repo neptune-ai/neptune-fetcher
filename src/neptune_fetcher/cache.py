@@ -2,6 +2,9 @@ __all__ = ("FieldsCache",)
 
 import datetime
 import logging
+import os
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import (
     Dict,
     List,
@@ -86,19 +89,34 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
 
         float_series_paths = [path for path in paths if isinstance(self[path], FloatSeries)]
 
-        with tqdm(desc="Fetching metrics", total=len(float_series_paths), unit="metrics") as progress_bar:
-            result = self._backend.fetch_multiple_series_values(
-                float_series_paths,
-                include_inherited=include_inherited,
-                container_id=self._container_id,
-                step_range=step_range,
-            )
+        max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
 
-            for path, points in result:
-                self[path].include_inherited = include_inherited
-                self[path].step_range = step_range
-                self[path].prefetched_data = list(points)
-                progress_bar.update()
+        with tqdm(
+            desc="Fetching metrics", total=len(float_series_paths), unit="metrics"
+        ) as progress_bar, ThreadPoolExecutor(max_workers) as executor:
+            lock = threading.Lock()
+            batch_size = 300
+
+            def fetch(start_index: int):
+                result = self._backend.fetch_multiple_series_values(
+                    float_series_paths[start_index : start_index + batch_size],
+                    include_inherited=include_inherited,
+                    container_id=self._container_id,
+                    step_range=step_range,
+                )
+
+                for path, points in result:
+                    points = list(points)
+                    with lock:  # lock is inside the loop because result is a generator that fetches data lazily
+                        self[path].include_inherited = include_inherited
+                        self[path].step_range = step_range
+                        self[path].prefetched_data = points
+                        progress_bar.update()
+
+            futures = executor.map(fetch, range(0, len(float_series_paths), batch_size))
+
+            # Wait for all futures to finish
+            list(futures)
 
     def __getitem__(self, path: str) -> Union[Field, FloatSeries]:
         self.cache_miss(
