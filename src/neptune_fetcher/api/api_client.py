@@ -39,18 +39,24 @@ from neptune_api.models import (
     ProjectDTO,
 )
 from neptune_retrieval_api.api.default import (
-    get_float_series_values_proto,
+    get_multiple_float_series_values_proto,
     query_attribute_definitions_proto,
     query_attribute_definitions_within_project,
     query_attributes_within_project_proto,
     search_leaderboard_entries_proto,
 )
 from neptune_retrieval_api.models import (
-    GetFloatSeriesValuesProtoLineage,
+    AttributesHolderIdentifier,
+    FloatTimeSeriesValuesRequest,
+    FloatTimeSeriesValuesRequestOrder,
+    FloatTimeSeriesValuesRequestSeries,
+    OpenRangeDTO,
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
     QueryAttributesBodyDTO,
     SearchLeaderboardEntriesParamsDTO,
+    TimeSeries,
+    TimeSeriesLineage,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.model.attributes_pb2 import (
     ProtoAttributesSearchResultDTO,
@@ -59,7 +65,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.attributes_pb2 import (
 from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesDTO
+from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.fields import (
@@ -94,61 +100,132 @@ class ApiClient:
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> Iterator[Any]:
+    ) -> Iterator[FloatPointValue]:
         step_size: int = 10_000
-        batch = self._fetch_series_values(
-            path=path,
-            include_inherited=include_inherited,
-            container_id=container_id,
-            step_range=step_range,
-            limit=step_size,
-        )
-        yield from batch
 
-        current_batch_size = len(batch)
-        last_step_value = batch[-1].step if batch else None
-
-        while current_batch_size == step_size:
-            batch = self._fetch_series_values(
+        current_batch_size = None
+        last_step_value = None
+        while current_batch_size is None or current_batch_size == step_size:
+            request = _SeriesRequest(
                 path=path,
-                include_inherited=include_inherited,
                 container_id=container_id,
-                step_range=(last_step_value, None),
-                limit=step_size,
+                include_inherited=include_inherited,
+                after_step=last_step_value,
             )
+
+            batch = self._fetch_series_values(
+                requests=[request],
+                step_range=step_range,
+                limit=step_size,
+            )[0]
 
             yield from batch
 
             current_batch_size = len(batch)
             last_step_value = batch[-1].step if batch else None
 
-    def _fetch_series_values(
+    def fetch_multiple_series_values(
         self,
-        path: str,
+        paths: List[str],
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-        limit: int = 10000,
-    ) -> List[FloatPointValue]:
-        lineage = GetFloatSeriesValuesProtoLineage.FULL if include_inherited else GetFloatSeriesValuesProtoLineage.NONE
-        response = backoff_retry(
-            lambda: get_float_series_values_proto.sync_detailed(
-                client=self._backend,
-                attribute=path,
-                experiment_id=container_id,
-                lineage=lineage,
-                limit=limit,
-                skip_to_step=step_range[0],
+    ) -> Iterator[(str, List[FloatPointValue])]:
+        max_paths_per_request: int = 100
+        total_step_size: int = 1_000_000
+
+        paths_len = len(paths)
+        if paths_len > max_paths_per_request:
+            results = {}
+            for i in range(0, paths_len, max_paths_per_request):
+                batch_paths = paths[i : i + max_paths_per_request]
+                batch_result = self.fetch_multiple_series_values(
+                    paths=batch_paths,
+                    include_inherited=include_inherited,
+                    container_id=container_id,
+                    step_range=step_range,
+                )
+                results.update(batch_result)
+            return results
+
+        results = {path: [] for path in paths}
+        attribute_steps = {path: None for path in paths}
+
+        while attribute_steps:
+            step_size = total_step_size // len(attribute_steps)
+            requests = [
+                _SeriesRequest(
+                    path=path,
+                    container_id=container_id,
+                    include_inherited=include_inherited,
+                    after_step=after_step,
+                )
+                for path, after_step in attribute_steps.items()
+            ]
+
+            values = self._fetch_series_values(
+                requests=requests,
+                step_range=step_range,
+                limit=step_size,
             )
+
+            new_attribute_steps = {}
+            for request, series_values in zip(requests, values):
+                path = request.path
+                results[path].extend(series_values)
+                if len(series_values) == step_size:
+                    new_attribute_steps[path] = series_values[-1].step
+                else:
+                    path_result = results.pop(path)
+                    yield path, path_result
+            attribute_steps = new_attribute_steps
+
+    def _fetch_series_values(
+        self,
+        requests: List[_SeriesRequest],
+        step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+        limit: int = 10_000,
+    ) -> List[List[FloatPointValue]]:
+        request = FloatTimeSeriesValuesRequest(
+            per_series_points_limit=limit,
+            requests=[
+                FloatTimeSeriesValuesRequestSeries(
+                    request_id=f"{ix}",
+                    series=TimeSeries(
+                        attribute=request.path,
+                        holder=AttributesHolderIdentifier(
+                            identifier=request.container_id,
+                            type="experiment",
+                        ),
+                        lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
+                    ),
+                    after_step=request.after_step,
+                )
+                for ix, request in enumerate(requests)
+            ],
+            step_range=OpenRangeDTO(
+                from_=step_range[0],
+                to=step_range[1],
+            ),
+            order=FloatTimeSeriesValuesRequestOrder.ASCENDING,
         )
-        data: ProtoFloatSeriesValuesDTO = ProtoFloatSeriesValuesDTO.FromString(response.content)
+
+        response = backoff_retry(
+            lambda: get_multiple_float_series_values_proto.sync_detailed(client=self._backend, body=request)
+        )
+
+        data: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+
         return [
-            FloatPointValue(
-                timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
-                value=point.value,
-                step=point.step,
-            )
-            for point in data.values
+            [
+                FloatPointValue(
+                    timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
+                    value=point.value,
+                    step=point.step,
+                )
+                for point in series.series.values
+            ]
+            for series in sorted(data.series, key=lambda s: int(s.requestId))
         ]
 
     def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
@@ -211,6 +288,14 @@ class ApiClient:
             raise NeptuneException("Project not found")
         else:
             return response.parsed
+
+
+@dataclass(frozen=True)
+class _SeriesRequest:
+    path: str
+    container_id: str
+    include_inherited: bool
+    after_step: Optional[float]
 
 
 @dataclass
