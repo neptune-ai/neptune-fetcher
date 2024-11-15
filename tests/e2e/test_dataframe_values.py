@@ -51,9 +51,10 @@ def test__nonexistent_column_is_returned_as_null(project, sys_columns):
     ],
 )
 def test__column_regex(project, regex, run_ids, expect_count):
-    """Request columns using a regex, keeping in mind that we always return custom_run_id and the sorting column"""
+    """Request columns using a regex, keeping in mind that we always return custom_run_id, name, and the sorting
+    column"""
     df = project.fetch_runs_df(columns_regex=regex, custom_ids=run_ids)
-    assert len(df.columns) == expect_count + 2
+    assert len(df.columns) == expect_count + 3  # account for the default columns
 
 
 def test__columns_regex_and_list_together(project, sys_columns):
@@ -86,7 +87,7 @@ def test__columns_not_present_in_all_runs_are_null(project, sys_columns):
     )
 
     assert len(df) == 2
-    assert len(df.columns) == 2  # sys/custom_run_id is always included
+    assert len(df.columns) == 3  # sys/custom_run_id and sys/name are always included
     assert df["config/foo1-unique-id-run-1"].isnull().sum() == 1  # Only id-run-10 has this column
 
 
@@ -132,7 +133,7 @@ def test__default_columns(project):
     """We should always return sys/custom_run_id as well as the sorting column. The columns must be unique."""
 
     df = project.fetch_runs_df(columns=["no-such-column"])
-    assert set(df.columns) == {"sys/custom_run_id", "sys/creation_time", "no-such-column"}
+    assert set(df.columns) == {"sys/name", "sys/custom_run_id", "sys/creation_time", "no-such-column"}
 
     df = project.fetch_runs_df(sort_by="sys/name", columns=["no-such-column"])
     assert set(df.columns) == {"sys/custom_run_id", "sys/name", "no-such-column"}

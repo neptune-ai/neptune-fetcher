@@ -400,11 +400,6 @@ class ReadOnlyProject:
         _verify_name_regex("names_regex", names_regex)
         _verify_name_regex("names_exclude_regex", names_exclude_regex)
 
-        if columns is None:
-            columns = []
-
-        columns = list(columns) + ["sys/name"]
-
         return self._fetch_df(
             columns=columns,
             columns_regex=columns_regex,
@@ -633,7 +628,7 @@ def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> Li
 
     columns = set(columns)
 
-    for col in (sort_by, "sys/custom_run_id"):
+    for col in (sort_by, "sys/custom_run_id", "sys/name"):
         if col not in columns:
             columns.add(col)
 
