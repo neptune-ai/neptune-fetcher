@@ -131,7 +131,7 @@ class ApiClient:
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[(str, List[FloatPointValue])]:
-        max_paths_per_request: int = 100
+        max_paths_per_request: int = 300
         total_step_size: int = 1_000_000
 
         paths_len = len(paths)
