@@ -256,7 +256,7 @@ class ReadOnlyProject:
 
         Args:
             columns: Columns to include in the result, as a list of field names.
-                Defaults to None, which includes only `sys/custom_run_id` column.
+                Defaults to None, which includes `sys/custom_run_id` and `sys/name` columns.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
             columns_regex: A regex pattern to filter columns by name.
