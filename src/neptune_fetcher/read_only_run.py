@@ -15,6 +15,7 @@
 #
 __all__ = ["ReadOnlyRun"]
 
+import warnings
 from typing import (
     TYPE_CHECKING,
     Generator,
@@ -116,10 +117,18 @@ class ReadOnlyRun:
 
     @property
     def field_names(self) -> Generator[str, None, None]:
-        """Lists names of run attributes.
+        warnings.warn(
+            "`ReadOnlyRun.field_names` is deprecated and will be removed in a future release. "
+            "Use `ReadOnlyRun.attribute_names` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.attribute_names
 
-        Returns a generator of run attributes.
-        """
+    @property
+    def attribute_names(self) -> Generator[str, None, None]:
+        """Returns a generator of names of run attributes."""
+
         yield from self._structure
 
     def prefetch(self, paths: List[str]) -> None:

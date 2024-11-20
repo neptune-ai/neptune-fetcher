@@ -118,7 +118,7 @@ def test_multiple_series_with_prefetch(run, ro_run):
     run.wait_for_processing()
 
     ro_run = refresh(ro_run)
-    paths = [p for p in ro_run.field_names if p.startswith(path_base)]
+    paths = [p for p in ro_run.attribute_names if p.startswith(path_base)]
     assert len(paths) == len(data), "Not all data was logged"
 
     ro_run.prefetch_series_values(paths, use_threads=True)

@@ -756,14 +756,14 @@ def _find_sort_type(backend, project_id, sort_by):
     else:
         types = backend.find_attribute_type_within_project(project_id, sort_by)
         if len(types) == 0:
-            warnings.warn(f"Could not find sorting column type for field '{sort_by}'.", NeptuneWarning)
+            warnings.warn(f"Could not find sorting column type for attribute '{sort_by}'.", NeptuneWarning)
             return "string"
         elif len(types) == 1:
             return types.pop()
         else:
             sorted_types = sorted(types)
             warnings.warn(
-                f"Found multiple types for sorting field '{sort_by}': {sorted_types}. Using {sorted_types[0]}.",
+                f"Found multiple types for sorting attribute '{sort_by}': {sorted_types}. Using {sorted_types[0]}.",
                 NeptuneWarning,
             )
             return sorted_types[0]

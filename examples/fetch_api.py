@@ -45,7 +45,7 @@ def main():
     print("Runs dataframe:\n", run_df, "\n###########################################\n")
 
     # Run attributes
-    attributes = list(run.field_names)
+    attributes = list(run.attribute_names)
     print("Run attribute names:\n", attributes, "\n###########################################\n")
 
 
