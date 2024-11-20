@@ -18,5 +18,30 @@ __all__ = [
     "ReadOnlyRun",
 ]
 
+try:
+    from importlib.metadata import (
+        PackageNotFoundError,
+        version,
+    )
+
+    # This will raise PackageNotFoundError if the package is not installed
+    version("neptune-experimental")
+
+    raise ImportError(
+        """You have `neptune-experimental` installed. The package is deprecated and causes errors.
+
+Uninstall it before using `neptune-fetcher`:
+
+    pip uninstall neptune-experimental
+
+If you're using `uv`:
+
+    uv pip uninstall neptune-experimental
+
+    """
+    )
+except PackageNotFoundError:
+    pass
+
 from .read_only_project import ReadOnlyProject
 from .read_only_run import ReadOnlyRun
