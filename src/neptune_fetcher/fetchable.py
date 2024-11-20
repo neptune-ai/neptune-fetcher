@@ -36,30 +36,30 @@ from typing import (
 )
 
 from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fields import (
-    FieldDefinition,
-    FieldType,
+from neptune_fetcher.attributes import (
+    AttributeDefinition,
+    AttributeType,
 )
 from neptune_fetcher.util import ProgressBarType
 
 if TYPE_CHECKING:
     from pandas import DataFrame
 
-    from neptune_fetcher.cache import FieldsCache
+    from neptune_fetcher.cache import AttributeCache
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_ATOMS = {
-    FieldType.INT,
-    FieldType.FLOAT,
-    FieldType.STRING,
-    FieldType.BOOL,
-    FieldType.DATETIME,
-    FieldType.STRING_SET,
-    FieldType.OBJECT_STATE,
+    AttributeType.INT,
+    AttributeType.FLOAT,
+    AttributeType.STRING,
+    AttributeType.BOOL,
+    AttributeType.DATETIME,
+    AttributeType.STRING_SET,
+    AttributeType.OBJECT_STATE,
 }
 SUPPORTED_SERIES_TYPES = {
-    FieldType.FLOAT_SERIES,
+    AttributeType.FLOAT_SERIES,
 }
 SUPPORTED_TYPES = {*SUPPORTED_ATOMS, *SUPPORTED_SERIES_TYPES}
 
@@ -67,15 +67,15 @@ SUPPORTED_TYPES = {*SUPPORTED_ATOMS, *SUPPORTED_SERIES_TYPES}
 class Fetchable(ABC):
     def __init__(
         self,
-        field: FieldDefinition,
+        attr: AttributeDefinition,
         backend: "ApiClient",
         container_id: str,
-        cache: FieldsCache,
+        cache: AttributeCache,
     ) -> None:
-        self._field = field
+        self._attr = attr
         self._backend = backend
         self._container_id = container_id
-        self._cache: FieldsCache = cache
+        self._cache: AttributeCache = cache
 
     @abstractmethod
     def fetch(self):
@@ -84,7 +84,7 @@ class Fetchable(ABC):
 
 class NoopFetchable(Fetchable):
     def fetch(self) -> None:
-        logger.info("Unsupported type: %s", self._field.type)
+        logger.info("Unsupported type: %s", self._attr.type)
         return None
 
 
@@ -93,7 +93,7 @@ class FetchableAtom(Fetchable):
         """
         Retrieves a value either from the internal cache (see `prefetch()`) or from the API.
         """
-        return self._cache[self._field.path].val
+        return self._cache[self._attr.path].val
 
 
 class FetchableSeries(Fetchable):
@@ -101,7 +101,7 @@ class FetchableSeries(Fetchable):
         """
         Retrieves the last value of a series, either from the internal cache (see `prefetch`) or from the API.
         """
-        return self._cache[self._field.path].last
+        return self._cache[self._attr.path].last
 
     def fetch_last(self):
         """
@@ -131,10 +131,10 @@ class FetchableSeries(Fetchable):
                 or pass a type of ProgressBarCallback to use your own progress bar.
                 If set to `None` or `True`, the default tqdm-based progress bar will be used.
         """
-        return self._cache[self._field.path].fetch_values(
+        return self._cache[self._attr.path].fetch_values(
             backend=self._backend,
             container_id=self._container_id,
-            path=self._field.path,
+            path=self._attr.path,
             include_timestamp=include_timestamp,
             include_inherited=include_inherited,
             progress_bar=progress_bar,
@@ -142,9 +142,9 @@ class FetchableSeries(Fetchable):
         )
 
 
-def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetchable:
-    if field.type in SUPPORTED_ATOMS:
-        return FetchableAtom(field, *args, **kwargs)
-    elif field.type in SUPPORTED_SERIES_TYPES:
-        return FetchableSeries(field, *args, **kwargs)
-    return NoopFetchable(field, *args, **kwargs)
+def which_fetchable(attr: AttributeDefinition, *args: Any, **kwargs: Any) -> Fetchable:
+    if attr.type in SUPPORTED_ATOMS:
+        return FetchableAtom(attr, *args, **kwargs)
+    elif attr.type in SUPPORTED_SERIES_TYPES:
+        return FetchableSeries(attr, *args, **kwargs)
+    return NoopFetchable(attr, *args, **kwargs)

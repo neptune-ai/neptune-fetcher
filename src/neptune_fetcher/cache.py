@@ -1,4 +1,4 @@
-__all__ = ("FieldsCache",)
+__all__ = ("AttributeCache",)
 
 import datetime
 import logging
@@ -21,11 +21,11 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 im
 from tqdm import tqdm
 
 from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fields import (
+from neptune_fetcher.attributes import (
+    Attribute,
+    AttributeType,
     Bool,
     DateTime,
-    Field,
-    FieldType,
     Float,
     FloatSeries,
     Integer,
@@ -38,13 +38,13 @@ from neptune_fetcher.util import (
     getenv_int,
 )
 
-# Maximum number of paths to fetch in a single request for fields definitions.
+# Maximum number of paths to fetch in a single request for attribute definitions.
 MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
 
 logger = logging.getLogger(__name__)
 
 
-class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
+class AttributeCache(Dict[str, Union[Attribute, FloatSeries]]):
     def __init__(self, backend: ApiClient, container_id: str):
         super().__init__()
         self._backend: ApiClient = backend
@@ -118,7 +118,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             # Wait for all futures to finish
             list(futures)
 
-    def __getitem__(self, path: str) -> Union[Field, FloatSeries]:
+    def __getitem__(self, path: str) -> Union[Attribute, FloatSeries]:
         self.cache_miss(
             paths=[
                 path,
@@ -127,23 +127,23 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         return super().__getitem__(path)
 
 
-def _extract_value(attr: ProtoAttributeDTO) -> Union[Field, FloatSeries]:
+def _extract_value(attr: ProtoAttributeDTO) -> Union[Attribute, FloatSeries]:
     if attr.type == "floatSeries":
-        return FloatSeries(FieldType.FLOAT_SERIES, last=attr.float_series_properties.last)
+        return FloatSeries(AttributeType.FLOAT_SERIES, last=attr.float_series_properties.last)
     elif attr.type == "string":
-        return String(FieldType.STRING, attr.string_properties.value)
+        return String(AttributeType.STRING, attr.string_properties.value)
     elif attr.type == "int":
-        return Integer(FieldType.INT, attr.int_properties.value)
+        return Integer(AttributeType.INT, attr.int_properties.value)
     elif attr.type == "float":
-        return Float(FieldType.FLOAT, attr.float_properties.value)
+        return Float(AttributeType.FLOAT, attr.float_properties.value)
     elif attr.type == "bool":
-        return Bool(FieldType.BOOL, attr.bool_properties.value)
+        return Bool(AttributeType.BOOL, attr.bool_properties.value)
     elif attr.type == "datetime":
         timestamp = datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
-        return DateTime(FieldType.DATETIME, timestamp)
+        return DateTime(AttributeType.DATETIME, timestamp)
     elif attr.type == "stringSet":
-        return StringSet(FieldType.STRING_SET, set(attr.string_set_properties.value))
+        return StringSet(AttributeType.STRING_SET, set(attr.string_set_properties.value))
     elif attr.type == "experimentState":
-        return ObjectState(FieldType.OBJECT_STATE, "experiment_state")
+        return ObjectState(AttributeType.OBJECT_STATE, "experiment_state")
     else:
         raise ValueError(f"Unsupported attribute type: {attr.type}, please update the neptune-fetcher")

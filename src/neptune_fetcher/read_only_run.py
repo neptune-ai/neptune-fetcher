@@ -24,16 +24,16 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.cache import FieldsCache
+from neptune_fetcher.attributes import (
+    AttributeDefinition,
+    AttributeType,
+)
+from neptune_fetcher.cache import AttributeCache
 from neptune_fetcher.fetchable import (
     SUPPORTED_TYPES,
     Fetchable,
     FetchableSeries,
     which_fetchable,
-)
-from neptune_fetcher.fields import (
-    FieldDefinition,
-    FieldType,
 )
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ class ReadOnlyRun:
             self.with_id = with_id
 
         self._container_id = f"{self.project.project_identifier}/{self.with_id}"
-        self._cache = FieldsCache(
+        self._cache = AttributeCache(
             backend=self.project._backend,
             container_id=self._container_id,
         )
@@ -93,7 +93,7 @@ class ReadOnlyRun:
                 self._cache,
             )
             for definition in definitions
-            if FieldType(definition.type) in SUPPORTED_TYPES
+            if AttributeType(definition.type) in SUPPORTED_TYPES
         }
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
@@ -102,11 +102,11 @@ class ReadOnlyRun:
         except KeyError:
             # If the item is not found, it could have been logged after the Run object is created.
             # We need to fetch it from the backend (this is what self._cache[item] actually does),
-            # and fill in the missing structure entry. Note that self._caehe[item] will also
-            # raise KeyError if the field does not indeed exist backend-side.
-            field = self._cache[item]
+            # and fill in the missing structure entry. Note that self._cache[item] will also
+            # raise KeyError if the attribute does not indeed exist backend-side.
+            attr = self._cache[item]
             self._structure[item] = which_fetchable(
-                FieldDefinition(path=item, type=field.type), self.project._backend, self._container_id, self._cache
+                AttributeDefinition(path=item, type=attr.type), self.project._backend, self._container_id, self._cache
             )
 
             return self._structure[item]

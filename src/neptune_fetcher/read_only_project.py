@@ -651,13 +651,13 @@ def _to_pandas_df(run_uuids: List[str], items: Dict[str, Any], ensure_columns=No
     System and monitoring columns will be sorted to the front.
     """
 
-    def sort_key(field: str) -> Tuple[int, str]:
-        namespace = field.split("/")[0]
+    def sort_key(attr_name: str) -> Tuple[int, str]:
+        namespace = attr_name.split("/")[0]
         if namespace == "sys":
-            return 0, field
+            return 0, attr_name
         if namespace == "monitoring":
-            return 2, field
-        return 1, field
+            return 2, attr_name
+        return 1, attr_name
 
     df = DataFrame(items[x] for x in run_uuids)
 
@@ -754,7 +754,7 @@ def _find_sort_type(backend, project_id, sort_by):
     elif sort_by == "sys/creation_time":
         return "datetime"
     else:
-        types = backend.find_field_type_within_project(project_id, sort_by)
+        types = backend.find_attribute_type_within_project(project_id, sort_by)
         if len(types) == 0:
             warnings.warn(f"Could not find sorting column type for field '{sort_by}'.", NeptuneWarning)
             return "string"

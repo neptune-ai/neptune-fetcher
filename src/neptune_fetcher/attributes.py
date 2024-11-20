@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 __all__ = [
-    "Field",
+    "Attribute",
     "Float",
     "FloatSeries",
     "Integer",
@@ -23,9 +23,9 @@ __all__ = [
     "DateTime",
     "ObjectState",
     "StringSet",
-    "FieldType",
-    "FieldDefinition",
-    "FloatPointValue",
+    "AttributeType",
+    "AttributeDefinition",
+    "AttributePointValue",
 ]
 
 from abc import ABC
@@ -54,7 +54,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class FieldType(Enum):
+class AttributeType(Enum):
     FLOAT = "float"
     INT = "int"
     BOOL = "bool"
@@ -66,13 +66,13 @@ class FieldType(Enum):
 
 
 @dataclass
-class FieldDefinition:
+class AttributeDefinition:
     path: str
-    type: FieldType
+    type: AttributeType
 
 
 @dataclass
-class FloatPointValue:
+class AttributePointValue:
     timestamp: datetime
     value: float
     step: float
@@ -80,10 +80,10 @@ class FloatPointValue:
 
 @dataclass
 class FloatSeries:
-    type: FieldType
+    type: AttributeType
     include_inherited: bool = True
     last: Optional[T] = None
-    prefetched_data: Optional[List[FloatPointValue]] = None
+    prefetched_data: Optional[List[AttributePointValue]] = None
     step_range = (None, None)
 
     def fetch_values(
@@ -114,43 +114,43 @@ class FloatSeries:
 
 
 @dataclass
-class Field(Generic[T], ABC):
-    type: FieldType
+class Attribute(Generic[T], ABC):
+    type: AttributeType
     val: T
 
     def fetch(self) -> T:
         return self.val
 
 
-class Integer(Field[int]):
+class Integer(Attribute[int]):
     ...
 
 
-class Float(Field[float]):
+class Float(Attribute[float]):
     ...
 
 
-class String(Field[str]):
+class String(Attribute[str]):
     ...
 
 
-class Bool(Field[bool]):
+class Bool(Attribute[bool]):
     ...
 
 
-class DateTime(Field[datetime]):
+class DateTime(Attribute[datetime]):
     ...
 
 
-class ObjectState(Field[str]):
+class ObjectState(Attribute[str]):
     ...
 
 
-class StringSet(Field[Set[str]]):
+class StringSet(Attribute[Set[str]]):
     ...
 
 
-def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
+def make_row(entry: AttributePointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
     row: Dict[str, Union[str, float, datetime]] = {
         "step": entry.step,
         "value": entry.value,

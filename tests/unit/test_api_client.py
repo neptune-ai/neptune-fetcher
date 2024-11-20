@@ -20,7 +20,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import (
 from pytest import fixture
 
 from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fields import FloatPointValue
+from neptune_fetcher.attributes import AttributePointValue
 
 
 @fixture
@@ -40,9 +40,9 @@ def response(body: ProtoFloatSeriesValuesResponseDTO, status_code: int = 200):
     return Mock(status_code=Mock(value=status_code), content=content)
 
 
-def values_model(steps_values: List[Tuple[float, float]]) -> List[FloatPointValue]:
+def values_model(steps_values: List[Tuple[float, float]]) -> List[AttributePointValue]:
     return [
-        FloatPointValue(
+        AttributePointValue(
             timestamp=datetime.fromtimestamp(i / 1000.0, tz=timezone.utc),
             step=step,
             value=value,

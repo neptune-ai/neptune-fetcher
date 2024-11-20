@@ -32,11 +32,11 @@ from neptune_scale import Run
 #       - each metric has 10 steps
 #
 # Each run thus has:
-# - 30 config fields, 10 of which are unique to the run
-# - 30 metric fields, 10 of which are unique to the run
+# - 30 config attributes, 10 of which are unique to the run
+# - 30 metric attributes, 10 of which are unique to the run
 
 MM_NUM_RUNS = 6
-MM_NUM_FIELD_KIND = 10
+MM_NUM_ATTR_KIND = 10
 MM_NUM_STEPS = 10
 
 
@@ -44,24 +44,24 @@ def populate_run(run, run_id, tags=None):
     if tags:
         run.add_tags(tags)
 
-    data = {f"config/foo{x + 1}": f"valfoo{x + 1}" for x in range(MM_NUM_FIELD_KIND)}
-    data |= {f"config/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
+    data = {f"config/foo{x + 1}": f"valfoo{x + 1}" for x in range(MM_NUM_ATTR_KIND)}
+    data |= {f"config/bar{x + 1}": x + 1 for x in range(MM_NUM_ATTR_KIND)}
     data |= {f"config/foo{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
     run.log_configs(data)
 
     step = 0
     for step in range(MM_NUM_STEPS - 1):
         value = math.sin((step + random.random() - 0.5) * 0.1)
-        data = {f"metrics/foo{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
-        data |= {f"metrics/bar{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
+        data = {f"metrics/foo{x + 1}": value for x in range(MM_NUM_ATTR_KIND)}
+        data |= {f"metrics/bar{x + 1}": value for x in range(MM_NUM_ATTR_KIND)}
         data |= {f"metrics/bar{x + 1}-unique-{run_id}": value for x in range(10)}
         run.log_metrics(step=step, data=data)
 
     # Last step will have a predetermined value
     step += 1
-    data = {f"metrics/foo{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
+    data = {f"metrics/foo{x + 1}": x + 1 for x in range(MM_NUM_ATTR_KIND)}
     data |= {f"metrics/bar{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
-    data |= {f"metrics/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
+    data |= {f"metrics/bar{x + 1}": x + 1 for x in range(MM_NUM_ATTR_KIND)}
 
     run.log_metrics(step=step, data=data)
 

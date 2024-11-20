@@ -68,10 +68,10 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 im
 from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
-from neptune_fetcher.fields import (
-    FieldDefinition,
-    FieldType,
-    FloatPointValue,
+from neptune_fetcher.attributes import (
+    AttributeDefinition,
+    AttributePointValue,
+    AttributeType,
 )
 from neptune_fetcher.util import NeptuneException
 
@@ -100,7 +100,7 @@ class ApiClient:
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> Iterator[FloatPointValue]:
+    ) -> Iterator[AttributePointValue]:
         step_size: int = 10_000
 
         current_batch_size = None
@@ -130,7 +130,7 @@ class ApiClient:
         include_inherited: bool,
         container_id: str,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> Iterator[(str, List[FloatPointValue])]:
+    ) -> Iterator[(str, List[AttributePointValue])]:
         total_step_limit: int = 1_000_000
 
         paths_len = len(paths)
@@ -174,7 +174,7 @@ class ApiClient:
         requests: List[_SeriesRequest],
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
         limit: int = 10_000,
-    ) -> List[List[FloatPointValue]]:
+    ) -> List[List[AttributePointValue]]:
         request = FloatTimeSeriesValuesRequest(
             per_series_points_limit=limit,
             requests=[
@@ -207,7 +207,7 @@ class ApiClient:
 
         return [
             [
-                FloatPointValue(
+                AttributePointValue(
                     timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
                     value=point.value,
                     step=point.step,
@@ -217,7 +217,7 @@ class ApiClient:
             for series in sorted(data.series, key=lambda s: int(s.requestId))
         ]
 
-    def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
+    def query_attribute_definitions(self, container_id: str) -> List[AttributeDefinition]:
         response = backoff_retry(
             lambda: query_attribute_definitions_proto.sync_detailed(
                 client=self._backend,
@@ -226,8 +226,8 @@ class ApiClient:
         )
         definitions: ProtoAttributesSearchResultDTO = ProtoAttributesSearchResultDTO.FromString(response.content)
         return [
-            FieldDefinition(field_definition.name, FieldType(field_definition.type))
-            for field_definition in definitions.entries
+            AttributeDefinition(attr_definition.name, AttributeType(attr_definition.type))
+            for attr_definition in definitions.entries
         ]
 
     def query_attributes_within_project(
@@ -241,8 +241,14 @@ class ApiClient:
         data: ProtoQueryAttributesResultDTO = ProtoQueryAttributesResultDTO.FromString(response.content)
         return data
 
-    def find_field_type_within_project(self, project_id: str, attribute_name: str) -> Set[str]:
-        sortable_attributes = [FieldType.STRING, FieldType.FLOAT, FieldType.INT, FieldType.BOOL, FieldType.DATETIME]
+    def find_attribute_type_within_project(self, project_id: str, attribute_name: str) -> Set[str]:
+        sortable_attributes = [
+            AttributeType.STRING,
+            AttributeType.FLOAT,
+            AttributeType.INT,
+            AttributeType.BOOL,
+            AttributeType.DATETIME,
+        ]
         body = QueryAttributeDefinitionsBodyDTO.from_dict(
             {
                 "attributeNameFilter": {"mustMatchRegexes": [f"^{re.escape(attribute_name)}$"]},
