@@ -29,7 +29,7 @@ def main():
 
     run = ReadOnlyRun(read_only_project=project, with_id="TES-1")
 
-    # Fetch single field
+    # Fetch single attribute
     lr = run["params/lr"].fetch()
     print("Learning rate:\n", lr, "\n###########################################\n")
 
@@ -44,9 +44,9 @@ def main():
     )
     print("Runs dataframe:\n", run_df, "\n###########################################\n")
 
-    # Run fields
-    fields = list(run.field_names)
-    print("Run field names:\n", fields, "\n###########################################\n")
+    # Run attributes
+    attributes = list(run.field_names)
+    print("Run attribute names:\n", attributes, "\n###########################################\n")
 
 
 if __name__ == "__main__":

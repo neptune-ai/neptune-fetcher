@@ -121,7 +121,7 @@ class FetchableSeries(Fetchable):
         Retrieves all series values either from the internal cache (see `prefetch_series_values()`) or from the API.
 
         Args:
-            include_timestamp: Whether the fetched data should include the timestamp field.
+            include_timestamp: Whether the fetched data should include the timestamp attribute.
             include_inherited: Whether the fetched data should include values from the parent runs.
             step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
                 - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.

@@ -67,7 +67,7 @@ print(run["parameters/optimizer"].fetch())
 # Fecth last value of metric
 print(run["metrics/loss"].fetch_last())
 
-# Fetch all metric values, with optional pre-fetching to speed up subsequent access to the field
+# Fetch all metric values, with optional pre-fetching to speed up subsequent access to the attribute
 run.prefetch_series_values(["metrics/accuracy"])
 print(run["metrics/accuracy"].fetch_values())
 ```
@@ -257,7 +257,7 @@ __Parameters:__
 
 | Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                        |
 |----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The custom run identifier (`sys/custom_run_id`) is always included. If `None`, only the custom ID and the sorting column are included.
+| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of attribute names. The custom run identifier (`sys/custom_run_id`) is always included. If `None`, only the custom ID and the sorting column are included.
 | `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
 | `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the runs by name.                                                                                                                                                                                                                                                                                                        |
 | `custom_id_regex`          | `str`, optional                               | `None`              | A regex pattern to filter the runs by custom ID.                                                                                                                                                                                                                                                                                                   |
@@ -268,7 +268,7 @@ __Parameters:__
 | `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only runs that have all specified tags will pass this criterion.                                                                                                                                                                                                      |
 | `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed runs. If `True`, only trashed runs are retrieved. If `False`, only non-trashed runs are retrieved. If `None` or left empty, all run objects are retrieved, including trashed ones.                                                                                                                                     |
 | `limit`                    | `int`, optional                               | `None`              | Maximum number of runs to fetch. If `None`, all runs are fetched.                                                                                                                                                                                                                                                                                  |
-| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
+| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the attribute to sort the results by. The attribute must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
 | `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs.                                                       |
@@ -276,10 +276,10 @@ __Parameters:__
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
 > [!IMPORTANT]
-> The following fields are always included:
+> The following attributes are always included:
 >
 > - `sys/custom_run_id`: the custom run identifier.
-> - The field to sort by. That is, the field name passed to the `sort_by` argument.
+> - The attribute to sort by. That is, the attribute name passed to the `sort_by` argument.
 >
 > The maximum number of runs that can be returned is 5000.
 
@@ -337,7 +337,7 @@ __Parameters__:
 
 | Name                       | Type                                          | Default             | Description                                                                                                                                                                                                                                                                                                                                        |
 |----------------------------|-----------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of field names. The sorting column, custom run identifier (`sys/custom_run_id`), and experiment name (`sys/name`) are always included. `None` results in returning only the default columns.
+| `columns`                  | `List[str]`, optional                         | `None`              | Names of columns to include in the table, as a list of attribute names. The sorting column, custom run identifier (`sys/custom_run_id`), and experiment name (`sys/name`) are always included. `None` results in returning only the default columns.
 | `columns_regex`            | `str`, optional                               | `None`              | A regex pattern to filter columns by name. Use this parameter to include columns in addition to the ones specified by the `columns` parameter.
 | `names_regex`              | `str`, optional                               | `None`              | A regex pattern to filter the experiments by name.                                                                                                                                                                                                                                                                                                 |
 | `names_regex`              | `str`, optional                               | `None`              | A regex pattern or a list of regex patterns to filter the experiments by name. Multiple patterns will be connected by AND logic.                                                                                                                                                                                                                   |
@@ -350,7 +350,7 @@ __Parameters__:
 | `tags`                     | `List[str]`, optional                         | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                                                                               |
 | `trashed`                  | `bool`, optional                              | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                                                                                         |
 | `limit`                    | `int`, optional                               | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                                                                                    |
-| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
+| `sort_by`                  | `str`, optional                               | `sys/creation_time` | Name of the attribute to sort the results by. The attribute must represent a simple type (string, float, integer).                                                                                                                                                                                                                                         |
 | `ascending`                | `bool`, optional                              | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                                                       |
 | `progress_bar`             | `bool`, `Type[ProgressBarCallback]`, optional | `None`              | Set to `False `to disable the download progress bar, or pass a type of ProgressBarCallback to [use your own progress bar](https://docs.neptune.ai/usage/querying_metadata/#using-a-custom-progress-bar). If set to `None` or `True`, the default tqdm-based progress bar will be used.                                                             |
 | `query`                    | `str`, optional                               | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs.                                                       |
@@ -358,11 +358,11 @@ __Parameters__:
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
 > [!IMPORTANT]
-> The following fields are always included:
+> The following attributes are always included:
 >
 > - `sys/custom_run_id`: the custom run identifier.
 > - `sys/name`: the experiment name.
-> - The field to sort by. That is, the field name passed to the `sort_by` argument.
+> - The attribute to sort by. That is, the attribute name passed to the `sort_by` argument.
 >
 > The maximum number of runs that can be returned is 5000.
 
@@ -504,26 +504,26 @@ run = ReadOnlyRun(project, custom_id="high_albattani")
 
 #### `.field_names`
 
-List of run field names.
+List of run attribute names.
 
-A _field_ is the location where a piece of metadata is stored in the run.
+An _attribute_ is the location where a piece of metadata is stored in the run.
 
-__Returns:__ Iterator of run fields as strings.
+__Returns:__ Iterator of run attributes as strings.
 
 __Example:__
 
 ```python
 for run in project.fetch_read_only_runs(custom_ids=["nostalgic_shockley", ...]):
-    print(list(run.field_names))
+    print(list(run.attribute_names))
 ```
 
 ---
 
-#### Field lookup: `run[field_name]`
+#### attribute lookup: `run[attribute_name]`
 
-Used to access a specific field of a run. See [Available types](#available-types).
+Used to access a specific attribute of a run. See [Available types](#available-types).
 
-__Returns:__ An internal object used to operate on a specific field.
+__Returns:__ An internal object used to operate on a specific attribute.
 
 __Example:__
 
@@ -536,11 +536,11 @@ custom_id = run["sys/custom_run_id"].fetch()
 
 #### `prefetch()`
 
-Pre-fetches a batch of fields to the internal cache.
+Pre-fetches a batch of attributes to the internal cache.
 
-Improves the performance of access to consecutive field values.
+Improves the performance of access to consecutive attribute values.
 
-Supported Neptune field types:
+Supported Neptune attribute types:
 
 - [`Boolean`](#boolean)
 - [`Datetime`](#datetime)
@@ -555,7 +555,7 @@ __Parameters:__
 
 | Name    | Type        | Default | Description                                |
 |---------|-------------|---------|--------------------------------------------|
-| `paths` | `List[str]` | -       | List of field paths to fetch to the cache. |
+| `paths` | `List[str]` | -       | List of attribute paths to fetch to the cache. |
 
 __Example:__
 
@@ -571,7 +571,7 @@ print(run["parameter/init_lr"].fetch())
 
 Prefetches a batch of series to the internal cache.
 
-Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
+Improves the performance of access to consecutive attribute values. Works only for series ([`FloatSeries`](#floatseries)).
 
 To speed up the fetching process, this method can use multithreading.
 To enable it, set the `use_threads` parameter to `True`.
@@ -600,7 +600,7 @@ print(run["metrics/accuracy"].fetch_values())
 
 ## Available types
 
-This section lists the available field types and data retrieval operations.
+This section lists the available attribute types and data retrieval operations.
 
 ---
 
@@ -669,7 +669,7 @@ __Parameters:__
 
 | Name                | Type                  | Default      | Description                                                                                                                                                                               |
 |---------------------|-----------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `include_timestamp` | `bool`                | `True`       | Whether the fetched data should include the timestamp field.                                                                                                                              |
+| `include_timestamp` | `bool`                | `True`       | Whether the fetched data should include the timestamp attribute.                                                                                                                              |
 | `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                                             |
 | `progress_bar`      | `ProgressBarType`     | `None`       | Set to False to disable the download progress bar, or pass a ProgressBarCallback class to use your own progress bar. If set to None or True, the default tqdm-based progress bar is used. |
 | `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (inclusive). If None, it\'s open on the left. <br> - right: right boundary of the range (inclusive). If None, it\'s open on the right.                 |
@@ -708,7 +708,7 @@ __Returns:__ `str`
 
 > [!NOTE]
 > The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
-> To learn more about this field, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune
+> To learn more about this attribute, see [System namespace: State](https://docs.neptune.ai/api/sys/#state) in the Neptune
 > docs.
 
 __Example:__
