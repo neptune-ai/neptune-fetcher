@@ -256,7 +256,7 @@ class ReadOnlyProject:
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
 
         Args:
-            columns: Columns to include in the result, as a list of field names.
+            columns: Columns to include in the result, as a list of attribute names.
                 Defaults to None, which includes only `sys/custom_run_id` column.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
@@ -277,8 +277,8 @@ class ReadOnlyProject:
                 If None: return all runs.
             limit: The maximum number of rows (runs) to return. If `None`, all entries are returned, up to
                    the hard limit of 5000.
-            sort_by: Name of the field to sort the results by.
-                The field must represent a simple type (string, float, datetime, integer, or Boolean).
+            sort_by: Name of the attribute to sort the results by.
+                The attribute must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
@@ -346,7 +346,7 @@ class ReadOnlyProject:
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
         Args:
-            columns: Columns to include in the result, as a list of field names.
+            columns: Columns to include in the result, as a list of attribute names.
                 Defaults to None, which includes `sys/custom_run_id` and `sys/name` columns.
                 When using one or both of the `columns` and `columns_regex` parameters,
                 the total number of matched columns must not exceed 5000.
@@ -370,8 +370,8 @@ class ReadOnlyProject:
                 If None: return all experiments.
             limit: The maximum number of rows (experiments) to return. If `None`, all entries are returned, up to
                    the hard limit of 5000.
-            sort_by: Name of the field to sort the results by.
-                The field must represent a simple type (string, float, datetime, integer, or Boolean).
+            sort_by: Name of the attribute to sort the results by.
+                The attribute must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
@@ -489,7 +489,7 @@ class ReadOnlyProject:
         # Keep track of all short run ids encountered, in order as they appeared.
         # We use this list to maintain the sorting order as returned by the backend during the
         # initial filtering of runs.
-        # This is because the request for field values always sorts the result by (run_id, path).
+        # This is because the request for attribute values always sorts the result by (run_id, path).
         all_run_uuids = []
 
         # Workers fetching attributes in parallel

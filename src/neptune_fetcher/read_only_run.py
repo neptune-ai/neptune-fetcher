@@ -116,17 +116,17 @@ class ReadOnlyRun:
 
     @property
     def field_names(self) -> Generator[str, None, None]:
-        """Lists names of run fields.
+        """Lists names of run attributes.
 
-        Returns a generator of run fields.
+        Returns a generator of run attributes.
         """
         yield from self._structure
 
     def prefetch(self, paths: List[str]) -> None:
-        """Prefetches values of a list of fields and stores them in local cache.
+        """Prefetches values of a list of attributes and stores them in local cache.
 
         Args:
-            paths: List of field paths to prefetch.
+            paths: List of attribute paths to prefetch.
         """
         self._cache.prefetch(paths=paths)
 
@@ -142,7 +142,7 @@ class ReadOnlyRun:
         Prefetches values of a list of series and stores them in the local cache.
 
         Args:
-            paths: List of field paths to prefetch.
+            paths: List of attribute paths to prefetch.
             use_threads: If True, fetching is done concurrently.
             progress_bar: Set to `False` to disable the download progress bar,
                 or pass a `ProgressBarCallback` class to use your own progress bar callback.
