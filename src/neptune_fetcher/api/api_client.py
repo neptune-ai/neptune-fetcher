@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["ApiClient"]
 
+import logging
 import os
 import re
 import time
@@ -77,6 +78,9 @@ from neptune_fetcher.util import NeptuneException
 
 API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
+
+# Disable httpx logging, httpx logs requests at INFO level
+logging.getLogger("httpx").setLevel(logging.ERROR)
 
 
 class ApiClient:
