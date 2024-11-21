@@ -38,7 +38,6 @@ from neptune_fetcher.fields import (
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
-    from neptune_fetcher.util import ProgressBarType
 
 
 class ReadOnlyRun:
@@ -134,7 +133,7 @@ class ReadOnlyRun:
         self,
         paths: List[str],
         use_threads: bool = False,
-        progress_bar: "ProgressBarType" = None,
+        progress_bar: bool = True,
         include_inherited: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
@@ -144,8 +143,7 @@ class ReadOnlyRun:
         Args:
             paths: List of field paths to prefetch.
             use_threads: If True, fetching is done concurrently.
-            progress_bar: Set to `False` to disable the download progress bar,
-                or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            progress_bar: Set to `False` to disable the download progress bar.
             include_inherited: If `False`, values from the parent runs will not be included.
             step_range: tuple(left, right): Limits the range of steps to fetch. This must be a 2-tuple:
                 - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.

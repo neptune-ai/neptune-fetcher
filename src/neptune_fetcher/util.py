@@ -14,16 +14,9 @@
 # limitations under the License.
 #
 
-import abc
-import contextlib
 import os
 import warnings
-from typing import (
-    Any,
-    Optional,
-    Type,
-    Union,
-)
+from typing import Any
 
 
 def getenv_int(name: str, default: int, *, positive=True) -> int:
@@ -39,18 +32,6 @@ def getenv_int(name: str, default: int, *, positive=True) -> int:
         raise ValueError(f"Environment variable {name} must be a positive integer, got '{value}'")
 
     return value
-
-
-class ProgressBarCallback(contextlib.AbstractContextManager):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    @abc.abstractmethod
-    def update(self, *, by: int, total: Optional[int] = None) -> None:
-        ...
-
-
-ProgressBarType = Union[bool, Type[ProgressBarCallback]]
 
 
 class NeptuneException(Exception):

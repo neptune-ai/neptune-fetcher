@@ -40,7 +40,6 @@ from neptune_fetcher.fields import (
     FieldDefinition,
     FieldType,
 )
-from neptune_fetcher.util import ProgressBarType
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -115,7 +114,7 @@ class FetchableSeries(Fetchable):
         include_timestamp: bool = True,
         include_inherited: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-        progress_bar: "ProgressBarType" = None,
+        progress_bar: bool = False,
     ) -> "DataFrame":
         """
         Retrieves all series values either from the internal cache (see `prefetch_series_values()`) or from the API.
@@ -127,9 +126,7 @@ class FetchableSeries(Fetchable):
                 - `left`: The left boundary of the range (exclusive). If `None`, the range is open on the left.
                 - `right`: (currently not supported) The right boundary of the range (inclusive).
                             If `None`, the range is open on the right.
-            progress_bar: Set to `False `to disable the download progress bar,
-                or pass a type of ProgressBarCallback to use your own progress bar.
-                If set to `None` or `True`, the default tqdm-based progress bar will be used.
+            progress_bar: Set to `False `to disable the download progress bar.
         """
         return self._cache[self._field.path].fetch_values(
             backend=self._backend,
