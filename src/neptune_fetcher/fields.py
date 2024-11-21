@@ -44,8 +44,6 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.util import ProgressBarType
-
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -93,7 +91,7 @@ class FloatSeries:
         path: str,
         include_timestamp: bool = True,
         include_inherited: bool = True,
-        progress_bar: "ProgressBarType" = None,
+        progress_bar: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> "DataFrame":
         import pandas as pd

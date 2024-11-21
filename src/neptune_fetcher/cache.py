@@ -33,10 +33,7 @@ from neptune_fetcher.fields import (
     String,
     StringSet,
 )
-from neptune_fetcher.util import (
-    ProgressBarType,
-    getenv_int,
-)
+from neptune_fetcher.util import getenv_int
 
 # Maximum number of paths to fetch in a single request for fields definitions.
 MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
@@ -81,7 +78,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         self,
         paths: List[str],
         use_threads: bool,
-        progress_bar: "ProgressBarType" = None,
+        progress_bar: bool = False,
         include_inherited: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
@@ -92,7 +89,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
 
         with tqdm(
-            desc="Fetching metrics", total=len(float_series_paths), unit="metrics"
+            desc="Fetching metrics", total=len(float_series_paths), unit="metrics", disable=not progress_bar
         ) as progress_bar, ThreadPoolExecutor(max_workers) as executor:
             lock = threading.Lock()
             batch_size = 300

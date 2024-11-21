@@ -63,7 +63,6 @@ from neptune_fetcher.nql import (
 from neptune_fetcher.read_only_run import ReadOnlyRun
 from neptune_fetcher.util import (
     NeptuneWarning,
-    ProgressBarType,
     escape_nql_criterion,
     getenv_int,
 )
@@ -250,7 +249,7 @@ class ReadOnlyProject:
         limit: Optional[int] = None,
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
-        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        progress_bar: bool = True,
         query: Optional[str] = None,
     ) -> "DataFrame":
         """Fetches the runs' metadata and returns them as a pandas DataFrame.
@@ -280,8 +279,7 @@ class ReadOnlyProject:
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
-            progress_bar: Set to `False` to disable the download progress bar,
-                or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            progress_bar: Set to `False` to disable the download progress bar.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 The query is applied on top of other criteria like, `custom_ids`, `tags` etc,
                 using the logical AND operator.
@@ -340,7 +338,7 @@ class ReadOnlyProject:
         limit: Optional[int] = None,
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
-        progress_bar: Union[bool, Optional[ProgressBarType]] = None,
+        progress_bar: bool = True,
         query: Optional[str] = None,
     ) -> "DataFrame":
         """Fetches the experiments' metadata and returns them as a pandas DataFrame.
@@ -373,8 +371,7 @@ class ReadOnlyProject:
             sort_by: Name of the field to sort the results by.
                 The field must represent a simple type (string, float, datetime, integer, or Boolean).
             ascending: Whether to sort the entries in ascending order of the sorting column values.
-            progress_bar: Set to `False` to disable the download progress bar,
-                or pass a `ProgressBarCallback` class to use your own progress bar callback.
+            progress_bar: Set to `False` to disable the download progress bar.
             query: A query string to filter the results. Use the Neptune Query Language syntax.
                 The query is applied on top of other criteria like, `names_regex`, `tags` etc,
                 using the logical AND operator.
@@ -444,7 +441,7 @@ class ReadOnlyProject:
         limit: Optional[int] = None,
         sort_by: str = "sys/creation_time",
         ascending: bool = False,
-        progress_bar: ProgressBarType = None,
+        progress_bar: bool = True,
         object_type: Literal["run", "experiment"] = "run",
         query: Optional[str] = None,
     ) -> "DataFrame":
