@@ -80,7 +80,7 @@ API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
 
 # Disable httpx logging, httpx logs requests at INFO level
-logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 class ApiClient:
