@@ -1,0 +1,39 @@
+---
+name: Package
+description: Install python and package
+inputs:
+  python-version:
+    description: "Python version"
+    required: true
+  os:
+    description: "Operating system"
+    required: true
+  working_directory:
+    description: "Working directory"
+    required: false
+    default: .
+
+runs:
+    using: "composite"
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: neptune-ai/neptune-fetcher
+          path: ${{ inputs.working_directory }}
+          ref: ${{ github.event.client_payload.pull_request.head.ref }}
+
+      - name: Install Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        uses: abatilo/actions-poetry@v2
+
+      - name: List dependencies
+        run: |
+          pip list
+        shell: bash

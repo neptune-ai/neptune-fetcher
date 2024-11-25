@@ -1,0 +1,48 @@
+name: integration
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.12" ]
+        os: [ ubuntu, windows ]
+        include:
+          - python-version: "3.8"
+            os: macos
+          - python-version: "3.12"
+            os: macos
+
+    name: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.client_payload.pull_request.head.ref }}
+
+      - name: Install package
+        uses: ./.github/actions/install-package
+        with:
+          python-version: ${{ matrix.python-version }}
+          os: ${{ matrix.os }}-latest
+
+      - name: Run tests
+        uses: ./.github/actions/test-integration
+        with:
+          python-version: ${{ matrix.python-version }}
+          os: ${{ matrix.os }}
+          report_job: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
