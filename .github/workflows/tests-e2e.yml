@@ -11,6 +11,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'dev_requirements.txt'
+      - 'pyproject.toml'
 
 jobs:
   test:
