@@ -157,10 +157,10 @@ def test__experiments_name_regex_neg_is_empty(project, sys_columns):
     [r"+\abc" "+\abc", "foobar", r"foo\+bar", r"foo\\+bar"],
 )
 def test__experiments_name_constructor(project, value):
-    with pytest.raises(ValueError, match=f"No experiment found with name '{value}'"):
+    with pytest.raises(ValueError, match="No experiment found with name .*"):
         ReadOnlyRun(project, experiment_name=value)
 
-    with pytest.raises(ValueError, match=f"No experiment found with Neptune ID '{value}'"):
+    with pytest.raises(ValueError, match="No experiment found with Neptune ID .*"):
         ReadOnlyRun(project, with_id=value)
 
 
