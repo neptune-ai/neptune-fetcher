@@ -35,6 +35,7 @@ from neptune_fetcher.fields import (
     FieldDefinition,
     FieldType,
 )
+from neptune_fetcher.util import escape_nql_criterion
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
@@ -58,7 +59,7 @@ class ReadOnlyRun:
 
         if custom_id is not None:
             run = read_only_project.fetch_runs_df(
-                query=f"`sys/custom_run_id`:string = '{custom_id}'", limit=1, columns=["sys/id"]
+                query=f'`sys/custom_run_id`:string = "{escape_nql_criterion(custom_id)}"', limit=1, columns=["sys/id"]
             )
 
             if len(run) == 0:
@@ -66,13 +67,15 @@ class ReadOnlyRun:
             self.with_id = run.iloc[0]["sys/id"]
         elif experiment_name is not None:
             experiment = read_only_project.fetch_experiments_df(
-                query=f"`sys/name`:string = '{experiment_name}'", limit=1, columns=["sys/id"]
+                query=f'`sys/name`:string = "{escape_nql_criterion(experiment_name)}"', limit=1, columns=["sys/id"]
             )
             if len(experiment) == 0:
                 raise ValueError(f"No experiment found with name '{experiment_name}'")
             self.with_id = experiment.iloc[0]["sys/id"]
         else:
-            run = read_only_project.fetch_runs_df(query=f"`sys/id`:string = '{with_id}'", limit=1, columns=["sys/id"])
+            run = read_only_project.fetch_runs_df(
+                query=f'`sys/id`:string = "{escape_nql_criterion(with_id)}"', limit=1, columns=["sys/id"]
+            )
             if len(run) == 0:
                 raise ValueError(f"No experiment found with Neptune ID '{with_id}'")
             self.with_id = with_id
