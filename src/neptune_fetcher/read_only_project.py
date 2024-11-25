@@ -472,6 +472,7 @@ class ReadOnlyProject:
             limit=limit,
             sort_by=sort_by,
             ascending=ascending,
+            object_type=object_type,
         )
 
         # Accumulate list dicts containing attributes. Map short_run_id -> dict(attr_path -> value)
@@ -725,13 +726,14 @@ def _stream_runs(
     limit: Optional[int],
     sort_by: str,
     ascending: bool,
+    object_type: Literal["run", "experiment"] = "run",
 ) -> Generator[_AttributeContainer, None, None]:
     sort_type: str = _find_sort_type(backend, project_id, sort_by)
 
     return list_objects_from_project(
         backend=backend,
         project_id=project_id,
-        object_type="run",
+        object_type=object_type,
         columns=[],
         query=str(query),
         limit=limit,

@@ -3,6 +3,8 @@ from operator import itemgetter
 
 import pytest
 
+from neptune_fetcher import ReadOnlyRun
+
 #
 # Tests for filtering runs by various attributes
 #
@@ -148,6 +150,18 @@ def test__experiments_name_regex_is_empty(project, sys_columns):
 def test__experiments_name_regex_neg_is_empty(project, sys_columns):
     with pytest.raises(ValueError, match="names_exclude_regex.*empty string"):
         project.fetch_experiments_df(columns=sys_columns, names_exclude_regex="")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [r"+\abc" "+\abc", "foobar", r"foo\+bar", r"foo\\+bar"],
+)
+def test__experiments_name_constructor(project, value):
+    with pytest.raises(ValueError, match=f"No experiment found with name '{value}'"):
+        ReadOnlyRun(project, experiment_name=value)
+
+    with pytest.raises(ValueError, match=f"No experiment found with Neptune ID '{value}'"):
+        ReadOnlyRun(project, with_id=value)
 
 
 @pytest.mark.parametrize(
