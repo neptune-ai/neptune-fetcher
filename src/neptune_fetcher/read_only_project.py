@@ -25,7 +25,6 @@ import math
 import os
 import warnings
 from dataclasses import dataclass
-from enum import Enum
 from typing import (
     Any,
     Dict,
@@ -887,19 +886,11 @@ def query_for_not_trashed() -> NQLQuery:
 
 
 def query_for_experiments_not_runs() -> NQLQuery:
-    names = [(m.name, m.value) for m in NQLAttributeOperator]  # noqa
-
-    # handle the case when the client nql doesn't have the 'NOT_EQUALS' operator
-    if "NOT_EQUALS" not in NQLAttributeOperator.__members__:
-        names += [("NOT_EQUALS", "!=")]
-
-    operators = Enum("NQLAttributeOperator", names)
-
     return NQLQueryAttribute(
-        name="sys/name",
-        type=NQLAttributeType.STRING,
-        operator=operators.NOT_EQUALS,  # noqa
-        value="",
+        name="sys/experiment/is_head",
+        type=NQLAttributeType.BOOLEAN,
+        operator=NQLAttributeOperator.EQUALS,  # noqa
+        value=True,
     )
 
 
