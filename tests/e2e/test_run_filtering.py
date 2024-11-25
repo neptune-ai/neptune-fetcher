@@ -154,7 +154,7 @@ def test__experiments_name_regex_neg_is_empty(project, sys_columns):
 
 @pytest.mark.parametrize(
     "value",
-    [r"+\abc" "+\abc", "foobar", r"foo\+bar", r"foo\\+bar"],
+    [r"+\abc" "+\\abc", "foobar", r"foo\+bar", r"foo\\+bar", r"foo'bar"],
 )
 def test__experiments_name_constructor(project, value):
     with pytest.raises(ValueError, match="No experiment found with name .*"):
