@@ -18,12 +18,11 @@ __all__ = [
     "ReadOnlyRun",
 ]
 
+import logging
 from importlib.metadata import (
     PackageNotFoundError,
     version,
 )
-
-from .cache import logger
 
 try:
     # This will raise PackageNotFoundError if the package is not installed
@@ -47,8 +46,8 @@ except PackageNotFoundError:
 
 try:
     version("neptune")
-
-    logger.warn(
+    logger = logging.getLogger(__name__)
+    logger.warning(
         """You have `neptune` installed. The package is no longer a dependency and causes conflicts.
 
 Uninstall it before using `neptune-fetcher`:
