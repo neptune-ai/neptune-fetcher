@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Removed dependency on `neptune` ([#102](https://github.com/neptune-ai/neptune-fetcher/pull/102))
-- Progres bar diabled while fetching series metrics ([#124](https://github.com/neptune-ai/neptune-fetcher/pull/124))
+- Progress bar disabled while fetching series metrics ([#124](https://github.com/neptune-ai/neptune-fetcher/pull/124))
 - `sys/name` is now always present when fetching a dataframe ([#118](https://github.com/neptune-ai/neptune-fetcher/pull/118))
 
 ## [0.9.1] - 2024-11-05
