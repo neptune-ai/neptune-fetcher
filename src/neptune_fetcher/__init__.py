@@ -18,12 +18,12 @@ __all__ = [
     "ReadOnlyRun",
 ]
 
-try:
-    from importlib.metadata import (
-        PackageNotFoundError,
-        version,
-    )
+from importlib.metadata import (
+    PackageNotFoundError,
+    version,
+)
 
+try:
     # This will raise PackageNotFoundError if the package is not installed
     version("neptune-experimental")
 
@@ -37,6 +37,25 @@ Uninstall it before using `neptune-fetcher`:
 If you're using `uv`:
 
     uv pip uninstall neptune-experimental
+
+    """
+    )
+except PackageNotFoundError:
+    pass
+
+try:
+    version("neptune")
+
+    raise ImportError(
+        """You have `neptune` installed. The package is no longer a dependency and causes conflicts.
+
+Uninstall it before using `neptune-fetcher`:
+
+    pip uninstall neptune
+
+If you're using `uv`:
+
+    uv pip uninstall neptune
 
     """
     )
