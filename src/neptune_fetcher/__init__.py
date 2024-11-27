@@ -23,6 +23,8 @@ from importlib.metadata import (
     version,
 )
 
+from .cache import logger
+
 try:
     # This will raise PackageNotFoundError if the package is not installed
     version("neptune-experimental")
@@ -46,7 +48,7 @@ except PackageNotFoundError:
 try:
     version("neptune")
 
-    raise ImportError(
+    logger.warn(
         """You have `neptune` installed. The package is no longer a dependency and causes conflicts.
 
 Uninstall it before using `neptune-fetcher`:
