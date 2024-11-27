@@ -18,7 +18,6 @@ __all__ = [
     "ReadOnlyRun",
 ]
 
-import logging
 from importlib.metadata import (
     PackageNotFoundError,
     version,
@@ -38,25 +37,6 @@ Uninstall it before using `neptune-fetcher`:
 If you're using `uv`:
 
     uv pip uninstall neptune-experimental
-
-    """
-    )
-except PackageNotFoundError:
-    pass
-
-try:
-    version("neptune")
-    logger = logging.getLogger(__name__)
-    logger.warning(
-        """You have `neptune` installed. The package is no longer a dependency and causes conflicts.
-
-Uninstall it before using `neptune-fetcher`:
-
-    pip uninstall neptune
-
-If you're using `uv`:
-
-    uv pip uninstall neptune
 
     """
     )
