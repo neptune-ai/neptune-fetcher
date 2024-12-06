@@ -39,13 +39,6 @@ jobs:
           NEPTUNE_E2E_CUSTOM_RUN_ID: ${{ vars.E2E_CUSTOM_RUN_ID }}
         run: bash .github/scripts/run-e2e-tests.sh
 
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-artifacts
-          path: "./test-results/"
-
       - name: Report
         uses: mikepenz/action-junit-report@v5
         if: always()
