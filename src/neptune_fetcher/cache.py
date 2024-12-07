@@ -84,7 +84,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
     ) -> None:
         self.cache_miss(paths)
 
-        float_series_paths = [path for path in paths if isinstance(self[path], FloatSeries)]
+        float_series_paths = [path for path in paths if path in self and isinstance(self[path], FloatSeries)]
 
         max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", 10))
 

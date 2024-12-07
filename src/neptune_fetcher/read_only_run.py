@@ -142,6 +142,7 @@ class ReadOnlyRun:
     ) -> None:
         """
         Prefetches values of a list of series and stores them in the local cache.
+        This method skips the non-existing attributes.
 
         Args:
             paths: List of field paths to prefetch.
