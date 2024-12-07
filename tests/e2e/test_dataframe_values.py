@@ -1,7 +1,13 @@
 import os
 import re
+import time
 
 import pytest
+
+from neptune_fetcher import (
+    ReadOnlyProject,
+    ReadOnlyRun,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
 
@@ -37,6 +43,20 @@ def test__invalid_limit_raises_error(project, limit):
 def test__nonexistent_column_is_returned_as_null(project, sys_columns):
     df = project.fetch_runs_df(columns=["non_existent_column"] + sys_columns)
     assert df["non_existent_column"].isnull().all()
+
+
+def test__nonexistent_column_in_prefetch(project: ReadOnlyProject, sys_columns):
+    run_id = next(project.list_experiments())["sys/id"]
+    run = ReadOnlyRun(project, with_id=run_id)
+    fields = list(run.field_names)
+
+    non_existent_column = f"non_existent_column/{time.time()}"
+    fields.append(non_existent_column)
+
+    run.prefetch_series_values(fields)
+
+    with pytest.raises(KeyError):
+        run[non_existent_column].fetch_values()
 
 
 @pytest.mark.parametrize(

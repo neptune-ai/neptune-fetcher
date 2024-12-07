@@ -568,7 +568,7 @@ print(run["parameter/init_lr"].fetch())
 
 ### `prefetch_series_values()`
 
-Prefetches a batch of series to the internal cache.
+Prefetches a batch of series to the internal cache. This method skips the non-existing attributes.
 
 Improves the performance of access to consecutive field values. Works only for series ([`FloatSeries`](#floatseries)).
 
