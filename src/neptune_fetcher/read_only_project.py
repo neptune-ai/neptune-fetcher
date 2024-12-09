@@ -45,7 +45,7 @@ from neptune_retrieval_api.models import (
     QueryAttributesBodyDTO,
     SearchLeaderboardEntriesParamsDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import ProtoAttributeDTO
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoAttributeDTO
 from pandas import DataFrame
 
 from neptune_fetcher.api.api_client import ApiClient

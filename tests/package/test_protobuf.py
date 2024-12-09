@@ -78,8 +78,20 @@ def test_serialize_sample_model__neptune():
 
 
 def test_serialize_sample_model__neptune_retrieval_api():
-    pytest.importorskip("neptune_retrieval_api.proto.neptune_pb")
+    pytest.importorskip("neptune_retrieval_api.proto.neptune_pb.api.model")
     from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatPointValueDTO
+
+    example = ProtoFloatPointValueDTO()
+
+    dto_bytes = example.SerializeToString()
+    result = ProtoFloatPointValueDTO.FromString(dto_bytes)
+
+    assert result == example
+
+
+def test_serialize_sample_model__neptune_retrieval_api_v1():
+    pytest.importorskip("neptune_retrieval_api.proto.neptune_pb.api.v1")
+    from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatPointValueDTO
 
     example = ProtoFloatPointValueDTO()
 
