@@ -2,7 +2,7 @@ name: Run package tests
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Run at 8:00 daily
+    - cron: '0 8 * * *'  # Run at 8:00 daily
   workflow_dispatch:
   pull_request:
 
@@ -12,6 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - python-version: 3.12
+            os: ubuntu
+            neptune-version: "latest"
+            neptune-experimental-version: "skip"
+            neptune-fetcher-version: "."
+            neptune-scale-version: "latest"
           - python-version: 3.12
             os: ubuntu
             neptune-version: "latest"
@@ -32,16 +38,10 @@ jobs:
             neptune-scale-version: "latest"
           - python-version: 3.12
             os: ubuntu
-            neptune-version: "2.0.0a8"
+            neptune-version: "2.0.0a8"  # switch to a non-conflicting version when available
             neptune-experimental-version: "skip"
             neptune-fetcher-version: "0.8.1"
             neptune-scale-version: "latest"
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "2.0.0a8"
-            neptune-experimental-version: "skip"
-            neptune-fetcher-version: "0.8.1"
-            neptune-scale-version: "0.7.3"
 
     name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}, scale==${{ matrix.neptune-scale-version }})'
     runs-on: ${{ matrix.os }}-latest
@@ -65,10 +65,14 @@ jobs:
             if [ "$version" = "skip" ]; then
               return
             fi
+            if [[ "$version" == git+* ]] || [[ "$version" == . ]]; then
+              echo "$version"
+              return
+            fi
             if [ "$version" = "latest" ]; then
               version=$(pip index versions $package_name --pre | grep -Eo 'Available versions: [^,]+' | awk '{print $3}')
             fi
-            echo $version
+            echo "$package_name==$version"
           }
 
           neptune_version=$(resolve_version neptune ${{ matrix.neptune-version }})
@@ -77,10 +81,10 @@ jobs:
           neptune_scale_version=$(resolve_version neptune-scale ${{ matrix.neptune-scale-version }})
 
           pip install \
-            "neptune==${neptune_version}" \
-            $( [ -n "$neptune_experimental_version" ] && echo "neptune-experimental==${neptune_experimental_version}" ) \
-            "neptune-fetcher==${neptune_fetcher_version}" \
-            "neptune-scale==${neptune_scale_version}" \
+            ${neptune_version} \
+            ${neptune_experimental_version} \
+            ${neptune_fetcher_version} \
+            ${neptune_scale_version} \
             "pytest" "pytest-timeout" "pytest-xdist"
         shell: bash
 

@@ -59,14 +59,14 @@ from neptune_retrieval_api.models import (
     TimeSeries,
     TimeSeriesLineage,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.attributes_pb2 import (
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
     ProtoAttributesSearchResultDTO,
     ProtoQueryAttributesResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.fields import (

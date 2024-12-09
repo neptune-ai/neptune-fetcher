@@ -11,7 +11,7 @@ from unittest.mock import (
     patch,
 )
 
-from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import (
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
     ProtoFloatPointValueDTO,
     ProtoFloatSeriesValuesDTO,
     ProtoFloatSeriesValuesResponseDTO,
