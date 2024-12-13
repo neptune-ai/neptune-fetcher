@@ -11,79 +11,82 @@ class Attribute:
     type: Literal['int', 'float', 'string', 'datetime', 'float_series'] | None = None
 
 
-class Filter:
+class ExperimentFilter:
     """
     Complex queries with conditions on attribute values, similar to what we have in the UI
     """
 
-    @classmethod
-    def eq(cls, attribute: str | Attribute, value: int | float | str | datetime) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def eq(attribute: str | Attribute, value: int | float | str | datetime) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def gt(cls, attribute: str | Attribute, value: int | float | str | datetime) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def gt(attribute: str | Attribute, value: int | float | str | datetime) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def gte(cls, attribute: str | Attribute, value: int | float | str | datetime) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def gte(attribute: str | Attribute, value: int | float | str | datetime) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def lt(cls, attribute: str | Attribute, value: int | float | str | datetime) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def lt(attribute: str | Attribute, value: int | float | str | datetime) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def lte(cls, attribute: str | Attribute, value: int | float | str | datetime) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def lte(attribute: str | Attribute, value: int | float | str | datetime) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def matches_all(cls, attribute: str | Attribute, regex: str | List[str]) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def matches_all(attribute: str | Attribute, regex: str | List[str]) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def matches_none(cls, attribute: str | Attribute, regex: str | List[str]) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def matches_none(attribute: str | Attribute, regex: str | List[str]) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def contains_all(cls, attribute: str | Attribute, value: str | List[str]) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def contains_all(attribute: str | Attribute, value: str | List[str]) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def contains_none(cls, attribute: str | Attribute, value: str | List[str]) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def contains_none(attribute: str | Attribute, value: str | List[str]) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def exists(cls, attribute: str | Attribute) -> 'Filter':
-        return Filter()
+    @staticmethod
+    def exists(attribute: str | Attribute) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def all(cls, *filters: 'Filter') -> 'Filter':
-        return Filter()
+    @staticmethod
+    def all(*filters: 'ExperimentFilter') -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def any(cls, *filters: 'Filter') -> 'Filter':
-        return Filter()
+    @staticmethod
+    def any(*filters: 'ExperimentFilter') -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    @classmethod
-    def negate(cls, filter: 'Filter') -> 'Filter':
-        return Filter()
+    @staticmethod
+    def negate(filter: 'ExperimentFilter') -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    def __and__(self, other: 'Filter') -> 'Filter':
-        return Filter.all(self, other)
+    @staticmethod
+    def name_in(*names: str) -> 'ExperimentFilter':
+        return ExperimentFilter()
 
-    def __or__(self, other: 'Filter') -> 'Filter':
-        return Filter.any(self, other)
+    @staticmethod
+    def name_eq(name: str) -> 'ExperimentFilter':
+        return ExperimentFilter.name_in(name)
 
-    def __invert__(self) -> 'Filter':
-        return Filter.negate(self)
+    def __and__(self, other: 'ExperimentFilter') -> 'ExperimentFilter':
+        return ExperimentFilter.all(self, other)
 
-    @classmethod
-    def name_in(cls, *names: str) -> 'Filter':
-        return Filter()
+    def __or__(self, other: 'ExperimentFilter') -> 'ExperimentFilter':
+        return ExperimentFilter.any(self, other)
 
-    @classmethod
-    def name_eq(cls, name: str) -> 'Filter':
-        return Filter.name_in(name)
+    def __invert__(self) -> 'ExperimentFilter':
+        return ExperimentFilter.negate(self)
+
+    def to_query(self) -> str:
+        return ''
 
 
 class AttributeFilter:
@@ -98,8 +101,8 @@ class AttributeFilter:
         self.name_matches_all = name_matches_all
         self.aggregation_eq = aggregation_eq
 
-    @classmethod
-    def any(cls, *filters: 'AttributeFilter') -> 'AttributeFilter':
+    @staticmethod
+    def any(*filters: 'AttributeFilter') -> 'AttributeFilter':
         return AttributeFilter(name_matches_all=filters[0].name_matches_all, aggregation_eq=filters[0].aggregation_eq)
 
     def __or__(self, other: 'AttributeFilter') -> 'AttributeFilter':

@@ -2,11 +2,12 @@ from typing import List, Tuple, Literal
 import pandas as pd
 
 from .context import Context
-from .filter import Attribute, Filter, AttributeFilter
+from neptune_fetcher.api.client import Client
+from .filter import Attribute, ExperimentFilter, AttributeFilter
 
 
 def fetch_experiments_table(
-        experiments: str | Filter | None = None,
+        experiments: str | ExperimentFilter | None = None,
         attributes: str | AttributeFilter = '^sys/name$',
         sort_by: str | Attribute = Attribute('sys/creation_time', type='datetime'),
         sort_direction: Literal['asc', 'desc'] = 'desc',
@@ -35,7 +36,7 @@ def fetch_experiments_table(
 
 
 def list_attributes(
-        experiments: str | Filter | None = None,
+        experiments: str | ExperimentFilter | None = None,
         attributes: str | AttributeFilter | None = None,
         limit: int = 1000,
         context: Context | None = None,
@@ -55,7 +56,7 @@ def list_attributes(
 
 
 def list_experiments(
-        experiments: str | Filter | None = None,
+        experiments: str | ExperimentFilter | None = None,
         limit: int = 1000,
         context: Context | None = None,
 ) -> List[str]:
@@ -66,15 +67,12 @@ def list_experiments(
         - a Filter object
     `limit` - maximum number of experiments to return
     """
-    ...
+    with Client.create(context) as client:
+        return client.list_experiments(experiments=experiments, limit=limit)
 
-
-# =================================================================================================================
-# Retrieving metrics
-# =================================================================================================================
 
 def fetch_metrics(
-        experiments: str | Filter,
+        experiments: str | ExperimentFilter,
         attributes: str | AttributeFilter,
         include_timestamp: Literal['relative', 'absolute'] | None = None,
         step_range: Tuple[float | None, float | None] = (None, None),
@@ -102,7 +100,7 @@ def fetch_metrics(
 
 
 def fetch_lineage(
-        experiments: str | Filter,
+        experiments: str | ExperimentFilter,
         context: Context | None = None,
 ) -> pd.DataFrame:
     """
