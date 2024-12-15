@@ -21,7 +21,7 @@ __all__ = [
     "fetch_lineage",
 ]
 
-from .cli import (
+from .command import (
     fetch_experiments_table,
     list_attributes,
     list_experiments,

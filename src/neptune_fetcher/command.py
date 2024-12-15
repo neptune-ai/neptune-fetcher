@@ -1,8 +1,8 @@
-from typing import List, Tuple, Literal
+from typing import Literal
 import pandas as pd
 
 from .context import Context
-from neptune_fetcher.api.client import Client
+from neptune_fetcher.api.fetcher import NeptuneFetcher
 from .filter import Attribute, ExperimentFilter, AttributeFilter
 
 
@@ -59,7 +59,7 @@ def list_experiments(
         experiments: str | ExperimentFilter | None = None,
         limit: int = 1000,
         context: Context | None = None,
-) -> List[str]:
+) -> list[str]:
     """
     Returns a list of experiment names in a project.
    `experiments` - a filter specifying which experiments to include
@@ -67,7 +67,7 @@ def list_experiments(
         - a Filter object
     `limit` - maximum number of experiments to return
     """
-    with Client.create(context) as client:
+    with NeptuneFetcher.create(context) as client:
         return client.list_experiments(experiments=experiments, limit=limit)
 
 
@@ -75,7 +75,7 @@ def fetch_metrics(
         experiments: str | ExperimentFilter,
         attributes: str | AttributeFilter,
         include_timestamp: Literal['relative', 'absolute'] | None = None,
-        step_range: Tuple[float | None, float | None] = (None, None),
+        step_range: tuple[float | None, float | None] = (None, None),
         lineage_to_the_root: bool = True,
         tail_limit: int | None = None,
         context: Context | None = None,

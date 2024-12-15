@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import Literal, List
+from typing import Literal
 from datetime import datetime
 
 
@@ -37,19 +37,19 @@ class ExperimentFilter:
         return ExperimentFilter()
 
     @staticmethod
-    def matches_all(attribute: str | Attribute, regex: str | List[str]) -> 'ExperimentFilter':
+    def matches_all(attribute: str | Attribute, regex: str | list[str]) -> 'ExperimentFilter':
         return ExperimentFilter()
 
     @staticmethod
-    def matches_none(attribute: str | Attribute, regex: str | List[str]) -> 'ExperimentFilter':
+    def matches_none(attribute: str | Attribute, regex: str | list[str]) -> 'ExperimentFilter':
         return ExperimentFilter()
 
     @staticmethod
-    def contains_all(attribute: str | Attribute, value: str | List[str]) -> 'ExperimentFilter':
+    def contains_all(attribute: str | Attribute, value: str | list[str]) -> 'ExperimentFilter':
         return ExperimentFilter()
 
     @staticmethod
-    def contains_none(attribute: str | Attribute, value: str | List[str]) -> 'ExperimentFilter':
+    def contains_none(attribute: str | Attribute, value: str | list[str]) -> 'ExperimentFilter':
         return ExperimentFilter()
 
     @staticmethod
@@ -92,10 +92,10 @@ class ExperimentFilter:
 class AttributeFilter:
     def __init__(
             self,
-            name_eq: str | List[str] | None = None,
-            type_in: List[Literal['int', 'float', 'string', 'datetime', 'float_series']] | None = None,
-            name_matches_all: str | List[str] | None = None,
-            name_matches_none: str | List[str] | None = None,
+            name_eq: str | list[str] | None = None,
+            type_in: list[Literal['int', 'float', 'string', 'datetime', 'float_series']] | None = None,
+            name_matches_all: str | list[str] | None = None,
+            name_matches_none: str | list[str] | None = None,
             aggregation_eq: Literal['last', 'min', 'max', 'avg', 'variance', 'auto'] = 'auto'
     ):
         self.name_matches_all = name_matches_all
@@ -107,3 +107,11 @@ class AttributeFilter:
 
     def __or__(self, other: 'AttributeFilter') -> 'AttributeFilter':
         return AttributeFilter.any(self, other)
+
+
+# def escape_nql_criterion(criterion):
+#     """
+#     Escape backslash and (double-)quotes in the string, to match what the NQL engine expects.
+#     """
+#
+#     return criterion.replace("\\", r"\\").replace('"', r"\"")

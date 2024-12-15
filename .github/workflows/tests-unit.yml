@@ -1,4 +1,4 @@
-name: integration
+name: Run unit tests
 
 on:
   workflow_call:
@@ -7,6 +7,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'pyproject.toml'
+      - 'poetry.lock'
   push:
     branches:
       - main
@@ -17,15 +19,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.8", "3.12" ]
-        os: [ ubuntu, windows ]
-        include:
-          - python-version: "3.8"
-            os: macos
-          - python-version: "3.12"
-            os: macos
+        python-version: [ "3.9", "3.13" ]
+        os: [ ubuntu, macos, windows ]
 
-    name: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
+    name: 'unit test (${{ matrix.os }} - py${{ matrix.python-version }})'
     runs-on: ${{ matrix.os }}-latest
     steps:
       - name: Checkout repository
@@ -41,8 +38,8 @@ jobs:
           os: ${{ matrix.os }}-latest
 
       - name: Run tests
-        uses: ./.github/actions/test-integration
+        uses: ./.github/actions/run-tests
         with:
-          python-version: ${{ matrix.python-version }}
-          os: ${{ matrix.os }}
-          report_job: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
+          test-directory: unit
+          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
+          report-suffix: 'unit-${{ matrix.python-version }}-${{ matrix.os }}'
