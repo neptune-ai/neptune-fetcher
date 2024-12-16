@@ -23,14 +23,14 @@ from ..errors import NeptuneException
 T = TypeVar("T")
 
 
-class ProtoNeptuneApiClient:
+class NeptuneApiClient:
     def __init__(
         self,
         auth_client: neptune_api.client.AuthenticatedClient
     ):
         self._auth_client = auth_client
 
-    def __enter__(self) -> "ProtoNeptuneApiClient":
+    def __enter__(self) -> "NeptuneApiClient":
         self._auth_client.__enter__()
         return self
 

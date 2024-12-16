@@ -38,6 +38,6 @@ def _map_bool(value: str) -> bool:
     return value.lower() in {"true", "1"}
 
 
-NEPTUNE_API_TOKEN = EnvVariable[Optional[str]]("NEPTUNE_API", _map_str, None)
-NEPTUNE_PROJECT = EnvVariable[Optional[str]]("NEPTUNE_PROJECT", _map_str, None)
+NEPTUNE_API_TOKEN = EnvVariable[Optional[str]]("NEPTUNE_API_TOKEN", _map_str)
+NEPTUNE_PROJECT = EnvVariable[Optional[str]]("NEPTUNE_PROJECT", _map_str)
 NEPTUNE_VERIFY_SSL = EnvVariable[bool]("NEPTUNE_VERIFY_SSL", _map_bool, True)

@@ -7,7 +7,7 @@ from unittest.mock import (
 import pytest
 from pytest import fixture
 
-from neptune_fetcher.api.client import ProtoNeptuneApiClient
+from neptune_fetcher.api.client import NeptuneApiClient
 from neptune_fetcher.errors import NeptuneException
 
 
@@ -35,7 +35,7 @@ def test_retry_on_exception(response_200, sleep):
     """`func` should be retried with the given arguments"""
     func = Mock(side_effect=[Exception, Exception, response_200])
 
-    assert ProtoNeptuneApiClient._backoff_retry(func, 1, kw=2, max_tries=3) == response_200
+    assert NeptuneApiClient._backoff_retry(func, 1, kw=2, max_tries=3) == response_200
     func.assert_has_calls([call(1, kw=2)] * 3)
 
     assert sleep.call_count == 2
@@ -46,7 +46,7 @@ def test_retry_limit_hit_on_exception(sleep):
 
     func = Mock(side_effect=[ValueError(f"error {x}") for x in range(1, 11)])
     with pytest.raises(NeptuneException) as exc:
-        ProtoNeptuneApiClient._backoff_retry(func, max_tries=7)
+        NeptuneApiClient._backoff_retry(func, max_tries=7)
 
     assert func.call_count == 7
     assert sleep.call_count == func.call_count - 1
@@ -59,7 +59,7 @@ def test_retry_limit_hit_on_response_error(response_500, sleep):
 
     func = Mock(side_effect=[response_500] * 10)
     with pytest.raises(NeptuneException) as exc:
-        ProtoNeptuneApiClient._backoff_retry(func, max_tries=5)
+        NeptuneApiClient._backoff_retry(func, max_tries=5)
 
     exc.match("Last response:.*500")
 
@@ -69,7 +69,7 @@ def test_retry_limit_hit_on_exception_and_response_error(response_500, sleep):
 
     func = Mock(side_effect=[response_500, ValueError("foo")])
     with pytest.raises(NeptuneException) as exc:
-        ProtoNeptuneApiClient._backoff_retry(func, max_tries=2)
+        NeptuneApiClient._backoff_retry(func, max_tries=2)
 
     exc.match("Last exception: foo")
     exc.match("Last response:.*500")
@@ -78,7 +78,7 @@ def test_retry_limit_hit_on_exception_and_response_error(response_500, sleep):
 def test_no_error(response_200, sleep):
     func = Mock(return_value=response_200)
 
-    assert ProtoNeptuneApiClient._backoff_retry(func, 1, kw=2) == response_200
+    assert NeptuneApiClient._backoff_retry(func, 1, kw=2) == response_200
     func.assert_has_calls([call(1, kw=2)])
     sleep.assert_not_called()
 
@@ -86,7 +86,7 @@ def test_no_error(response_200, sleep):
 def test_sleep_backoff(response_500, sleep):
     func = Mock(return_value=response_500)
     with pytest.raises(NeptuneException):
-        ProtoNeptuneApiClient._backoff_retry(func, max_tries=10, max_backoff=10)
+        NeptuneApiClient._backoff_retry(func, max_tries=10, max_backoff=10)
 
     # Last call to sleep should be max backoff
     assert sleep.call_args.args[0] == 10
@@ -98,7 +98,7 @@ def test_unexpected_server_response():
     """Should abort on unexpected response, and not retry"""
     func = Mock(return_value=response(777, "jackpot!"))
     with pytest.raises(NeptuneException) as exc:
-        ProtoNeptuneApiClient._backoff_retry(func, max_tries=10)
+        NeptuneApiClient._backoff_retry(func, max_tries=10)
 
     assert func.call_count == 1
     exc.match("jackpot!")

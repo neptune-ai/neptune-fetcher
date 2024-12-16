@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union, Optional
 import pandas as pd
 
 from .context import Context
@@ -7,12 +7,12 @@ from .filter import Attribute, ExperimentFilter, AttributeFilter
 
 
 def fetch_experiments_table(
-        experiments: str | ExperimentFilter | None = None,
-        attributes: str | AttributeFilter = '^sys/name$',
-        sort_by: str | Attribute = Attribute('sys/creation_time', type='datetime'),
+        experiments: Union[str, ExperimentFilter, None] = None,
+        attributes: Union[str, AttributeFilter] = '^sys/name$',
+        sort_by: Union[str, Attribute] = Attribute('sys/creation_time', type='datetime'),
         sort_direction: Literal['asc', 'desc'] = 'desc',
         limit: int = 1000,
-        context: Context | None = None,
+        context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     `experiments` - a filter specifying which experiments to include in the table
@@ -36,10 +36,10 @@ def fetch_experiments_table(
 
 
 def list_attributes(
-        experiments: str | ExperimentFilter | None = None,
-        attributes: str | AttributeFilter | None = None,
+        experiments: Union[str, ExperimentFilter, None] = None,
+        attributes: Union[str, AttributeFilter, None] = None,
         limit: int = 1000,
-        context: Context | None = None,
+        context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     List attributes' names in project.
@@ -56,9 +56,9 @@ def list_attributes(
 
 
 def list_experiments(
-        experiments: str | ExperimentFilter | None = None,
+        experiments: Union[str, ExperimentFilter, None] = None,
         limit: int = 1000,
-        context: Context | None = None,
+        context: Optional[Context] = None,
 ) -> list[str]:
     """
     Returns a list of experiment names in a project.
@@ -72,13 +72,13 @@ def list_experiments(
 
 
 def fetch_metrics(
-        experiments: str | ExperimentFilter,
-        attributes: str | AttributeFilter,
-        include_timestamp: Literal['relative', 'absolute'] | None = None,
+        experiments: Union[str, ExperimentFilter],
+        attributes: Union[str, AttributeFilter],
+        include_timestamp: Optional[Literal['relative', 'absolute']] = None,
         step_range: tuple[float | None, float | None] = (None, None),
         lineage_to_the_root: bool = True,
-        tail_limit: int | None = None,
-        context: Context | None = None,
+        tail_limit: Optional[int] = None,
+        context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation),
@@ -100,8 +100,8 @@ def fetch_metrics(
 
 
 def fetch_lineage(
-        experiments: str | ExperimentFilter,
-        context: Context | None = None,
+        experiments: Union[str, ExperimentFilter],
+        context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     Retrieves a flat representation of the lineage.

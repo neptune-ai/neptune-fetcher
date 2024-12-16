@@ -16,7 +16,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import (
     ProtoFloatSeriesValuesResponseDTO,
 )
 
-from neptune_fetcher.api.client import ProtoNeptuneApiClient
+from neptune_fetcher.api.client import NeptuneApiClient
 
 
 @fixture
@@ -56,7 +56,7 @@ def float_series_values_request() -> FloatTimeSeriesValuesRequest:
 
 
 def test_search_entries__returns_dto(search_leaderboard_entries_proto):
-    client = ProtoNeptuneApiClient(auth_client=Mock())
+    client = NeptuneApiClient(auth_client=Mock())
     params_dto = search_entries_params_dto()
     result_dto = search_entries_result_dto()
     search_leaderboard_entries_proto.return_value = response(result_dto)
@@ -71,7 +71,7 @@ def test_search_entries__returns_dto(search_leaderboard_entries_proto):
 
 
 def test_get_float_series_values__returns_dto(get_multiple_float_series_values_proto):
-    client = ProtoNeptuneApiClient(auth_client=Mock())
+    client = NeptuneApiClient(auth_client=Mock())
     params_dto = float_series_values_request()
     result_dto = float_series_values_response_dto()
     get_multiple_float_series_values_proto.return_value = response(result_dto)

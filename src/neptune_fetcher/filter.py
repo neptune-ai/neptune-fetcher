@@ -85,7 +85,7 @@ class ExperimentFilter:
     def __invert__(self) -> 'ExperimentFilter':
         return ExperimentFilter.negate(self)
 
-    def to_query(self) -> str:
+    def evaluate(self) -> str:
         return ''
 
 
@@ -108,6 +108,8 @@ class AttributeFilter:
     def __or__(self, other: 'AttributeFilter') -> 'AttributeFilter':
         return AttributeFilter.any(self, other)
 
+    def evaluate(self) -> str:
+        return ''
 
 # def escape_nql_criterion(criterion):
 #     """
