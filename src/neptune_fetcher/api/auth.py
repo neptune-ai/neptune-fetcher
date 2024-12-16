@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import (
     Mapping,
+    Optional,
     Union,
 )
 
@@ -22,7 +23,9 @@ from ..env import NEPTUNE_VERIFY_SSL
 __all__ = ("create_authenticated_client",)
 
 
-def create_authenticated_client(api_token: str, proxies: Mapping[str, str]) -> neptune_api.client.AuthenticatedClient:
+def create_authenticated_client(
+    api_token: str, proxies: Optional[Mapping[str, str]]
+) -> neptune_api.client.AuthenticatedClient:
     credentials = Credentials.from_api_key(api_key=api_token)
     verify_ssl = NEPTUNE_VERIFY_SSL.get()
 

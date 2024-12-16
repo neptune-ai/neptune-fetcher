@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import (
+    Literal,
+    Optional,
+    Union,
+)
 
 
 @dataclass
 class Attribute:
     name: str
-    aggregation: Literal["last", "min", "max", "avg", "variance"] | None = None
-    type: Literal["int", "float", "string", "datetime", "float_series"] | None = None
+    aggregation: Optional[Literal["last", "min", "max", "avg", "variance"]] = None
+    type: Optional[Literal["int", "float", "string", "datetime", "float_series"]] = None
 
 
 class ExperimentFilter:
@@ -16,43 +20,43 @@ class ExperimentFilter:
     """
 
     @staticmethod
-    def eq(attribute: str | Attribute, value: int | float | str | datetime) -> "ExperimentFilter":
+    def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def gt(attribute: str | Attribute, value: int | float | str | datetime) -> "ExperimentFilter":
+    def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def gte(attribute: str | Attribute, value: int | float | str | datetime) -> "ExperimentFilter":
+    def gte(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def lt(attribute: str | Attribute, value: int | float | str | datetime) -> "ExperimentFilter":
+    def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def lte(attribute: str | Attribute, value: int | float | str | datetime) -> "ExperimentFilter":
+    def lte(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def matches_all(attribute: str | Attribute, regex: str | list[str]) -> "ExperimentFilter":
+    def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def matches_none(attribute: str | Attribute, regex: str | list[str]) -> "ExperimentFilter":
+    def matches_none(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def contains_all(attribute: str | Attribute, value: str | list[str]) -> "ExperimentFilter":
+    def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def contains_none(attribute: str | Attribute, value: str | list[str]) -> "ExperimentFilter":
+    def contains_none(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
-    def exists(attribute: str | Attribute) -> "ExperimentFilter":
+    def exists(attribute: Union[str, Attribute]) -> "ExperimentFilter":
         return ExperimentFilter()
 
     @staticmethod
@@ -91,10 +95,10 @@ class ExperimentFilter:
 class AttributeFilter:
     def __init__(
         self,
-        name_eq: str | list[str] | None = None,
-        type_in: list[Literal["int", "float", "string", "datetime", "float_series"]] | None = None,
-        name_matches_all: str | list[str] | None = None,
-        name_matches_none: str | list[str] | None = None,
+        name_eq: Union[str, list[str], None] = None,
+        type_in: Optional[list[Literal["int", "float", "string", "datetime", "float_series"]]] = None,
+        name_matches_all: Union[str, list[str], None] = None,
+        name_matches_none: Union[str, list[str], None] = None,
         aggregation_eq: Literal["last", "min", "max", "avg", "variance", "auto"] = "auto",
     ):
         self.name_matches_all = name_matches_all

@@ -85,7 +85,7 @@ def fetch_metrics(
     experiments: Union[str, ExperimentFilter],
     attributes: Union[str, AttributeFilter],
     include_timestamp: Optional[Literal["relative", "absolute"]] = None,
-    step_range: tuple[float | None, float | None] = (None, None),
+    step_range: tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
     context: Optional[Context] = None,

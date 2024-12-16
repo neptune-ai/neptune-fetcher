@@ -19,6 +19,9 @@ __all__ = [
     "list_experiments",
     "fetch_metrics",
     "fetch_lineage",
+    "Context",
+    "get_context",
+    "set_context",
 ]
 
 from .command import (
@@ -27,4 +30,9 @@ from .command import (
     fetch_metrics,
     list_attributes,
     list_experiments,
+)
+from .context import (
+    Context,
+    get_context,
+    set_context,
 )

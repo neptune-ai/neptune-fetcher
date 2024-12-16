@@ -8,6 +8,10 @@ inputs:
   os:
     description: "Operating system"
     required: true
+  poetry-version:
+    description: "Python version"
+    required: false
+    default: "1.8.5"
   working_directory:
     description: "Working directory"
     required: false
@@ -31,8 +35,17 @@ runs:
 
       - name: Install dependencies
         uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ inputs.poetry-version }}
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          poetry install
+        shell: bash
 
       - name: List dependencies
         run: |
+          poetry env info
           pip list
         shell: bash

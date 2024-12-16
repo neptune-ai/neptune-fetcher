@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Optional,
+    Union,
 )
 
 from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
@@ -36,7 +37,7 @@ class NeptuneFetcher:
 
     def list_experiments(
         self,
-        experiments: str | ExperimentFilter | None = None,
+        experiments: Union[str, ExperimentFilter, None] = None,
         limit: int = 1000,
     ) -> list[str]:
         params = {
@@ -54,7 +55,7 @@ class NeptuneFetcher:
         return [entry.attributes[0].string_properties.value for entry in result.entries]
 
     @staticmethod
-    def _get_query_string(experiments: str | ExperimentFilter | None) -> str | None:
+    def _get_query_string(experiments: Union[str, ExperimentFilter, None]) -> Optional[str]:
         if experiments is None:
             return None
         if isinstance(experiments, str):

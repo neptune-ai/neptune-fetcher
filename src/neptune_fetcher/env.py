@@ -2,7 +2,6 @@ import os
 from typing import (
     Callable,
     Generic,
-    Optional,
     TypeVar,
 )
 
@@ -16,7 +15,7 @@ T = TypeVar("T")
 
 
 class EnvVariable(Generic[T]):
-    _UNSET = object()
+    _UNSET: T = object()  # type: ignore
 
     def __init__(self, name: str, value_mapper: Callable[[str], T], default_value: T = _UNSET):
         self._name = name
@@ -43,6 +42,6 @@ def _map_bool(value: str) -> bool:
     return value.lower() in {"true", "1"}
 
 
-NEPTUNE_API_TOKEN = EnvVariable[Optional[str]]("NEPTUNE_API_TOKEN", _map_str)
-NEPTUNE_PROJECT = EnvVariable[Optional[str]]("NEPTUNE_PROJECT", _map_str)
+NEPTUNE_API_TOKEN = EnvVariable[str]("NEPTUNE_API_TOKEN", _map_str)
+NEPTUNE_PROJECT = EnvVariable[str]("NEPTUNE_PROJECT", _map_str)
 NEPTUNE_VERIFY_SSL = EnvVariable[bool]("NEPTUNE_VERIFY_SSL", _map_bool, True)
