@@ -2,12 +2,19 @@ from typing import Any, Callable, TypeVar
 import time
 
 import neptune_api.client
-from neptune_retrieval_api.api.default import search_leaderboard_entries_proto
+from neptune_retrieval_api.api.default import (
+    get_multiple_float_series_values_proto,
+    search_leaderboard_entries_proto
+)
 from neptune_retrieval_api.models import (
+    FloatTimeSeriesValuesRequest,
     SearchLeaderboardEntriesParamsDTO,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
+)
+from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import (
+    ProtoFloatSeriesValuesResponseDTO
 )
 from neptune_retrieval_api.types import Response
 
@@ -16,14 +23,14 @@ from ..errors import NeptuneException
 T = TypeVar("T")
 
 
-class NeptuneApiProtoClient:
+class ProtoNeptuneApiClient:
     def __init__(
         self,
         auth_client: neptune_api.client.AuthenticatedClient
     ):
         self._auth_client = auth_client
 
-    def __enter__(self) -> "NeptuneApiProtoClient":
+    def __enter__(self) -> "ProtoNeptuneApiClient":
         self._auth_client.__enter__()
         return self
 
@@ -44,10 +51,20 @@ class NeptuneApiProtoClient:
         result = ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
         return result
 
+    def get_float_series_values(
+            self,
+            body: FloatTimeSeriesValuesRequest,
+    ) -> ProtoFloatSeriesValuesResponseDTO:
+        response = self._backoff_retry(
+            lambda: get_multiple_float_series_values_proto.sync_detailed(client=self._auth_client, body=body)
+        )
+        result = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+        return result
+
     @staticmethod
     def _backoff_retry(
-            func: Callable[[], Response[T]], *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
-    ) -> Response[T]:
+            func: Callable, *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
+    ) -> Response[Any]:
         """
         Retries a function with exponential backoff. The function will be called at most `max_tries` times.
 
@@ -103,4 +120,3 @@ class NeptuneApiProtoClient:
             raise NeptuneException("Unknown error occurred when requesting data")
 
         raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
-

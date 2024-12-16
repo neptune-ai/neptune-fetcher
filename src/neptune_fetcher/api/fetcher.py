@@ -7,18 +7,18 @@ from neptune_retrieval_api.models import (
 from ..filter import ExperimentFilter
 from ..context import Context
 from .auth import create_authenticated_client
-from .client import NeptuneApiProtoClient
+from .client import ProtoNeptuneApiClient
 
 
 class NeptuneFetcher:
-    def __init__(self, project_id: str, client: NeptuneApiProtoClient):
+    def __init__(self, project_id: str, client: ProtoNeptuneApiClient):
         self._project_id = project_id
         self._client = client
 
     @staticmethod
     def create(context: Context) -> "NeptuneFetcher":
         auth_client = create_authenticated_client(api_token=context.api_token, proxies=context.proxies)
-        client = NeptuneApiProtoClient(auth_client=auth_client)
+        client = ProtoNeptuneApiClient(auth_client=auth_client)
         return NeptuneFetcher(project_id=context.project, client=client)
 
     def __enter__(self) -> "NeptuneFetcher":
