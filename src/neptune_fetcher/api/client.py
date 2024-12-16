@@ -1,10 +1,14 @@
-from typing import Any, Callable, TypeVar
 import time
+from typing import (
+    Any,
+    Callable,
+    TypeVar,
+)
 
 import neptune_api.client
 from neptune_retrieval_api.api.default import (
     get_multiple_float_series_values_proto,
-    search_leaderboard_entries_proto
+    search_leaderboard_entries_proto,
 )
 from neptune_retrieval_api.models import (
     FloatTimeSeriesValuesRequest,
@@ -13,9 +17,7 @@ from neptune_retrieval_api.models import (
 from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import (
-    ProtoFloatSeriesValuesResponseDTO
-)
+from neptune_retrieval_api.proto.neptune_pb.api.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
 from ..errors import NeptuneException
@@ -24,10 +26,7 @@ T = TypeVar("T")
 
 
 class NeptuneApiClient:
-    def __init__(
-        self,
-        auth_client: neptune_api.client.AuthenticatedClient
-    ):
+    def __init__(self, auth_client: neptune_api.client.AuthenticatedClient):
         self._auth_client = auth_client
 
     def __enter__(self) -> "NeptuneApiClient":
@@ -38,10 +37,7 @@ class NeptuneApiClient:
         self._auth_client.__exit__(*args, **kwargs)
 
     def search_entries(
-            self,
-            project_id: str,
-            types: list[str],
-            body: SearchLeaderboardEntriesParamsDTO
+        self, project_id: str, types: list[str], body: SearchLeaderboardEntriesParamsDTO
     ) -> ProtoLeaderboardEntriesSearchResultDTO:
         response = self._backoff_retry(
             lambda: search_leaderboard_entries_proto.sync_detailed(
@@ -52,8 +48,8 @@ class NeptuneApiClient:
         return result
 
     def get_float_series_values(
-            self,
-            body: FloatTimeSeriesValuesRequest,
+        self,
+        body: FloatTimeSeriesValuesRequest,
     ) -> ProtoFloatSeriesValuesResponseDTO:
         response = self._backoff_retry(
             lambda: get_multiple_float_series_values_proto.sync_detailed(client=self._auth_client, body=body)
@@ -63,7 +59,7 @@ class NeptuneApiClient:
 
     @staticmethod
     def _backoff_retry(
-            func: Callable, *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
+        func: Callable, *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
     ) -> Response[Any]:
         """
         Retries a function with exponential backoff. The function will be called at most `max_tries` times.
@@ -101,7 +97,9 @@ class NeptuneApiClient:
 
                 # Not a TooManyRequests or InternalServerError code
                 if not (code == 429 or 500 <= code < 600):
-                    raise NeptuneException(f"Unexpected server response {response.status_code}: {str(response.content)}")
+                    raise NeptuneException(
+                        f"Unexpected server response {response.status_code}: {str(response.content)}"
+                    )
 
             if tries == max_tries:
                 break

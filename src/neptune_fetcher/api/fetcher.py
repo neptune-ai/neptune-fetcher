@@ -1,11 +1,15 @@
-from typing import Any, Optional
-
-from neptune_retrieval_api.models import (
-    SearchLeaderboardEntriesParamsDTO,
+from typing import (
+    Any,
+    Optional,
 )
 
+from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
+
+from ..context import (
+    Context,
+    get_context,
+)
 from ..filter import ExperimentFilter
-from ..context import Context, get_context
 from .auth import create_authenticated_client
 from .client import NeptuneApiClient
 
@@ -31,9 +35,9 @@ class NeptuneFetcher:
         self._client.__exit__(*args, **kwargs)
 
     def list_experiments(
-            self,
-            experiments: str | ExperimentFilter | None = None,
-            limit: int = 1000,
+        self,
+        experiments: str | ExperimentFilter | None = None,
+        limit: int = 1000,
     ) -> list[str]:
         params = {
             "pagination": {"limit": limit},
@@ -45,11 +49,7 @@ class NeptuneFetcher:
             params["query"] = query
         body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-        result = self._client.search_entries(
-            project_id=self._project_id,
-            types=["run"],
-            body=body
-        )
+        result = self._client.search_entries(project_id=self._project_id, types=["run"], body=body)
 
         return [entry.attributes[0].string_properties.value for entry in result.entries]
 

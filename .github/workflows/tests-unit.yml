@@ -11,6 +11,7 @@ on:
       - 'poetry.lock'
   push:
     branches:
+      - dev/1.0
       - main
 
 jobs:

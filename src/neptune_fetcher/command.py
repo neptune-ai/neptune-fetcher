@@ -1,18 +1,28 @@
-from typing import Literal, Union, Optional
+from typing import (
+    Literal,
+    Optional,
+    Union,
+)
+
 import pandas as pd
 
-from .context import Context
 from neptune_fetcher.api.fetcher import NeptuneFetcher
-from .filter import Attribute, ExperimentFilter, AttributeFilter
+
+from .context import Context
+from .filter import (
+    Attribute,
+    AttributeFilter,
+    ExperimentFilter,
+)
 
 
 def fetch_experiments_table(
-        experiments: Union[str, ExperimentFilter, None] = None,
-        attributes: Union[str, AttributeFilter] = '^sys/name$',
-        sort_by: Union[str, Attribute] = Attribute('sys/creation_time', type='datetime'),
-        sort_direction: Literal['asc', 'desc'] = 'desc',
-        limit: int = 1000,
-        context: Optional[Context] = None,
+    experiments: Union[str, ExperimentFilter, None] = None,
+    attributes: Union[str, AttributeFilter] = "^sys/name$",
+    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
+    sort_direction: Literal["asc", "desc"] = "desc",
+    limit: int = 1000,
+    context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     `experiments` - a filter specifying which experiments to include in the table
@@ -36,10 +46,10 @@ def fetch_experiments_table(
 
 
 def list_attributes(
-        experiments: Union[str, ExperimentFilter, None] = None,
-        attributes: Union[str, AttributeFilter, None] = None,
-        limit: int = 1000,
-        context: Optional[Context] = None,
+    experiments: Union[str, ExperimentFilter, None] = None,
+    attributes: Union[str, AttributeFilter, None] = None,
+    limit: int = 1000,
+    context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     List attributes' names in project.
@@ -56,29 +66,29 @@ def list_attributes(
 
 
 def list_experiments(
-        experiments: Union[str, ExperimentFilter, None] = None,
-        limit: int = 1000,
-        context: Optional[Context] = None,
+    experiments: Union[str, ExperimentFilter, None] = None,
+    limit: int = 1000,
+    context: Optional[Context] = None,
 ) -> list[str]:
     """
-    Returns a list of experiment names in a project.
-   `experiments` - a filter specifying which experiments to include
-        - a regex that experiment name must match, or
-        - a Filter object
-    `limit` - maximum number of experiments to return
+     Returns a list of experiment names in a project.
+    `experiments` - a filter specifying which experiments to include
+         - a regex that experiment name must match, or
+         - a Filter object
+     `limit` - maximum number of experiments to return
     """
     with NeptuneFetcher.create(context) as client:
         return client.list_experiments(experiments=experiments, limit=limit)
 
 
 def fetch_metrics(
-        experiments: Union[str, ExperimentFilter],
-        attributes: Union[str, AttributeFilter],
-        include_timestamp: Optional[Literal['relative', 'absolute']] = None,
-        step_range: tuple[float | None, float | None] = (None, None),
-        lineage_to_the_root: bool = True,
-        tail_limit: Optional[int] = None,
-        context: Optional[Context] = None,
+    experiments: Union[str, ExperimentFilter],
+    attributes: Union[str, AttributeFilter],
+    include_timestamp: Optional[Literal["relative", "absolute"]] = None,
+    step_range: tuple[float | None, float | None] = (None, None),
+    lineage_to_the_root: bool = True,
+    tail_limit: Optional[int] = None,
+    context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation),
@@ -100,8 +110,8 @@ def fetch_metrics(
 
 
 def fetch_lineage(
-        experiments: Union[str, ExperimentFilter],
-        context: Optional[Context] = None,
+    experiments: Union[str, ExperimentFilter],
+    context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
     Retrieves a flat representation of the lineage.

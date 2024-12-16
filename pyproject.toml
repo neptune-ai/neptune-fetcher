@@ -44,17 +44,17 @@ classifiers = [
     "Operating System :: Unix",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
 ]
 keywords = [
     "MLOps",
     "ML Experiment Tracking",
     "ML Model Registry",
     "ML Model Store",
-    "ML Metadata Store",
+    "ML Metadata Store"
 ]
 packages = [
-    { include = "neptune_fetcher", from = "src" },
+    { include = "neptune_fetcher", from = "src" }
 ]
 
 [tool.poetry.urls]
@@ -63,18 +63,8 @@ packages = [
 
 [tool.black]
 line-length = 120
-target-version = ['py37', 'py38', 'py39', 'py310']
-include = '\.pyi?$,\_pb2\.py$'
-exclude = '''
-/(
-    \.git
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
@@ -84,9 +74,6 @@ force_grid_wrap = 2
 [tool.flake8]
 max-line-length = 120
 extend-ignore = "E203"
-exclude = [
-    "src/neptune/api/proto/*"
-]
 
 [tool.mypy]
 files = 'src/neptune_fetcher'

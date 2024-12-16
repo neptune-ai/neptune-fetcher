@@ -1,10 +1,15 @@
 from dataclasses import dataclass
-from typing import Union, Mapping
+from typing import (
+    Mapping,
+    Union,
+)
 
 import neptune_api.client
-from neptune_api.api.backend import exchange_api_token
+from neptune_api.api.backend import (
+    exchange_api_token,
+    get_client_config,
+)
 from neptune_api.credentials import Credentials
-from neptune_api.api.backend import get_client_config
 from neptune_api.errors import UnableToExchangeApiKeyError
 from neptune_api.models import (
     Error,
@@ -14,10 +19,7 @@ from neptune_api.types import OAuthToken
 
 from ..env import NEPTUNE_VERIFY_SSL
 
-
-__all__ = (
-    "create_authenticated_client",
-)
+__all__ = ("create_authenticated_client",)
 
 
 def create_authenticated_client(api_token: str, proxies: Mapping[str, str]) -> neptune_api.client.AuthenticatedClient:
@@ -25,9 +27,7 @@ def create_authenticated_client(api_token: str, proxies: Mapping[str, str]) -> n
     verify_ssl = NEPTUNE_VERIFY_SSL.get()
 
     with neptune_api.client.Client(
-            base_url=credentials.base_url,
-            httpx_args={"mounts": proxies},
-            verify_ssl=verify_ssl
+        base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=verify_ssl
     ) as client:
         config = get_client_config.sync(client=client)
         if config is None or isinstance(config, Error):

@@ -23,8 +23,8 @@ __all__ = [
 
 from .command import (
     fetch_experiments_table,
+    fetch_lineage,
+    fetch_metrics,
     list_attributes,
     list_experiments,
-    fetch_metrics,
-    fetch_lineage,
 )

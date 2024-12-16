@@ -1,5 +1,10 @@
 import os
-from typing import Callable, TypeVar, Optional
+from typing import (
+    Callable,
+    Generic,
+    Optional,
+    TypeVar,
+)
 
 __all__ = (
     "NEPTUNE_API_TOKEN",
@@ -10,7 +15,7 @@ __all__ = (
 T = TypeVar("T")
 
 
-class EnvVariable[T]:
+class EnvVariable(Generic[T]):
     _UNSET = object()
 
     def __init__(self, name: str, value_mapper: Callable[[str], T], default_value: T = _UNSET):

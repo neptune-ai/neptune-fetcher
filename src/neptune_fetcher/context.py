@@ -40,9 +40,7 @@ def get_context() -> Context:
 
 
 def set_context(
-    project: Optional[str] = None,
-    api_token: Optional[str] = None,
-    proxies: Optional[dict[str, str]] = None
+    project: Optional[str] = None, api_token: Optional[str] = None, proxies: Optional[dict[str, str]] = None
 ) -> Context:
     """
     The context is automatically set from the environment variables (if they exist) on the first access,

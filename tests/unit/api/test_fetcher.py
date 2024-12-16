@@ -1,10 +1,6 @@
-from unittest.mock import (
-    Mock,
-)
+from unittest.mock import Mock
 
-from neptune_retrieval_api.models import (
-    SearchLeaderboardEntriesParamsDTO,
-)
+from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
 from neptune_retrieval_api.proto.neptune_pb.api.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
