@@ -11,37 +11,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "latest"
-            neptune-experimental-version: "skip"
-            neptune-fetcher-version: "."
-            neptune-scale-version: "latest"
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "latest"
-            neptune-experimental-version: "skip"
-            neptune-fetcher-version: "latest"
-            neptune-scale-version: "latest"
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "1.13.0"
-            neptune-experimental-version: "skip"
-            neptune-fetcher-version: "latest"
-            neptune-scale-version: "latest"
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "1.9.1"
-            neptune-experimental-version: "latest"
-            neptune-fetcher-version: "latest"
-            neptune-scale-version: "latest"
-          - python-version: 3.12
-            os: ubuntu
-            neptune-version: "2.0.0a8"  # switch to a non-conflicting version when available
-            neptune-experimental-version: "skip"
-            neptune-fetcher-version: "0.8.1"
-            neptune-scale-version: "latest"
+        os: ["ubuntu"]
+        python-version: ["3.12"]
+        neptune-fetcher-version: ["latest", "."]
+        neptune-version: ["1.0.2", "1.1.1", "1.2.0", "1.3.2", "1.4.1", "1.5.0", "1.6.3", "1.7.0", "1.8.6", "1.9.1", "1.10.4", "1.11.0", "1.12.0", "1.13.0", "2.0.0a", "latest"]
+        neptune-experimental-version: ["skip", "0.0.2", "0.1.0", "0.2.1", "0.3.4", "0.4.0"]
+        neptune-scale-version: ["skip"]
 
     name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}, scale==${{ matrix.neptune-scale-version }})'
     runs-on: ${{ matrix.os }}-latest
