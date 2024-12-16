@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  test-neptune:
     strategy:
       fail-fast: false
       matrix:
@@ -15,10 +15,9 @@ jobs:
         python-version: ["3.12"]
         neptune-fetcher-version: ["latest", "."]
         neptune-version: ["1.0.2", "1.1.1", "1.2.0", "1.3.2", "1.4.1", "1.5.0", "1.6.3", "1.7.0", "1.8.6", "1.9.1", "1.10.4", "1.11.0", "1.12.0", "1.13.0", "2.0.0a", "latest"]
-        neptune-experimental-version: ["skip", "0.0.2", "0.1.0", "0.2.1", "0.3.4", "0.4.0"]
-        neptune-scale-version: ["skip"]
+        neptune-experimental-version: ["skip"]
 
-    name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}, scale==${{ matrix.neptune-scale-version }})'
+    name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - neptune==${{ matrix.neptune-version }}, fetcher==${{ matrix.neptune-fetcher-version }})'
     runs-on: ${{ matrix.os }}-latest
 
     steps:
@@ -53,13 +52,11 @@ jobs:
           neptune_version=$(resolve_version neptune ${{ matrix.neptune-version }})
           neptune_experimental_version=$(resolve_version neptune-experimental ${{ matrix.neptune-experimental-version }})
           neptune_fetcher_version=$(resolve_version neptune-fetcher ${{ matrix.neptune-fetcher-version }})
-          neptune_scale_version=$(resolve_version neptune-scale ${{ matrix.neptune-scale-version }})
 
           pip install \
             ${neptune_version} \
             ${neptune_experimental_version} \
             ${neptune_fetcher_version} \
-            ${neptune_scale_version} \
             "pytest" "pytest-timeout" "pytest-xdist"
         shell: bash
 
@@ -72,5 +69,71 @@ jobs:
         uses: ./.github/actions/run-tests
         with:
           test-directory: package
-          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}, scale==${{ matrix.neptune-scale-version }}'
-          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}-${{ matrix.neptune-experimental-version }}-${{ matrix.neptune-fetcher-version }}-${{ matrix.neptune-scale-version }}'
+          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}}'
+          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}-${{ matrix.neptune-experimental-version }}-${{ matrix.neptune-fetcher-version }}'
+
+  test-neptune-experimental:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu"]
+        python-version: ["3.12"]
+        neptune-fetcher-version: ["latest", "."]
+        neptune-version: ["skip"]
+        neptune-experimental-version: ["0.0.2", "0.1.0", "0.2.1", "0.3.4", "0.4.0"]
+
+    name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }})'
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          function resolve_version() {
+            local package_name=$1
+            local version=$2
+            if [ "$version" = "skip" ]; then
+              return
+            fi
+            if [[ "$version" == git+* ]] || [[ "$version" == . ]]; then
+              echo "$version"
+              return
+            fi
+            if [ "$version" = "latest" ]; then
+              version=$(pip index versions $package_name --pre | grep -Eo 'Available versions: [^,]+' | awk '{print $3}')
+            fi
+            echo "$package_name==$version"
+          }
+
+          neptune_version=$(resolve_version neptune ${{ matrix.neptune-version }})
+          neptune_experimental_version=$(resolve_version neptune-experimental ${{ matrix.neptune-experimental-version }})
+          neptune_fetcher_version=$(resolve_version neptune-fetcher ${{ matrix.neptune-fetcher-version }})
+
+          pip install \
+            ${neptune_version} \
+            ${neptune_experimental_version} \
+            ${neptune_fetcher_version} \
+            "pytest" "pytest-timeout" "pytest-xdist"
+        shell: bash
+
+      - name: List dependencies
+        run: |
+          pip list
+        shell: bash
+
+      - name: Run tests
+        uses: ./.github/actions/run-tests
+        with:
+          test-directory: package
+          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}}'
+          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}-${{ matrix.neptune-experimental-version }}-${{ matrix.neptune-fetcher-version }}'
+
