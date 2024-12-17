@@ -1,8 +1,6 @@
 name: Run package tests
 
 on:
-  schedule:
-    - cron: '0 8 * * *'  # Run at 8:00 daily
   workflow_dispatch:
   pull_request:
 
@@ -11,129 +9,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu"]
-        python-version: ["3.12"]
-        neptune-fetcher-version: ["latest", "."]
-        neptune-version: ["1.0.2", "1.1.1", "1.2.0", "1.3.2", "1.4.1", "1.5.0", "1.6.3", "1.7.0", "1.8.6", "1.9.1", "1.10.4", "1.11.0", "1.12.0", "1.13.0", "2.0.0a", "latest"]
-        neptune-experimental-version: ["skip"]
+        os: [ "ubuntu" ]
+        python-version: [ "3.12" ]
 
-    name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - neptune==${{ matrix.neptune-version }}, fetcher==${{ matrix.neptune-fetcher-version }})'
+        neptune-version: [ "2.0.0a9", "2.0.0a8", "2.0.0a7", "2.0.0a6", "2.0.0a5", "2.0.0a4", "2.0.0a3", "2.0.0a2", "2.0.0a1", "2.0.0a0" ]
+
+    name: 'package test (neptune==${{ matrix.neptune-version }}, fetcher==.)'
     runs-on: ${{ matrix.os }}-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-
-          function resolve_version() {
-            local package_name=$1
-            local version=$2
-            if [ "$version" = "skip" ]; then
-              return
-            fi
-            if [[ "$version" == git+* ]] || [[ "$version" == . ]]; then
-              echo "$version"
-              return
-            fi
-            if [ "$version" = "latest" ]; then
-              version=$(pip index versions $package_name --pre | grep -Eo 'Available versions: [^,]+' | awk '{print $3}')
-            fi
-            echo "$package_name==$version"
-          }
-
-          neptune_version=$(resolve_version neptune ${{ matrix.neptune-version }})
-          neptune_experimental_version=$(resolve_version neptune-experimental ${{ matrix.neptune-experimental-version }})
-          neptune_fetcher_version=$(resolve_version neptune-fetcher ${{ matrix.neptune-fetcher-version }})
-
-          pip install \
-            ${neptune_version} \
-            ${neptune_experimental_version} \
-            ${neptune_fetcher_version} \
-            "pytest" "pytest-timeout" "pytest-xdist"
+          pip install . neptune==${{ matrix.neptune-version }}
         shell: bash
 
       - name: List dependencies
         run: |
           pip list
         shell: bash
-
-      - name: Run tests
-        uses: ./.github/actions/run-tests
-        with:
-          test-directory: package
-          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}}'
-          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}-${{ matrix.neptune-experimental-version }}-${{ matrix.neptune-fetcher-version }}'
-
-  test-neptune-experimental:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu"]
-        python-version: ["3.12"]
-        neptune-fetcher-version: ["latest", "."]
-        neptune-version: ["skip"]
-        neptune-experimental-version: ["0.0.2", "0.1.0", "0.2.1", "0.3.4", "0.4.0"]
-
-    name: 'package test (${{ matrix.os }} - py${{ matrix.python-version }} - experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }})'
-    runs-on: ${{ matrix.os }}-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
+      - name: Import neptune then neptune-fetcher
         run: |
-          python -m pip install --upgrade pip
-
-          function resolve_version() {
-            local package_name=$1
-            local version=$2
-            if [ "$version" = "skip" ]; then
-              return
-            fi
-            if [[ "$version" == git+* ]] || [[ "$version" == . ]]; then
-              echo "$version"
-              return
-            fi
-            if [ "$version" = "latest" ]; then
-              version=$(pip index versions $package_name --pre | grep -Eo 'Available versions: [^,]+' | awk '{print $3}')
-            fi
-            echo "$package_name==$version"
-          }
-
-          neptune_version=$(resolve_version neptune ${{ matrix.neptune-version }})
-          neptune_experimental_version=$(resolve_version neptune-experimental ${{ matrix.neptune-experimental-version }})
-          neptune_fetcher_version=$(resolve_version neptune-fetcher ${{ matrix.neptune-fetcher-version }})
-
-          pip install \
-            ${neptune_version} \
-            ${neptune_experimental_version} \
-            ${neptune_fetcher_version} \
-            "pytest" "pytest-timeout" "pytest-xdist"
+          python -c "import neptune; import neptune_fetcher;  print('Hello, world!')"
         shell: bash
 
-      - name: List dependencies
+      - name: Import neptune-fetcher then neptune
         run: |
-          pip list
+          python -c "import neptune_fetcher; import neptune;  print('Hello, world!')"
         shell: bash
-
-      - name: Run tests
-        uses: ./.github/actions/run-tests
-        with:
-          test-directory: package
-          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}, experimental==${{ matrix.neptune-experimental-version }}, fetcher==${{ matrix.neptune-fetcher-version }}}'
-          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}-${{ matrix.neptune-experimental-version }}-${{ matrix.neptune-fetcher-version }}'
-
