@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ "ubuntu" ]
-        python-version: [ "3.12" ]
+        python-version: [ "3.13" ]
 
         neptune-version: [ "2.0.0a9", "2.0.0a8", "2.0.0a7", "2.0.0a6", "2.0.0a5", "2.0.0a4", "2.0.0a3", "2.0.0a2" ]
 
