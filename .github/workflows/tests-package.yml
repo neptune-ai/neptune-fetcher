@@ -12,7 +12,7 @@ jobs:
         os: [ "ubuntu" ]
         python-version: [ "3.12" ]
 
-        neptune-version: [ "2.0.0a9", "2.0.0a8", "2.0.0a7", "2.0.0a6", "2.0.0a5", "2.0.0a4", "2.0.0a3", "2.0.0a2", "2.0.0a1", "2.0.0a0" ]
+        neptune-version: [ "2.0.0a9", "2.0.0a8", "2.0.0a7", "2.0.0a6", "2.0.0a5", "2.0.0a4", "2.0.0a3", "2.0.0a2" ]
 
     name: 'package test (neptune==${{ matrix.neptune-version }}, fetcher==.)'
     runs-on: ${{ matrix.os }}-latest
@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install . neptune==${{ matrix.neptune-version }}
+          pip install . neptune==${{ matrix.neptune-version }} "pytest" "pytest-timeout" "pytest-xdist"
         shell: bash
 
       - name: List dependencies
@@ -44,3 +44,10 @@ jobs:
         run: |
           python -c "import neptune_fetcher; import neptune;  print('Hello, world!')"
         shell: bash
+
+      - name: Run tests
+        uses: ./.github/actions/run-tests
+        with:
+          test-directory: package
+          report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }}) - neptune==${{ matrix.neptune-version }}'
+          report-suffix: 'package-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.neptune-version }}'

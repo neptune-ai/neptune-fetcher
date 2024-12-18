@@ -7,4 +7,4 @@ pytest-mock
 pytest-timeout
 pytest-xdist
 icecream
-neptune-scale==0.8.0b1
+git+https://github.com/neptune-ai/neptune-client-scale.git@c7a55a5ef6de0d1bbc36bb91e6fe9a496d9e42c1#egg=neptune-scale
