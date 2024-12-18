@@ -5,7 +5,6 @@ import pytest
 
 
 def test_protobuf_model_import__neptune_api_and_neptune():
-    pytest.importorskip("neptune_api.proto.neptune_pb")
     pytest.importorskip("neptune.api.proto.neptune_pb")
 
     import neptune.api.proto.neptune_pb.api.model
@@ -25,7 +24,6 @@ def test_protobuf_model_import__neptune_api_and_neptune():
 
 
 def test_protobuf_model_import__all():
-    pytest.importorskip("neptune_api.proto.neptune_pb")
     pytest.importorskip("neptune.api.proto.neptune_pb")
     pytest.importorskip("neptune_retrieval_api.proto.neptune_pb")
 
