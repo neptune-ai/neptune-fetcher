@@ -489,7 +489,7 @@ __Parameters:__
 | `with_id`                          | `Optional[str]`   | `None`  | ID of the Neptune run to fetch. Example: `RUN-1`. Exclusive with the `custom_id` and `experiment_name` parameters.                 |
 | `custom_id`                        | `Optional[str]`   | `None`  | Custom ID of the Neptune run to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `experiment_name` parameters.   |
 | `experiment_name`                  | `Optional[str]`   | `None`  | Name of the Neptune experiment to fetch. Example: `high_albattani`. Exclusive with the `with_id` and `custom_id` parameters.       |
-| `eager_load_attribute_definitions` | `Optional[bool]`  | `True`  | Whether to eagerly load the run attributes definitions. If `False`, the structure is loaded only when accessed. Default is `True`. |
+| `eager_load_fields` | `Optional[bool]`  | `True`  | Whether to eagerly load the run fields definitions. If `False`, individual fields are loaded only when accessed. Default is `True`. |
 
 __Example:__
 
