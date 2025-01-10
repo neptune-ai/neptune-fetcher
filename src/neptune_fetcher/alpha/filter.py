@@ -30,19 +30,16 @@ __ALL__ = (
 _DEFAULT_BATCH_SIZE = 1000
 
 
-class AttributeFilter(ABC):
-    def __call__(self, **kwargs) -> "AttributeFilterSingle":
-        return AttributeFilterSingle(**kwargs)
-
-    def __or__(self, other: "AttributeFilter") -> "AttributeFilter":
+class BaseAttributeFilter(ABC):
+    def __or__(self, other: "BaseAttributeFilter") -> "AttributeFilterAlternative":
         return self.any(self, other)
 
-    def any(*filters: "AttributeFilter") -> "AttributeFilter":
+    def any(*filters: "BaseAttributeFilter") -> "AttributeFilterAlternative":
         return AttributeFilterAlternative(*filters)
 
 
 @dataclass
-class AttributeFilterSingle(AttributeFilter):
+class AttributeFilter(BaseAttributeFilter):
     name_eq: Union[str, list[str], None] = None
     type_in: Optional[list[Literal["float", "int", "string", "datetime", "float_series"]]] = None
     name_matches_all: Union[str, list[str], None] = None
@@ -51,31 +48,32 @@ class AttributeFilterSingle(AttributeFilter):
 
 
 @dataclass
-class AttributeFilterAlternative(AttributeFilter):
+class AttributeFilterAlternative(BaseAttributeFilter):
     filters: list[AttributeFilter]
 
 
 def find_attributes(
     client: AuthenticatedClient,
-    project_ids: list[str],
+    project_id: str,
     experiment_ids: list[str],
-    attribute_filter: AttributeFilter,
+    attribute_filter: BaseAttributeFilter,
     batch_size: int = _DEFAULT_BATCH_SIZE,
-    executor: Optional[Executor] = None
+    executor: Optional[Executor] = None,
 ) -> list[str]:
-    if isinstance(attribute_filter, AttributeFilterSingle):
-        return _find_attributes_single(
+    if isinstance(attribute_filter, AttributeFilter):
+        return _find_attributes(
             client=client,
-            project_ids=project_ids,
+            project_id=project_id,
             experiment_ids=experiment_ids,
             attribute_filter=attribute_filter,
             batch_size=batch_size,
         )
-    if isinstance(attribute_filter, AttributeFilterAlternative):
-        def go(child: AttributeFilter) -> list[str]:
+    elif isinstance(attribute_filter, AttributeFilterAlternative):
+
+        def go(child: BaseAttributeFilter) -> list[str]:
             return find_attributes(
                 client=client,
-                project_ids=project_ids,
+                project_id=project_id,
                 experiment_ids=experiment_ids,
                 attribute_filter=child,
                 batch_size=batch_size,
@@ -95,15 +93,14 @@ def _create_executor() -> Executor:
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
-def _find_attributes_single(
+def _find_attributes(
     client: AuthenticatedClient,
-    project_ids: list[str],
+    project_id: str,
     experiment_ids: list[str],
-    attribute_filter: AttributeFilterSingle,
+    attribute_filter: AttributeFilter,
     batch_size: int,
 ) -> list[str]:
     params = {
-        "projectIdentifiers": project_ids,
         "experimentIdsFilter": experiment_ids,
         "attributeNameFilter": {},
         "nextPage": {"limit": batch_size},
@@ -137,7 +134,9 @@ def _find_attributes_single(
         body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
         response = backoff_retry(
-            lambda: query_attribute_definitions_within_project.sync_detailed(client=client, body=body)
+            lambda: query_attribute_definitions_within_project.sync_detailed(
+                client=client, body=body, project_identifier=project_id
+            )
         )
 
         data: QueryAttributeDefinitionsResultDTO = response.parsed
@@ -145,7 +144,7 @@ def _find_attributes_single(
         result.extend(entry.name for entry in data.entries)
 
         next_page_token = data.next_page.next_page_token
-        if next_page_token is None:
+        if not next_page_token:
             break
 
     return result
@@ -176,6 +175,6 @@ def _union_options(options: list[Optional[list[str]]]) -> Optional[list[str]]:
         if option is not None:
             if result is None:
                 result = []
-            result = result.extend(option)
+            result.extend(option)
 
     return result
