@@ -87,6 +87,7 @@ class ReadOnlyRun:
             container_id=self._container_id,
         )
         self._eager_load_structure = eager_load_structure
+        self._loaded_structure = False
         if eager_load_structure:
             self._load_structure()
         else:
@@ -121,17 +122,19 @@ class ReadOnlyRun:
         yield from self._structure
 
     def _load_structure(self):
-        definitions = self.project._backend.query_attribute_definitions(self._container_id)
-        self._structure = {
-            definition.path: which_fetchable(
-                definition,
-                self.project._backend,
-                self._container_id,
-                self._cache,
-            )
-            for definition in definitions
-            if FieldType(definition.type) in SUPPORTED_TYPES
-        }
+        if not self._loaded_structure:
+            definitions = self.project._backend.query_attribute_definitions(self._container_id)
+            self._structure = {
+                definition.path: which_fetchable(
+                    definition,
+                    self.project._backend,
+                    self._container_id,
+                    self._cache,
+                )
+                for definition in definitions
+                if FieldType(definition.type) in SUPPORTED_TYPES
+            }
+            self._loaded_structure = True
 
     def prefetch(self, paths: List[str]) -> None:
         """Prefetches values of a list of fields and stores them in local cache.
