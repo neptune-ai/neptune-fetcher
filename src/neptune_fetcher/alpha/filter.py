@@ -1,4 +1,3 @@
-import os
 import re
 from abc import ABC
 from concurrent.futures import (
@@ -20,6 +19,7 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
+from .env import NEPTUNE_FETCHER_MAX_WORKERS
 from .retry import backoff_retry
 
 __ALL__ = (
@@ -28,7 +28,6 @@ __ALL__ = (
 )
 
 _DEFAULT_BATCH_SIZE = 1000
-_DEFAULT_MAX_WORKERS = 10
 
 
 class AttributeFilter(ABC):
@@ -92,7 +91,7 @@ def find_attributes(
 
 
 def _create_executor() -> Executor:
-    max_workers = int(os.getenv("NEPTUNE_FETCHER_MAX_WORKERS", _DEFAULT_MAX_WORKERS))
+    max_workers = NEPTUNE_FETCHER_MAX_WORKERS.get()
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
@@ -101,9 +100,8 @@ def _find_attributes_single(
     project_ids: list[str],
     experiment_ids: list[str],
     attribute_filter: AttributeFilterSingle,
-    batch_size: int
+    batch_size: int,
 ) -> list[str]:
-
     params = {
         "projectIdentifiers": project_ids,
         "experimentIdsFilter": experiment_ids,
@@ -128,16 +126,29 @@ def _find_attributes_single(
     if attribute_types is not None:
         params["attributeFilter"] = [{"attributeType": t} for t in attribute_types]
 
-    if attribute_filter.aggregations is not None:
-        pass  # TODO: what is the intended behavior here? Is it missing from the api?
+    # note: attribute_filter.aggregations is intentionally ignored
 
-    body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
+    result = []
+    next_page_token = None
+    while True:
+        if next_page_token is not None:
+            params["nextPage"]["nextPageToken"] = next_page_token
 
-    response = backoff_retry(lambda: query_attribute_definitions_within_project.sync_detailed(client=client, body=body))
+        body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-    data: QueryAttributeDefinitionsResultDTO = response.parsed
-    # TODO: data.next_page
-    return [entry.name for entry in data.entries]
+        response = backoff_retry(
+            lambda: query_attribute_definitions_within_project.sync_detailed(client=client, body=body)
+        )
+
+        data: QueryAttributeDefinitionsResultDTO = response.parsed
+
+        result.extend(entry.name for entry in data.entries)
+
+        next_page_token = data.next_page.next_page_token
+        if next_page_token is None:
+            break
+
+    return result
 
 
 def _escape_name_eq(name: str) -> str:
