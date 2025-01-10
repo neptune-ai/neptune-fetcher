@@ -48,6 +48,7 @@ class ReadOnlyRun:
         with_id: Optional[str] = None,
         custom_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
+        eager_load_structure: bool = True,
     ) -> None:
         self.project = read_only_project
 
@@ -85,18 +86,11 @@ class ReadOnlyRun:
             backend=self.project._backend,
             container_id=self._container_id,
         )
-
-        definitions = self.project._backend.query_attribute_definitions(self._container_id)
-        self._structure = {
-            definition.path: which_fetchable(
-                definition,
-                self.project._backend,
-                self._container_id,
-                self._cache,
-            )
-            for definition in definitions
-            if FieldType(definition.type) in SUPPORTED_TYPES
-        }
+        self._eager_load_structure = eager_load_structure
+        if eager_load_structure:
+            self._load_structure()
+        else:
+            self._structure = {}
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
         try:
@@ -104,7 +98,7 @@ class ReadOnlyRun:
         except KeyError:
             # If the item is not found, it could have been logged after the Run object is created.
             # We need to fetch it from the backend (this is what self._cache[item] actually does),
-            # and fill in the missing structure entry. Note that self._caehe[item] will also
+            # and fill in the missing structure entry. Note that self._cache[item] will also
             # raise KeyError if the field does not indeed exist backend-side.
             field = self._cache[item]
             self._structure[item] = which_fetchable(
@@ -122,7 +116,22 @@ class ReadOnlyRun:
 
         Returns a generator of run fields.
         """
+        if not self._eager_load_structure:
+            self._load_structure()
         yield from self._structure
+
+    def _load_structure(self):
+        definitions = self.project._backend.query_attribute_definitions(self._container_id)
+        self._structure = {
+            definition.path: which_fetchable(
+                definition,
+                self.project._backend,
+                self._container_id,
+                self._cache,
+            )
+            for definition in definitions
+            if FieldType(definition.type) in SUPPORTED_TYPES
+        }
 
     def prefetch(self, paths: List[str]) -> None:
         """Prefetches values of a list of fields and stores them in local cache.
