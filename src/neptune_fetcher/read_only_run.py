@@ -48,7 +48,7 @@ class ReadOnlyRun:
         with_id: Optional[str] = None,
         custom_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
-        eager_load_structure: bool = True,
+        eager_load_attribute_definitions: bool = True,
     ) -> None:
         self.project = read_only_project
 
@@ -86,9 +86,8 @@ class ReadOnlyRun:
             backend=self.project._backend,
             container_id=self._container_id,
         )
-        self._eager_load_structure = eager_load_structure
         self._loaded_structure = False
-        if eager_load_structure:
+        if eager_load_attribute_definitions:
             self._load_structure()
         else:
             self._structure = {}
@@ -117,8 +116,7 @@ class ReadOnlyRun:
 
         Returns a generator of run fields.
         """
-        if not self._eager_load_structure:
-            self._load_structure()
+        self._load_structure()
         yield from self._structure
 
     def _load_structure(self):
