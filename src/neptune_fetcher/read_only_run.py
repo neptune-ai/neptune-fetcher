@@ -48,7 +48,7 @@ class ReadOnlyRun:
         with_id: Optional[str] = None,
         custom_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
-        eager_load_attribute_definitions: bool = True,
+        eager_load_fields: bool = True,
     ) -> None:
         self.project = read_only_project
 
@@ -87,7 +87,7 @@ class ReadOnlyRun:
             container_id=self._container_id,
         )
         self._loaded_structure = False
-        if eager_load_attribute_definitions:
+        if eager_load_fields:
             self._load_structure()
         else:
             self._structure = {}
