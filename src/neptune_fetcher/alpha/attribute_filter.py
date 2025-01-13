@@ -1,3 +1,17 @@
+# Copyright (c) 2024, Neptune Labs Sp. z o.o.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import re
 from abc import ABC
 from concurrent.futures import (
@@ -121,7 +135,7 @@ def _find_attributes(
 
     attribute_types = _variants_to_list(attribute_filter.type_in)
     if attribute_types is not None:
-        params["attributeFilter"] = [{"attributeType": t} for t in attribute_types]
+        params["attributeFilter"] = [{"attributeType": _map_attribute_type(_type)} for _type in attribute_types]
 
     # note: attribute_filter.aggregations is intentionally ignored
 
@@ -148,6 +162,21 @@ def _find_attributes(
             break
 
     return result
+
+
+_ATTRIBUTE_TYPE_MAP = {
+    "float": "float",
+    "int": "int",
+    "string": "string",
+    "datetime": "datetime",
+    "float_series": "floatSeries",
+}
+
+
+def _map_attribute_type(_type: str) -> str:
+    if _type not in _ATTRIBUTE_TYPE_MAP:
+        raise ValueError(f"Unsupported attribute type: {_type}")
+    return _ATTRIBUTE_TYPE_MAP[_type]
 
 
 def _escape_name_eq(name: str) -> str:
