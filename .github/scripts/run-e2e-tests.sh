@@ -18,7 +18,7 @@ fi
 
 EXIT_CODE=-1
 
-UTF8_CHARS="𝒜你好()*+,-.;<=>@[]"
+UTF8_CHARS="你好()*+,-.;<=>@[]"
 PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM-$UTF8_CHARS"
 
 cleanup() {
