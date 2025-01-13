@@ -17,24 +17,16 @@
 import neptune_fetcher.alpha as npt
 
 
-def test_context_manager():
-    with npt.Context(project="test_project"):
-        assert npt.get_project() == "test_project"
+def test_context_changing():
+    ctx = npt.Context(project="test_project")
+    assert npt.get_project(ctx) == "test_project"
 
-    with npt.Context(api_token="test_token"):
-        assert npt.get_api_token() == "test_token"
+    ctx = npt.Context(api_token="test_token")
+    assert npt.get_api_token(ctx) == "test_token"
 
-        with npt.Context(project="test_project2"):
-            assert npt.get_project() == "test_project2"
-            assert npt.get_api_token() == "test_token"
-
-    with npt.Context(project="test_project3", api_token="test_token3"):
-        assert npt.get_project() == "test_project3"
-        assert npt.get_api_token() == "test_token3"
-
-        with npt.Context(project="test_project4"):
-            assert npt.get_project() == "test_project4"
-            assert npt.get_api_token() == "test_token3"
+    ctx = npt.Context(project="test_project2", api_token="test_token2")
+    assert npt.get_project(ctx) == "test_project2"
+    assert npt.get_api_token(ctx) == "test_token2"
 
 
 def test_context_itself():

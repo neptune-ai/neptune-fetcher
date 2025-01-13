@@ -38,27 +38,6 @@ class Context:
         self.project = project
         self.api_token = api_token
 
-        self.cm_reset_project = None
-        self.cm_reset_api_token = None
-
-    def __enter__(self):
-        if self.project is not None:
-            self.cm_reset_project = set_project(self.project)
-
-        if self.api_token is not None:
-            self.cm_reset_api_token = _set_api_token(self.api_token)
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.cm_reset_project is not None:
-            _reset_project(self.cm_reset_project)
-
-        if self.cm_reset_api_token is not None:
-            _reset_api_token(self.cm_reset_api_token)
-
-        self.cm_reset_project = self.cm_reset_api_token = None
-
     def get_project(self):
         return self.project
 
@@ -66,7 +45,9 @@ class Context:
         return self.api_token
 
 
-def get_project():
+def get_project(ctx: Optional[Context]):
+    if ctx and (project := ctx.get_project()):
+        return project
     return neptune_project.get()
 
 
@@ -78,7 +59,9 @@ def _reset_project(token):
     neptune_project.reset(token)
 
 
-def get_api_token():
+def get_api_token(ctx: Optional[Context]):
+    if ctx and (api_token := ctx.get_api_token()):
+        return api_token
     return neptune_api_token.get()
 
 
