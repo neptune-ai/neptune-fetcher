@@ -18,8 +18,8 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
 
     steps:
-      - name: Install Python
-        uses: actions/setup-python@v5
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -28,12 +28,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install . neptune==${{ matrix.neptune-version }} "pytest" "pytest-timeout" "pytest-xdist"
+          uv pip install . neptune==${{ matrix.neptune-version }} "pytest" "pytest-timeout" "pytest-xdist"
         shell: bash
 
       - name: List dependencies
         run: |
-          pip list
+          uv pip list
         shell: bash
       - name: Import neptune then neptune-fetcher
         run: |

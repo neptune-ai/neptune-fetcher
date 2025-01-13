@@ -25,18 +25,18 @@ runs:
           path: ${{ inputs.working_directory }}
           ref: ${{ github.event.client_payload.pull_request.head.ref }}
 
-      - name: Install Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ inputs.python-version }}
 
       - name: Install dependencies
         working-directory: ${{ inputs.working_directory }}
         run: |
-          pip install -r ./dev_requirements.txt
+          uv pip install -r ./dev_requirements.txt
         shell: bash
 
       - name: List dependencies
         run: |
-          pip list
+          uv pip list
         shell: bash
