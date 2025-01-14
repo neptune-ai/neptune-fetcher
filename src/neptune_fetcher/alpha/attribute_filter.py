@@ -55,10 +55,14 @@ class BaseAttributeFilter(ABC):
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
     name_eq: Union[str, list[str], None] = None
-    type_in: Optional[list[Literal["float", "int", "string", "datetime", "float_series"]]] = None
+    type_in: Optional[list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]] = None
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
     aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
+
+    def __post_init__(self):
+        if self.type_in is None:
+            self.type_in = ["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
 
 
 @dataclass
@@ -122,7 +126,7 @@ def _find_attributes(
 
     must_match_regexes = _union_options(
         [
-            _map(_variants_to_list(attribute_filter.name_eq), _escape_name_eq),
+            _escape_name_eq(_variants_to_list(attribute_filter.name_eq)),
             _variants_to_list(attribute_filter.name_matches_all),
         ]
     )
@@ -165,22 +169,28 @@ def _find_attributes(
 
 
 _ATTRIBUTE_TYPE_MAP = {
-    "float": "float",
-    "int": "int",
-    "string": "string",
-    "datetime": "datetime",
     "float_series": "floatSeries",
+    "string_set": "stringSet",
 }
 
 
 def _map_attribute_type(_type: str) -> str:
-    if _type not in _ATTRIBUTE_TYPE_MAP:
-        raise ValueError(f"Unsupported attribute type: {_type}")
-    return _ATTRIBUTE_TYPE_MAP[_type]
+    if _type in _ATTRIBUTE_TYPE_MAP:
+        return _ATTRIBUTE_TYPE_MAP[_type]
+    return _type
 
 
-def _escape_name_eq(name: str) -> str:
-    return f"^{re.escape(name)}$"
+def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
+    if not names:
+        return None
+
+    escaped = [f"{re.escape(name)}" for name in names]
+
+    if len(escaped) == 1:
+        return [f"^{escaped[0]}$"]
+    else:
+        joined = "|".join(escaped)
+        return [f"^({joined})$"]
 
 
 def _variants_to_list(param: Union[str, list[str], None]) -> Optional[list[str]]:

@@ -1,5 +1,6 @@
 import os
 import random
+import time
 import uuid
 from datetime import (
     datetime,
@@ -44,6 +45,19 @@ def test_find_attributes_single_string(client, run_init_kwargs, ro_run):
     assert attribute_names == ["sys/name"]
 
 
+def test_find_attributes_two_strings(client, run_init_kwargs, ro_run):
+    # given
+    project_id = run_init_kwargs["project"]
+    experiment_id = ro_run._container_id
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
+    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+
+    # then
+    assert set(attribute_names) == {"sys/name", "sys/owner"}
+
+
 def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
     # given
     project_id = run_init_kwargs["project"]
@@ -63,6 +77,52 @@ def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
     assert attribute_names == [path]
 
 
+def test_find_attributes_all_types(client, run_init_kwargs, run, ro_run):
+    # given
+    project_id = run_init_kwargs["project"]
+    experiment_id = ro_run._container_id
+
+    common_path = unique_path("test_attribute_filter/test_find_attributes_all_types")
+    now = time.time()
+    data = {
+        f"{common_path}/int-value": int(now),
+        f"{common_path}/float-value": now,
+        f"{common_path}/str-value": f"hello-{now}",
+        f"{common_path}/bool-value": True,
+        f"{common_path}/datetime-value": datetime.now(timezone.utc).replace(microsecond=0),
+    }
+    run.log_configs(data)
+
+    steps, values = random_series()
+    for step, value in zip(steps, values):
+        run.log_metrics(data={f"{common_path}/float-series-value": value}, step=step)
+
+    run.add_tags({"string-set-item"})  # the only way to write string-set type. It's implicit path is sys/tags
+    run.wait_for_processing()
+
+    all_names = list(data.keys()) + [f"{common_path}/float-series-value", "sys/tags"]
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq=all_names)
+    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+
+    # then
+    assert set(attribute_names) == set(all_names)
+
+
+def test_find_attributes_no_type_in(client, run_init_kwargs, ro_run):
+    # given
+    project_id = run_init_kwargs["project"]
+    experiment_id = ro_run._container_id
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name")
+    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+
+    # then
+    assert attribute_names == ["sys/name"]
+
+
 def test_find_attributes_regex_matches_all(client, run_init_kwargs, run, ro_run):
     # given
     project_id = run_init_kwargs["project"]
@@ -73,7 +133,7 @@ def test_find_attributes_regex_matches_all(client, run_init_kwargs, run, ro_run)
     attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == ["sys/creation_time", "sys/modification_time", "sys/ping_time"]
+    assert set(attribute_names) == {"sys/creation_time", "sys/modification_time", "sys/ping_time"}
 
 
 def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run):
@@ -88,4 +148,4 @@ def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run
     attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == ["sys/creation_time", "sys/ping_time"]
+    assert set(attribute_names) == {"sys/creation_time", "sys/ping_time"}
