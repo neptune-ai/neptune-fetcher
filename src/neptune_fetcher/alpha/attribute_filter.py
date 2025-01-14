@@ -58,7 +58,7 @@ class AttributeFilter(BaseAttributeFilter):
     type_in: Optional[list[Literal["float", "int", "string", "datetime", "float_series"]]] = None
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
-    aggregations: list[Literal["last", "min", "max", "average", "variance", "auto"]] | None = None
+    aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
 
 
 @dataclass

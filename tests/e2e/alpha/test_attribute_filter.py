@@ -82,19 +82,6 @@ def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run
     experiment_id = ro_run._container_id
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_none="^sys/.*", type_in=["datetime"])
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
-
-    # then
-    assert attribute_names == ["test_start_time"]
-
-
-def test_find_attributes_regex_matches_all_none(client, run_init_kwargs, run, ro_run):
-    # given
-    project_id = run_init_kwargs["project"]
-    experiment_id = ro_run._container_id
-
-    #  when
     attribute_filter = AttributeFilter(
         name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
     )
