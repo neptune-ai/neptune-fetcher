@@ -22,5 +22,11 @@ repos:
         entry: pflake8
         # We use a custom version of flake8 that includes a fix for Python 3.12 compatibility
         additional_dependencies: ["git+https://github.com/neptune-ai/pyproject-flake8.git@7.0.0"]
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.4
+    hooks:
+      - id: insert-license
+        files: ^src/neptune_fetcher.*[^/]+\.py$
+        args: [ "--license-filepath", ".github/license_header.txt", "--allow-past-years"]
 default_language_version:
     python: python3
