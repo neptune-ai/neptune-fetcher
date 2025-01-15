@@ -39,6 +39,7 @@ from neptune_fetcher.util import escape_nql_criterion
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import (
+        SYS_ID,
         ReadOnlyProject,
         list_objects_from_project,
     )
@@ -87,7 +88,7 @@ class ReadOnlyRun:
                     backend=read_only_project._backend,
                     project_id=read_only_project._project_id,
                     limit=1,
-                    columns=["sys/id"],
+                    columns=[SYS_ID],
                     query=f'`sys/custom_run_id`:string = "{escape_nql_criterion(custom_id)}"',
                     object_type="run",
                 )
@@ -95,7 +96,7 @@ class ReadOnlyRun:
 
             if len(run) == 0:
                 raise ValueError(f"No experiment found with custom id '{custom_id}'")
-            return run[0].attributes["sys/id"]
+            return run[0].attributes[SYS_ID]
 
         elif experiment_name is not None:
             experiment = list(
@@ -103,14 +104,14 @@ class ReadOnlyRun:
                     backend=read_only_project._backend,
                     project_id=read_only_project._project_id,
                     limit=1,
-                    columns=["sys/id"],
+                    columns=[SYS_ID],
                     query=f'`sys/name`:string = "{escape_nql_criterion(experiment_name)}"',
                     object_type="experiment",
                 )
             )
             if len(experiment) == 0:
                 raise ValueError(f"No experiment found with name '{experiment_name}'")
-            return experiment[0].attributes["sys/id"]
+            return experiment[0].attributes[SYS_ID]
 
         else:
             run = list(
@@ -118,7 +119,7 @@ class ReadOnlyRun:
                     backend=read_only_project._backend,
                     project_id=read_only_project._project_id,
                     limit=1,
-                    columns=["sys/id"],
+                    columns=[SYS_ID],
                     query=f'`sys/id`:string = "{escape_nql_criterion(sys_id)}"',
                     object_type="run",
                 )
