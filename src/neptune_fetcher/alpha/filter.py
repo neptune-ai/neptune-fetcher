@@ -14,31 +14,33 @@
 # limitations under the License.
 
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import (
+    dataclass,
+    field,
+)
 from typing import (
     Literal,
     Optional,
     Union,
 )
 
-__ALL__ = (
-    "AttributeFilter",
-)
+__ALL__ = ("AttributeFilter",)
 
 
 class BaseAttributeFilter(ABC):
     def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
-        return self.any(self, other)
+        return self.any(other)
 
     def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
-        return _AttributeFilterAlternative(*filters)
+        return _AttributeFilterAlternative(filters=filters)
 
 
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
     name_eq: Union[str, list[str], None] = None
-    type_in: Optional[list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]] = \
-        field(default_factory=lambda: ["float", "int", "string", "bool", "datetime", "float_series", "string_set"])
+    type_in: Optional[
+        list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]
+    ] = field(default_factory=lambda: ["float", "int", "string", "bool", "datetime", "float_series", "string_set"])
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
     aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
@@ -46,4 +48,4 @@ class AttributeFilter(BaseAttributeFilter):
 
 @dataclass
 class _AttributeFilterAlternative(BaseAttributeFilter):
-    filters: list[AttributeFilter]
+    filters: tuple[BaseAttributeFilter]
