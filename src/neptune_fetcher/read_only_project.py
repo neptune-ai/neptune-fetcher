@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = [
-    "ReadOnlyProject",
-]
+__all__ = ["ReadOnlyProject", "list_objects_from_project"]
 
 import collections
 import concurrent.futures
@@ -169,7 +167,7 @@ class ReadOnlyProject:
     def fetch_read_only_runs(
         self, with_ids: Optional[List[str]] = None, custom_ids: Optional[List[str]] = None, eager_load_fields=True
     ) -> Iterator[ReadOnlyRun]:
-        """Lists with_ids_runs of the project in the form of read-only with_ids_runs.
+        """Lists runs of the project in the form of read-only runs.
 
         Returns a generator of `ReadOnlyRun` instances.
 
