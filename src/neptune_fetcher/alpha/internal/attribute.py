@@ -13,30 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright (c) 2024, Neptune Labs Sp. z o.o.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import re
-from abc import ABC
 from concurrent.futures import (
     Executor,
     ThreadPoolExecutor,
 )
-from dataclasses import dataclass
 from typing import (
     Callable,
-    Literal,
     Optional,
     Union,
 )
@@ -48,63 +31,37 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
-from .env import NEPTUNE_FETCHER_MAX_WORKERS
-from .retry import backoff_retry
+from neptune_fetcher.alpha.internal import env
+from neptune_fetcher.alpha.internal import retry
+from neptune_fetcher.alpha import filter
 
 __ALL__ = (
-    "AttributeFilter",
-    "find_attributes",
+    "find_attribute_definitions",
 )
 
-_DEFAULT_BATCH_SIZE = 1000
+_DEFAULT_BATCH_SIZE = 10_000
 
 
-class BaseAttributeFilter(ABC):
-    def __or__(self, other: "BaseAttributeFilter") -> "AttributeFilterAlternative":
-        return self.any(self, other)
-
-    def any(*filters: "BaseAttributeFilter") -> "AttributeFilterAlternative":
-        return AttributeFilterAlternative(*filters)
-
-
-@dataclass
-class AttributeFilter(BaseAttributeFilter):
-    name_eq: Union[str, list[str], None] = None
-    type_in: Optional[list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]] = None
-    name_matches_all: Union[str, list[str], None] = None
-    name_matches_none: Union[str, list[str], None] = None
-    aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
-
-    def __post_init__(self):
-        if self.type_in is None:
-            self.type_in = ["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
-
-
-@dataclass
-class AttributeFilterAlternative(BaseAttributeFilter):
-    filters: list[AttributeFilter]
-
-
-def find_attributes(
+def find_attribute_definitions(
     client: AuthenticatedClient,
     project_id: str,
     experiment_ids: list[str],
-    attribute_filter: BaseAttributeFilter,
+    attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = _DEFAULT_BATCH_SIZE,
     executor: Optional[Executor] = None,
 ) -> list[str]:
-    if isinstance(attribute_filter, AttributeFilter):
-        return _find_attributes(
+    if isinstance(attribute_filter, filter.AttributeFilter):
+        return _find_attribute_definitions_single(
             client=client,
             project_id=project_id,
             experiment_ids=experiment_ids,
             attribute_filter=attribute_filter,
             batch_size=batch_size,
         )
-    elif isinstance(attribute_filter, AttributeFilterAlternative):
+    elif isinstance(attribute_filter, filter._AttributeFilterAlternative):
 
-        def go(child: BaseAttributeFilter) -> list[str]:
-            return find_attributes(
+        def go(child: filter.BaseAttributeFilter) -> list[str]:
+            return find_attribute_definitions(
                 client=client,
                 project_id=project_id,
                 experiment_ids=experiment_ids,
@@ -122,15 +79,15 @@ def find_attributes(
 
 
 def _create_executor() -> Executor:
-    max_workers = NEPTUNE_FETCHER_MAX_WORKERS.get()
+    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
-def _find_attributes(
+def _find_attribute_definitions_single(
     client: AuthenticatedClient,
     project_id: str,
     experiment_ids: list[str],
-    attribute_filter: AttributeFilter,
+    attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> list[str]:
     params = {
@@ -166,7 +123,7 @@ def _find_attributes(
 
         body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-        response = backoff_retry(
+        response = retry.backoff_retry(
             lambda: query_attribute_definitions_within_project.sync_detailed(
                 client=client, body=body, project_identifier=project_id
             )

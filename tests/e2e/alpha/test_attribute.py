@@ -7,9 +7,11 @@ from datetime import (
     timezone,
 )
 
-from neptune_fetcher.alpha.attribute_filter import (
-    AttributeFilter,
-    find_attributes,
+from neptune_fetcher.alpha.filter import (
+    AttributeFilter
+)
+from neptune_fetcher.alpha.internal.attribute import (
+    find_attribute_definitions,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -39,7 +41,7 @@ def test_find_attributes_single_string(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert attribute_names == ["sys/name"]
@@ -52,7 +54,7 @@ def test_find_attributes_two_strings(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert set(attribute_names) == {"sys/name", "sys/owner"}
@@ -71,7 +73,7 @@ def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert attribute_names == [path]
@@ -104,7 +106,7 @@ def test_find_attributes_all_types(client, run_init_kwargs, run, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=all_names)
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert set(attribute_names) == set(all_names)
@@ -117,7 +119,7 @@ def test_find_attributes_no_type_in(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name")
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert attribute_names == ["sys/name"]
@@ -130,7 +132,7 @@ def test_find_attributes_regex_matches_all(client, run_init_kwargs, run, ro_run)
 
     #  when
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert set(attribute_names) == {"sys/creation_time", "sys/modification_time", "sys/ping_time"}
@@ -145,7 +147,7 @@ def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run
     attribute_filter = AttributeFilter(
         name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
     )
-    attribute_names = find_attributes(client, project_id, [experiment_id], attribute_filter=attribute_filter)
+    attribute_names = find_attribute_definitions(client, project_id, [experiment_id], attribute_filter=attribute_filter)
 
     # then
     assert set(attribute_names) == {"sys/creation_time", "sys/ping_time"}
