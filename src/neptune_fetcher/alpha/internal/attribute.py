@@ -20,6 +20,7 @@ from concurrent.futures import (
 )
 from typing import (
     Callable,
+    Iterable,
     Optional,
     Union,
 )
@@ -31,21 +32,21 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
-from neptune_fetcher.alpha.internal import env
-from neptune_fetcher.alpha.internal import retry
 from neptune_fetcher.alpha import filter
-
-__ALL__ = (
-    "find_attribute_definitions",
+from neptune_fetcher.alpha.internal import (
+    env,
+    retry,
 )
+
+__ALL__ = ("find_attribute_definitions",)
 
 _DEFAULT_BATCH_SIZE = 10_000
 
 
 def find_attribute_definitions(
     client: AuthenticatedClient,
-    project_id: str,
-    experiment_ids: list[str],
+    project_ids: Iterable[str],
+    experiment_ids: Iterable[str],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = _DEFAULT_BATCH_SIZE,
     executor: Optional[Executor] = None,
@@ -53,7 +54,7 @@ def find_attribute_definitions(
     if isinstance(attribute_filter, filter.AttributeFilter):
         return _find_attribute_definitions_single(
             client=client,
-            project_id=project_id,
+            project_ids=project_ids,
             experiment_ids=experiment_ids,
             attribute_filter=attribute_filter,
             batch_size=batch_size,
@@ -63,7 +64,7 @@ def find_attribute_definitions(
         def go(child: filter.BaseAttributeFilter) -> list[str]:
             return find_attribute_definitions(
                 client=client,
-                project_id=project_id,
+                project_ids=project_ids,
                 experiment_ids=experiment_ids,
                 attribute_filter=child,
                 batch_size=batch_size,
@@ -85,13 +86,14 @@ def _create_executor() -> Executor:
 
 def _find_attribute_definitions_single(
     client: AuthenticatedClient,
-    project_id: str,
-    experiment_ids: list[str],
+    project_ids: Iterable[str],
+    experiment_ids: Iterable[str],
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> list[str]:
     params = {
-        "experimentIdsFilter": experiment_ids,
+        "projectIdentifiers": list(project_ids),
+        "experimentIdsFilter": list(experiment_ids),
         "attributeNameFilter": {},
         "nextPage": {"limit": batch_size},
     }
@@ -124,9 +126,7 @@ def _find_attribute_definitions_single(
         body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
         response = retry.backoff_retry(
-            lambda: query_attribute_definitions_within_project.sync_detailed(
-                client=client, body=body, project_identifier=project_id
-            )
+            lambda: query_attribute_definitions_within_project.sync_detailed(client=client, body=body)
         )
 
         data: QueryAttributeDefinitionsResultDTO = response.parsed
