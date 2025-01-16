@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = ["ReadOnlyProject", "list_objects_from_project"]
+__all__ = ["ReadOnlyProject"]
 
 import collections
 import concurrent.futures
@@ -177,25 +177,33 @@ class ReadOnlyProject:
             eager_load_fields: Whether to eagerly load the run fields definitions.
                 If `False`, individual fields are loaded only when accessed. Default is `True`.
         """
-        query = _make_leaderboard_nql(trashed=False, is_run=True, with_ids=with_ids)
-        with_ids_runs = list_objects_from_project(
-            backend=self._backend, project_id=self._project_id, query=str(query), object_type="run", columns=[SYS_ID]
+
+        queries = (
+            [
+                _make_leaderboard_nql(is_run=True, with_ids=with_ids),
+                _make_leaderboard_nql(is_run=True, custom_ids=custom_ids),
+            ]
+            if with_ids or custom_ids
+            else [_make_leaderboard_nql(is_run=True)]
         )
+
         returned_runs = set()
+        for queries in queries:
+            runs = list_objects_from_project(
+                backend=self._backend,
+                project_id=self._project_id,
+                query=str(queries),
+                object_type="run",
+                columns=[SYS_ID],
+            )
 
-        for run in with_ids_runs:
-            sys_id = run.attributes[SYS_ID]
-            returned_runs.add(sys_id)
-            yield ReadOnlyRun._create(read_only_project=self, sys_id=sys_id, eager_load_fields=eager_load_fields)
-
-        query = _make_leaderboard_nql(is_run=True, custom_ids=custom_ids)
-        custom_id_runs = list_objects_from_project(
-            backend=self._backend, project_id=self._project_id, query=str(query), object_type="run", columns=[SYS_ID]
-        )
-        for run in custom_id_runs:
-            sys_id = run.attributes[SYS_ID]
-            if sys_id not in returned_runs:
-                yield ReadOnlyRun._create(read_only_project=self, sys_id=sys_id, eager_load_fields=eager_load_fields)
+            for run in runs:
+                sys_id = run.attributes[SYS_ID]
+                if sys_id not in returned_runs:
+                    returned_runs.add(sys_id)
+                    yield ReadOnlyRun._create(
+                        read_only_project=self, sys_id=sys_id, eager_load_fields=eager_load_fields
+                    )
 
     def fetch_read_only_experiments(
         self, names: Optional[List[str]] = None, eager_load_fields=True
@@ -618,6 +626,38 @@ class ReadOnlyProject:
             # Limit reached, or server doesn't have more data
             if remaining <= 0 or not next_page_token:
                 break
+
+    def _fetch_sys_id(
+        self, sys_id: Optional[str] = None, custom_id: Optional[str] = None, experiment_name: Optional[str] = None
+    ) -> Optional[str]:
+        if sys_id is not None:
+            query = _make_leaderboard_nql(with_ids=[sys_id], trashed=False)
+
+            object_type = "run"
+
+        if custom_id is not None:
+
+            query = _make_leaderboard_nql(custom_ids=[custom_id], trashed=False)
+            object_type = "run"
+
+        elif experiment_name is not None:
+
+            query = _make_leaderboard_nql(names=[experiment_name], trashed=False)
+            object_type = ("experiment",)
+
+        container = list(
+            list_objects_from_project(
+                backend=self._backend,
+                project_id=self._project_id,
+                limit=1,
+                columns=[SYS_ID],
+                query=str(query),
+                object_type=object_type,
+            )
+        )
+        if len(container) == 0:
+            return None
+        return container[0].attributes[SYS_ID]
 
 
 def _extract_value(attr: ProtoAttributeDTO) -> Any:

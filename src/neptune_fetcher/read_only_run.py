@@ -35,14 +35,9 @@ from neptune_fetcher.fields import (
     FieldDefinition,
     FieldType,
 )
-from neptune_fetcher.util import escape_nql_criterion
 
 if TYPE_CHECKING:
-    from neptune_fetcher.read_only_project import (
-        SYS_ID,
-        ReadOnlyProject,
-        list_objects_from_project,
-    )
+    from neptune_fetcher.read_only_project import ReadOnlyProject
 
 
 class ReadOnlyRun:
@@ -82,51 +77,17 @@ class ReadOnlyRun:
         if sum([sys_id is not None, custom_id is not None, experiment_name is not None]) != 1:
             raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
 
-        if custom_id is not None:
-            run = list(
-                list_objects_from_project(
-                    backend=read_only_project._backend,
-                    project_id=read_only_project._project_id,
-                    limit=1,
-                    columns=[SYS_ID],
-                    query=f'`sys/custom_run_id`:string = "{escape_nql_criterion(custom_id)}"',
-                    object_type="run",
-                )
-            )
+        sys_id = read_only_project._fetch_sys_id(custom_id=custom_id, experiment_name=experiment_name, sys_id=sys_id)
 
-            if len(run) == 0:
-                raise ValueError(f"No experiment found with custom id '{custom_id}'")
-            return run[0].attributes[SYS_ID]
-
-        elif experiment_name is not None:
-            experiment = list(
-                list_objects_from_project(
-                    backend=read_only_project._backend,
-                    project_id=read_only_project._project_id,
-                    limit=1,
-                    columns=[SYS_ID],
-                    query=f'`sys/name`:string = "{escape_nql_criterion(experiment_name)}"',
-                    object_type="experiment",
-                )
-            )
-            if len(experiment) == 0:
-                raise ValueError(f"No experiment found with name '{experiment_name}'")
-            return experiment[0].attributes[SYS_ID]
-
-        else:
-            run = list(
-                list_objects_from_project(
-                    backend=read_only_project._backend,
-                    project_id=read_only_project._project_id,
-                    limit=1,
-                    columns=[SYS_ID],
-                    query=f'`sys/id`:string = "{escape_nql_criterion(sys_id)}"',
-                    object_type="run",
-                )
-            )
-            if len(run) == 0:
-                raise ValueError(f"No experiment found with Neptune ID '{sys_id}'")
+        if sys_id is not None:
             return sys_id
+
+        if custom_id is not None:
+            raise ValueError(f"No experiment found with custom id '{custom_id}'")
+        elif experiment_name is not None:
+            raise ValueError(f"No experiment found with name '{experiment_name}'")
+        else:
+            raise ValueError(f"No experiment found with Neptune ID '{sys_id}'")
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
         try:
@@ -138,7 +99,10 @@ class ReadOnlyRun:
             # raise KeyError if the field does not indeed exist backend-side.
             field = self._cache[item]
             self._structure[item] = which_fetchable(
-                FieldDefinition(path=item, type=field.type), self.project._backend, self._container_id, self._cache
+                FieldDefinition(path=item, type=field.type),
+                self.project._backend,
+                self._container_id,
+                self._cache,
             )
 
             return self._structure[item]
