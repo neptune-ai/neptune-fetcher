@@ -632,18 +632,15 @@ class ReadOnlyProject:
     ) -> Optional[str]:
         if sys_id is not None:
             query = _make_leaderboard_nql(with_ids=[sys_id], trashed=False)
-
             object_type = "run"
 
         if custom_id is not None:
-
             query = _make_leaderboard_nql(custom_ids=[custom_id], trashed=False)
             object_type = "run"
 
         elif experiment_name is not None:
-
             query = _make_leaderboard_nql(names=[experiment_name], trashed=False)
-            object_type = ("experiment",)
+            object_type = "experiment"
 
         container = list(
             list_objects_from_project(
