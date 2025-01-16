@@ -46,6 +46,21 @@ def test_find_attributes_single_string(client, run_init_kwargs, ro_run):
     assert attribute_names == ["sys/name"]
 
 
+def test_find_attributes_does_not_exist(client, run_init_kwargs, ro_run):
+    # given
+    project_id = run_init_kwargs["project"]
+    experiment_id = ro_run._container_id
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
+    attribute_names = find_attribute_definitions(
+        client, [project_id], [experiment_id], attribute_filter=attribute_filter
+    )
+
+    # then
+    assert attribute_names == []
+
+
 def test_find_attributes_two_strings(client, run_init_kwargs, ro_run):
     # given
     project_id = run_init_kwargs["project"]
