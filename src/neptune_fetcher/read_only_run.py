@@ -49,7 +49,9 @@ class ReadOnlyRun:
         experiment_name: Optional[str] = None,
         eager_load_fields: bool = True,
     ) -> None:
-        sys_id = ReadOnlyRun._select_and_validate_id(read_only_project, with_id, custom_id, experiment_name)
+        sys_id = ReadOnlyRun._select_and_validate_id(
+            read_only_project, sys_id=with_id, custom_id=custom_id, experiment_name=experiment_name
+        )
         self._initialize_instance(read_only_project, sys_id, eager_load_fields)
 
     @classmethod
@@ -77,7 +79,7 @@ class ReadOnlyRun:
         if sum([sys_id is not None, custom_id is not None, experiment_name is not None]) != 1:
             raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
 
-        sys_id = read_only_project._fetch_sys_id(custom_id=custom_id, experiment_name=experiment_name, sys_id=sys_id)
+        sys_id = read_only_project._fetch_sys_id(sys_id=sys_id, custom_id=custom_id, experiment_name=experiment_name)
 
         if sys_id is not None:
             return sys_id

@@ -634,7 +634,7 @@ class ReadOnlyProject:
             query = _make_leaderboard_nql(with_ids=[sys_id], trashed=False)
             object_type = "run"
 
-        if custom_id is not None:
+        elif custom_id is not None:
             query = _make_leaderboard_nql(custom_ids=[custom_id], trashed=False)
             object_type = "run"
 

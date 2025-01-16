@@ -38,6 +38,8 @@ from typing import (
     Union,
 )
 
+from neptune_fetcher.util import escape_nql_criterion
+
 
 @dataclass
 class NQLQuery:
@@ -185,7 +187,7 @@ def prepare_nql_query(
                         name="sys/id",
                         type=NQLAttributeType.STRING,
                         operator=NQLAttributeOperator.EQUALS,
-                        value=api_id,
+                        value=escape_nql_criterion(api_id),
                     )
                     for api_id in ids
                 ],
