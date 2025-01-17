@@ -8,35 +8,38 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
 
 @pytest.mark.parametrize("eager_load_fields", [True, False])
 def test_fetch_read_only_experiments(project, all_experiment_ids, eager_load_fields):
-    experiments = list(project.fetch_read_only_experiments(eager_load_fields=eager_load_fields))
-
-    assert len(experiments) == len(all_experiment_ids)
-    for exp in experiments:
-        assert exp["sys/custom_run_id"].fetch() in all_experiment_ids
+    experiments = list(project.fetch_read_only_experiments(names=None, eager_load_fields=eager_load_fields))
+    experiments_empty_names = list(project.fetch_read_only_experiments(names=[], eager_load_fields=eager_load_fields))
+    assert len(experiments) == len(experiments_empty_names) == 0
 
 
-def test_fetch_read_only_with_experiment_names(project, all_experiment_ids):
-    exp_names = ["exp2", "exp3"]
+def test_fetch_read_only_with_experiment_names(project, all_experiment_names):
+    exp_names = random.sample(all_experiment_names, 3)
     experiments = list(project.fetch_read_only_experiments(names=exp_names))
 
-    assert len(experiments) == 2
+    assert len(experiments) == len(exp_names)
     assert set(exp_names) == {exp["sys/name"].fetch() for exp in experiments}
 
 
 @pytest.mark.parametrize("eager_load_fields", [True, False])
 def test_fetch_read_only_runs(project, all_experiment_ids, eager_load_fields):
-    runs = list(project.fetch_read_only_runs(eager_load_fields=eager_load_fields))
+    assert [] == list(project.fetch_read_only_runs(eager_load_fields=eager_load_fields))
+    assert [] == list(project.fetch_read_only_runs(with_ids=[], custom_ids=[], eager_load_fields=eager_load_fields))
 
-    assert len(runs) == len(project.fetch_runs())
+    runs_ids = random.sample(all_experiment_ids, 3)
+    filtered = list(project.fetch_read_only_runs(custom_ids=runs_ids, eager_load_fields=eager_load_fields))
 
-    runs = random.sample(runs, 3)
+    assert len(filtered) == len(runs_ids)
+    assert set(runs_ids) == {run["sys/custom_run_id"].fetch() for run in filtered}
 
-    custom_ids = [run["sys/custom_run_id"].fetch() for run in runs]
-    sys_ids = [run["sys/id"].fetch() for run in runs]
+    sys_ids = [run["sys/id"].fetch() for run in filtered]
 
-    filtered = list(
-        project.fetch_read_only_runs(with_ids=sys_ids, custom_ids=custom_ids, eager_load_fields=eager_load_fields)
+    filtered_by_sys_id = list(project.fetch_read_only_runs(with_ids=sys_ids, eager_load_fields=eager_load_fields))
+    assert set(runs_ids) == {run["sys/custom_run_id"].fetch() for run in filtered_by_sys_id}
+
+    duplicated = list(
+        project.fetch_read_only_runs(custom_ids=runs_ids, with_ids=sys_ids, eager_load_fields=eager_load_fields)
     )
-
-    assert len(filtered) == len(runs)
-    assert set(sys_ids) == {run["sys/id"].fetch() for run in runs}
+    # custom_ids=runs_ids, with_ids=sys_ids duplicates the results
+    assert len(duplicated) == (len(runs_ids) * 2)
+    assert set(runs_ids) == {run["sys/custom_run_id"].fetch() for run in duplicated}

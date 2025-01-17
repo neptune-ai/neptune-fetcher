@@ -178,32 +178,26 @@ class ReadOnlyProject:
                 If `False`, individual fields are loaded only when accessed. Default is `True`.
         """
 
-        queries = (
-            [
-                _make_leaderboard_nql(is_run=True, with_ids=with_ids),
-                _make_leaderboard_nql(is_run=True, custom_ids=custom_ids),
-            ]
-            if with_ids or custom_ids
-            else [_make_leaderboard_nql(is_run=True)]
-        )
+        queries = []
+        if with_ids:
+            queries.append(_make_leaderboard_nql(is_run=True, with_ids=with_ids))
 
-        returned_runs = set()
-        for queries in queries:
+        if custom_ids:
+            queries.append(_make_leaderboard_nql(is_run=True, custom_ids=custom_ids))
+
+        for query in queries:
             runs = list_objects_from_project(
                 backend=self._backend,
                 project_id=self._project_id,
-                query=str(queries),
+                query=str(query),
                 object_type="run",
                 columns=[SYS_ID],
             )
 
             for run in runs:
-                sys_id = run.attributes[SYS_ID]
-                if sys_id not in returned_runs:
-                    returned_runs.add(sys_id)
-                    yield ReadOnlyRun._create(
-                        read_only_project=self, sys_id=sys_id, eager_load_fields=eager_load_fields
-                    )
+                yield ReadOnlyRun._create(
+                    read_only_project=self, sys_id=run.attributes[SYS_ID], eager_load_fields=eager_load_fields
+                )
 
     def fetch_read_only_experiments(
         self, names: Optional[List[str]] = None, eager_load_fields=True
@@ -224,6 +218,8 @@ class ReadOnlyProject:
                 ...
             ```
         """
+        if names is None or names == []:
+            return
         query = _make_leaderboard_nql(is_run=False, names=names)
         experiments = list_objects_from_project(
             backend=self._backend,
