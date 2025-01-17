@@ -35,7 +35,6 @@ from neptune_fetcher.fields import (
     FieldDefinition,
     FieldType,
 )
-from neptune_fetcher.util import escape_nql_criterion
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
@@ -50,40 +49,23 @@ class ReadOnlyRun:
         experiment_name: Optional[str] = None,
         eager_load_fields: bool = True,
     ) -> None:
+        sys_id = ReadOnlyRun._select_and_validate_id(
+            read_only_project, sys_id=with_id, custom_id=custom_id, experiment_name=experiment_name
+        )
+        self._initialize_instance(read_only_project, sys_id, eager_load_fields)
+
+    @classmethod
+    def _create(cls, read_only_project, sys_id, eager_load_fields) -> "ReadOnlyRun":
+        instance = cls.__new__(cls)
+        instance._initialize_instance(read_only_project, sys_id, eager_load_fields)
+        return instance
+
+    def _initialize_instance(self, read_only_project, sys_id, eager_load_fields):
         self.project = read_only_project
-
-        if with_id is None and custom_id is None and experiment_name is None:
-            raise ValueError("You must provide one of: `with_id`, `custom_id`, and `experiment_name`.")
-
-        if sum([with_id is not None, custom_id is not None, experiment_name is not None]) != 1:
-            raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
-
-        if custom_id is not None:
-            run = read_only_project.fetch_runs_df(
-                query=f'`sys/custom_run_id`:string = "{escape_nql_criterion(custom_id)}"', limit=1, columns=["sys/id"]
-            )
-
-            if len(run) == 0:
-                raise ValueError(f"No experiment found with custom id '{custom_id}'")
-            self.with_id = run.iloc[0]["sys/id"]
-        elif experiment_name is not None:
-            experiment = read_only_project.fetch_experiments_df(
-                query=f'`sys/name`:string = "{escape_nql_criterion(experiment_name)}"', limit=1, columns=["sys/id"]
-            )
-            if len(experiment) == 0:
-                raise ValueError(f"No experiment found with name '{experiment_name}'")
-            self.with_id = experiment.iloc[0]["sys/id"]
-        else:
-            run = read_only_project.fetch_runs_df(
-                query=f'`sys/id`:string = "{escape_nql_criterion(with_id)}"', limit=1, columns=["sys/id"]
-            )
-            if len(run) == 0:
-                raise ValueError(f"No experiment found with Neptune ID '{with_id}'")
-            self.with_id = with_id
-
-        self._container_id = f"{self.project.project_identifier}/{self.with_id}"
+        self.with_id = sys_id
+        self._container_id = f"{read_only_project.project_identifier}/{sys_id}"
         self._cache = FieldsCache(
-            backend=self.project._backend,
+            backend=read_only_project._backend,
             container_id=self._container_id,
         )
         self._loaded_structure = False
@@ -91,6 +73,23 @@ class ReadOnlyRun:
             self._load_structure()
         else:
             self._structure = {}
+
+    @staticmethod
+    def _select_and_validate_id(read_only_project, sys_id, custom_id, experiment_name):
+        if sum([sys_id is not None, custom_id is not None, experiment_name is not None]) != 1:
+            raise ValueError("You must provide exactly one of: `with_id`, `custom_id`, and `experiment_name`.")
+
+        sys_id = read_only_project._fetch_sys_id(sys_id=sys_id, custom_id=custom_id, experiment_name=experiment_name)
+
+        if sys_id is not None:
+            return sys_id
+
+        if custom_id is not None:
+            raise ValueError(f"No experiment found with custom id '{custom_id}'")
+        elif experiment_name is not None:
+            raise ValueError(f"No experiment found with name '{experiment_name}'")
+        else:
+            raise ValueError(f"No experiment found with Neptune ID '{sys_id}'")
 
     def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
         try:
@@ -102,7 +101,10 @@ class ReadOnlyRun:
             # raise KeyError if the field does not indeed exist backend-side.
             field = self._cache[item]
             self._structure[item] = which_fetchable(
-                FieldDefinition(path=item, type=field.type), self.project._backend, self._container_id, self._cache
+                FieldDefinition(path=item, type=field.type),
+                self.project._backend,
+                self._container_id,
+                self._cache,
             )
 
             return self._structure[item]
