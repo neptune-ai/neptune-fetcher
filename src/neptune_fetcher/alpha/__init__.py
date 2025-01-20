@@ -18,6 +18,7 @@ __all__ = [
     "Context",
     "set_context",
     "set_project",
+    "fetch_experiments_table",
     "set_api_token",
 ]
 
@@ -27,3 +28,5 @@ from neptune_fetcher.alpha.context import (
     set_context,
     set_project,
 )
+
+from .experiments import fetch_experiments_table
