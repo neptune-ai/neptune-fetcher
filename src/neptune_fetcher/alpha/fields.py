@@ -47,7 +47,7 @@ from typing import (
 if TYPE_CHECKING:
     from pandas import DataFrame
 
-    from neptune_fetcher.api.api_client import ApiClient
+    from neptune_fetcher.alpha.api_client import ApiClient
 
 T = TypeVar("T")
 
