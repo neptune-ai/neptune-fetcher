@@ -29,10 +29,23 @@ from typing import (
 __ALL__ = ("AttributeFilter", "ExperimentFilter")
 
 
+_ATTRIBUTE_TYPE_MAP = {
+    "float_series": "floatSeries",
+    "string_set": "stringSet",
+}
+
+
+def _map_attribute_type(_type: str) -> str:
+    if _type in _ATTRIBUTE_TYPE_MAP:
+        return _ATTRIBUTE_TYPE_MAP[_type]
+    return _type
+
+
 class BaseAttributeFilter(ABC):
     def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
-        return self.any(other)
+        return BaseAttributeFilter.any(self, other)
 
+    @staticmethod
     def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
 
@@ -50,20 +63,26 @@ class AttributeFilter(BaseAttributeFilter):
 
 @dataclass
 class _AttributeFilterAlternative(BaseAttributeFilter):
-    filters: tuple[BaseAttributeFilter]
+    filters: Iterable[BaseAttributeFilter]
 
 
 @dataclass
 class Attribute:
     name: str
-    aggregation: Optional[Literal["last", "min", "max", "avg", "variance"]] = None
+    aggregation: Optional[Literal["last", "min", "max", "average", "variance"]] = None
     type: Optional[Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set"]] = None
 
     def to_query(self) -> str:
+        query = f"`{self.name}`"
+
+        if self.type is not None:
+            _type = _map_attribute_type(self.type)
+            query += f":{_type}"
+
         if self.aggregation is not None:
-            return f"{self.aggregation}(`{self.name}`:{self.type})"
-        else:
-            return f"`{self.name}`:{self.type}"
+            query = f"{self.aggregation}({query})"
+
+        return query
 
 
 class ExperimentFilter(ABC):

@@ -113,7 +113,7 @@ def _find_attribute_definitions_single(
 
     attribute_types = _variants_to_list(attribute_filter.type_in)
     if attribute_types is not None:
-        params["attributeFilter"] = [{"attributeType": _map_attribute_type(_type)} for _type in attribute_types]
+        params["attributeFilter"] = [{"attributeType": filter._map_attribute_type(_type)} for _type in attribute_types]
 
     # note: attribute_filter.aggregations is intentionally ignored
 
@@ -138,18 +138,6 @@ def _find_attribute_definitions_single(
             break
 
     return result
-
-
-_ATTRIBUTE_TYPE_MAP = {
-    "float_series": "floatSeries",
-    "string_set": "stringSet",
-}
-
-
-def _map_attribute_type(_type: str) -> str:
-    if _type in _ATTRIBUTE_TYPE_MAP:
-        return _ATTRIBUTE_TYPE_MAP[_type]
-    return _type
 
 
 def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
