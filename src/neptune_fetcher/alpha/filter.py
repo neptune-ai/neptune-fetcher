@@ -45,7 +45,6 @@ class BaseAttributeFilter(ABC):
     def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return BaseAttributeFilter.any(self, other)
 
-    @staticmethod
     def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
 
@@ -64,6 +63,10 @@ class AttributeFilter(BaseAttributeFilter):
 @dataclass
 class _AttributeFilterAlternative(BaseAttributeFilter):
     filters: Iterable[BaseAttributeFilter]
+
+    def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
+        filters = tuple(self.filters) + (other,)
+        return _AttributeFilterAlternative(filters)
 
 
 @dataclass

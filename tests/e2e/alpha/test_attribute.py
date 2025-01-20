@@ -209,9 +209,11 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
     run.log_configs(data)
     run.wait_for_processing()
 
-    #  when
     attribute_filter_1 = AttributeFilter(name_matches_all=f"^{re.escape(common_path)}/.*_value_a$", type_in=["int"])
     attribute_filter_2 = AttributeFilter(name_matches_all=f"^{re.escape(common_path)}/.*_value_b$", type_in=["float"])
+    attribute_filter_3 = AttributeFilter(name_matches_all=f"^{re.escape(common_path)}/.*_value_b$", type_in=["int"])
+
+    #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2
     attribute_names = find_attribute_definitions(
         client, [project_id], [experiment_id], attribute_filter=attribute_filter
@@ -219,3 +221,29 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
 
     # then
     assert set(attribute_names) == {f"{common_path}/int_value_a", f"{common_path}/float_value_b"}
+
+    #  when
+    attribute_filter = attribute_filter_1 | attribute_filter_2 | attribute_filter_3
+    attribute_names = find_attribute_definitions(
+        client, [project_id], [experiment_id], attribute_filter=attribute_filter
+    )
+
+    # then
+    assert set(attribute_names) == {
+        f"{common_path}/int_value_a",
+        f"{common_path}/int_value_b",
+        f"{common_path}/float_value_b",
+    }
+
+    #  when
+    attribute_filter = AttributeFilter.any(attribute_filter_1, attribute_filter_2, attribute_filter_3)
+    attribute_names = find_attribute_definitions(
+        client, [project_id], [experiment_id], attribute_filter=attribute_filter
+    )
+
+    # then
+    assert set(attribute_names) == {
+        f"{common_path}/int_value_a",
+        f"{common_path}/int_value_b",
+        f"{common_path}/float_value_b",
+    }
