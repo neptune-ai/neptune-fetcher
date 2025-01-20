@@ -7,4 +7,4 @@ pytest-mock
 pytest-timeout
 pytest-xdist
 icecream
-neptune-scale
+neptune-scale==0.9.1b2
