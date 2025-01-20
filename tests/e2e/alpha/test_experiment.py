@@ -1,10 +1,12 @@
 import os
+import uuid
 from datetime import (
     datetime,
     timezone,
 )
 
 import pytest
+from neptune_scale import Run
 
 from neptune_fetcher.alpha.filter import (
     Attribute,
@@ -13,7 +15,7 @@ from neptune_fetcher.alpha.filter import (
 from neptune_fetcher.alpha.internal.experiment import find_experiments
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
+EXPERIMENT_NAME = "pye2e-fetcher-test-experiment"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
@@ -21,7 +23,16 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
-def run_attributes(client, project, experiment_name, run):
+def run_with_attributes(client, project):
+    project_id = project.project_identifier
+    run_id = str(uuid.uuid4())
+
+    run = Run(
+        project=project_id,
+        run_id=run_id,
+        experiment_name=EXPERIMENT_NAME,
+    )
+
     data = {
         "test/int-value": 10,
         "test/float-value": 0.5,
@@ -32,31 +43,24 @@ def run_attributes(client, project, experiment_name, run):
     run.log_configs(data)
 
     path = "test/float-series-value"
-    data[path] = list(zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES))
-    experiment_filter = ExperimentFilter.all(
-        ExperimentFilter.name_in(experiment_name),
-        ExperimentFilter.exists(Attribute(name=path, type="float_series")),
-    )
-    found = find_experiments(client, project.project_identifier, experiment_filter)
-    if not found:
-        for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
-            run.log_metrics(data={path: value}, step=step)
+    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
+        run.log_metrics(data={path: value}, step=step)
 
     run.wait_for_processing()
 
-    return data
+    return run
 
 
-def test_find_experiments_by_name(client, project, experiment_name):
+def test_find_experiments_by_name(client, project, run_with_attributes):
     # given
     project_id = project.project_identifier
 
     #  when
-    experiment_filter = f'`sys/name`:string = "{experiment_name}"'
+    experiment_filter = f'`sys/name`:string = "{EXPERIMENT_NAME}"'
     experiment_names = find_experiments(client, project_id, experiment_filter)
 
     # then
-    assert experiment_names == [experiment_name]
+    assert experiment_names == [EXPERIMENT_NAME]
 
 
 def test_find_experiments_by_name_not_found(client, project):
@@ -72,23 +76,23 @@ def test_find_experiments_by_name_not_found(client, project):
     assert experiment_names == []
 
 
-def test_find_experiments_by_name_filter(client, project, experiment_name):
+def test_find_experiments_by_name_filter(client, project, run_with_attributes):
     # given
     project_id = project.project_identifier
 
     #  when
-    experiment_filter = ExperimentFilter.name_eq(experiment_name)
+    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
     experiment_names = find_experiments(client, project_id, experiment_filter)
 
     # then
-    assert experiment_names == [experiment_name]
+    assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
-    experiment_filter = ExperimentFilter.name_in(experiment_name, "experiment_not_found")
+    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
     experiment_names = find_experiments(client, project_id, experiment_filter)
 
     # then
-    assert experiment_names == [experiment_name]
+    assert experiment_names == [EXPERIMENT_NAME]
 
 
 @pytest.mark.parametrize(
@@ -143,7 +147,7 @@ def test_find_experiments_by_name_filter(client, project, experiment_name):
         (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
     ],
 )
-def test_find_experiments_by_config_values(client, project, run_attributes, experiment_filter, found):
+def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_id = project.project_identifier
 
@@ -152,7 +156,7 @@ def test_find_experiments_by_config_values(client, project, run_attributes, expe
 
     # then
     if found:
-        assert len(experiment_names) == 1
+        assert experiment_names == [EXPERIMENT_NAME]
     else:
         assert experiment_names == []
 
@@ -264,7 +268,7 @@ def test_find_experiments_by_config_values(client, project, run_attributes, expe
         ),
     ],
 )
-def test_find_experiments_by_series_values(client, project, run_attributes, experiment_filter, found):
+def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_id = project.project_identifier
 
@@ -273,7 +277,7 @@ def test_find_experiments_by_series_values(client, project, run_attributes, expe
 
     # then
     if found:
-        assert len(experiment_names) == 1
+        assert experiment_names == [EXPERIMENT_NAME]
     else:
         assert experiment_names == []
 
@@ -418,7 +422,7 @@ def test_find_experiments_by_series_values(client, project, run_attributes, expe
         ),
     ],
 )
-def test_find_experiments_by_logical_expression(client, project, run_attributes, experiment_filter, found):
+def test_find_experiments_by_logical_expression(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_id = project.project_identifier
 
@@ -427,6 +431,6 @@ def test_find_experiments_by_logical_expression(client, project, run_attributes,
 
     # then
     if found:
-        assert len(experiment_names) == 1
+        assert experiment_names == [EXPERIMENT_NAME]
     else:
         assert experiment_names == []
