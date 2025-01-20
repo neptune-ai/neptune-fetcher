@@ -2,20 +2,17 @@ import os
 import random
 import re
 import time
-import uuid
 from datetime import (
     datetime,
     timezone,
 )
 
+from conftest import unique_path
+
 from neptune_fetcher.alpha.filter import AttributeFilter
 from neptune_fetcher.alpha.internal.attribute import find_attribute_definitions
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
-
-def unique_path(prefix):
-    return f"{prefix}__{datetime.now(timezone.utc).isoformat('-', 'seconds')}__{str(uuid.uuid4())[-4:]}"
 
 
 def random_series(length=10, start_step=0):
@@ -81,7 +78,7 @@ def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
     project_id = run_init_kwargs["project"]
     experiment_id = ro_run._container_id
 
-    path = unique_path("test_attribute_filter/test_find_attributes_single_series")
+    path = unique_path("test_attribute/test_find_attributes_single_series")
     steps, values = random_series()
     for step, value in zip(steps, values):
         run.log_metrics(data={path: value}, step=step)
@@ -102,7 +99,7 @@ def test_find_attributes_all_types(client, run_init_kwargs, run, ro_run):
     project_id = run_init_kwargs["project"]
     experiment_id = ro_run._container_id
 
-    common_path = unique_path("test_attribute_filter/test_find_attributes_all_types")
+    common_path = unique_path("test_attribute/test_find_attributes_all_types")
     now = time.time()
     data = {
         f"{common_path}/int-value": int(now),
@@ -201,7 +198,7 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
     project_id = run_init_kwargs["project"]
     experiment_id = ro_run._container_id
 
-    common_path = unique_path("test_attribute_filter/test_find_attributes_filter_or")
+    common_path = unique_path("test_attribute/test_find_attributes_filter_or")
     now = time.time()
     data = {
         f"{common_path}/int_value_a": int(now),
