@@ -35,6 +35,8 @@ from typing import (
     Union,
 )
 
+from pandas import DataFrame
+
 from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fields import (
     FieldDefinition,
@@ -42,8 +44,6 @@ from neptune_fetcher.fields import (
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
-
     from neptune_fetcher.cache import FieldsCache
 
 logger = logging.getLogger(__name__)
@@ -81,10 +81,16 @@ class Fetchable(ABC):
         ...
 
 
-class NoopFetchable(Fetchable):
+class UnsupportedFetchable(Fetchable):
     def fetch(self) -> None:
-        logger.info("Unsupported type: %s", self._field.type)
         return None
+
+    # Make sure users expecting series of not supported types don't crash
+    def fetch_last(self):
+        return None
+
+    def fetch_values(self, *args, **kwargs) -> DataFrame:
+        return DataFrame()
 
 
 class FetchableAtom(Fetchable):
@@ -144,4 +150,4 @@ def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetcha
         return FetchableAtom(field, *args, **kwargs)
     elif field.type in SUPPORTED_SERIES_TYPES:
         return FetchableSeries(field, *args, **kwargs)
-    return NoopFetchable(field, *args, **kwargs)
+    return UnsupportedFetchable(field, *args, **kwargs)

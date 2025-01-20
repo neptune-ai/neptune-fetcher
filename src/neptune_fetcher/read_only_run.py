@@ -26,15 +26,11 @@ from typing import (
 
 from neptune_fetcher.cache import FieldsCache
 from neptune_fetcher.fetchable import (
-    SUPPORTED_TYPES,
     Fetchable,
     FetchableSeries,
     which_fetchable,
 )
-from neptune_fetcher.fields import (
-    FieldDefinition,
-    FieldType,
-)
+from neptune_fetcher.fields import FieldDefinition
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
@@ -132,7 +128,6 @@ class ReadOnlyRun:
                     self._cache,
                 )
                 for definition in definitions
-                if FieldType(definition.type) in SUPPORTED_TYPES
             }
             self._loaded_structure = True
 

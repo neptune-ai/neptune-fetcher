@@ -62,6 +62,7 @@ from neptune_fetcher.util import (
     NeptuneWarning,
     escape_nql_criterion,
     getenv_int,
+    warn_unsupported_value_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -671,7 +672,8 @@ def _extract_value(attr: ProtoAttributeDTO) -> Any:
     elif attr.type == "experimentState":
         return "experiment_state"
     else:
-        raise ValueError(f"Unsupported attribute type: {attr.type}, please update the client")
+        warn_unsupported_value_type(attr.type)
+        return None
 
 
 def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> List[str]:

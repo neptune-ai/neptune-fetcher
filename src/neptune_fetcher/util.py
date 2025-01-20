@@ -58,3 +58,12 @@ def escape_nql_criterion(criterion):
     """
 
     return criterion.replace("\\", r"\\").replace('"', r"\"")
+
+
+def warn_unsupported_value_type(type_: str) -> None:
+    warnings.warn(
+        f"A value of type `{type_}` was returned by your query. This type is not supported by your installation "
+        "of neptune-fetcher and values will evaluate to `None` and empty DataFrames. "
+        "Upgrade neptune-fetcher to access this data.",
+        NeptuneWarning,
+    )
