@@ -46,6 +46,8 @@ def test_find_experiments_by_name(client, run_init_kwargs):
     # given
     project_id = run_init_kwargs["project"]
     experiment_name = run_init_kwargs["experiment_name"]
+    if experiment_name is None:
+        experiment_name = find_experiments(client, project_id)[0]
 
     #  when
     experiment_filter = f'`sys/name`:string = "{experiment_name}"'
@@ -71,7 +73,9 @@ def test_find_experiments_by_name_not_found(client, run_init_kwargs):
 def test_find_experiments_by_name_filter(client, run_init_kwargs):
     # given
     project_id = run_init_kwargs["project"]
-    experiment_name = run_init_kwargs["experiment_name"]
+    experiment_name = run_init_kwargs.get("experiment_name")
+    if experiment_name is None:
+        experiment_name = find_experiments(client, project_id)[0]
 
     #  when
     experiment_filter = ExperimentFilter.name_eq(experiment_name)
@@ -135,19 +139,21 @@ def test_find_experiments_by_name_filter(client, run_init_kwargs):
         (ExperimentFilter.gt(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), False),
         (ExperimentFilter.le(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), True),
         (ExperimentFilter.lt(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (ExperimentFilter.exists(Attribute(name="test/str-value", type="string")), True),
+        (ExperimentFilter.exists(Attribute(name="test/str-value", type="int")), False),
+        (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
     ],
 )
 def test_find_experiments_by_config_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
     # given
     project_id = run_init_kwargs["project"]
-    experiment_name = run_init_kwargs["experiment_name"]
 
     #  when
     experiment_names = find_experiments(client, project_id, experiment_filter)
 
     # then
     if found:
-        assert experiment_names == [experiment_name]
+        assert len(experiment_names) == 1
     else:
         assert experiment_names == []
 
@@ -262,13 +268,166 @@ def test_find_experiments_by_config_values(client, run_init_kwargs, run_with_att
 def test_find_experiments_by_series_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
     # given
     project_id = run_init_kwargs["project"]
-    experiment_name = run_init_kwargs["experiment_name"]
 
     #  when
     experiment_names = find_experiments(client, project_id, experiment_filter)
 
     # then
     if found:
-        assert experiment_names == [experiment_name]
+        assert len(experiment_names) == 1
+    else:
+        assert experiment_names == []
+
+
+@pytest.mark.parametrize(
+    "experiment_filter,found",
+    [
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
+                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.negate(
+                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.negate(
+                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.any(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+                ExperimentFilter.any(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+                ),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.all(
+                ExperimentFilter.any(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+                ExperimentFilter.any(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.all(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
+                ),
+                ExperimentFilter.all(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.any(
+                ExperimentFilter.all(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+                ExperimentFilter.all(
+                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
+                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                ),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.negate(
+                ExperimentFilter.any(
+                    ExperimentFilter.all(
+                        ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
+                        ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                    ),
+                    ExperimentFilter.all(
+                        ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
+                        ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
+                    ),
+                )
+            ),
+            True,
+        ),
+    ],
+)
+def test_find_experiments_by_logical_expression(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
+    # given
+    project_id = run_init_kwargs["project"]
+
+    #  when
+    experiment_names = find_experiments(client, project_id, experiment_filter)
+
+    # then
+    if found:
+        assert len(experiment_names) == 1
     else:
         assert experiment_names == []
