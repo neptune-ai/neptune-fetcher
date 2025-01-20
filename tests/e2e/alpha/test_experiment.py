@@ -17,7 +17,8 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
-FLOAT_SERIES_VALUES = [(step * 0.5, step**2) for step in range(10)]
+FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
+FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +35,7 @@ def run_with_attrs(project, run_init_kwargs):
     run.log_configs(data)
 
     path = "test/float-series-value"
-    for step, value in FLOAT_SERIES_VALUES:
+    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
         run.log_metrics(data={path: value}, step=step)
     run.wait_for_processing()
 
@@ -137,6 +138,128 @@ def test_find_experiments_by_name_filter(client, run_init_kwargs):
     ],
 )
 def test_find_experiments_by_config_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
+    # given
+    project_id = run_init_kwargs["project"]
+    experiment_name = run_init_kwargs["experiment_name"]
+
+    #  when
+    experiment_names = find_experiments(client, project_id, experiment_filter)
+
+    # then
+    if found:
+        assert experiment_names == [experiment_name]
+    else:
+        assert experiment_names == []
+
+
+@pytest.mark.parametrize(
+    "experiment_filter,found",
+    [
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
+                FLOAT_SERIES_VALUES[-1],
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
+                FLOAT_SERIES_VALUES[-2],
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.ne(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
+                FLOAT_SERIES_VALUES[-1],
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
+                min(FLOAT_SERIES_VALUES),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
+                min(FLOAT_SERIES_VALUES) + 1,
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.ne(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
+                min(FLOAT_SERIES_VALUES),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
+                max(FLOAT_SERIES_VALUES),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
+                max(FLOAT_SERIES_VALUES) + 1,
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.ne(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
+                max(FLOAT_SERIES_VALUES),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
+                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
+                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES) + 1.0,
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.ne(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
+                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05
+            ),
+            True,
+        ),
+        (
+            ExperimentFilter.eq(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05 + 1
+            ),
+            False,
+        ),
+        (
+            ExperimentFilter.ne(
+                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05
+            ),
+            False,
+        ),
+    ],
+)
+def test_find_experiments_by_series_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
     # given
     project_id = run_init_kwargs["project"]
     experiment_name = run_init_kwargs["experiment_name"]
