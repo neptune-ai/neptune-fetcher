@@ -84,12 +84,12 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
-from neptune_fetcher.fields import (
+from .fields import (
     FieldDefinition,
     FieldType,
     FloatPointValue,
 )
-from neptune_fetcher.util import NeptuneException
+from .util import NeptuneException
 
 API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
