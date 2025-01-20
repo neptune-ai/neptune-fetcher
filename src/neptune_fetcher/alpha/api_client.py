@@ -316,6 +316,10 @@ class BuildApiClient:
 
         return client
 
+    @classmethod
+    def clear_cache(cls):
+        cls.cache.clear()
+
 
 @dataclass(frozen=True)
 class _SeriesRequest:
