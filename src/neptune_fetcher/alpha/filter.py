@@ -26,7 +26,7 @@ from typing import (
     Union,
 )
 
-__ALL__ = ("AttributeFilter",)
+__ALL__ = ("AttributeFilter", "ExperimentFilter")
 
 
 class BaseAttributeFilter(ABC):
@@ -105,7 +105,7 @@ class ExperimentFilter(ABC):
             return _AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
         else:
             filters = [ExperimentFilter.matches_none(attribute, r) for r in regex]
-            return ExperimentFilter.any(*filters)
+            return ExperimentFilter.all(*filters)
 
     @staticmethod
     def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
@@ -121,7 +121,7 @@ class ExperimentFilter(ABC):
             return _AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
         else:
             filters = [ExperimentFilter.contains_none(attribute, v) for v in value]
-            return ExperimentFilter.any(*filters)
+            return ExperimentFilter.all(*filters)
 
     @staticmethod
     def exists(attribute: Union[str, Attribute]) -> "ExperimentFilter":
@@ -180,7 +180,8 @@ class _AttributeValuePredicate(ExperimentFilter):
         return self.attribute
 
     def _right_query(self):
-        value = self.value.replace("\\", r"\\").replace('"', r"\"")
+        value = str(self.value)
+        value = value.replace("\\", r"\\").replace('"', r"\"")
         return f'"{value}"'
 
 

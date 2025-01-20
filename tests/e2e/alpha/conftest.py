@@ -1,4 +1,9 @@
 import os
+import uuid
+from datetime import (
+    datetime,
+    timezone,
+)
 
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
@@ -22,3 +27,7 @@ def client() -> AuthenticatedClient:
     )
 
     return client
+
+
+def unique_path(prefix):
+    return f"{prefix}__{datetime.now(timezone.utc).isoformat('-', 'seconds')}__{str(uuid.uuid4())[-4:]}"
