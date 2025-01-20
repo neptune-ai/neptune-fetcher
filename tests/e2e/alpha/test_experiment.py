@@ -5,7 +5,6 @@ from datetime import (
 )
 
 import pytest
-from neptune_scale import Run
 
 from neptune_fetcher.alpha.filter import (
     Attribute,
@@ -22,9 +21,7 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
-def run_with_attrs(project, run_init_kwargs):
-    run = Run(**run_init_kwargs)
-
+def run_attributes(client, project, experiment_name, run):
     data = {
         "test/int-value": 10,
         "test/float-value": 0.5,
@@ -35,19 +32,24 @@ def run_with_attrs(project, run_init_kwargs):
     run.log_configs(data)
 
     path = "test/float-series-value"
-    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
-        run.log_metrics(data={path: value}, step=step)
+    data[path] = list(zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES))
+    experiment_filter = ExperimentFilter.all(
+        ExperimentFilter.name_in(experiment_name),
+        ExperimentFilter.exists(Attribute(name=path, type="float_series")),
+    )
+    found = find_experiments(client, project.project_identifier, experiment_filter)
+    if not found:
+        for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
+            run.log_metrics(data={path: value}, step=step)
+
     run.wait_for_processing()
 
-    return run
+    return data
 
 
-def test_find_experiments_by_name(client, run_init_kwargs):
+def test_find_experiments_by_name(client, project, experiment_name):
     # given
-    project_id = run_init_kwargs["project"]
-    experiment_name = run_init_kwargs["experiment_name"]
-    if experiment_name is None:
-        experiment_name = find_experiments(client, project_id)[0]
+    project_id = project.project_identifier
 
     #  when
     experiment_filter = f'`sys/name`:string = "{experiment_name}"'
@@ -57,9 +59,9 @@ def test_find_experiments_by_name(client, run_init_kwargs):
     assert experiment_names == [experiment_name]
 
 
-def test_find_experiments_by_name_not_found(client, run_init_kwargs):
+def test_find_experiments_by_name_not_found(client, project):
     # given
-    project_id = run_init_kwargs["project"]
+    project_id = project.project_identifier
     experiment_name = "test_find_experiments_by_name_not_found"
 
     #  when
@@ -70,12 +72,9 @@ def test_find_experiments_by_name_not_found(client, run_init_kwargs):
     assert experiment_names == []
 
 
-def test_find_experiments_by_name_filter(client, run_init_kwargs):
+def test_find_experiments_by_name_filter(client, project, experiment_name):
     # given
-    project_id = run_init_kwargs["project"]
-    experiment_name = run_init_kwargs.get("experiment_name")
-    if experiment_name is None:
-        experiment_name = find_experiments(client, project_id)[0]
+    project_id = project.project_identifier
 
     #  when
     experiment_filter = ExperimentFilter.name_eq(experiment_name)
@@ -144,9 +143,9 @@ def test_find_experiments_by_name_filter(client, run_init_kwargs):
         (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
     ],
 )
-def test_find_experiments_by_config_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
+def test_find_experiments_by_config_values(client, project, run_attributes, experiment_filter, found):
     # given
-    project_id = run_init_kwargs["project"]
+    project_id = project.project_identifier
 
     #  when
     experiment_names = find_experiments(client, project_id, experiment_filter)
@@ -265,9 +264,9 @@ def test_find_experiments_by_config_values(client, run_init_kwargs, run_with_att
         ),
     ],
 )
-def test_find_experiments_by_series_values(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
+def test_find_experiments_by_series_values(client, project, run_attributes, experiment_filter, found):
     # given
-    project_id = run_init_kwargs["project"]
+    project_id = project.project_identifier
 
     #  when
     experiment_names = find_experiments(client, project_id, experiment_filter)
@@ -419,9 +418,9 @@ def test_find_experiments_by_series_values(client, run_init_kwargs, run_with_att
         ),
     ],
 )
-def test_find_experiments_by_logical_expression(client, run_init_kwargs, run_with_attrs, experiment_filter, found):
+def test_find_experiments_by_logical_expression(client, project, run_attributes, experiment_filter, found):
     # given
-    project_id = run_init_kwargs["project"]
+    project_id = project.project_identifier
 
     #  when
     experiment_names = find_experiments(client, project_id, experiment_filter)
