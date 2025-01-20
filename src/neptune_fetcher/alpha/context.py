@@ -16,10 +16,7 @@
 
 import contextvars
 import os
-from typing import (
-    Hashable,
-    Optional,
-)
+from typing import Optional
 
 neptune_api_token = contextvars.ContextVar("neptune_api_token")
 neptune_project = contextvars.ContextVar("neptune_project")
@@ -74,10 +71,6 @@ def _set_api_token(api_token: str):
 
 def _reset_api_token(token):
     neptune_api_token.reset(token)
-
-
-def _get_hash(ctx: Optional[Context] = None) -> Hashable:
-    return hash(get_api_token(ctx))
 
 
 init_from_env()
