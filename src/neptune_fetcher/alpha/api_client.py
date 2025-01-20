@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-__all__ = ["ApiClient"]
+__all__ = ["ApiClient", "BuildApiClient"]
 
 import logging
 import os
@@ -84,6 +84,10 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
 
+from .context import (
+    Context,
+    get_api_token,
+)
 from .fields import (
     FieldDefinition,
     FieldType,
@@ -91,7 +95,6 @@ from .fields import (
 )
 from .util import NeptuneException
 
-API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
 
 # Disable httpx logging, httpx logs requests at INFO level
@@ -99,8 +102,7 @@ logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 class ApiClient:
-    def __init__(self, api_token: Optional[str] = None, proxies: Optional[Dict[str, str]] = None) -> None:
-        api_token = api_token if api_token else os.getenv(API_TOKEN_ENV_NAME)
+    def __init__(self, api_token, proxies: Optional[Dict[str, str]] = None) -> None:
         credentials = Credentials.from_api_key(api_key=api_token)
         config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
         self._backend = create_auth_api_client(
@@ -296,6 +298,23 @@ class ApiClient:
             raise NeptuneException("Project not found")
         else:
             return response.parsed
+
+
+class BuildApiClient:
+    cache = {}
+
+    @classmethod
+    def build(cls, context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> ApiClient:
+        api_token = get_api_token(context)
+        hash_key = hash((api_token, proxies))
+
+        if hash_key in cls.cache:
+            return cls.cache[hash_key]
+
+        client = ApiClient(api_token, proxies=proxies)
+        cls.cache[hash_key] = client
+
+        return client
 
 
 @dataclass(frozen=True)
