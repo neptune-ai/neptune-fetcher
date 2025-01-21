@@ -17,7 +17,7 @@ import contextvars
 import os
 from typing import Optional
 
-from ..data import (
+from ..context_data import (
     NEPTUNE_API_TOKEN,
     NEPTUNE_PROJECT,
     Context,
@@ -26,11 +26,11 @@ from ..data import (
 _neptune_context = contextvars.ContextVar("neptune_context")
 
 
-def get_context(ctx: Optional[Context] = None) -> Context:
+def get_local_or_global_context(ctx: Optional[Context] = None) -> Context:
     return sanitize_context_falling_back_to_env(ctx or _neptune_context.get())
 
 
-def set_context(ctx: Context):
+def set_global_context(ctx: Context):
     _neptune_context.set(ctx)
 
 
