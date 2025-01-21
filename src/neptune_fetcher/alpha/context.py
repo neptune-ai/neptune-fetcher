@@ -14,63 +14,33 @@
 # limitations under the License.
 #
 
-import contextvars
-import os
-from typing import Optional
 
-neptune_api_token = contextvars.ContextVar("neptune_api_token")
-neptune_project = contextvars.ContextVar("neptune_project")
+__all__ = ["Context", "set_context", "set_project", "set_api_token"]
+
+
+from .data import Context
+from .internal.context import sanitize_context_falling_back_to_env
+from .internal.context import set_context as internal_set_context
 
 
 def init_from_env():
-    if (value := os.getenv("NEPTUNE_API_TOKEN")) is not None:
-        neptune_api_token.set(value)
-
-    if (value := os.getenv("NEPTUNE_PROJECT")) is not None:
-        neptune_project.set(value)
+    env_context = Context()
+    set_context(env_context)
 
 
-class Context:
-    project = None
-    api_token = None
+def set_context(context: Context) -> Context:
+    context = sanitize_context_falling_back_to_env(context)
+    internal_set_context(context)
 
-    def __init__(self, *, project: Optional[str] = None, api_token: Optional[str] = None):
-        self.project = project
-        self.api_token = api_token
-
-    def get_project(self):
-        return self.project
-
-    def get_api_token(self):
-        return self.api_token
-
-
-def get_project(ctx: Optional[Context] = None):
-    if ctx and (project := ctx.get_project()):
-        return project
-    return neptune_project.get()
+    return context
 
 
 def set_project(project: str):
-    return neptune_project.set(project)
+    return set_context(Context(project=project))
 
 
-def _reset_project(token):
-    neptune_project.reset(token)
-
-
-def get_api_token(ctx: Optional[Context] = None):
-    if ctx and (api_token := ctx.get_api_token()):
-        return api_token
-    return neptune_api_token.get()
-
-
-def _set_api_token(api_token: str):
-    return neptune_api_token.set(api_token)
-
-
-def _reset_api_token(token):
-    neptune_api_token.reset(token)
+def set_api_token(api_token: str):
+    return set_context(Context(api_token=api_token))
 
 
 init_from_env()

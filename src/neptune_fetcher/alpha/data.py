@@ -12,18 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-__all__ = [
-    "Context",
-    "set_context",
-    "set_project",
-    "set_api_token",
-]
+from dataclasses import dataclass
+from typing import Optional
 
-from .context import (
-    Context,
-    set_api_token,
-    set_context,
-    set_project,
-)
+NEPTUNE_API_TOKEN = "NEPTUNE_API_TOKEN"
+NEPTUNE_PROJECT = "NEPTUNE_PROJECT"
+
+
+@dataclass
+class Context:
+    project: Optional[str] = None
+    api_token: Optional[str] = None
