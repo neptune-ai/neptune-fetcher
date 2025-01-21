@@ -15,27 +15,28 @@
 #
 
 import neptune_fetcher.alpha as npt
+import neptune_fetcher.alpha.internal.context as internal_context
 
 
 def test_context_changing():
     ctx = npt.Context(project="test_project")
-    assert npt.get_project(ctx) == "test_project"
+    assert internal_context.get_context(ctx).project == "test_project"
 
     ctx = npt.Context(api_token="test_token")
-    assert npt.get_api_token(ctx) == "test_token"
+    assert internal_context.get_context(ctx).api_token == "test_token"
 
     ctx = npt.Context(project="test_project2", api_token="test_token2")
-    assert npt.get_project(ctx) == "test_project2"
-    assert npt.get_api_token(ctx) == "test_token2"
+    assert internal_context.get_context(ctx).project == "test_project2"
+    assert internal_context.get_context(ctx).api_token == "test_token2"
 
 
 def test_context_itself():
     ctx = npt.Context(project="test_project")
-    assert ctx.get_project() == "test_project"
+    assert ctx.project == "test_project"
 
     ctx = npt.Context(api_token="test_token")
-    assert ctx.get_api_token() == "test_token"
+    assert ctx.api_token == "test_token"
 
     ctx = npt.Context(project="test_project2", api_token="test_token2")
-    assert ctx.get_project() == "test_project2"
-    assert ctx.get_api_token() == "test_token2"
+    assert ctx.project == "test_project2"
+    assert ctx.api_token == "test_token2"
