@@ -51,6 +51,17 @@ def run_with_attributes(client, project):
     return run
 
 
+def test_find_experiments_no_filter(client, project, run_with_attributes):
+    # given
+    project_id = project.project_identifier
+
+    #  when
+    experiment_names = find_experiments(client, project_id, experiment_filter=None)
+
+    # then
+    assert len(experiment_names) > 0
+
+
 def test_find_experiments_by_name(client, project, run_with_attributes):
     # given
     project_id = project.project_identifier

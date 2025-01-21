@@ -87,6 +87,9 @@ class Attribute:
 
         return query
 
+    def __str__(self):
+        return self.to_query()
+
 
 class ExperimentFilter(ABC):
     @staticmethod
@@ -186,6 +189,9 @@ class ExperimentFilter(ABC):
     def to_query(self) -> str:
         ...
 
+    def __str__(self):
+        return self.to_query()
+
 
 @dataclass
 class _AttributeValuePredicate(ExperimentFilter):
@@ -222,7 +228,7 @@ class _AssociativeOperator(ExperimentFilter):
     filters: Iterable[ExperimentFilter]
 
     def to_query(self) -> str:
-        filter_queries = [f"({child.to_query()})" for child in self.filters]
+        filter_queries = [f"({child})" for child in self.filters]
         return f" {self.operator} ".join(filter_queries)
 
 
@@ -232,4 +238,4 @@ class _PrefixOperator(ExperimentFilter):
     filter_: ExperimentFilter
 
     def to_query(self) -> str:
-        return f"{self.operator} ({self.filter_.to_query()})"
+        return f"{self.operator} ({self.filter_})"
