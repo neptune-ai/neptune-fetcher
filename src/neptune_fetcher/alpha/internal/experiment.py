@@ -40,11 +40,7 @@ def find_experiments(
         "experimentLeader": True,
     }
     if experiment_filter is not None:
-        if isinstance(experiment_filter, ExperimentFilter):
-            experiment_filter_str = experiment_filter.to_query()
-        else:
-            experiment_filter_str = experiment_filter
-        params["query"] = {"query": experiment_filter_str}
+        params["query"] = {"query": str(experiment_filter)}
 
     result = []
     offset = 0
