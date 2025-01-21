@@ -18,9 +18,11 @@
 __all__ = ["Context", "set_context", "set_project", "set_api_token"]
 
 
-from .data import Context
-from .internal.context import sanitize_context_falling_back_to_env
-from .internal.context import set_context as internal_set_context
+from .context_data import Context
+from .internal.context import (
+    sanitize_context_falling_back_to_env,
+    set_global_context,
+)
 
 
 def init_from_env():
@@ -30,7 +32,7 @@ def init_from_env():
 
 def set_context(context: Context) -> Context:
     context = sanitize_context_falling_back_to_env(context)
-    internal_set_context(context)
+    set_global_context(context)
 
     return context
 

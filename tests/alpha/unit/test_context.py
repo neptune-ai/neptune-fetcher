@@ -20,14 +20,14 @@ import neptune_fetcher.alpha.internal.context as internal_context
 
 def test_context_changing():
     ctx = npt.Context(project="test_project")
-    assert internal_context.get_context(ctx).project == "test_project"
+    assert internal_context.get_local_or_global_context(ctx).project == "test_project"
 
     ctx = npt.Context(api_token="test_token")
-    assert internal_context.get_context(ctx).api_token == "test_token"
+    assert internal_context.get_local_or_global_context(ctx).api_token == "test_token"
 
     ctx = npt.Context(project="test_project2", api_token="test_token2")
-    assert internal_context.get_context(ctx).project == "test_project2"
-    assert internal_context.get_context(ctx).api_token == "test_token2"
+    assert internal_context.get_local_or_global_context(ctx).project == "test_project2"
+    assert internal_context.get_local_or_global_context(ctx).api_token == "test_token2"
 
 
 def test_context_itself():

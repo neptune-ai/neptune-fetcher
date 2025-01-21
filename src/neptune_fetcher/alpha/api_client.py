@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-__all__ = ["BuildAuthenticatedClient"]
+__all__ = ["AuthenticatedClientBuilder"]
 
 import logging
 from typing import (
@@ -31,18 +31,18 @@ from ..utilities.net import (
     get_config_and_token_urls,
 )
 from .context import Context
-from .internal.context import get_context as internal_get_context
+from .internal.context import get_local_or_global_context
 
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-class BuildAuthenticatedClient:
+class AuthenticatedClientBuilder:
     cache = {}
 
     @classmethod
     def build(cls, context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
-        api_token = internal_get_context(context).api_token
+        api_token = get_local_or_global_context(context).api_token
         hash_key = hash((api_token, proxies))
 
         if hash_key in cls.cache:
