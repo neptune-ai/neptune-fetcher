@@ -40,3 +40,8 @@ def test_context_itself():
     ctx = npt.Context(project="test_project2", api_token="test_token2")
     assert ctx.project == "test_project2"
     assert ctx.api_token == "test_token2"
+
+
+def test_global_context():
+    ctx = internal_context.get_local_or_global_context()
+    assert isinstance(ctx, npt.Context)
