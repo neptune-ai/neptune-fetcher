@@ -36,9 +36,7 @@ _ATTRIBUTE_TYPE_MAP = {
 
 
 def _map_attribute_type(_type: str) -> str:
-    if _type in _ATTRIBUTE_TYPE_MAP:
-        return _ATTRIBUTE_TYPE_MAP[_type]
-    return _type
+    return _ATTRIBUTE_TYPE_MAP.get(_type, _type)
 
 
 class BaseAttributeFilter(ABC):
