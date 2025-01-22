@@ -25,7 +25,7 @@ from .internal.context import (
 )
 
 
-def init_from_env():
+def init_from_env() -> None:
     env_context = Context()
     set_context(env_context)
 
@@ -37,11 +37,11 @@ def set_context(context: Context) -> Context:
     return context
 
 
-def set_project(project: str):
+def set_project(project: str) -> Context:
     return set_context(Context(project=project))
 
 
-def set_api_token(api_token: str):
+def set_api_token(api_token: str) -> Context:
     return set_context(Context(api_token=api_token))
 
 

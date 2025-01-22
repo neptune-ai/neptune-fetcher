@@ -38,7 +38,7 @@ logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 class AuthenticatedClientBuilder:
-    cache = {}
+    cache: dict[int, AuthenticatedClient] = {}
 
     @classmethod
     def build(cls, context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
@@ -59,5 +59,5 @@ class AuthenticatedClientBuilder:
         return client
 
     @classmethod
-    def clear_cache(cls):
+    def clear_cache(cls) -> None:
         cls.cache.clear()
