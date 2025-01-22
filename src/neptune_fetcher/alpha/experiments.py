@@ -12,20 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-__all__ = [
-    "Context",
-    "list_experiments",
-    "set_api_token",
-    "set_context",
-    "set_project",
-]
-
-from .context import (
-    Context,
-    set_api_token,
-    set_context,
-    set_project,
+from typing import (
+    List,
+    Optional,
+    Union,
 )
-from .experiments import list_experiments
+
+from neptune_fetcher.alpha import Context
+from neptune_fetcher.alpha.filter import Filter
+
+
+def list_experiments(
+    experiments: Optional[Union[str, Filter]] = None,
+    context: Optional[Context] = None,
+) -> List[str]:
+    """
+     Returns a list of experiment names in a project.
+
+    `experiments` - a filter specifying which experiments to include
+         - a regex that experiment name must match, or
+         - a Filter object
+    """
+    ...
