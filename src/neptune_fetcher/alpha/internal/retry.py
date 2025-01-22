@@ -27,7 +27,12 @@ from neptune_fetcher.util import NeptuneException
 
 
 def backoff_retry(
-    func: Callable, *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
+    func: Callable,
+    *args: Any,
+    max_tries: int = 5,
+    backoff_factor: float = 0.5,
+    max_backoff: float = 30.0,
+    **kwargs: Any,
 ) -> Response[Any]:
     """
     Retries a function with exponential backoff. The function will be called at most `max_tries` times.

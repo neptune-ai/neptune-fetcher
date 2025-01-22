@@ -19,6 +19,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
 )
 from typing import (
+    Any,
     Callable,
     Iterable,
     Optional,
@@ -77,6 +78,8 @@ def find_attribute_definitions(
         else:
             results = executor.map(go, attribute_filter.filters)
         return list(set().union(*results))
+    else:
+        raise ValueError(f"Unexpected filter type: {type(attribute_filter)}")
 
 
 def _create_executor() -> Executor:
@@ -91,10 +94,10 @@ def _find_attribute_definitions_single(
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> list[str]:
-    params = {
+    params: dict[str, Any] = {
         "projectIdentifiers": list(project_ids),
         "experimentIdsFilter": list(experiment_ids),
-        "attributeNameFilter": {},
+        "attributeNameFilter": dict(),
         "nextPage": {"limit": batch_size},
     }
 
@@ -117,7 +120,7 @@ def _find_attribute_definitions_single(
 
     # note: attribute_filter.aggregations is intentionally ignored
 
-    result = []
+    result: list[str] = []
     next_page_token = None
     while True:
         if next_page_token is not None:
@@ -153,12 +156,12 @@ def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
         return [f"^({joined})$"]
 
 
-def _variants_to_list(param: Union[str, list[str], None]) -> Optional[list[str]]:
+def _variants_to_list(param: Union[str, Iterable[str], None]) -> Optional[list[str]]:
     if param is None:
         return None
     if isinstance(param, str):
         return [param]
-    return param
+    return list(param)
 
 
 def _map(value: Optional[list[str]], func: Callable[[str], str]) -> Optional[list[str]]:
