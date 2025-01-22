@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import (
+    Any,
+    Union,
+)
 
 from neptune_api.client import AuthenticatedClient
 from neptune_retrieval_api.api.default import search_leaderboard_entries_proto
@@ -34,7 +37,7 @@ def find_experiments(
     experiment_filter: Union[str, ExperimentFilter, None] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
 ) -> list[str]:
-    params = {
+    params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}],
         "pagination": {"limit": batch_size},
         "experimentLeader": True,
@@ -42,7 +45,7 @@ def find_experiments(
     if experiment_filter is not None:
         params["query"] = {"query": str(experiment_filter)}
 
-    result = []
+    result: list[str] = []
     offset = 0
     while True:
         params["pagination"]["offset"] = offset
