@@ -9,7 +9,7 @@ style = "semver"
 pattern = "default-unprefixed"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 
 # Base neptune package
 neptune-api = "^0.10.0"
