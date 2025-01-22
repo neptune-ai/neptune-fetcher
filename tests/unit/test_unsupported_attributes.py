@@ -45,8 +45,8 @@ from neptune_fetcher.util import NeptuneWarning
 #    unless the test explicitly provides a different list of unsupported attributes (or none at all).
 # 2) The tests know which attributes to expect, based on make_proto_attributes_dto() and the default unsupported
 #    attributes
-# 3) We treat all warnings as errors in this test suite (see warnings_are_errors()), unless pytest.warns is used
-#    explicitly.
+# 3) We treat all warnings as errors in this test suite (see warnings_are_errors()), unless pytest.warns with
+#    warnings.simplefilter('once') is used explicitly.
 #    Because of this tests like test_list_runs() might seem like they don't do anything special, but they do make
 #    sure than no unnecessary warnings are issued.
 
@@ -190,9 +190,18 @@ def _assert_warning(record, *attr_types):
         # Default to the two unsupported types used in TestApiClient
         attr_types = [type_ for _, type_ in DEFAULT_UNSUPPORTED_ATTRS]
 
-    for rec, attr_type in zip(record, attr_types):
-        assert f"of type `{attr_type}`" in rec.message.args[0]
-        assert "not supported" in rec.message.args[0]
+    attr_types = set(attr_types)
+    # Assume warnings.simplefilter('once') is used
+    assert len(record) == len(attr_types)
+
+    # Make sure there is a warning for each expected type
+    for attr_type in attr_types:
+        for rec in record:
+            msg = rec.message.args[0]
+            if f"of type `{attr_type}`" in msg and "not supported" in msg:
+                break
+        else:
+            assert False, f"Expected a warning for type `{attr_type}`"
 
 
 # ReadOnlyRun tests
@@ -214,6 +223,7 @@ def test_run_no_warning_when_attribute_type_is_known(project, get_attributes_wit
 
 def test_field_names(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         field_names = set(run.field_names)
 
@@ -234,6 +244,7 @@ def test_field_names(project):
 
 def test_run_eager_load_attributes(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         assert run["badAttr"].fetch() is None
         assert run["badAttr"].fetch_last() is None
@@ -250,6 +261,7 @@ def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_
     get_attributes_with_paths_filter_proto.return_value = response(make_proto_attributes_dto(DEFAULT_UNSUPPORTED_ATTRS))
 
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
         assert run["badAttr"].fetch() is None
         assert run["badAttr"].fetch_last() is None
@@ -276,6 +288,7 @@ def test_run_fetch_missing_attribute(project, get_attributes_with_paths_filter_p
     get_attributes_with_paths_filter_proto.return_value = response(make_proto_attributes_dto(DEFAULT_UNSUPPORTED_ATTRS))
 
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         assert run["badAttr"].fetch() is None
         assert run["anotherAttr"].fetch() is None
 
@@ -285,6 +298,7 @@ def test_run_fetch_missing_attribute(project, get_attributes_with_paths_filter_p
 def test_prefetch(project, get_attributes_with_paths_filter_proto):
     get_attributes_with_paths_filter_proto.return_value = response(make_proto_attributes_dto())
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch(["badAttr", "anotherAttr", "sys/id"])
         assert run["badAttr"].fetch() is None
@@ -300,6 +314,7 @@ def test_prefetch(project, get_attributes_with_paths_filter_proto):
 def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto):
     get_attributes_with_paths_filter_proto.return_value = response(make_proto_attributes_dto())
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch_series_values(["badAttr", "anotherAttr", "metric"])
         assert run["badAttr"].fetch() is None
@@ -330,6 +345,7 @@ def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto)
 
 def test_fetch_runs_df(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         df = project.fetch_runs_df(columns_regex=".*")
         assert df.shape[0] == 1, "Only one run should be returned"
         row = df.iloc[0]
@@ -351,6 +367,7 @@ def test_fetch_runs_df(project):
 
 def test_fetch_experiments_df(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         df = project.fetch_experiments_df(columns_regex=".*")
         assert df.shape[0] == 1, "Only one experiment should be returned"
         row = df.iloc[0]
@@ -372,6 +389,7 @@ def test_fetch_experiments_df(project):
 
 def test_fetch_runs(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         df = project.fetch_runs()
         assert df.shape[0] == 1, "Only one run should be returned"
     _assert_warning(record)
@@ -384,6 +402,7 @@ def test_fetch_runs(project):
 
 def test_fetch_experiments(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         df = project.fetch_experiments()
         assert df.shape[0] == 1, "Only one run should be returned"
     _assert_warning(record)
@@ -396,6 +415,7 @@ def test_fetch_experiments(project):
 
 def test_fetch_read_only_runs(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_runs(custom_ids=[RUN_ID]))) == 1
 
     _assert_warning(record)
@@ -407,6 +427,7 @@ def test_fetch_read_only_runs(project):
 
 def test_fetch_read_only_experiments(project):
     with pytest.warns(NeptuneWarning) as record:
+        warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_experiments(names=["does-not-matter"]))) == 1
 
     _assert_warning(record)
