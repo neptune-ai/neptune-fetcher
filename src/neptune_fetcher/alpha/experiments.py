@@ -20,11 +20,14 @@ from typing import (
 )
 
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.filter import Filter
+from neptune_fetcher.alpha.api_client import AuthenticatedClientBuilder
+from neptune_fetcher.alpha.filter import ExperimentFilter
+from neptune_fetcher.alpha.internal.context import get_local_or_global_context
+from neptune_fetcher.alpha.internal.experiment import find_experiments
 
 
 def list_experiments(
-    experiments: Optional[Union[str, Filter]] = None,
+    experiments: Optional[Union[str, ExperimentFilter]] = None,
     context: Optional[Context] = None,
 ) -> List[str]:
     """
@@ -33,5 +36,10 @@ def list_experiments(
     `experiments` - a filter specifying which experiments to include
          - a regex that experiment name must match, or
          - a Filter object
+    `context` - a Context object to be used; primarily useful for switching projects
     """
-    ...
+    client = AuthenticatedClientBuilder.build(context=context)
+    project = get_local_or_global_context(context).project
+    assert project is not None, "Project must be set in the context"
+
+    return find_experiments(client, project, experiment_filter=experiments)
