@@ -240,7 +240,3 @@ class _PrefixOperator(ExperimentFilter):
 
     def to_query(self) -> str:
         return f"{self.operator} ({self.filter_})"
-
-
-class Filter:
-    ...
