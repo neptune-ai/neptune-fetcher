@@ -90,13 +90,13 @@ def test__fetch_experiments_table(sort_direction):
     [
         r"test/int-value|test/float-value|metrics/step",
         AttributeFilter.any(
-            Attribute("test/int-value", type="int"),
-            Attribute("test/float-value", type="float"),
-            Attribute("metrics/step", type="float_series"),
+            AttributeFilter("test/int-value", type="int"),
+            AttributeFilter("test/float-value", type="float"),
+            AttributeFilter("metrics/step", type="float_series"),
         ),
-        Attribute("test/int-value", type="int")
-        | Attribute("test/float-value", type="float")
-        | Attribute("metrics/step", type="float_series"),
+        AttributeFilter("test/int-value", type="int")
+        | AttributeFilter("test/float-value", type="float")
+        | AttributeFilter("metrics/step", type="float_series"),
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
