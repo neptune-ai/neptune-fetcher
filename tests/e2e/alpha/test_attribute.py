@@ -7,9 +7,15 @@ from datetime import (
     timezone,
 )
 
+import pytest
 from conftest import unique_path
 
-from neptune_fetcher.alpha.filter import AttributeFilter
+from neptune_fetcher.alpha.attributes import list_attributes
+from neptune_fetcher.alpha.filter import (
+    Attribute,
+    AttributeFilter,
+    ExperimentFilter,
+)
 from neptune_fetcher.alpha.internal.attribute import find_attribute_definitions
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -247,3 +253,34 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
         f"{common_path}/int_value_b",
         f"{common_path}/float_value_b",
     }
+
+
+@pytest.mark.parametrize(
+    "attributes, experiments, expected",
+    [
+        (None, None, []),
+        (None, ".*", []),
+        (".*", None, []),
+        (r"exp.*", None, []),
+        (None, r"metrics.*|config/.*", []),
+        (r"exp.*", r"config.*", []),
+    ],
+)
+def test_list_attributes_regex(attributes, experiments, expected):
+    assert list_attributes(attributes, experiments) == expected
+
+
+def test_list_attributes_functional():
+    accuracy_max = Attribute("metrics/accuracy", "max")
+
+    experiments_filter = (
+        ExperimentFilter.matches_all("sys/name", r"exp.*")
+        & ExperimentFilter.eq("config/optimizer", "adam")
+        & ExperimentFilter.gt(accuracy_max, -1.0)
+        & ExperimentFilter.lt(accuracy_max, 2.0)
+    )
+
+    assert list_attributes(experiments=experiments_filter, attributes=r"metrics/.*loss") == [
+        "metrics/loss",
+        "metrics/val_loss",
+    ]
