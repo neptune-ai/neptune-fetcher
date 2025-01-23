@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timezone,
 )
+from typing import Generator
 
 import pytest
 from neptune_scale import Run
@@ -12,6 +13,7 @@ from neptune_fetcher.alpha.filter import (
     Attribute,
     ExperimentFilter,
 )
+from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.experiment import find_experiments
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -56,7 +58,7 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     project_id = project.project_identifier
 
     #  when
-    experiment_names = find_experiments(client, project_id, experiment_filter=None)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter=None))
 
     # then
     assert len(experiment_names) > 0
@@ -68,7 +70,7 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
 
     #  when
     experiment_filter = f'`sys/name`:string = "{EXPERIMENT_NAME}"'
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
@@ -81,7 +83,7 @@ def test_find_experiments_by_name_not_found(client, project):
 
     #  when
     experiment_filter = f'`sys/name`:string = "{experiment_name}"'
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == []
@@ -93,14 +95,14 @@ def test_find_experiments_by_name_filter(client, project, run_with_attributes):
 
     #  when
     experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
     experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
@@ -163,7 +165,7 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     project_id = project.project_identifier
 
     #  when
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
@@ -284,7 +286,7 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
     project_id = project.project_identifier
 
     #  when
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
@@ -438,10 +440,14 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
     project_id = project.project_identifier
 
     #  when
-    experiment_names = find_experiments(client, project_id, experiment_filter)
+    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
         assert experiment_names == [EXPERIMENT_NAME]
     else:
         assert experiment_names == []
+
+
+def _flatten_pages(pages: Generator[util.Page[str], None, None]) -> list[str]:
+    return [item for page in pages for item in page.items]

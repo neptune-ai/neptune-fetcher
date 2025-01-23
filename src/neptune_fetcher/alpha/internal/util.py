@@ -16,14 +16,24 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
+    Generic,
+    TypeVar,
 )
 
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.util import NeptuneException
+
+T = TypeVar("T")
+
+
+@dataclass
+class Page(Generic[T]):
+    items: list[T]
 
 
 def backoff_retry(

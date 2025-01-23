@@ -247,3 +247,18 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
         f"{common_path}/int_value_b",
         f"{common_path}/float_value_b",
     }
+
+    #  when
+    attribute_filter = AttributeFilter.any(
+        attribute_filter_1, AttributeFilter.any(attribute_filter_2, attribute_filter_3)
+    )
+    attribute_names = find_attribute_definitions(
+        client, [project_id], [experiment_id], attribute_filter=attribute_filter
+    )
+
+    # then
+    assert set(attribute_names) == {
+        f"{common_path}/int_value_a",
+        f"{common_path}/int_value_b",
+        f"{common_path}/float_value_b",
+    }

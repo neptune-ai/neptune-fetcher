@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools as it
 import re
 from concurrent.futures import (
     Executor,
@@ -21,6 +22,7 @@ from concurrent.futures import (
 from typing import (
     Any,
     Callable,
+    Generator,
     Iterable,
     Optional,
     Union,
@@ -36,7 +38,7 @@ from neptune_retrieval_api.models import (
 from neptune_fetcher.alpha import filter
 from neptune_fetcher.alpha.internal import (
     env,
-    retry,
+    util,
 )
 
 __ALL__ = ("find_attribute_definitions",)
@@ -53,30 +55,34 @@ def find_attribute_definitions(
     executor: Optional[Executor] = None,
 ) -> list[str]:
     if isinstance(attribute_filter, filter.AttributeFilter):
-        return _find_attribute_definitions_single(
-            client=client,
-            project_ids=project_ids,
-            experiment_ids=experiment_ids,
-            attribute_filter=attribute_filter,
-            batch_size=batch_size,
-        )
+        return [
+            item
+            for page in _find_attribute_definitions_single(
+                client=client,
+                project_ids=project_ids,
+                experiment_ids=experiment_ids,
+                attribute_filter=attribute_filter,
+                batch_size=batch_size,
+            )
+            for item in page.items
+        ]
     elif isinstance(attribute_filter, filter._AttributeFilterAlternative):
 
-        def go(child: filter.BaseAttributeFilter) -> list[str]:
+        def go(child: filter.BaseAttributeFilter, _executor: Executor) -> list[str]:
             return find_attribute_definitions(
                 client=client,
                 project_ids=project_ids,
                 experiment_ids=experiment_ids,
                 attribute_filter=child,
                 batch_size=batch_size,
-                executor=executor,
+                executor=_executor,
             )
 
         if executor is None:
             with _create_executor() as executor:
-                results = executor.map(go, attribute_filter.filters)
+                results = executor.map(go, attribute_filter.filters, it.repeat(executor))
         else:
-            results = executor.map(go, attribute_filter.filters)
+            results = executor.map(go, attribute_filter.filters, it.repeat(executor))
         return list(set().union(*results))
     else:
         raise ValueError(f"Unexpected filter type: {type(attribute_filter)}")
@@ -93,7 +99,7 @@ def _find_attribute_definitions_single(
     experiment_ids: Iterable[str],
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
-) -> list[str]:
+) -> Generator[util.Page[str], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_ids),
         "experimentIdsFilter": list(experiment_ids),
@@ -120,7 +126,6 @@ def _find_attribute_definitions_single(
 
     # note: attribute_filter.aggregations is intentionally ignored
 
-    result: list[str] = []
     next_page_token = None
     while True:
         if next_page_token is not None:
@@ -128,19 +133,18 @@ def _find_attribute_definitions_single(
 
         body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-        response = retry.backoff_retry(
-            lambda: query_attribute_definitions_within_project.sync_detailed(client=client, body=body)
+        response = util.backoff_retry(
+            query_attribute_definitions_within_project.sync_detailed, client=client, body=body
         )
 
         data: QueryAttributeDefinitionsResultDTO = response.parsed
 
-        result.extend(entry.name for entry in data.entries)
+        items = [entry.name for entry in data.entries]
+        yield util.Page(items=items)
 
         next_page_token = data.next_page.next_page_token
         if not next_page_token:
             break
-
-    return result
 
 
 def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
