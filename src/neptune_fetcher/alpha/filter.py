@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import abc
 from abc import ABC
 from dataclasses import (
     dataclass,
@@ -52,7 +52,9 @@ class AttributeFilter(BaseAttributeFilter):
     name_eq: Union[str, list[str], None] = None
     type_in: Optional[
         list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]
-    ] = field(default_factory=lambda: ["float", "int", "string", "bool", "datetime", "float_series", "string_set"])
+    ] = field(
+        default_factory=lambda: ["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
+    )  # type: ignore
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
     aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
@@ -85,7 +87,7 @@ class Attribute:
 
         return query
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_query()
 
 
@@ -184,10 +186,11 @@ class ExperimentFilter(ABC):
             filters = [ExperimentFilter.name_eq(name) for name in names]
             return ExperimentFilter.any(*filters)
 
+    @abc.abstractmethod
     def to_query(self) -> str:
         ...
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_query()
 
 
@@ -200,12 +203,10 @@ class _AttributeValuePredicate(ExperimentFilter):
     def to_query(self) -> str:
         return f"{self._left_query()} {self.operator} {self._right_query()}"
 
-    def _left_query(self):
-        if isinstance(self.attribute, Attribute):
-            return self.attribute.to_query()
-        return self.attribute
+    def _left_query(self) -> str:
+        return str(self.attribute)
 
-    def _right_query(self):
+    def _right_query(self) -> str:
         value = str(self.value)
         value = value.replace("\\", r"\\").replace('"', r"\"")
         return f'"{value}"'
@@ -219,7 +220,7 @@ class _AttributePredicate(ExperimentFilter):
     attribute: Union[str, Attribute]
 
     def to_query(self) -> str:
-        return f"{self.attribute.to_query()} {self.postfix_operator}"
+        return f"{self.attribute} {self.postfix_operator}"
 
 
 @dataclass

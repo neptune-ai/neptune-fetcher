@@ -23,14 +23,14 @@ from ..context_data import (
     Context,
 )
 
-_neptune_context = contextvars.ContextVar("neptune_context")
+_neptune_context: contextvars.ContextVar = contextvars.ContextVar("neptune_context")
 
 
 def get_local_or_global_context(ctx: Optional[Context] = None) -> Context:
     return sanitize_context_falling_back_to_env(ctx or _neptune_context.get())
 
 
-def set_global_context(ctx: Context):
+def set_global_context(ctx: Context) -> None:
     _neptune_context.set(ctx)
 
 
