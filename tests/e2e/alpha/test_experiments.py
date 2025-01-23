@@ -90,13 +90,13 @@ def test__fetch_experiments_table(sort_direction):
     [
         r"test/int-value|test/float-value|metrics/step",
         AttributeFilter.any(
-            AttributeFilter("test/int-value", type="int"),
-            AttributeFilter("test/float-value", type="float"),
-            AttributeFilter("metrics/step", type="float_series"),
+            AttributeFilter("test/int-value", type_in=["int"]),
+            AttributeFilter("test/float-value", type_in=["float"]),
+            AttributeFilter("metrics/step", type_in=["float_series"]),
         ),
-        AttributeFilter("test/int-value", type="int")
-        | AttributeFilter("test/float-value", type="float")
-        | AttributeFilter("metrics/step", type="float_series"),
+        AttributeFilter("test/int-value", type_in=["int"])
+        | AttributeFilter("test/float-value", type_in=["float"])
+        | AttributeFilter("metrics/step", type_in=["float_series"]),
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -127,7 +127,7 @@ def test__fetch_experiments_table_with_attributes_filter(attr_filter, experiment
     "attr_filter",
     [
         AttributeFilter(
-            "matrics/step", type_in=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
+            "metrics/step", type_in=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
         )
         | AttributeFilter(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
         | AttributeFilter(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
@@ -136,7 +136,7 @@ def test__fetch_experiments_table_with_attributes_filter(attr_filter, experiment
 def test__fetch_experiments_table_with_attributes_filter_for_metrics(attr_filter, type_suffix_in_column_names):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
-        experiments=ExperimentFilter.name_in(EXPERIMENT_NAMES[0:3]),
+        experiments=ExperimentFilter.name_in(*EXPERIMENT_NAMES[0:3]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
     )
@@ -164,7 +164,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(attr_filter
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter.name_matches_all(f"metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
+        AttributeFilter(name_matches_all=f"metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
         AttributeFilter(
             name_matches_all=f"metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
             name_matches_none=".*[5-9].*",
@@ -175,7 +175,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(attr_filter
 def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(attr_filter, type_suffix_in_column_names):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
-        experiments=ExperimentFilter.name_in(EXPERIMENT_NAMES[0:3]),
+        experiments=ExperimentFilter.name_in(*EXPERIMENT_NAMES[0:3]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
     )
