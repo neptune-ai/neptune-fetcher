@@ -196,7 +196,7 @@ class ExperimentFilter(ABC):
 
 @dataclass
 class _AttributeValuePredicate(ExperimentFilter):
-    operator: str
+    operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
     attribute: Union[str, Attribute]
     value: Union[int, float, str, datetime]
 
@@ -214,9 +214,7 @@ class _AttributeValuePredicate(ExperimentFilter):
 
 @dataclass
 class _AttributePredicate(ExperimentFilter):
-    postfix_operator: Literal[
-        "==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS", "EXISTS"
-    ]
+    postfix_operator: Literal["EXISTS"]
     attribute: Union[str, Attribute]
 
     def to_query(self) -> str:
