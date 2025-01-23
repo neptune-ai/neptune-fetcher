@@ -81,9 +81,11 @@ def find_attribute_definitions(
         if executor is None:
             with _create_executor() as executor:
                 results = executor.map(go, attribute_filter.filters, it.repeat(executor))
+                names = list(set().union(*results))
         else:
             results = executor.map(go, attribute_filter.filters, it.repeat(executor))
-        return list(set().union(*results))
+            names = list(set().union(*results))
+        return names
     else:
         raise ValueError(f"Unexpected filter type: {type(attribute_filter)}")
 
