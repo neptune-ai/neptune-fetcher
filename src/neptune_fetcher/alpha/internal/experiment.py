@@ -15,6 +15,7 @@
 
 from typing import (
     Any,
+    Generator,
     Union,
 )
 
@@ -26,7 +27,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 
 from neptune_fetcher.alpha.filter import ExperimentFilter
-from neptune_fetcher.alpha.internal.retry import backoff_retry
+from neptune_fetcher.alpha.internal import util
 
 _DEFAULT_BATCH_SIZE = 10_000
 
@@ -36,7 +37,7 @@ def find_experiments(
     project_id: str,
     experiment_filter: Union[str, ExperimentFilter, None] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
-) -> list[str]:
+) -> Generator[util.Page[str], None, None]:
     params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}],
         "pagination": {"limit": batch_size},
@@ -45,27 +46,27 @@ def find_experiments(
     if experiment_filter is not None:
         params["query"] = {"query": str(experiment_filter)}
 
-    result: list[str] = []
     offset = 0
     while True:
         params["pagination"]["offset"] = offset
 
         body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-        response = backoff_retry(
-            lambda: search_leaderboard_entries_proto.sync_detailed(
-                client=client, project_identifier=project_id, type=["run"], body=body
-            )
+        response = util.backoff_retry(
+            search_leaderboard_entries_proto.sync_detailed,
+            client=client,
+            project_identifier=project_id,
+            type=["run"],
+            body=body,
         )
 
         data: ProtoLeaderboardEntriesSearchResultDTO = ProtoLeaderboardEntriesSearchResultDTO.FromString(
             response.content
         )
 
-        result.extend(entry.attributes[0].string_properties.value for entry in data.entries)
+        items = [entry.attributes[0].string_properties.value for entry in data.entries]
+        yield util.Page(items=items)
 
         if len(data.entries) < batch_size:
             break
         offset += batch_size
-
-    return result
