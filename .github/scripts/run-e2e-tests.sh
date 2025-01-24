@@ -20,6 +20,7 @@ EXIT_CODE=-1
 
 UTF8_CHARS="你好()*+,-.;<=>@[]"
 PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM-$UTF8_CHARS"
+PROJECT_BARE="${PROJECT}-bare"
 
 cleanup() {
   # Don't fail tests if cleanup fails
@@ -29,6 +30,7 @@ cleanup() {
 
   echo "Deleting project $NEPTUNE_WORKSPACE/$PROJECT"
   python .github/scripts/rest.py delete_project "$NEPTUNE_WORKSPACE" "$PROJECT"
+  python .github/scripts/rest.py delete_project "$NEPTUNE_WORKSPACE" "$PROJECT_BARE"
 
   echo "Exiting with code $EXIT_CODE"
   exit $EXIT_CODE
@@ -39,9 +41,11 @@ trap cleanup SIGINT SIGTERM EXIT ERR
 
 run_tests() {
   export NEPTUNE_PROJECT="$NEPTUNE_WORKSPACE/$PROJECT"
+  export NEPTUNE_PROJECT_BARE="$NEPTUNE_WORKSPACE/$PROJECT_BARE"
 
   echo "Creating project $NEPTUNE_PROJECT"
   python .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
+  python .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT_BARE"
 
   echo "Preparing test data"
   python tests/populate_projects.py
