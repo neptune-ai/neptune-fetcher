@@ -44,6 +44,8 @@ from typing import (
     Union,
 )
 
+from neptune_fetcher.util import warn_unsupported_value_type
+
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -61,6 +63,13 @@ class FieldType(Enum):
     FLOAT_SERIES = "floatSeries"
     STRING_SET = "stringSet"
     OBJECT_STATE = "experimentState"
+
+    UNSUPPORTED = "__unsupported_attribute_type__"
+
+    @classmethod
+    def _missing_(cls, value):
+        warn_unsupported_value_type(value)
+        return cls.UNSUPPORTED
 
 
 @dataclass
@@ -146,6 +155,11 @@ class ObjectState(Field[str]):
 
 class StringSet(Field[Set[str]]):
     ...
+
+
+class Unsupported(Field[None]):
+    def fetch(self) -> None:
+        return None
 
 
 def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
