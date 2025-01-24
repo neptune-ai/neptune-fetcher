@@ -4,6 +4,7 @@ mock
 pre-commit
 pytest
 pytest-mock
+pytest-retry
 pytest-timeout
 pytest-xdist
 icecream
