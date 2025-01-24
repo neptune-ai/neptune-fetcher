@@ -1,5 +1,6 @@
 import uuid
 import warnings
+from contextlib import contextmanager
 from typing import (
     Any,
     Iterable,
@@ -42,13 +43,17 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 impor
 )
 from pytest import fixture
 
+import neptune_fetcher
 from neptune_fetcher import (
     ReadOnlyProject,
     ReadOnlyRun,
 )
 from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fetchable import SUPPORTED_TYPES
-from neptune_fetcher.util import NeptuneWarning
+from neptune_fetcher.util import (
+    NeptuneWarning,
+    warn_unsupported_value_type,
+)
 
 # IMPORTANT:
 # - The mocked API calls used in the tests always add two unsupported attributes to the result by default,
@@ -264,6 +269,21 @@ def project(backend_cls):
     return ReadOnlyProject("workspace/project")
 
 
+@contextmanager
+def warns_and_forgets_types(*args, **kwargs):
+    """
+    A simple wrapper around pytest.warns, that makes sure we clear the set of warned types after the test.
+    If we didn't do that, we'd get false positives in tests that expect a warning to NOT be emitted.
+
+    See comments for util.py:_warned_types for more details.
+    """
+
+    with pytest.warns(NeptuneWarning, *args, **kwargs) as record:
+        yield record
+
+    neptune_fetcher.util._warned_types.clear()
+
+
 def _assert_warning(record, *attr_types):
     """Assert that a warning about unsupported types, for a given type, was issued exactly once."""
 
@@ -283,6 +303,33 @@ def _assert_warning(record, *attr_types):
                 break
         else:
             assert False, f"Expected a warning for type `{attr_type}`"
+
+
+def test_warn_unsupported_value_type():
+    """Should warn only once about a given type"""
+
+    with pytest.warns(NeptuneWarning) as record:
+        warn_unsupported_value_type("test")
+
+    _assert_warning(record, "test")
+
+    # No warning should be issued.
+    # This will trigger an error if a warning is issued, because of the warning_are_errors() fixture
+    warn_unsupported_value_type("test")
+
+
+def test_warn_and_forget_type():
+    with warns_and_forgets_types() as record:
+        warn_unsupported_value_type("test")
+        warn_unsupported_value_type("test")
+
+    _assert_warning(record, "test")
+
+    with warns_and_forgets_types() as record:
+        warn_unsupported_value_type("test")
+        warn_unsupported_value_type("test")
+
+    _assert_warning(record, "test")
 
 
 # ReadOnlyRun tests
@@ -308,7 +355,7 @@ def test_run_no_warning_when_attribute_type_is_known(
 
 
 def test_field_names(project, query_attribute_definitions_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         field_names = set(run.field_names)
@@ -329,7 +376,7 @@ def test_field_names(project, query_attribute_definitions_proto):
 
 
 def test_run_eager_load_attributes(project):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         assert run["badAttr"].fetch() is None
@@ -344,7 +391,7 @@ def test_run_eager_load_attributes(project):
 
 
 def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
         assert run["badAttr"].fetch() is None
@@ -376,7 +423,7 @@ def test_run_fetch_missing_attribute(
     get_attributes_with_paths_filter_proto.return_value = proto_response(make_proto_attributes_dto())
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.UNSUPPORTED_TYPES_RESPONSE
 
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         assert run["badAttr"].fetch() is None
         assert run["anotherAttr"].fetch() is None
@@ -385,7 +432,7 @@ def test_run_fetch_missing_attribute(
 
 
 def test_prefetch(project, get_attributes_with_paths_filter_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch(["badAttr", "anotherAttr", "sys/id"])
@@ -399,13 +446,8 @@ def test_prefetch(project, get_attributes_with_paths_filter_proto):
     run.prefetch(["badAttr", "anotherAttr", "sys/id"])
 
 
-@pytest.mark.xfail(
-    reason="Figure out why accessing an existing metric causes an additional 2 warnings detected by pytest"
-)
-def test_series_no_prefetch(
-    project,
-):
-    with pytest.warns(NeptuneWarning) as record:
+def test_series_no_prefetch(project):
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         assert run["badAttr"].fetch() is None
@@ -416,14 +458,13 @@ def test_series_no_prefetch(
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
 
-        # TODO: figure out why this causes _asert_warning() to fail with receiving 4 warnings instead of 2
         assert run["series"].fetch_last() == 42
 
     _assert_warning(record)
 
 
 def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto, query_attribute_definitions_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch_series_values(["badAttr", "anotherAttr", "series"])
@@ -454,7 +495,7 @@ def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto,
 
 
 def test_fetch_runs_df(project, query_attributes_within_project_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         df = project.fetch_runs_df(columns_regex=".*")
         assert df.shape[0] == 1, "Only one run should be returned"
@@ -486,7 +527,7 @@ def test_fetch_runs_df_sorting_with_bad_column(
         QueryAttributeDefinitionsResultDTO(entries=[], next_page=NextPageDTO())
     )
 
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         project.fetch_runs_df(sort_by="badAttr")
 
@@ -503,7 +544,7 @@ def test_fetch_runs_df_sorting_with_bad_column(
 
 
 def test_fetch_experiments_df(project, query_attributes_within_project_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         df = project.fetch_experiments_df(columns_regex=".*")
         assert df.shape[0] == 1, "Only one experiment should be returned"
@@ -535,7 +576,7 @@ def test_fetch_experiments_df_sorting_with_bad_column(
         QueryAttributeDefinitionsResultDTO(entries=[], next_page=NextPageDTO())
     )
 
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         project.fetch_runs_df(sort_by="badAttr")
 
@@ -552,7 +593,7 @@ def test_fetch_experiments_df_sorting_with_bad_column(
 
 
 def test_fetch_runs(project, query_attributes_within_project_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         df = project.fetch_runs()
         assert df.shape[0] == 1, "Only one run should be returned"
@@ -566,7 +607,7 @@ def test_fetch_runs(project, query_attributes_within_project_proto):
 
 
 def test_fetch_experiments(project, query_attributes_within_project_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         df = project.fetch_experiments()
         assert df.shape[0] == 1, "Only one run should be returned"
@@ -580,7 +621,7 @@ def test_fetch_experiments(project, query_attributes_within_project_proto):
 
 
 def test_fetch_read_only_runs(project, query_attribute_definitions_proto, search_leaderboard_entries_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_runs(custom_ids=[RUN_ID]))) == 1
 
@@ -594,7 +635,7 @@ def test_fetch_read_only_runs(project, query_attribute_definitions_proto, search
 
 
 def test_fetch_read_only_experiments(project, query_attribute_definitions_proto, search_leaderboard_entries_proto):
-    with pytest.warns(NeptuneWarning) as record:
+    with warns_and_forgets_types() as record:
         warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_experiments(names=["does-not-matter"]))) == 1
 

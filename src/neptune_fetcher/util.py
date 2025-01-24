@@ -60,7 +60,19 @@ def escape_nql_criterion(criterion):
     return criterion.replace("\\", r"\\").replace('"', r"\"")
 
 
+# We keep a set of types we've warned the user about to make sure we warn about a type only once.
+# This is necessary because of a bug in pandas, that causes duplicate warnings to be issued everytime after an
+# DataFrame() is created (presumably only empty DF).
+# The bug basically makes `warnings.simplefilter("once", NeptuneWarning)` not work as expected, and would flood
+# the user with warnings in some cases.
+_warned_types = set()
+
+
 def warn_unsupported_value_type(type_: str) -> None:
+    if type_ in _warned_types:
+        return
+
+    _warned_types.add(type_)
     warnings.warn(
         f"A value of type `{type_}` was returned by your query. This type is not supported by your installed version "
         "of neptune-fetcher. Values will evaluate to `None` and empty DataFrames. "
