@@ -27,23 +27,26 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 
 from neptune_fetcher.alpha.filter import ExperimentFilter
-from neptune_fetcher.alpha.internal import util
+from neptune_fetcher.alpha.internal import (
+    identifiers,
+    util,
+)
 
 _DEFAULT_BATCH_SIZE = 10_000
 
 
 @dataclass(frozen=True)
-class ExperimentInfo:
+class ExperimentSysAttrs:
     sys_name: str
-    sys_id: str
+    sys_id: identifiers.SysId
 
 
 def find_experiments(
     client: AuthenticatedClient,
-    project_identifier: str,
+    project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[ExperimentFilter] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
-) -> Generator[util.Page[ExperimentInfo], None, None]:
+) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}, {"path": "sys/id"}],
         "pagination": {"limit": batch_size},
@@ -73,7 +76,7 @@ def find_experiments(
         items = []
         for entry in data.entries:
             attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
-            item = ExperimentInfo(sys_name=attributes["sys/name"], sys_id=attributes["sys/id"])
+            item = ExperimentSysAttrs(sys_name=attributes["sys/name"], sys_id=identifiers.SysId(attributes["sys/id"]))
             items.append(item)
         yield util.Page(items=items)
 

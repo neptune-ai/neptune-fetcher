@@ -38,6 +38,8 @@ from neptune_retrieval_api.models import (
 from neptune_fetcher.alpha import filter
 from neptune_fetcher.alpha.internal import (
     env,
+    identifiers,
+    types,
     util,
 )
 
@@ -54,8 +56,8 @@ class AttributeDefinition:
 
 def find_attribute_definitions(
     client: AuthenticatedClient,
-    project_identifiers: Iterable[str],
-    experiment_ids: Iterable[str],
+    project_identifiers: Iterable[identifiers.ProjectIdentifier],
+    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = _DEFAULT_BATCH_SIZE,
     executor: Optional[Executor] = None,
@@ -65,8 +67,8 @@ def find_attribute_definitions(
             item
             for page in _find_attribute_definitions_single(
                 client=client,
-                project_ids=project_identifiers,
-                experiment_ids=experiment_ids,
+                project_identifiers=project_identifiers,
+                experiment_identifiers=experiment_identifiers,
                 attribute_filter=attribute_filter,
                 batch_size=batch_size,
             )
@@ -78,7 +80,7 @@ def find_attribute_definitions(
             return find_attribute_definitions(
                 client=client,
                 project_identifiers=project_identifiers,
-                experiment_ids=experiment_ids,
+                experiment_identifiers=experiment_identifiers,
                 attribute_filter=child,
                 batch_size=batch_size,
                 executor=_executor,
@@ -103,14 +105,14 @@ def _create_executor() -> Executor:
 
 def _find_attribute_definitions_single(
     client: AuthenticatedClient,
-    project_ids: Iterable[str],
-    experiment_ids: Iterable[str],
+    project_identifiers: Iterable[identifiers.ProjectIdentifier],
+    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {
-        "projectIdentifiers": list(project_ids),
-        "experimentIdsFilter": list(experiment_ids),
+        "projectIdentifiers": list(project_identifiers),
+        "experimentIdsFilter": list(str(e) for e in experiment_identifiers),
         "attributeNameFilter": dict(),
         "nextPage": {"limit": batch_size},
     }
@@ -131,7 +133,7 @@ def _find_attribute_definitions_single(
     attribute_types = _variants_to_list(attribute_filter.type_in)
     if attribute_types is not None:
         params["attributeFilter"] = [
-            {"attributeType": filter._map_attribute_type_user_to_backend(_type)} for _type in attribute_types
+            {"attributeType": types.map_attribute_type_user_to_backend(_type)} for _type in attribute_types
         ]
 
     # note: attribute_filter.aggregations is intentionally ignored
@@ -151,9 +153,7 @@ def _find_attribute_definitions_single(
 
         items = []
         for entry in data.entries:
-            item = AttributeDefinition(
-                name=entry.name, type=filter._map_attribute_type_backend_to_user(str(entry.type))
-            )
+            item = AttributeDefinition(name=entry.name, type=types.map_attribute_type_backend_to_user(str(entry.type)))
             items.append(item)
         yield util.Page(items=items)
 

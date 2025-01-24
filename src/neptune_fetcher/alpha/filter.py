@@ -26,23 +26,9 @@ from typing import (
     Union,
 )
 
+from neptune_fetcher.alpha.internal import types
+
 __ALL__ = ("AttributeFilter", "ExperimentFilter")
-
-
-_ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP = {
-    "float_series": "floatSeries",
-    "string_set": "stringSet",
-}
-
-_ATTRIBUTE_TYPE_BACKEND_TO_USER_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP.items()}
-
-
-def _map_attribute_type_user_to_backend(_type: str) -> str:
-    return _ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP.get(_type, _type)
-
-
-def _map_attribute_type_backend_to_user(_type: str) -> str:
-    return _ATTRIBUTE_TYPE_BACKEND_TO_USER_MAP.get(_type, _type)
 
 
 class BaseAttributeFilter(ABC):
@@ -59,7 +45,7 @@ class AttributeFilter(BaseAttributeFilter):
     type_in: Optional[
         list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]
     ] = field(
-        default_factory=lambda: ["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
+        default_factory=lambda: list(types.ALL_TYPES)
     )  # type: ignore
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
@@ -85,7 +71,7 @@ class Attribute:
         query = f"`{self.name}`"
 
         if self.type is not None:
-            _type = _map_attribute_type_user_to_backend(self.type)
+            _type = types.map_attribute_type_user_to_backend(self.type)
             query += f":{_type}"
 
         if self.aggregation is not None:
