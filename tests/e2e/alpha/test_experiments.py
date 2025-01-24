@@ -9,11 +9,14 @@ from dataclasses import (
 )
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
 from typing import (
     Dict,
     List,
+    Literal,
+    Union,
 )
 
 import numpy as np
@@ -80,6 +83,7 @@ class TestData:
 
 
 TEST_DATA = TestData()
+NOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="module", autouse=False)  # TODO: change to True
@@ -99,7 +103,7 @@ def run_with_attributes(project):
         for step in experiment.float_series["metrics/step"]:
             metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
             metrics_data["metrics/step"] = step
-            run.log_metrics(data=metrics_data, step=step)
+            run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
         runs[experiment.name] = run
 
@@ -287,7 +291,11 @@ def test__fetch_metrics():
     assert pd.testing.assert_frame_equal(metrics, expected)
 
 
-def create_expected_data(experiments: list[ExperimentData], type_suffix_in_column_names: bool) -> pd.DataFrame:
+def create_expected_data(
+    experiments: list[ExperimentData],
+    type_suffix_in_column_names: bool,
+    include_timestamp: Union[Literal["relative", "absolute"], None],
+) -> pd.DataFrame:
     x = len(experiments) * len(TEST_DATA.experiments[0].float_series["metrics/step"])
     data = defaultdict(lambda: [None] * x)
     suffix = ":float_series" if type_suffix_in_column_names else ""
@@ -295,31 +303,55 @@ def create_expected_data(experiments: list[ExperimentData], type_suffix_in_colum
     index = 0
     for experiment in experiments:
         steps = experiment.float_series["metrics/step"]
+
         for i, step in enumerate(steps):
-            data["experiment"][index] = experiment.name
-            data["step"][index] = step
-            data["metrics/step" + suffix][index] = step
+
+            def add_value(_path, value):
+                column_name = _path + suffix
+                data[(column_name, "value") if include_timestamp else column_name][index] = value
+
+                if include_timestamp:
+                    if include_timestamp == "relative":
+                        data[(column_name, "timestamp")][index] = timedelta(seconds=int(step))
+                    else:  # absolute
+                        data[(column_name, "timestamp")][index] = NOW + timedelta(seconds=int(step))
+
+            data[("experiment",) if include_timestamp else "experiment"][index] = experiment.name
+
+            data[("step",) if include_timestamp else "step"][index] = step
+            add_value("metrics/step", step)  # add as a metric
+
             for path in FLOAT_SERIES_PATHS:
-                data[path + suffix][index] = experiment.float_series[path][i]
+                add_value(path, experiment.float_series[path][i])
 
             for path in experiment.unique_series:
-                data[path + suffix][index] = experiment.unique_series[path][i]
+                add_value(path, experiment.unique_series[path][i])
             index += 1
-    return pd.DataFrame(data)
+
+    # Create MultiIndex columns
+    if include_timestamp:
+        columns = pd.MultiIndex.from_tuples(data.keys())
+        return pd.DataFrame(data, columns=columns)
+    else:
+        return pd.DataFrame(data)
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None)])
-def test__fetch_metrics_unique(type_suffix_in_column_names, step_range):
+@pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize("include_timestamp", [None, "relative", "absolute"])
+def test__fetch_metrics_unique(type_suffix_in_column_names, step_range, tail_limit, include_timestamp):
     experiments = TEST_DATA.experiments[:3]
     metrics = fetch_metrics(
         experiments=ExperimentFilter.name_in(*[exp.name for exp in experiments]),
         attributes=r".*",
         type_suffix_in_column_names=type_suffix_in_column_names,
         step_range=step_range,
+        tail_limit=tail_limit,
+        include_timestamp="absolute",
     )
 
-    expected = create_expected_data(experiments, type_suffix_in_column_names)
+    expected = create_expected_data(experiments, type_suffix_in_column_names, include_timestamp)
 
     if step_range != (None, None):
         step_min, step_max = step_range
@@ -327,5 +359,8 @@ def test__fetch_metrics_unique(type_suffix_in_column_names, step_range):
             (expected["step"] >= (step_min if step_min is not None else -np.inf))
             & (expected["step"] <= (step_max if step_max is not None else np.inf))
         ].reset_index(drop=True)
+
+    if tail_limit is not None:
+        expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
 
     assert pd.testing.assert_frame_equal(metrics, expected)

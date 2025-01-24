@@ -95,8 +95,5 @@ def fetch_metrics(
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
 
-    If `include_timestamp` is None, returns a DataFrame with columns:
-    experiment, step, <timestamp?>, metric1, metric2, metric3, ...
-
     If `include_timestamp` is set, each metric column has an additional sub-column with requested timestamp values.
     """
