@@ -29,14 +29,20 @@ from typing import (
 __ALL__ = ("AttributeFilter", "ExperimentFilter")
 
 
-_ATTRIBUTE_TYPE_MAP = {
+_ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
     "string_set": "stringSet",
 }
 
+_ATTRIBUTE_TYPE_BACKEND_TO_USER_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP.items()}
 
-def _map_attribute_type(_type: str) -> str:
-    return _ATTRIBUTE_TYPE_MAP.get(_type, _type)
+
+def _map_attribute_type_user_to_backend(_type: str) -> str:
+    return _ATTRIBUTE_TYPE_USER_TO_BACKEND_MAP.get(_type, _type)
+
+
+def _map_attribute_type_backend_to_user(_type: str) -> str:
+    return _ATTRIBUTE_TYPE_BACKEND_TO_USER_MAP.get(_type, _type)
 
 
 class BaseAttributeFilter(ABC):
@@ -79,7 +85,7 @@ class Attribute:
         query = f"`{self.name}`"
 
         if self.type is not None:
-            _type = _map_attribute_type(self.type)
+            _type = _map_attribute_type_user_to_backend(self.type)
             query += f":{_type}"
 
         if self.aggregation is not None:

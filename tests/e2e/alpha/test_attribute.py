@@ -10,7 +10,10 @@ from datetime import (
 from conftest import unique_path
 
 from neptune_fetcher.alpha.filter import AttributeFilter
-from neptune_fetcher.alpha.internal.attribute import find_attribute_definitions
+from neptune_fetcher.alpha.internal.attribute import (
+    AttributeDefinition,
+    find_attribute_definitions,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
@@ -35,12 +38,10 @@ def test_find_attributes_single_string(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == ["sys/name"]
+    assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
 def test_find_attributes_does_not_exist(client, run_init_kwargs, ro_run):
@@ -50,12 +51,10 @@ def test_find_attributes_does_not_exist(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == []
+    assert attributes == []
 
 
 def test_find_attributes_two_strings(client, run_init_kwargs, ro_run):
@@ -65,12 +64,10 @@ def test_find_attributes_two_strings(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {"sys/name", "sys/owner"}
+    assert set(attributes) == {AttributeDefinition("sys/name", "string"), AttributeDefinition("sys/owner", "string")}
 
 
 def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
@@ -86,12 +83,10 @@ def test_find_attributes_single_series(client, run_init_kwargs, run, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == [path]
+    assert attributes == [AttributeDefinition(path, "float_series")]
 
 
 def test_find_attributes_all_types(client, run_init_kwargs, run, ro_run):
@@ -121,12 +116,10 @@ def test_find_attributes_all_types(client, run_init_kwargs, run, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=all_names)
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == set(all_names)
+    assert set(attr.name for attr in attributes) == set(all_names)
 
 
 def test_find_attributes_no_type_in(client, run_init_kwargs, ro_run):
@@ -136,12 +129,10 @@ def test_find_attributes_no_type_in(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name")
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert attribute_names == ["sys/name"]
+    assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
 def test_find_attributes_regex_matches_all(client, run_init_kwargs, run, ro_run):
@@ -151,12 +142,14 @@ def test_find_attributes_regex_matches_all(client, run_init_kwargs, run, ro_run)
 
     #  when
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {"sys/creation_time", "sys/modification_time", "sys/ping_time"}
+    assert set(attributes) == {
+        AttributeDefinition("sys/creation_time", "datetime"),
+        AttributeDefinition("sys/modification_time", "datetime"),
+        AttributeDefinition("sys/ping_time", "datetime"),
+    }
 
 
 def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run):
@@ -168,12 +161,13 @@ def test_find_attributes_regex_matches_none(client, run_init_kwargs, run, ro_run
     attribute_filter = AttributeFilter(
         name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
     )
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {"sys/creation_time", "sys/ping_time"}
+    assert set(attributes) == {
+        AttributeDefinition("sys/creation_time", "datetime"),
+        AttributeDefinition("sys/ping_time", "datetime"),
+    }
 
 
 def test_find_attributes_multiple_projects(client, run_init_kwargs, ro_run):
@@ -185,12 +179,12 @@ def test_find_attributes_multiple_projects(client, run_init_kwargs, ro_run):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
-    attribute_names = find_attribute_definitions(
+    attributes = find_attribute_definitions(
         client, [project_id, project_id, project_id_2], [experiment_id], attribute_filter=attribute_filter
     )
 
     # then
-    assert attribute_names == ["sys/name"]
+    assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
 def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
@@ -215,50 +209,45 @@ def test_find_attributes_filter_or(client, run_init_kwargs, run, ro_run):
 
     #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {f"{common_path}/int_value_a", f"{common_path}/float_value_b"}
+    assert set(attributes) == {
+        AttributeDefinition(f"{common_path}/int_value_a", "int"),
+        AttributeDefinition(f"{common_path}/float_value_b", "float"),
+    }
 
     #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2 | attribute_filter_3
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {
-        f"{common_path}/int_value_a",
-        f"{common_path}/int_value_b",
-        f"{common_path}/float_value_b",
+    assert set(attributes) == {
+        AttributeDefinition(f"{common_path}/int_value_a", "int"),
+        AttributeDefinition(f"{common_path}/int_value_b", "int"),
+        AttributeDefinition(f"{common_path}/float_value_b", "float"),
     }
 
     #  when
     attribute_filter = AttributeFilter.any(attribute_filter_1, attribute_filter_2, attribute_filter_3)
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {
-        f"{common_path}/int_value_a",
-        f"{common_path}/int_value_b",
-        f"{common_path}/float_value_b",
+    assert set(attributes) == {
+        AttributeDefinition(f"{common_path}/int_value_a", "int"),
+        AttributeDefinition(f"{common_path}/int_value_b", "int"),
+        AttributeDefinition(f"{common_path}/float_value_b", "float"),
     }
 
     #  when
     attribute_filter = AttributeFilter.any(
         attribute_filter_1, AttributeFilter.any(attribute_filter_2, attribute_filter_3)
     )
-    attribute_names = find_attribute_definitions(
-        client, [project_id], [experiment_id], attribute_filter=attribute_filter
-    )
+    attributes = find_attribute_definitions(client, [project_id], [experiment_id], attribute_filter=attribute_filter)
 
     # then
-    assert set(attribute_names) == {
-        f"{common_path}/int_value_a",
-        f"{common_path}/int_value_b",
-        f"{common_path}/float_value_b",
+    assert set(attributes) == {
+        AttributeDefinition(f"{common_path}/int_value_a", "int"),
+        AttributeDefinition(f"{common_path}/int_value_b", "int"),
+        AttributeDefinition(f"{common_path}/float_value_b", "float"),
     }

@@ -14,7 +14,10 @@ from neptune_fetcher.alpha.filter import (
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal import util
-from neptune_fetcher.alpha.internal.experiment import find_experiments
+from neptune_fetcher.alpha.internal.experiment import (
+    ExperimentInfo,
+    find_experiments,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = "pye2e-fetcher-test-experiment"
@@ -58,7 +61,7 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     project_id = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter=None))
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter=None))
 
     # then
     assert len(experiment_names) > 0
@@ -69,8 +72,15 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
     project_id = project.project_identifier
 
     #  when
-    experiment_filter = f'`sys/name`:string = "{EXPERIMENT_NAME}"'
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
+
+    # then
+    assert experiment_names == [EXPERIMENT_NAME]
+
+    #  when
+    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
@@ -79,33 +89,13 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
 def test_find_experiments_by_name_not_found(client, project):
     # given
     project_id = project.project_identifier
-    experiment_name = "test_find_experiments_by_name_not_found"
 
     #  when
-    experiment_filter = f'`sys/name`:string = "{experiment_name}"'
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_filter = ExperimentFilter.name_eq("name_not_found")
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
 
     # then
     assert experiment_names == []
-
-
-def test_find_experiments_by_name_filter(client, project, run_with_attributes):
-    # given
-    project_id = project.project_identifier
-
-    #  when
-    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
-
-    #  when
-    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
 
 
 @pytest.mark.parametrize(
@@ -165,7 +155,7 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     project_id = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
@@ -286,7 +276,7 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
     project_id = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
@@ -440,7 +430,7 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
     project_id = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(find_experiments(client, project_id, experiment_filter))
 
     # then
     if found:
@@ -449,5 +439,5 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
-def _flatten_pages(pages: Generator[util.Page[str], None, None]) -> list[str]:
-    return [item for page in pages for item in page.items]
+def _extract_names(pages: Generator[util.Page[ExperimentInfo], None, None]) -> list[str]:
+    return [item.sys_name for page in pages for item in page.items]
