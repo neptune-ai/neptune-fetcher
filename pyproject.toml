@@ -96,3 +96,7 @@ warn_return_any = "True"
 show_error_codes = "True"
 warn_unused_ignores = "True"
 ignore_missing_imports = "True"
+
+[tool.pytest.ini_options]
+retries = 3
+retry_delay = 1

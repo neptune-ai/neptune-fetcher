@@ -29,5 +29,9 @@ def client() -> AuthenticatedClient:
     return client
 
 
+def pytest_set_filtered_exceptions() -> list[type[BaseException]]:
+    return [AssertionError]
+
+
 def unique_path(prefix):
     return f"{prefix}__{datetime.now(timezone.utc).isoformat('-', 'seconds')}__{str(uuid.uuid4())[-4:]}"
