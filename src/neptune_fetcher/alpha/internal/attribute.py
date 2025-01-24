@@ -45,7 +45,7 @@ from neptune_fetcher.alpha.internal import (
 
 __ALL__ = ("find_attribute_definitions",)
 
-_DEFAULT_BATCH_SIZE = 10_000
+_DEFAULT_BATCH_SIZE = 50_000
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,7 @@ class AttributeDefinition:
     type: str
 
 
-def find_attribute_definitions(
+def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
@@ -65,7 +65,7 @@ def find_attribute_definitions(
     if isinstance(attribute_filter, filter.AttributeFilter):
         return [
             item
-            for page in _find_attribute_definitions_single(
+            for page in _fetch_attribute_definitions_single(
                 client=client,
                 project_identifiers=project_identifiers,
                 experiment_identifiers=experiment_identifiers,
@@ -77,7 +77,7 @@ def find_attribute_definitions(
     elif isinstance(attribute_filter, filter._AttributeFilterAlternative):
 
         def go(child: filter.BaseAttributeFilter, _executor: Executor) -> list[AttributeDefinition]:
-            return find_attribute_definitions(
+            return fetch_attribute_definitions(
                 client=client,
                 project_identifiers=project_identifiers,
                 experiment_identifiers=experiment_identifiers,
@@ -103,7 +103,7 @@ def _create_executor() -> Executor:
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
-def _find_attribute_definitions_single(
+def _fetch_attribute_definitions_single(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],

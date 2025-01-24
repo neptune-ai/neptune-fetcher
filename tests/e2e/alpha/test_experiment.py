@@ -14,7 +14,7 @@ from neptune_fetcher.alpha.filter import (
 from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.experiment import (
     ExperimentSysAttrs,
-    find_experiments,
+    fetch_experiment_sys_attrs,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -63,7 +63,7 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter=None))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None))
 
     # then
     assert len(experiment_names) > 0
@@ -75,14 +75,14 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
 
     #  when
     experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
     experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
@@ -94,7 +94,7 @@ def test_find_experiments_by_name_not_found(client, project):
 
     #  when
     experiment_filter = ExperimentFilter.name_eq("name_not_found")
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == []
@@ -157,7 +157,7 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:
@@ -278,7 +278,7 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:
@@ -432,7 +432,7 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(find_experiments(client, project_identifier, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:

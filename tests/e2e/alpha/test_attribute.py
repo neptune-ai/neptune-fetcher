@@ -11,7 +11,7 @@ import pytest
 from neptune_fetcher.alpha.filter import AttributeFilter
 from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
-    find_attribute_definitions,
+    fetch_attribute_definitions,
 )
 from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
 
@@ -70,12 +70,12 @@ def run_with_attributes(project):
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> ExperimentIdentifier:
     from neptune_fetcher.alpha.filter import ExperimentFilter
-    from neptune_fetcher.alpha.internal.experiment import find_experiments
+    from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
     experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME)
-    experiment_attrs = find_experiments(
+    experiment_attrs = fetch_experiment_sys_attrs(
         client, project_identifier=project_identifier, experiment_filter=experiment_filter
     )
     sys_id = list(experiment_attrs)[0].items[0].sys_id
@@ -89,7 +89,7 @@ def test_find_attributes_single_string(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -103,7 +103,7 @@ def test_find_attributes_does_not_exist(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -117,7 +117,7 @@ def test_find_attributes_two_strings(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -132,7 +132,7 @@ def test_find_attributes_single_series(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -155,7 +155,7 @@ def test_find_attributes_all_types(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq=[attr.name for attr in all_attrs])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -169,7 +169,7 @@ def test_find_attributes_no_type_in(client, project, experiment_identifier):
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name")
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -183,7 +183,7 @@ def test_find_attributes_regex_matches_all(client, project, experiment_identifie
 
     #  when
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -203,7 +203,7 @@ def test_find_attributes_regex_matches_none(client, project, experiment_identifi
     attribute_filter = AttributeFilter(
         name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
     )
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -221,7 +221,7 @@ def test_find_attributes_multiple_projects(client, project, experiment_identifie
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client,
         [project_identifier, project_identifier, project_identifier_2],
         [experiment_identifier],
@@ -241,7 +241,7 @@ def test_find_attributes_filter_or(client, project, experiment_identifier):
 
     #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 
@@ -270,7 +270,7 @@ def test_find_attributes_filter_triple_or(client, project, experiment_identifier
     attribute_filter = make_attribute_filter(attribute_filter_1, attribute_filter_2, attribute_filter_3)
 
     #  when
-    attributes = find_attribute_definitions(
+    attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
     )
 

@@ -41,7 +41,7 @@ class ExperimentSysAttrs:
     sys_id: identifiers.SysId
 
 
-def find_experiments(
+def fetch_experiment_sys_attrs(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[ExperimentFilter] = None,
