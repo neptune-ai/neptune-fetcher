@@ -45,7 +45,7 @@ from neptune_fetcher.alpha.internal import (
 
 __ALL__ = ("find_attribute_definitions",)
 
-_DEFAULT_BATCH_SIZE = 50_000
+_DEFAULT_BATCH_SIZE = 10_000
 
 
 @dataclass(frozen=True)
