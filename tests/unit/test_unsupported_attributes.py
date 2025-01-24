@@ -56,9 +56,9 @@ from neptune_fetcher.util import (
 )
 
 # IMPORTANT:
-# - The mocked API calls used in the tests always add two unsupported attributes to the result by default,
+# - The mocked API calls used in the tests always add three unsupported attributes to the result by default,
 #   unless the test explicitly provides a different list of unsupported attributes (or none at all).
-#   The exception is `query_attribute_definitions_within_project` -- see the comment there.
+#   Two attributes share a type, so we have two distinct unsupported types by default
 # - some of the patched API mock objects define a "good" and "bad" response constants. These are used
 #   for convenience in tests where the defaults are sufficient.
 # - The tests know which attributes to expect, based on make_proto_attributes_dto() and the default unsupported
@@ -272,11 +272,14 @@ def project(backend_cls):
 @contextmanager
 def warns_and_forgets_types(*args, **kwargs):
     """
-    A simple wrapper around pytest.warns, that makes sure we clear the set of warned types after the test.
-    If we didn't do that, we'd get false positives in tests that expect a warning to NOT be emitted.
+    A simple wrapper around pytest.warns, that makes sure we clear the set of warned types before and after the test.
+    If we didn't do that, we'd get false positives in tests that expect a warning to NOT be emitted. Clearing
+    before the test gives us a predictable state.
 
     See comments for util.py:_warned_types for more details.
     """
+
+    neptune_fetcher.util._warned_types.clear()
 
     with pytest.warns(NeptuneWarning, *args, **kwargs) as record:
         yield record
@@ -383,6 +386,10 @@ def test_run_eager_load_attributes(project):
         assert run["badAttr"].fetch_last() is None
         assert run["badAttr"].fetch_values().empty
 
+        assert run["badAttr2"].fetch() is None
+        assert run["badAttr2"].fetch_last() is None
+        assert run["badAttr2"].fetch_values().empty
+
         assert run["anotherAttr"].fetch() is None
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
@@ -397,6 +404,10 @@ def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_
         assert run["badAttr"].fetch() is None
         assert run["badAttr"].fetch_last() is None
         assert run["badAttr"].fetch_values().empty
+
+        assert run["badAttr2"].fetch() is None
+        assert run["badAttr2"].fetch_last() is None
+        assert run["badAttr2"].fetch_values().empty
 
         assert run["anotherAttr"].fetch() is None
         assert run["anotherAttr"].fetch_last() is None
