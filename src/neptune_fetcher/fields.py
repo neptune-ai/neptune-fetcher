@@ -23,6 +23,7 @@ __all__ = [
     "DateTime",
     "ObjectState",
     "StringSet",
+    "FileRef",
     "FieldType",
     "FieldDefinition",
     "FloatPointValue",
@@ -44,6 +45,8 @@ from typing import (
     Union,
 )
 
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoFileRefAttributeDTO
+
 from neptune_fetcher.util import warn_unsupported_value_type
 
 if TYPE_CHECKING:
@@ -63,6 +66,7 @@ class FieldType(Enum):
     FLOAT_SERIES = "floatSeries"
     STRING_SET = "stringSet"
     OBJECT_STATE = "experimentState"
+    FILE_REF = "fileRef"
 
     UNSUPPORTED = "__unsupported_attribute_type__"
 
@@ -125,9 +129,6 @@ class Field(Generic[T], ABC):
     type: FieldType
     val: T
 
-    def fetch(self) -> T:
-        return self.val
-
 
 class Integer(Field[int]):
     ...
@@ -157,9 +158,13 @@ class StringSet(Field[Set[str]]):
     ...
 
 
+# We're not wrapping the protobuf FileRef type in a dataclass, to avoid unnecessary abstractions
+class FileRef(Field[ProtoFileRefAttributeDTO]):
+    ...
+
+
 class Unsupported(Field[None]):
-    def fetch(self) -> None:
-        return None
+    ...
 
 
 def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:

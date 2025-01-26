@@ -20,12 +20,14 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 from tqdm import tqdm
 
+# TODO: we will need to replace this with ProtoFileRefAttributeDTO or similar, once it's created
 from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fields import (
     Bool,
     DateTime,
     Field,
     FieldType,
+    FileRef,
     Float,
     FloatSeries,
     Integer,
@@ -46,10 +48,11 @@ logger = logging.getLogger(__name__)
 
 
 class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
-    def __init__(self, backend: ApiClient, container_id: str):
+    def __init__(self, backend: ApiClient, container_id: str, project_name: str):
         super().__init__()
         self._backend: ApiClient = backend
         self._container_id: str = container_id
+        self._project_name: str = project_name
 
     def cache_miss(self, paths: List[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
@@ -146,6 +149,8 @@ def _extract_value(attr: ProtoAttributeDTO) -> Union[Field, FloatSeries]:
         return StringSet(FieldType.STRING_SET, set(attr.string_set_properties.value))
     elif attr.type == "experimentState":
         return ObjectState(FieldType.OBJECT_STATE, "experiment_state")
+    elif attr.type == "fileRef":
+        return FileRef(FieldType.FILE_REF, attr.file_ref_properties)
     else:
         warn_unsupported_value_type(attr.type)
         return Unsupported(FieldType.UNSUPPORTED, None)

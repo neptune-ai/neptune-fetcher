@@ -31,6 +31,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Optional,
     Tuple,
     Union,
 )
@@ -42,6 +43,7 @@ from neptune_fetcher.fields import (
     FieldDefinition,
     FieldType,
 )
+from neptune_fetcher.files import download_file
 
 if TYPE_CHECKING:
     from neptune_fetcher.cache import FieldsCache
@@ -91,6 +93,9 @@ class UnsupportedFetchable(Fetchable):
 
     def fetch_values(self, *args, **kwargs) -> DataFrame:
         return DataFrame()
+
+    def download(self, *args, **kwargs) -> None:
+        return None
 
 
 class FetchableAtom(Fetchable):
@@ -145,9 +150,31 @@ class FetchableSeries(Fetchable):
         )
 
 
+class FetchableFile(Fetchable):
+    def fetch(self):
+        raise NotImplementedError("fetch() is not supported for files. Use download() instead.")
+
+    # TODO: add docs
+    def download(self, destination: Optional[str] = None, overwrite: Optional[bool] = False) -> None:
+        """Download the file to the specified destination"""
+
+        file_ref = self._cache[self._field.path].val
+        download_file(
+            self._backend,
+            project_name=self._cache._project_name,
+            attribute_path=self._field.path,
+            destination=destination,
+            file_path=file_ref.path,
+            overwrite=overwrite,
+        )
+
+
 def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetchable:
+    # This argument is only set for file fields, as they need to know the project name to request the download URL
     if field.type in SUPPORTED_ATOMS:
         return FetchableAtom(field, *args, **kwargs)
     elif field.type in SUPPORTED_SERIES_TYPES:
         return FetchableSeries(field, *args, **kwargs)
+    elif field.type == FieldType.FILE_REF:
+        return FetchableFile(field, *args, **kwargs)
     return UnsupportedFetchable(field, *args, **kwargs)

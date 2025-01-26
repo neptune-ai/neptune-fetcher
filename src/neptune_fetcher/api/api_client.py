@@ -18,6 +18,7 @@ from typing import (
     Final,
     Iterator,
     List,
+    Literal,
     Optional,
     Set,
     Tuple,
@@ -281,6 +282,18 @@ class ApiClient:
             raise NeptuneException("Project not found")
         else:
             return response.parsed
+
+    # TODO: use code from neptune-api if we decide to add this function there. This will allow us to use backoff_retry
+    # as well
+    def fetch_file_download_url(
+        self, *, project_name: str, file_path: str, permission: Literal["read", "write"]
+    ) -> str:
+        body = {"files": [{"project_identifier": project_name, "path": file_path, "permission": permission}]}
+        response = self._backend.get_httpx_client().post("/api/storagebridge/v1/azure/signedUrl", json=body, timeout=60)
+        if response.status_code != 200:
+            raise NeptuneException(f"Failed to get file download URL: {response.status_code}: {response.content}")
+
+        return response.json()["files"][0]["url"]
 
 
 @dataclass(frozen=True)

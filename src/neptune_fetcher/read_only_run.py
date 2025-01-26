@@ -27,6 +27,7 @@ from typing import (
 from neptune_fetcher.cache import FieldsCache
 from neptune_fetcher.fetchable import (
     Fetchable,
+    FetchableFile,
     FetchableSeries,
     which_fetchable,
 )
@@ -61,8 +62,7 @@ class ReadOnlyRun:
         self.with_id = sys_id
         self._container_id = f"{read_only_project.project_identifier}/{sys_id}"
         self._cache = FieldsCache(
-            backend=read_only_project._backend,
-            container_id=self._container_id,
+            backend=read_only_project._backend, container_id=self._container_id, project_name=self.project._project
         )
         self._loaded_structure = False
         if eager_load_fields:
@@ -87,7 +87,7 @@ class ReadOnlyRun:
         else:
             raise ValueError(f"No experiment found with Neptune ID '{sys_id}'")
 
-    def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries]:
+    def __getitem__(self, item: str) -> Union[Fetchable, FetchableSeries, FetchableFile]:
         try:
             return self._structure[item]
         except KeyError:

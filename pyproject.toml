@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.8"
 
 # Base neptune package
-neptune-api = "^0.10.0"
+neptune-api = {git = "https://github.com/neptune-ai/neptune-api", rev="dev/file-retrieval" }
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
