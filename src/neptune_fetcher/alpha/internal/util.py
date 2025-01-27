@@ -30,6 +30,8 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
+from neptune_fetcher.alpha import Context
+from neptune_fetcher.alpha.context import global_context
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
@@ -137,3 +139,30 @@ def backoff_retry(
         raise NeptuneException("Unknown error occurred when requesting data")
 
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+
+
+def get_context(user_ctx: Optional[Context] = None) -> Context:
+    """
+    Return the global context, or the user-provided context if it is not None.
+    If any of the fields in `user_ctx` are None, the global context will be used for that field.
+
+    Always pass the user-provided context through this function, as it will ensure that all the fields are set.
+    """
+
+    global_ctx = global_context()
+    if user_ctx is None:
+        return global_ctx
+
+    project = user_ctx.project
+    api_token = user_ctx.api_token
+
+    if project and api_token:
+        return user_ctx
+
+    if project is None:
+        project = global_ctx.project
+
+    if api_token is None:
+        api_token = global_ctx.api_token
+
+    return Context(project=project, api_token=api_token)
