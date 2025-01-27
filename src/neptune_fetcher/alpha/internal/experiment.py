@@ -12,11 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
-    Union,
+    Optional,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -27,19 +27,28 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 
 from neptune_fetcher.alpha.filter import ExperimentFilter
-from neptune_fetcher.alpha.internal import util
+from neptune_fetcher.alpha.internal import (
+    identifiers,
+    util,
+)
 
 _DEFAULT_BATCH_SIZE = 10_000
 
 
-def find_experiments(
+@dataclass(frozen=True)
+class ExperimentSysAttrs:
+    sys_name: str
+    sys_id: identifiers.SysId
+
+
+def fetch_experiment_sys_attrs(
     client: AuthenticatedClient,
-    project_id: str,
-    experiment_filter: Union[str, ExperimentFilter, None] = None,
+    project_identifier: identifiers.ProjectIdentifier,
+    experiment_filter: Optional[ExperimentFilter] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
-) -> Generator[util.Page[str], None, None]:
+) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {
-        "attributeFilters": [{"path": "sys/name"}],
+        "attributeFilters": [{"path": "sys/name"}, {"path": "sys/id"}],
         "pagination": {"limit": batch_size},
         "experimentLeader": True,
     }
@@ -55,7 +64,7 @@ def find_experiments(
         response = util.backoff_retry(
             search_leaderboard_entries_proto.sync_detailed,
             client=client,
-            project_identifier=project_id,
+            project_identifier=project_identifier,
             type=["run"],
             body=body,
         )
@@ -64,7 +73,11 @@ def find_experiments(
             response.content
         )
 
-        items = [entry.attributes[0].string_properties.value for entry in data.entries]
+        items = []
+        for entry in data.entries:
+            attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
+            item = ExperimentSysAttrs(sys_name=attributes["sys/name"], sys_id=identifiers.SysId(attributes["sys/id"]))
+            items.append(item)
         yield util.Page(items=items)
 
         if len(data.entries) < batch_size:

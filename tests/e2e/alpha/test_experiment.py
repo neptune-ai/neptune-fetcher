@@ -1,5 +1,4 @@
 import os
-import uuid
 from datetime import (
     datetime,
     timezone,
@@ -7,14 +6,16 @@ from datetime import (
 from typing import Generator
 
 import pytest
-from neptune_scale import Run
 
 from neptune_fetcher.alpha.filter import (
     Attribute,
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal import util
-from neptune_fetcher.alpha.internal.experiment import find_experiments
+from neptune_fetcher.alpha.internal.experiment import (
+    ExperimentSysAttrs,
+    fetch_experiment_sys_attrs,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = "pye2e-fetcher-test-experiment"
@@ -26,11 +27,15 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 @pytest.fixture(scope="module")
 def run_with_attributes(project):
-    project_id = project.project_identifier
+    import uuid
+
+    from neptune_scale import Run
+
+    project_identifier = project.project_identifier
     run_id = str(uuid.uuid4())
 
     run = Run(
-        project=project_id,
+        project=project_identifier,
         run_id=run_id,
         experiment_name=EXPERIMENT_NAME,
     )
@@ -55,10 +60,10 @@ def run_with_attributes(project):
 
 def test_find_experiments_no_filter(client, project, run_with_attributes):
     # given
-    project_id = project.project_identifier
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter=None))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None))
 
     # then
     assert len(experiment_names) > 0
@@ -66,11 +71,18 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
 
 def test_find_experiments_by_name(client, project, run_with_attributes):
     # given
-    project_id = project.project_identifier
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = f'`sys/name`:string = "{EXPERIMENT_NAME}"'
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
+
+    # then
+    assert experiment_names == [EXPERIMENT_NAME]
+
+    #  when
+    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
@@ -78,34 +90,14 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
 
 def test_find_experiments_by_name_not_found(client, project):
     # given
-    project_id = project.project_identifier
-    experiment_name = "test_find_experiments_by_name_not_found"
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = f'`sys/name`:string = "{experiment_name}"'
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_filter = ExperimentFilter.name_eq("name_not_found")
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == []
-
-
-def test_find_experiments_by_name_filter(client, project, run_with_attributes):
-    # given
-    project_id = project.project_identifier
-
-    #  when
-    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
-
-    #  when
-    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
 
 
 @pytest.mark.parametrize(
@@ -162,10 +154,10 @@ def test_find_experiments_by_name_filter(client, project, run_with_attributes):
 )
 def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
     # given
-    project_id = project.project_identifier
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:
@@ -283,10 +275,10 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
 )
 def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
     # given
-    project_id = project.project_identifier
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:
@@ -437,10 +429,10 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
 )
 def test_find_experiments_by_logical_expression(client, project, run_with_attributes, experiment_filter, found):
     # given
-    project_id = project.project_identifier
+    project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _flatten_pages(find_experiments(client, project_id, experiment_filter))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     if found:
@@ -449,5 +441,5 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
-def _flatten_pages(pages: Generator[util.Page[str], None, None]) -> list[str]:
-    return [item for page in pages for item in page.items]
+def _extract_names(pages: Generator[util.Page[ExperimentSysAttrs], None, None]) -> list[str]:
+    return [item.sys_name for page in pages for item in page.items]
