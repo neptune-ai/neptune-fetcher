@@ -34,15 +34,15 @@ class EnvVariable(Generic[T]):
     _UNSET: T = object()  # type: ignore
 
     def __init__(self, name: str, value_mapper: Callable[[str], T], default_value: T = _UNSET):
-        self._name = name
+        self.name = name
         self._value_mapper = staticmethod(value_mapper)
         self._default_value = default_value
 
     def get(self) -> T:
-        value = os.getenv(self._name)
+        value = os.getenv(self.name)
         if value is None:
             if self._default_value is self._UNSET:
-                raise ValueError(f"Environment variable {self._name} is not set")
+                raise ValueError(f"Environment variable {self.name} is not set")
             return self._default_value
         return self._map_value(value)
 
