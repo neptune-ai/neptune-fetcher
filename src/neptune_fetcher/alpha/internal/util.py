@@ -20,20 +20,41 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
+    Generator,
     Generic,
+    Optional,
     TypeVar,
 )
 
+from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
+R = TypeVar("R")
+_Params = dict[str, Any]
 
 
 @dataclass
 class Page(Generic[T]):
     items: list[T]
+
+
+def fetch_pages(
+    client: AuthenticatedClient,
+    fetch_page: Callable[[AuthenticatedClient, _Params], R],
+    process_page: Callable[[R], Page[T]],
+    make_new_page_params: Callable[[_Params, Optional[R]], Optional[_Params]],
+    params: _Params,
+) -> Generator[Page[T], None, None]:
+    page_params = make_new_page_params(params, None)
+    while page_params is not None:
+        data = fetch_page(client, page_params)
+        page = process_page(data)
+        page_params = make_new_page_params(page_params, data)
+
+        yield page
 
 
 def backoff_retry(

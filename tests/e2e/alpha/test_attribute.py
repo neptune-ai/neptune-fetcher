@@ -280,3 +280,21 @@ def test_find_attributes_filter_triple_or(client, project, experiment_identifier
         AttributeDefinition(f"{COMMON_PATH}/int_value_b", "int"),
         AttributeDefinition(f"{COMMON_PATH}/float_value_b", "float"),
     }
+
+
+def test_find_attributes_paging(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attributes = fetch_attribute_definitions(
+        client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+    )
+
+    # then
+    assert set(attributes) == {
+        AttributeDefinition("sys/creation_time", "datetime"),
+        AttributeDefinition("sys/modification_time", "datetime"),
+        AttributeDefinition("sys/ping_time", "datetime"),
+    }

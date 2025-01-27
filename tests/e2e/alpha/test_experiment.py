@@ -441,5 +441,18 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
+def test_find_experiments_paging(client, project, run_with_attributes):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    experiment_names = _extract_names(
+        fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None, batch_size=1)
+    )
+
+    # then
+    assert len(experiment_names) > 1
+
+
 def _extract_names(pages: Generator[util.Page[ExperimentSysAttrs], None, None]) -> list[str]:
     return [item.sys_name for page in pages for item in page.items]

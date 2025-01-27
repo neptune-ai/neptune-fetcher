@@ -65,7 +65,7 @@ def fetch_attribute_definitions(
     if isinstance(attribute_filter, filter.AttributeFilter):
         return [
             item
-            for page in _fetch_attribute_definitions_single(
+            for page in _fetch_attribute_definitions_single_filter(
                 client=client,
                 project_identifiers=project_identifiers,
                 experiment_identifiers=experiment_identifiers,
@@ -103,7 +103,7 @@ def _create_executor() -> Executor:
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
-def _fetch_attribute_definitions_single(
+def _fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
@@ -138,28 +138,48 @@ def _fetch_attribute_definitions_single(
 
     # note: attribute_filter.aggregations is intentionally ignored
 
-    next_page_token = None
-    while True:
-        if next_page_token is not None:
-            params["nextPage"]["nextPageToken"] = next_page_token
+    return util.fetch_pages(
+        client=client,
+        fetch_page=_fetch_attribute_definitions_page,
+        process_page=_process_attribute_definitions_page,
+        make_new_page_params=_make_new_attribute_definitions_page_params,
+        params=params,
+    )
 
-        body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-        response = util.backoff_retry(
-            query_attribute_definitions_within_project.sync_detailed, client=client, body=body
-        )
+def _fetch_attribute_definitions_page(
+    client: AuthenticatedClient,
+    params: dict[str, Any],
+) -> QueryAttributeDefinitionsResultDTO:
+    body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-        data: QueryAttributeDefinitionsResultDTO = response.parsed
+    response = util.backoff_retry(query_attribute_definitions_within_project.sync_detailed, client=client, body=body)
 
-        items = []
-        for entry in data.entries:
-            item = AttributeDefinition(name=entry.name, type=types.map_attribute_type_backend_to_user(str(entry.type)))
-            items.append(item)
-        yield util.Page(items=items)
+    return response.parsed
 
-        next_page_token = data.next_page.next_page_token
-        if not next_page_token:
-            break
+
+def _process_attribute_definitions_page(data: QueryAttributeDefinitionsResultDTO) -> util.Page[AttributeDefinition]:
+    items = []
+    for entry in data.entries:
+        item = AttributeDefinition(name=entry.name, type=types.map_attribute_type_backend_to_user(str(entry.type)))
+        items.append(item)
+    return util.Page(items=items)
+
+
+def _make_new_attribute_definitions_page_params(
+    params: dict[str, Any], data: Optional[QueryAttributeDefinitionsResultDTO]
+) -> Optional[dict[str, Any]]:
+    if data is None:
+        if "nextPageToken" in params["nextPage"]:
+            del params["nextPage"]["nextPageToken"]
+        return params
+
+    next_page_token = data.next_page.next_page_token
+    if next_page_token is None:
+        return None
+
+    params["nextPage"]["nextPageToken"] = next_page_token
+    return params
 
 
 def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
