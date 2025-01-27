@@ -1,7 +1,7 @@
 import pytest
 
 import neptune_fetcher.alpha as npt
-from neptune_fetcher.alpha.api_client import AuthenticatedClientBuilder
+from neptune_fetcher.alpha.internal.api_client import AuthenticatedClientBuilder
 
 
 @pytest.fixture
