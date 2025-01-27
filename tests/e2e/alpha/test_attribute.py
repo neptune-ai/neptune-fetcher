@@ -83,6 +83,7 @@ def experiment_identifier(client, project, run_with_attributes) -> ExperimentIde
     return ExperimentIdentifier(project_identifier, sys_id)
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_single_string(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -97,6 +98,7 @@ def test_find_attributes_single_string(client, project, experiment_identifier):
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_does_not_exist(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -111,6 +113,7 @@ def test_find_attributes_does_not_exist(client, project, experiment_identifier):
     assert attributes == []
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_two_strings(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -125,6 +128,7 @@ def test_find_attributes_two_strings(client, project, experiment_identifier):
     assert set(attributes) == {AttributeDefinition("sys/name", "string"), AttributeDefinition("sys/owner", "string")}
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_single_series(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -140,6 +144,7 @@ def test_find_attributes_single_series(client, project, experiment_identifier):
     assert attributes == [AttributeDefinition(path, "float_series")]
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -163,6 +168,7 @@ def test_find_attributes_all_types(client, project, experiment_identifier):
     assert set(attributes) == set(all_attrs)
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_no_type_in(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -177,6 +183,7 @@ def test_find_attributes_no_type_in(client, project, experiment_identifier):
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_regex_matches_all(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -195,6 +202,7 @@ def test_find_attributes_regex_matches_all(client, project, experiment_identifie
     }
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_regex_matches_none(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -214,6 +222,7 @@ def test_find_attributes_regex_matches_none(client, project, experiment_identifi
     }
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_multiple_projects(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -232,6 +241,7 @@ def test_find_attributes_multiple_projects(client, project, experiment_identifie
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_filter_or(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -260,6 +270,7 @@ def test_find_attributes_filter_or(client, project, experiment_identifier):
         lambda a, b, c: AttributeFilter.any(a, AttributeFilter.any(b, c)),
     ],
 )
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_attributes_filter_triple_or(client, project, experiment_identifier, make_attribute_filter):
     # given
     project_identifier = project.project_identifier

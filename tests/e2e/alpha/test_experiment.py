@@ -58,6 +58,7 @@ def run_with_attributes(project):
     return run
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_experiments_no_filter(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
@@ -69,6 +70,7 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     assert len(experiment_names) > 0
 
 
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_experiments_by_name(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
@@ -152,6 +154,7 @@ def test_find_experiments_by_name_not_found(client, project):
         (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
     ],
 )
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_identifier = project.project_identifier
@@ -273,6 +276,7 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
         ),
     ],
 )
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_identifier = project.project_identifier
@@ -427,6 +431,7 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
         ),
     ],
 )
+@pytest.mark.xdist_group(EXPERIMENT_NAME)
 def test_find_experiments_by_logical_expression(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_identifier = project.project_identifier
