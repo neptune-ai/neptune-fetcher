@@ -28,12 +28,39 @@ def set_envs(monkeypatch):
     monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "default_token")
 
 
-def test_defaults_from_env():
+def test_set_context_returns_the_new_context():
+    ctx = npt.set_context(Context("my_project", "my_token"))
+    assert ctx.project == "my_project"
+    assert ctx.api_token == "my_token"
+
+    assert get_context() == ctx
+
+
+def test_defaults_from_env(monkeypatch):
     ctx = get_context()
     assert ctx.project == "default_project"
     assert ctx.api_token == "default_token"
 
-    assert npt.set_context() == get_context()
+    # Setting context explicitly always loads the defaults from env, if not provided
+    ctx = npt.set_context(Context(project="my_project"))
+    assert ctx.project == "my_project"
+    assert ctx.api_token == "default_token"
+
+    ctx = npt.set_context(Context(api_token="my_token"))
+    assert ctx.project == "default_project"
+    assert ctx.api_token == "my_token"
+
+    # Setting context explicitly always loads the defaults from env, if not provided
+    monkeypatch.setenv(env.NEPTUNE_PROJECT.name, "another_project")
+    monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "another_token")
+
+    ctx = npt.set_context(Context(project="my_project"))
+    assert ctx.project == "my_project"
+    assert ctx.api_token == "another_token"
+
+    ctx = npt.set_context(Context(api_token="my_token"))
+    assert ctx.project == "another_project"
+    assert ctx.api_token == "my_token"
 
 
 def test_no_env_configured(monkeypatch):
@@ -116,8 +143,7 @@ def test_reset_context_to_defaults():
     assert ctx.project == "my_project"
     assert ctx.api_token == "my_token"
 
-    npt.set_context()
-    ctx = get_context()
+    ctx = npt.set_context()
     assert ctx.project == "default_project"
     assert ctx.api_token == "default_token"
 
@@ -157,8 +183,7 @@ def test_get_context_with_set_project_and_set_api_token():
     assert ctx.api_token == "another_token"
 
     # Back to defaults
-    npt.set_context()
-    ctx = get_context()
+    ctx = npt.set_context()
     assert ctx.project == "default_project"
     assert ctx.api_token == "default_token"
 
