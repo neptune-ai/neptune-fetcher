@@ -23,9 +23,11 @@ from neptune_fetcher.alpha.internal.util import get_context
 
 
 @fixture(autouse=True)
-def set_envs(monkeypatch):
+def set_envs_and_reset_context(monkeypatch):
     monkeypatch.setenv(env.NEPTUNE_PROJECT.name, "default_project")
     monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "default_token")
+
+    npt.context._global_context = None
 
 
 def test_set_context_returns_the_new_context():
