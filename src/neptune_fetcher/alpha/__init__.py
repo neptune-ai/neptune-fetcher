@@ -21,7 +21,7 @@ __all__ = [
     "set_api_token",
 ]
 
-from .context import (
+from neptune_fetcher.alpha.context import (
     Context,
     set_api_token,
     set_context,
