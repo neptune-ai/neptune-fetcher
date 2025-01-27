@@ -15,7 +15,11 @@
 
 from __future__ import annotations
 
-__all__ = ["ApiClient"]
+__all__ = (
+    "ApiClient",
+    "create_auth_api_client",
+    "get_config_and_token_urls",
+)
 
 import logging
 import os
