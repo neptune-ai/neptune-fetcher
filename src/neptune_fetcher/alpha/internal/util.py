@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -47,14 +48,30 @@ def fetch_pages(
     process_page: Callable[[R], Page[T]],
     make_new_page_params: Callable[[_Params, Optional[R]], Optional[_Params]],
     params: _Params,
+    executor: Optional[Executor] = None,
 ) -> Generator[Page[T], None, None]:
-    page_params = make_new_page_params(params, None)
-    while page_params is not None:
-        data = fetch_page(client, page_params)
-        page = process_page(data)
-        page_params = make_new_page_params(page_params, data)
+    if executor is not None:
+        page_params = make_new_page_params(params, None)
+        if page_params is None:
+            return
+        future_data = executor.submit(fetch_page, client, page_params)
+        while page_params is not None:
+            data = future_data.result()
+            page = process_page(data)
+            page_params = make_new_page_params(page_params, data)
 
-        yield page
+            if page_params is not None:
+                future_data = executor.submit(fetch_page, client, page_params)
+
+            yield page
+    else:
+        page_params = make_new_page_params(params, None)
+        while page_params is not None:
+            data = fetch_page(client, page_params)
+            page = process_page(data)
+            page_params = make_new_page_params(page_params, data)
+
+            yield page
 
 
 def backoff_retry(

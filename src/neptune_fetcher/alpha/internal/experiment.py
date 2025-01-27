@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools as ft
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -47,6 +48,7 @@ def fetch_experiment_sys_attrs(
     project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[ExperimentFilter] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
+    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}, {"path": "sys/id"}],
@@ -62,6 +64,7 @@ def fetch_experiment_sys_attrs(
         process_page=_process_experiment_page,
         make_new_page_params=ft.partial(_make_new_experiment_page_params, batch_size=batch_size),
         params=params,
+        executor=executor,
     )
 
 

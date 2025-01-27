@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import (
     datetime,
     timezone,
@@ -291,6 +292,30 @@ def test_find_attributes_paging(client, project, experiment_identifier):
     attributes = fetch_attribute_definitions(
         client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
     )
+
+    # then
+    assert set(attributes) == {
+        AttributeDefinition("sys/creation_time", "datetime"),
+        AttributeDefinition("sys/modification_time", "datetime"),
+        AttributeDefinition("sys/ping_time", "datetime"),
+    }
+
+
+def test_find_attributes_paging_executor(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        attributes = fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=executor,
+        )
 
     # then
     assert set(attributes) == {
