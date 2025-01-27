@@ -26,15 +26,14 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 
+from neptune_fetcher.util import (
+    create_auth_api_client,
+    get_config_and_token_urls,
+)
 from neptune_fetcher.alpha.context import (
     Context,
     get_context,
     validate_context,
-)
-
-from ..utilities.net import (
-    create_auth_api_client,
-    get_config_and_token_urls,
 )
 
 # Disable httpx logging, httpx logs requests at INFO level
