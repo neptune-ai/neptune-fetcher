@@ -22,9 +22,7 @@ from unittest.mock import (
 
 from pytest import fixture
 
-import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.internal import env
 from neptune_fetcher.alpha.internal.api_client import (
     clear_cache,
     get_client,
@@ -34,7 +32,8 @@ from neptune_fetcher.alpha.internal.api_client import (
 
 
 # This hook is called by pytest on test collection. We force all tests in this file to
-# be run in a single process, so that we can test the cache properly.
+# be run in a single process, so that we can test the cache properly: eg. don't cover up
+# lingering data in the cache by launching some tests in a separate address space.
 def pytest_collection_modifyitems(config, items):
     for item in items:
         item.nodeid = "test_api_client_cache"
@@ -55,16 +54,8 @@ def make_token():
 
 
 @fixture
-def default_ctx():
+def context():
     return Context(api_token=make_token(), project="default_project")
-
-
-@fixture(autouse=True)
-def set_default_context(monkeypatch, default_ctx):
-    monkeypatch.setenv(env.NEPTUNE_PROJECT.name, default_ctx.project)
-    monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, default_ctx.api_token)
-
-    npt.set_context()
 
 
 @fixture(autouse=True)
@@ -85,58 +76,48 @@ def mock_networking():
         yield
 
 
-def test_same_token(default_ctx):
-    client = get_client()
-    assert get_client() is client
-    assert get_client(Context(api_token=default_ctx.api_token, project="default_project")) is client
+def test_same_token(context):
+    """Should return a single instance of the client because the token is the same"""
 
-    ctx = default_ctx.with_api_token(make_token())
-    client2 = get_client(ctx)
-    assert client2 is not client
-
-    npt.set_api_token(ctx.api_token)
-    assert get_client(ctx) is client2
+    client = get_client(context)
+    assert get_client(context) is client
 
 
-def test_same_token_different_project(default_ctx):
-    client = get_client()
-    assert get_client(default_ctx.with_project("foo")) is client
+def test_same_token_different_project(context):
+    """Should return a single instance of the client because the token is the same"""
 
-    npt.set_project("foo")
-    assert get_client() is client
-
-
-def test_different_token(default_ctx):
-    client = get_client()
-    assert get_client(default_ctx.with_api_token(make_token())) is not client
-
-    npt.set_api_token(make_token())
-    assert get_client() is not client
+    client = get_client(context)
+    assert get_client(context.with_project("foo")) is client
 
 
-def test_same_token_and_proxies(default_ctx):
+def test_different_token(context):
+    """Should return a different instance of the client, depending on the token"""
+
+    client = get_client(context)
+    assert get_client(context.with_api_token(make_token())) is not client
+
+
+def test_same_token_and_proxies(context):
+    """Should return a single instance of the client because the token and proxies are the same"""
     proxies = {"https": "https://proxy.does-not-exist"}
 
-    client = get_client(proxies=proxies)
-    assert get_client(proxies=proxies) is client
-    assert get_client(default_ctx.with_project("foo"), proxies=proxies) is client
+    client = get_client(context, proxies=proxies)
+    assert get_client(context, proxies=proxies) is client
+    assert get_client(context.with_project("foo"), proxies=proxies) is client
 
 
-def test_same_token_different_proxies(default_ctx):
+def test_same_token_different_proxies(context):
+    """Should return a different instance of the client because the proxies are different"""
     proxies1 = {"https": "https://proxy1.does-not-exist"}
     proxies2 = {"https": "https://proxy2.does-not-exist"}
 
-    assert get_client(proxies=proxies1) is not get_client(proxies=proxies2)
-
-    ctx = default_ctx.with_api_token(make_token())
-    assert get_client(ctx, proxies=proxies1) is not get_client(ctx, proxies=proxies2)
+    assert get_client(context, proxies=proxies1) is not get_client(context, proxies=proxies2)
 
 
-def test_same_proxies_different_token(default_ctx):
+def test_same_proxies_different_token(context):
+    """Should return a different instance of the client because the API token is different"""
+
     proxies = {"https": "https://proxy.does-not-exist"}
 
-    client = get_client(proxies=proxies)
-    assert get_client(default_ctx.with_api_token(make_token()), proxies=proxies) is not client
-
-    npt.set_api_token(make_token())
-    assert get_client(proxies=proxies) is not client
+    client = get_client(context, proxies=proxies)
+    assert get_client(context.with_api_token(make_token()), proxies=proxies) is not client
