@@ -1,7 +1,7 @@
+import itertools
 import os
 import re
 import time
-from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import (
     datetime,
     timezone,
@@ -13,6 +13,7 @@ from neptune_fetcher.alpha.filter import AttributeFilter
 from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     fetch_attribute_definitions,
+    stream_attribute_definitions,
 )
 from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
 
@@ -307,17 +308,36 @@ def test_find_attributes_paging_executor(client, project, experiment_identifier)
 
     #  when
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        attributes = fetch_attribute_definitions(
-            client,
-            [project_identifier],
-            [experiment_identifier],
-            attribute_filter=attribute_filter,
-            batch_size=1,
-            executor=executor,
-        )
+
+    attributes = fetch_attribute_definitions(
+        client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+    )
 
     # then
+    assert set(attributes) == {
+        AttributeDefinition("sys/creation_time", "datetime"),
+        AttributeDefinition("sys/modification_time", "datetime"),
+        AttributeDefinition("sys/ping_time", "datetime"),
+    }
+
+
+def test_stream_definitions_should_deduplicate_items(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    for i in range(10):
+        attribute_filter = attribute_filter | AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+
+    generator = stream_attribute_definitions(
+        client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+    )
+
+    attributes = list(itertools.chain.from_iterable([i.items for i in generator]))
+
+    # then
+    assert len(attributes) == 3
     assert set(attributes) == {
         AttributeDefinition("sys/creation_time", "datetime"),
         AttributeDefinition("sys/modification_time", "datetime"),
