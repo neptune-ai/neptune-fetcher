@@ -26,13 +26,16 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 
-from neptune_fetcher.alpha.context import Context
+from neptune_fetcher.alpha.context import (
+    Context,
+    get_context,
+    validate_context,
+)
 
 from ..utilities.net import (
     create_auth_api_client,
     get_config_and_token_urls,
 )
-from .internal.util import get_context
 
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)
@@ -43,7 +46,7 @@ class AuthenticatedClientBuilder:
 
     @classmethod
     def build(cls, context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
-        api_token = get_context(context).api_token
+        api_token = validate_context(context or get_context()).api_token
         hash_key = hash((api_token, proxies))
 
         if hash_key in cls.cache:
