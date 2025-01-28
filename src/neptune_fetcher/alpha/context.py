@@ -71,11 +71,8 @@ def get_context() -> Context:
 def set_context(context: Optional[Context] = None) -> Context:
     global _context
 
-    if context is None:
-        context = _context_from_env()
-
     with _lock:
-        _context = context
+        _context = context or _context_from_env()
         return _context
 
 
