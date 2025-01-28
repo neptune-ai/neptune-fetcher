@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import (
     datetime,
     timezone,
@@ -449,6 +450,22 @@ def test_find_experiments_paging(client, project, run, run_with_attributes):
     experiment_names = _extract_names(
         fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None, batch_size=1)
     )
+
+    # then
+    assert len(experiment_names) > 1
+
+
+def test_find_experiments_paging_executor(client, project, run_with_attributes):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        experiment_names = _extract_names(
+            fetch_experiment_sys_attrs(
+                client, project_identifier, experiment_filter=None, batch_size=1, executor=executor
+            )
+        )
 
     # then
     assert len(experiment_names) > 1

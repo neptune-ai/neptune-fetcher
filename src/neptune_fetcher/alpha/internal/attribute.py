@@ -71,6 +71,7 @@ def fetch_attribute_definitions(
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attribute_filter,
                 batch_size=batch_size,
+                executor=executor,
             )
             for item in page.items
         ]
@@ -109,6 +110,7 @@ def _fetch_attribute_definitions_single_filter(
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
+    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),
@@ -144,6 +146,7 @@ def _fetch_attribute_definitions_single_filter(
         process_page=_process_attribute_definitions_page,
         make_new_page_params=_make_new_attribute_definitions_page_params,
         params=params,
+        executor=executor,
     )
 
 
