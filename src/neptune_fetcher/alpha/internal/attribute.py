@@ -175,7 +175,7 @@ def _make_new_attribute_definitions_page_params(
         return params
 
     next_page_token = data.next_page.next_page_token
-    if next_page_token is None:
+    if not next_page_token:
         return None
 
     params["nextPage"]["nextPageToken"] = next_page_token

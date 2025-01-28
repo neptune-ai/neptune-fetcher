@@ -441,7 +441,7 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
-def test_find_experiments_paging(client, project, run_with_attributes):
+def test_find_experiments_paging(client, project, run, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
