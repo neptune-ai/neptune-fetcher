@@ -28,7 +28,11 @@ from typing import (
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.context import global_context
+from neptune_fetcher.alpha import context as context_module
+from neptune_fetcher.alpha.internal.env import (
+    NEPTUNE_API_TOKEN,
+    NEPTUNE_PROJECT,
+)
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
@@ -106,26 +110,34 @@ def backoff_retry(
 
 def get_context(user_ctx: Optional[Context] = None) -> Context:
     """
-    Return the global context, or the user-provided context if it is not None.
-    If any of the fields in `user_ctx` are None, the global context will be used for that field.
-
+    Return the global context, or the user-provided context if it is not None, after validating it.
     Always pass the user-provided context through this function, as it will ensure that all the fields are set.
     """
 
-    global_ctx = global_context()
-    if user_ctx is None:
-        return global_ctx
+    ctx = user_ctx if user_ctx else context_module.get_context()
+    return validate_context(ctx)
 
-    project = user_ctx.project
-    api_token = user_ctx.api_token
 
-    if project and api_token:
-        return user_ctx
+def validate_context(context: Optional[Context] = None) -> Context:
+    assert context is not None, "Context should have been set on import"
 
-    if project is None:
-        project = global_ctx.project
+    if context.project is None:
+        raise ValueError(_PROJECT_NOT_SET_MESSAGE)
+    if context.api_token is None:
+        raise ValueError(_API_TOKEN_NOT_SET_MESSAGE)
 
-    if api_token is None:
-        api_token = global_ctx.api_token
+    return context
 
-    return Context(project=project, api_token=api_token)
+
+_CONTEXT_ERROR_TEMPLATE = """Unable to determine {thing}.
+
+Set it using the environment variable {env_var}, by calling neptune.{func}(),
+or by passing the Context() argument with both fields set.
+"""
+
+_PROJECT_NOT_SET_MESSAGE = _CONTEXT_ERROR_TEMPLATE.format(
+    thing="Neptune project name", env_var=NEPTUNE_PROJECT.name, func="set_project"
+)
+_API_TOKEN_NOT_SET_MESSAGE = _CONTEXT_ERROR_TEMPLATE.format(
+    thing="Neptune API token", env_var=NEPTUNE_API_TOKEN.name, func="set_api_token"
+)
