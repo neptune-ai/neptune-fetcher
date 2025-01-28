@@ -21,18 +21,11 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Optional,
     TypeVar,
 )
 
 from neptune_retrieval_api.types import Response
 
-from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha import context as context_module
-from neptune_fetcher.alpha.internal.env import (
-    NEPTUNE_API_TOKEN,
-    NEPTUNE_PROJECT,
-)
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
@@ -106,38 +99,3 @@ def backoff_retry(
         raise NeptuneException("Unknown error occurred when requesting data")
 
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
-
-
-def get_context(user_ctx: Optional[Context] = None) -> Context:
-    """
-    Return the global context, or the user-provided context if it is not None, after validating it.
-    Always pass the user-provided context through this function, as it will ensure that all the fields are set.
-    """
-
-    ctx = user_ctx if user_ctx else context_module.get_context()
-    return validate_context(ctx)
-
-
-def validate_context(context: Optional[Context] = None) -> Context:
-    assert context is not None, "Context should have been set on import"
-
-    if context.project is None:
-        raise ValueError(_PROJECT_NOT_SET_MESSAGE)
-    if context.api_token is None:
-        raise ValueError(_API_TOKEN_NOT_SET_MESSAGE)
-
-    return context
-
-
-_CONTEXT_ERROR_TEMPLATE = """Unable to determine {thing}.
-
-Set it using the environment variable {env_var}, by calling neptune.{func}(),
-or by passing the Context() argument with both fields set.
-"""
-
-_PROJECT_NOT_SET_MESSAGE = _CONTEXT_ERROR_TEMPLATE.format(
-    thing="Neptune project name", env_var=NEPTUNE_PROJECT.name, func="set_project"
-)
-_API_TOKEN_NOT_SET_MESSAGE = _CONTEXT_ERROR_TEMPLATE.format(
-    thing="Neptune API token", env_var=NEPTUNE_API_TOKEN.name, func="set_api_token"
-)
