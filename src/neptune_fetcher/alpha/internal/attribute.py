@@ -118,13 +118,10 @@ def stream_attribute_definitions(
             futures = list(not_done)
             for f in done:
                 page, generator = f.result()
-                if page is not None and page.items:
+                if page.items:
                     futures.append(executor.submit(_next, generator))
-                    page_items = []
-                    for item in page.items:
-                        if item not in returned_items:
-                            returned_items.add(item)
-                            page_items.append(item)
+                    page_items = [item for item in page.items if item not in returned_items]
+                    returned_items.update(page_items)
                     if page_items:
                         yield util.Page(items=page_items)
 
