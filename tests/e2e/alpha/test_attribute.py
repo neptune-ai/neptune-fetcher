@@ -13,8 +13,13 @@ from neptune_fetcher.alpha.filter import AttributeFilter
 from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     fetch_attribute_definitions,
+    fetch_attributes,
 )
 from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.types import (
+    AttributeValue,
+    FloatSeriesAggregates,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = "pye2e-fetcher-test-attribute"
@@ -84,7 +89,7 @@ def experiment_identifier(client, project, run_with_attributes) -> ExperimentIde
     return ExperimentIdentifier(project_identifier, sys_id)
 
 
-def test_find_attributes_single_string(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_string(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -97,10 +102,10 @@ def test_find_attributes_single_string(client, project, experiment_identifier):
     )
 
     # then
-    assert attributes == [AttributeDefinition("sys/name", "string")]
+    assert attributes == [AttributeDefinition("sys/name", "string", attribute_filter)]
 
 
-def test_find_attributes_does_not_exist(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -116,7 +121,7 @@ def test_find_attributes_does_not_exist(client, project, experiment_identifier):
     assert attributes == []
 
 
-def test_find_attributes_two_strings(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_two_strings(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -129,10 +134,10 @@ def test_find_attributes_two_strings(client, project, experiment_identifier):
     )
 
     # then
-    assert set(attributes) == {AttributeDefinition("sys/name", "string"), AttributeDefinition("sys/owner", "string")}
+    assert set(attributes) == {AttributeDefinition("sys/name", "string", attribute_filter), AttributeDefinition("sys/owner", "string", attribute_filter)}
 
 
-def test_find_attributes_single_series(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_series(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
@@ -146,24 +151,24 @@ def test_find_attributes_single_series(client, project, experiment_identifier):
     )
 
     # then
-    assert attributes == [AttributeDefinition(path, "float_series")]
+    assert attributes == [AttributeDefinition(path, "float_series", attribute_filter)]
 
 
-def test_find_attributes_all_types(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     all_attrs = [
-        AttributeDefinition(f"{COMMON_PATH}/int-value", "int"),
-        AttributeDefinition(f"{COMMON_PATH}/float-value", "float"),
-        AttributeDefinition(f"{COMMON_PATH}/str-value", "string"),
-        AttributeDefinition(f"{COMMON_PATH}/bool-value", "bool"),
-        AttributeDefinition(f"{COMMON_PATH}/datetime-value", "datetime"),
-        AttributeDefinition(f"{COMMON_PATH}/float-series-value", "float_series"),
-        AttributeDefinition("sys/tags", "string_set"),
+        (f"{COMMON_PATH}/int-value", "int"),
+        (f"{COMMON_PATH}/float-value", "float"),
+        (f"{COMMON_PATH}/str-value", "string"),
+        (f"{COMMON_PATH}/bool-value", "bool"),
+        (f"{COMMON_PATH}/datetime-value", "datetime"),
+        (f"{COMMON_PATH}/float-series-value", "float_series"),
+        ("sys/tags", "string_set"),
     ]
 
     #  when
-    attribute_filter = AttributeFilter(name_eq=[attr.name for attr in all_attrs])
+    attribute_filter = AttributeFilter(name_eq=[name for name, _ in all_attrs])
     attributes = _extract_pages(
         fetch_attribute_definitions(
             client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
@@ -171,10 +176,11 @@ def test_find_attributes_all_types(client, project, experiment_identifier):
     )
 
     # then
-    assert set(attributes) == set(all_attrs)
+    expected_definitions = [AttributeDefinition(name, type, attribute_filter) for name, type in all_attrs]
+    assert set(attributes) == set(expected_definitions)
 
 
-def test_find_attributes_no_type_in(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_no_type_in(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -187,10 +193,10 @@ def test_find_attributes_no_type_in(client, project, experiment_identifier):
     )
 
     # then
-    assert attributes == [AttributeDefinition("sys/name", "string")]
+    assert attributes == [AttributeDefinition("sys/name", "string", attribute_filter)]
 
 
-def test_find_attributes_regex_matches_all(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_regex_matches_all(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -204,13 +210,13 @@ def test_find_attributes_regex_matches_all(client, project, experiment_identifie
 
     # then
     assert set(attributes) == {
-        AttributeDefinition("sys/creation_time", "datetime"),
-        AttributeDefinition("sys/modification_time", "datetime"),
-        AttributeDefinition("sys/ping_time", "datetime"),
+        AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/modification_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
     }
 
 
-def test_find_attributes_regex_matches_none(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_regex_matches_none(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -226,12 +232,12 @@ def test_find_attributes_regex_matches_none(client, project, experiment_identifi
 
     # then
     assert set(attributes) == {
-        AttributeDefinition("sys/creation_time", "datetime"),
-        AttributeDefinition("sys/ping_time", "datetime"),
+        AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
     }
 
 
-def test_find_attributes_multiple_projects(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_multiple_projects(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     project_identifier_2 = f"{project_identifier}-does-not-exist"
@@ -248,10 +254,10 @@ def test_find_attributes_multiple_projects(client, project, experiment_identifie
     )
 
     # then
-    assert attributes == [AttributeDefinition("sys/name", "string")]
+    assert attributes == [AttributeDefinition("sys/name", "string", attribute_filter)]
 
 
-def test_find_attributes_filter_or(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_filter_or(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -268,8 +274,8 @@ def test_find_attributes_filter_or(client, project, experiment_identifier):
 
     # then
     assert set(attributes) == {
-        AttributeDefinition(f"{COMMON_PATH}/int_value_a", "int"),
-        AttributeDefinition(f"{COMMON_PATH}/float_value_b", "float"),
+        AttributeDefinition(f"{COMMON_PATH}/int_value_a", "int", attribute_filter_1),
+        AttributeDefinition(f"{COMMON_PATH}/float_value_b", "float", attribute_filter_2),
     }
 
 
@@ -281,7 +287,7 @@ def test_find_attributes_filter_or(client, project, experiment_identifier):
         lambda a, b, c: AttributeFilter.any(a, AttributeFilter.any(b, c)),
     ],
 )
-def test_find_attributes_filter_triple_or(client, project, experiment_identifier, make_attribute_filter):
+def test_fetch_attribute_definitions_filter_triple_or(client, project, experiment_identifier, make_attribute_filter):
     # given
     project_identifier = project.project_identifier
 
@@ -299,13 +305,13 @@ def test_find_attributes_filter_triple_or(client, project, experiment_identifier
 
     # then
     assert set(attributes) == {
-        AttributeDefinition(f"{COMMON_PATH}/int_value_a", "int"),
-        AttributeDefinition(f"{COMMON_PATH}/int_value_b", "int"),
-        AttributeDefinition(f"{COMMON_PATH}/float_value_b", "float"),
+        AttributeDefinition(f"{COMMON_PATH}/int_value_a", "int", attribute_filter_1),
+        AttributeDefinition(f"{COMMON_PATH}/int_value_b", "int", attribute_filter_3),
+        AttributeDefinition(f"{COMMON_PATH}/float_value_b", "float", attribute_filter_2),
     }
 
 
-def test_find_attributes_paging(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_paging(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -319,13 +325,13 @@ def test_find_attributes_paging(client, project, experiment_identifier):
 
     # then
     assert set(attributes) == {
-        AttributeDefinition("sys/creation_time", "datetime"),
-        AttributeDefinition("sys/modification_time", "datetime"),
-        AttributeDefinition("sys/ping_time", "datetime"),
+        AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/modification_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
     }
 
 
-def test_find_attributes_paging_executor(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_paging_executor(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -340,13 +346,13 @@ def test_find_attributes_paging_executor(client, project, experiment_identifier)
 
     # then
     assert set(attributes) == {
-        AttributeDefinition("sys/creation_time", "datetime"),
-        AttributeDefinition("sys/modification_time", "datetime"),
-        AttributeDefinition("sys/ping_time", "datetime"),
+        AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/modification_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
     }
 
 
-def test_stream_definitions_should_deduplicate_items(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_should_deduplicate_items(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -364,9 +370,142 @@ def test_stream_definitions_should_deduplicate_items(client, project, experiment
     # then
     assert len(attributes) == 3
     assert set(attributes) == {
-        AttributeDefinition("sys/creation_time", "datetime"),
-        AttributeDefinition("sys/modification_time", "datetime"),
-        AttributeDefinition("sys/ping_time", "datetime"),
+        AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/modification_time", "datetime", attribute_filter),
+        AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
+    }
+
+
+def test_fetch_attributes_single_string(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    values = _extract_pages(
+        fetch_attributes(
+            client, project_identifier, [experiment_identifier], [
+                AttributeDefinition("sys/name", "string", AttributeFilter(name_eq="sys/name"))
+            ]
+        )
+    )
+
+    # then
+    assert values == [AttributeValue("sys/name", "string", EXPERIMENT_NAME)]
+
+
+def test_fetch_attributes_two_strings(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    values = _extract_pages(
+        fetch_attributes(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [
+                AttributeDefinition("sys/name", "string", AttributeFilter(name_eq="sys/name")),
+                AttributeDefinition("sys/owner", "string", AttributeFilter(name_eq="sys/owner")),],
+        )
+    )
+
+    # then
+    assert set((value.name, value.type) for value in values) == {
+        ("sys/name", "string"),
+        ("sys/owner", "string"),
+    }
+
+
+def test_fetch_attributes_single_series(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = f"{COMMON_PATH}/float-series-value"
+
+    #  when
+    values = _extract_pages(
+        fetch_attributes(
+            client, project_identifier, [experiment_identifier],
+            [AttributeDefinition(path, "float_series", AttributeFilter(name_eq=path))]
+        )
+    )
+
+    # then
+    average = sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES)
+    aggregates = FloatSeriesAggregates(
+        last=FLOAT_SERIES_VALUES[-1],
+        min=min(FLOAT_SERIES_VALUES),
+        max=max(FLOAT_SERIES_VALUES),
+        average=average,
+        variance=sum((value - average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
+    )
+    assert values == [AttributeValue(path, "float_series", aggregates)]
+
+
+def test_fetch_attributes_all_types(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    series_average = sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES)
+    all_values = [
+        AttributeValue(f"{COMMON_PATH}/int-value", "int", 10),
+        AttributeValue(f"{COMMON_PATH}/float-value", "float", 0.5),
+        AttributeValue(f"{COMMON_PATH}/str-value", "string", "hello"),
+        AttributeValue(f"{COMMON_PATH}/bool-value", "bool", True),
+        AttributeValue(f"{COMMON_PATH}/datetime-value", "datetime", DATETIME_VALUE),
+        AttributeValue(
+            f"{COMMON_PATH}/float-series-value",
+            "float_series",
+            FloatSeriesAggregates(
+                last=FLOAT_SERIES_VALUES[-1],
+                min=min(FLOAT_SERIES_VALUES),
+                max=max(FLOAT_SERIES_VALUES),
+                average=series_average,
+                variance=sum((value - series_average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
+            ),
+        ),
+        AttributeValue("sys/tags", "string_set", {"string-set-item"}),
+    ]
+
+    #  when
+    values = _extract_pages(
+        fetch_attributes(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [AttributeDefinition(attr.name, attr.type, AttributeFilter(name_eq=attr.name)) for attr in all_values],
+        )
+    )
+
+    # then
+    assert len(values) == len(all_values)
+    for expected in all_values:
+        value = next(value for value in values if value.name == expected.name)
+        assert value == expected
+
+
+def test_fetch_attributes_paging(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    values = _extract_pages(
+        fetch_attributes(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [
+                AttributeDefinition("sys/creation_time", "datetime", AttributeFilter(name_eq="sys/creation_time")),
+                AttributeDefinition("sys/modification_time", "datetime", AttributeFilter(name_eq="sys/modification_time")),
+                AttributeDefinition("sys/ping_time", "datetime", AttributeFilter(name_eq="sys/ping_time")),
+            ],
+            batch_size=1,
+        )
+    )
+
+    # then
+    assert set((value.name, value.type) for value in values) == {
+        ("sys/creation_time", "datetime"),
+        ("sys/modification_time", "datetime"),
+        ("sys/ping_time", "datetime"),
     }
 
 

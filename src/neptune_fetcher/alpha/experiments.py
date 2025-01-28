@@ -21,17 +21,17 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.context import Context
-from neptune_fetcher.alpha.internal.context import get_local_or_global_context
-from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
-from neptune_fetcher.alpha.internal.attribute import fetch_attribute_definitions
-from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.api_client import AuthenticatedClientBuilder
+from neptune_fetcher.alpha.context import Context
 from neptune_fetcher.alpha.filter import (
     Attribute,
     AttributeFilter,
     ExperimentFilter,
 )
+from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.attribute import fetch_attribute_definitions
+from neptune_fetcher.alpha.internal.context import get_local_or_global_context
+from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 
 def fetch_experiments_table(
@@ -66,11 +66,20 @@ def fetch_experiments_table(
     client = AuthenticatedClientBuilder.build(context=context)
     project = identifiers.ProjectIdentifier(context.project)
 
-    experiment_pages = fetch_experiment_sys_attrs(client=client, project_identifier=project, experiment_filter=experiments)
+    experiment_pages = fetch_experiment_sys_attrs(
+        client=client,
+        project_identifier=project,
+        experiment_filter=experiments,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        limit=limit,
+    )
     for experiment_sys in experiment_pages:
         attribute_names = fetch_attribute_definitions(
             client=client,
             project_identifiers=[project],
-            experiment_identifiers=[identifiers.ExperimentIdentifier(project, info.sys_id) for info in experiment_sys.items],
+            experiment_identifiers=[
+                identifiers.ExperimentIdentifier(project, info.sys_id) for info in experiment_sys.items
+            ],
             attribute_filter=attributes,
         )

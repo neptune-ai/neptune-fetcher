@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
+    Literal,
     Optional,
 )
 
@@ -28,13 +29,24 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 
-from neptune_fetcher.alpha.filter import ExperimentFilter
+from neptune_fetcher.alpha.filter import (
+    Attribute,
+    ExperimentFilter,
+)
 from neptune_fetcher.alpha.internal import (
+    env,
     identifiers,
     util,
 )
 
-_DEFAULT_BATCH_SIZE = 10_000
+_DIRECTION_PYTHON_TO_BACKEND_MAP: dict[str, str] = {
+    "asc": "ascending",
+    "desc": "descending",
+}
+
+
+def _map_direction(direction: Literal["asc", "desc"]) -> str:
+    return _DIRECTION_PYTHON_TO_BACKEND_MAP[direction]
 
 
 @dataclass(frozen=True)
@@ -47,22 +59,33 @@ def fetch_experiment_sys_attrs(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[ExperimentFilter] = None,
-    batch_size: int = _DEFAULT_BATCH_SIZE,
+    sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
+    sort_direction: Literal["asc", "desc"] = "desc",
+    limit: Optional[int] = None,
+    batch_size: int = env.NEPTUNE_FETCHER_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
 ) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}, {"path": "sys/id"}],
         "pagination": {"limit": batch_size},
         "experimentLeader": True,
+        "sorting": {
+            "dir": _map_direction(sort_direction),
+            "sortBy": {"name": sort_by.name},
+        },
     }
     if experiment_filter is not None:
         params["query"] = {"query": str(experiment_filter)}
+    if sort_by.aggregation is not None:
+        params["sorting"]["aggregationMode"] = sort_by.aggregation
+    if sort_by.type is not None:
+        params["sorting"]["sortBy"]["type"] = sort_by.type
 
     return util.fetch_pages(
         client=client,
         fetch_page=ft.partial(_fetch_experiment_page, project_identifier=project_identifier),
         process_page=_process_experiment_page,
-        make_new_page_params=ft.partial(_make_new_experiment_page_params, batch_size=batch_size),
+        make_new_page_params=ft.partial(_make_new_experiment_page_params, batch_size=batch_size, limit=limit),
         params=params,
         executor=executor,
     )
@@ -101,13 +124,21 @@ def _make_new_experiment_page_params(
     params: dict[str, Any],
     data: Optional[ProtoLeaderboardEntriesSearchResultDTO],
     batch_size: int,
+    limit: Optional[int],
 ) -> Optional[dict[str, Any]]:
+
     if data is None:
         params["pagination"]["offset"] = 0
+        if limit is not None:
+            params["pagination"]["limit"] = min(limit, batch_size)
         return params
 
     if len(data.entries) < batch_size:
         return None
 
     params["pagination"]["offset"] += batch_size
+    if limit is not None:
+        offset = params["pagination"]["offset"]
+        params["pagination"]["limit"] = min(limit - offset, batch_size)
+
     return params

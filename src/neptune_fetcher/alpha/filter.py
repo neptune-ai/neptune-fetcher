@@ -71,7 +71,7 @@ class Attribute:
         query = f"`{self.name}`"
 
         if self.type is not None:
-            _type = types.map_attribute_type_user_to_backend(self.type)
+            _type = types.map_attribute_type_python_to_backend(self.type)
             query += f":{_type}"
 
         if self.aggregation is not None:
