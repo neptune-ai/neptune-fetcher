@@ -18,10 +18,7 @@ import concurrent.futures
 import functools as ft
 import itertools as it
 import re
-from concurrent.futures import (
-    Executor,
-    ThreadPoolExecutor,
-)
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -124,15 +121,10 @@ def fetch_attribute_definitions(
                         yield util.Page(items=page_items)
 
     if executor is None:
-        with _create_executor() as _executor:
+        with util.create_executor() as _executor:
             yield from _main(_executor)
     else:
         yield from _main(executor)
-
-
-def _create_executor() -> Executor:
-    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
-    return ThreadPoolExecutor(max_workers=max_workers)
 
 
 def _fetch_attribute_definitions_single_filter(
@@ -258,7 +250,7 @@ def _union_options(options: list[Optional[list[str]]]) -> Optional[list[str]]:
     return result
 
 
-def fetch_attributes(
+def fetch_attribute_values(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],

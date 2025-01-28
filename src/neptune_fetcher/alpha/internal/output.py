@@ -13,4 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# import pandas as pd
+import pandas as pd
+
+from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.types import AttributeValue
+
+
+def convert_experiment_table_to_dataframe(
+    result: dict[ExperimentIdentifier, list[AttributeValue]], type_suffix_in_column_names: bool
+) -> pd.DataFrame:
+    return pd.DataFrame()

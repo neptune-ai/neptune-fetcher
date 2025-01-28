@@ -13,7 +13,7 @@ from neptune_fetcher.alpha.filter import AttributeFilter
 from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     fetch_attribute_definitions,
-    fetch_attributes,
+    fetch_attribute_values,
 )
 from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
 from neptune_fetcher.alpha.internal.types import (
@@ -402,13 +402,13 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
     )
 
 
-def test_fetch_attributes_single_string(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_string(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -420,13 +420,13 @@ def test_fetch_attributes_single_string(client, project, experiment_identifier):
     assert values == [AttributeValue("sys/name", "string", EXPERIMENT_NAME)]
 
 
-def test_fetch_attributes_two_strings(client, project, experiment_identifier):
+def test_fetch_attribute_values_two_strings(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -444,14 +444,14 @@ def test_fetch_attributes_two_strings(client, project, experiment_identifier):
     }
 
 
-def test_fetch_attributes_single_series_all_aggregations(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_series_all_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -477,14 +477,14 @@ def test_fetch_attributes_single_series_all_aggregations(client, project, experi
     assert values == [AttributeValue(path, "float_series", aggregates)]
 
 
-def test_fetch_attributes_single_series_default_aggregations(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_series_default_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -499,14 +499,14 @@ def test_fetch_attributes_single_series_default_aggregations(client, project, ex
     assert values == [AttributeValue(path, "float_series", aggregates)]
 
 
-def test_fetch_attributes_single_series_selected_aggregations(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_series_selected_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -522,7 +522,7 @@ def test_fetch_attributes_single_series_selected_aggregations(client, project, e
     assert values == [AttributeValue(path, "float_series", aggregates)]
 
 
-def test_fetch_attributes_all_types(client, project, experiment_identifier):
+def test_fetch_attribute_values_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     all_values = [
@@ -543,7 +543,7 @@ def test_fetch_attributes_all_types(client, project, experiment_identifier):
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],
@@ -558,13 +558,13 @@ def test_fetch_attributes_all_types(client, project, experiment_identifier):
         assert value == expected
 
 
-def test_fetch_attributes_paging(client, project, experiment_identifier):
+def test_fetch_attribute_values_paging(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
     #  when
     values = _extract_pages(
-        fetch_attributes(
+        fetch_attribute_values(
             client,
             project_identifier,
             [experiment_identifier],

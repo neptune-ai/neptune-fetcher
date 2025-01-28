@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from collections import defaultdict
 from typing import (
     Literal,
     Optional,
@@ -28,10 +28,19 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.attribute import fetch_attribute_definitions
+from neptune_fetcher.alpha.internal import (
+    identifiers,
+    output,
+    util,
+)
+from neptune_fetcher.alpha.internal.attribute import (
+    fetch_attribute_definitions,
+    fetch_attribute_values,
+)
 from neptune_fetcher.alpha.internal.context import get_local_or_global_context
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
+from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.types import AttributeValue
 
 
 def fetch_experiments_table(
@@ -64,22 +73,57 @@ def fetch_experiments_table(
     """
     context = get_local_or_global_context(ctx=context)
     client = AuthenticatedClientBuilder.build(context=context)
-    project = identifiers.ProjectIdentifier(context.project)
+    # TODO: I expect context module to prove that project is not None here
+    project = identifiers.ProjectIdentifier(context.project)  # type: ignore
 
-    experiment_pages = fetch_experiment_sys_attrs(
-        client=client,
-        project_identifier=project,
-        experiment_filter=experiments,
-        sort_by=sort_by,
-        sort_direction=sort_direction,
-        limit=limit,
-    )
-    for experiment_sys in experiment_pages:
-        attribute_names = fetch_attribute_definitions(
+    if isinstance(experiments, str):
+        experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all("sys/name", experiments)
+    else:
+        experiments_filter = experiments
+
+    if isinstance(attributes, str):
+        attributes_filter = AttributeFilter(name_matches_all=attributes)
+    else:
+        attributes_filter = attributes
+
+    if isinstance(sort_by, str):
+        sort_by_attribute = Attribute(sort_by, type="string")  # TODO: infer type?
+    else:
+        sort_by_attribute = sort_by
+
+    result: dict[ExperimentIdentifier, list[AttributeValue]] = defaultdict(list)
+    with util.create_executor() as executor:
+        experiment_pages = fetch_experiment_sys_attrs(
             client=client,
-            project_identifiers=[project],
-            experiment_identifiers=[
-                identifiers.ExperimentIdentifier(project, info.sys_id) for info in experiment_sys.items
-            ],
-            attribute_filter=attributes,
+            project_identifier=project,
+            experiment_filter=experiments_filter,
+            sort_by=sort_by_attribute,
+            sort_direction=sort_direction,
+            limit=limit,
+            executor=executor,
         )
+        for experiment_page in experiment_pages:
+            for experiment in experiment_page.items:
+                experiment_identifier = identifiers.ExperimentIdentifier(project, experiment.sys_id)
+                attribute_definition_pages = fetch_attribute_definitions(
+                    client=client,
+                    project_identifiers=[project],
+                    experiment_identifiers=[experiment_identifier],
+                    attribute_filter=attributes_filter,
+                    executor=executor,
+                )
+                for attribute_definition_page in attribute_definition_pages:
+                    attribute_values_pages = fetch_attribute_values(
+                        client=client,
+                        project_identifier=project,
+                        experiment_identifiers=[experiment_identifier],
+                        attribute_definitions=attribute_definition_page.items,
+                        executor=executor,
+                    )
+                    for attribute_values_page in attribute_values_pages:
+                        result[experiment_identifier].extend(attribute_values_page.items)
+
+    dataframe = output.convert_experiment_table_to_dataframe(
+        result, type_suffix_in_column_names=type_suffix_in_column_names
+    )
+    return dataframe

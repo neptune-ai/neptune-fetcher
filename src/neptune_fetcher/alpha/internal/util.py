@@ -16,7 +16,10 @@
 from __future__ import annotations
 
 import time
-from concurrent.futures import Executor
+from concurrent.futures import (
+    Executor,
+    ThreadPoolExecutor,
+)
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -30,6 +33,7 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
+from neptune_fetcher.alpha.internal import env
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
@@ -137,3 +141,8 @@ def backoff_retry(
         raise NeptuneException("Unknown error occurred when requesting data")
 
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+
+
+def create_executor() -> Executor:
+    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
+    return ThreadPoolExecutor(max_workers=max_workers)
