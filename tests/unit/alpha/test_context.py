@@ -91,6 +91,8 @@ def test_set_project(monkeypatch):
 
     with pytest.raises(ValueError):
         npt.set_project("")
+
+    with pytest.raises(ValueError):
         npt.set_project(None)
 
 
@@ -110,6 +112,8 @@ def test_set_api_token(monkeypatch):
 
     with pytest.raises(ValueError):
         npt.set_api_token("")
+
+    with pytest.raises(ValueError):
         npt.set_api_token(None)
 
 
