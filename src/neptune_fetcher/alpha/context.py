@@ -17,10 +17,7 @@
 
 import threading
 from dataclasses import dataclass
-from typing import (
-    Optional,
-    cast,
-)
+from typing import Optional
 
 from neptune_fetcher.alpha.internal.env import (
     NEPTUNE_API_TOKEN,
@@ -29,85 +26,72 @@ from neptune_fetcher.alpha.internal.env import (
 
 __all__ = (
     "Context",
+    "get_context",
     "set_context",
     "set_project",
     "set_api_token",
-    "global_context",
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Context:
     project: Optional[str] = None
     api_token: Optional[str] = None
 
+    def with_project(self, project: str) -> "Context":
+        if not project:
+            raise ValueError("Project name must be provided")
+        return Context(project=project, api_token=self.api_token)
 
-_global_context: Optional[Context] = None
-_lock = threading.RLock()
+    def with_api_token(self, api_token: str) -> "Context":
+        if not api_token:
+            raise ValueError("API token must be provided")
+        return Context(project=self.project, api_token=api_token)
 
 
 def set_project(project: str) -> Context:
-    if not project:
-        raise ValueError("Project name must be provided")
-
+    global _context
     with _lock:
-        current_api_token = _global_context.api_token if _global_context else None
-        return _set_global_context(Context(project=project, api_token=current_api_token))
+        _context = _context.with_project(project)
+        return _context
 
 
 def set_api_token(api_token: str) -> Context:
-    if not api_token:
-        raise ValueError("API token must be provided")
-
+    global _context
     with _lock:
-        current_project = _global_context.project if _global_context else None
-        return _set_global_context(Context(project=current_project, api_token=api_token))
+        _context = _context.with_api_token(api_token)
+        return _context
+
+
+def get_context() -> Context:
+    with _lock:
+        return _context
 
 
 def set_context(context: Optional[Context] = None) -> Context:
+    global _context
+
     if context is None:
-        context = Context()  # Default to env-populated context
-    return _set_global_context(context)
-
-
-def global_context() -> Context:
-    with _lock:
-        if _global_context is None:
-            _set_global_context(Context())
-
-        return cast(Context, _global_context)
-
-
-def _set_global_context(ctx: Context) -> Context:
-    global _global_context
-
-    project, api_token = ctx.project, ctx.api_token
-
-    if project is None:
-        try:
-            project = NEPTUNE_PROJECT.get()
-        except ValueError:
-            raise ValueError(_PROJECT_NOT_SET_MESSAGE)
-
-    if api_token is None:
-        try:
-            api_token = NEPTUNE_API_TOKEN.get()
-        except ValueError:
-            raise ValueError(_API_TOKEN_NOT_SET_MESSAGE)
+        context = _context_from_env()
 
     with _lock:
-        _global_context = Context(project=project, api_token=api_token)
-        return _global_context
+        _context = context
+        return _context
 
 
-_ERROR_TEMPLATE = """Unable to determine {thing}.
+def _context_from_env() -> Context:
+    try:
+        project = NEPTUNE_PROJECT.get()
+    except ValueError:
+        project = None
 
-Set it using the environment variable {env_var} or by calling neptune.{func}().
-"""
+    try:
+        api_token = NEPTUNE_API_TOKEN.get()
+    except ValueError:
+        api_token = None
 
-_PROJECT_NOT_SET_MESSAGE = _ERROR_TEMPLATE.format(
-    thing="Neptune project name", env_var=NEPTUNE_PROJECT.name, func="set_project"
-)
-_API_TOKEN_NOT_SET_MESSAGE = _ERROR_TEMPLATE.format(
-    thing="Neptune API token", env_var=NEPTUNE_API_TOKEN.name, func="set_api_token"
-)
+    return Context(project=project, api_token=api_token)
+
+
+_context: Context = _context_from_env()
+_lock = threading.RLock()
