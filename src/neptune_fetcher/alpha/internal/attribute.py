@@ -64,22 +64,7 @@ def fetch_attribute_definitions(
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = _DEFAULT_BATCH_SIZE,
-) -> list[AttributeDefinition]:
-    items = [
-        page.items
-        for page in stream_attribute_definitions(
-            client, project_identifiers, experiment_identifiers, attribute_filter, batch_size
-        )
-    ]
-    return list(it.chain.from_iterable(items))
-
-
-def stream_attribute_definitions(
-    client: AuthenticatedClient,
-    project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
-    attribute_filter: filter.BaseAttributeFilter,
-    batch_size: int = _DEFAULT_BATCH_SIZE,
+    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     def split_to_tasks(
         _attribute_filter: filter.BaseAttributeFilter,
@@ -91,14 +76,13 @@ def stream_attribute_definitions(
         else:
             raise ValueError(f"Unexpected filter type: {type(_attribute_filter)}")
 
-    with _create_executor() as executor:
-
+    def _main(_executor: Executor) -> Generator[util.Page[AttributeDefinition], None, None]:
         def _next(
             _generator: Generator[util.Page[AttributeDefinition], None, None]
         ) -> Tuple[util.Page[AttributeDefinition], Generator[util.Page[AttributeDefinition], None, None]]:
             return next(_generator, util.Page(items=[])), _generator
 
-        def _go(
+        def _go_fetch_single(
             _filter: filter.AttributeFilter,
         ) -> Tuple[util.Page[AttributeDefinition], Generator[util.Page[AttributeDefinition], None, None]]:
             _generator = _fetch_attribute_definitions_single_filter(
@@ -112,18 +96,24 @@ def stream_attribute_definitions(
 
         filters = split_to_tasks(attribute_filter)
         returned_items = set()
-        futures = [executor.submit(_go, _filter) for _filter in filters]
+        futures = [_executor.submit(_go_fetch_single, _filter) for _filter in filters]
         while futures:
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
             futures = list(not_done)
             for f in done:
                 page, generator = f.result()
                 if page.items:
-                    futures.append(executor.submit(_next, generator))
+                    futures.append(_executor.submit(_next, generator))
                     page_items = [item for item in page.items if item not in returned_items]
                     returned_items.update(page_items)
                     if page_items:
                         yield util.Page(items=page_items)
+
+    if executor is None:
+        with _create_executor() as _executor:
+            yield from _main(_executor)
+    else:
+        yield from _main(executor)
 
 
 def _create_executor() -> Executor:
