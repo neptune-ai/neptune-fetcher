@@ -15,12 +15,14 @@
 
 from __future__ import annotations
 
-__all__ = ["AuthenticatedClientBuilder"]
+__all__ = ("get_client", "clear_cache")
 
 import logging
+import threading
 from typing import (
     Dict,
     Optional,
+    Tuple,
 )
 
 from neptune_api import AuthenticatedClient
@@ -39,28 +41,39 @@ from neptune_fetcher.alpha.context import (
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)
 
+_cache: dict[int, AuthenticatedClient] = {}
+_lock: threading.RLock = threading.RLock()
 
-class AuthenticatedClientBuilder:
-    cache: dict[int, AuthenticatedClient] = {}
 
-    @classmethod
-    def build(cls, context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
-        api_token = validate_context(context or get_context()).api_token
-        hash_key = hash((api_token, proxies))
+def get_client(context: Optional[Context] = None, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
+    api_token = validate_context(context or get_context()).api_token
+    hash_key = hash((api_token, _dict_to_hashable(proxies)))
 
-        if hash_key in cls.cache:
-            return cls.cache[hash_key]
+    with _lock:
+        if (client := _cache.get(hash_key)) is not None:
+            return client
 
-        credentials = Credentials.from_api_key(api_key=api_token)
-        config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
-        client = create_auth_api_client(
-            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies
-        )
+    credentials = Credentials.from_api_key(api_key=api_token)
+    config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
+    client = create_auth_api_client(
+        credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies
+    )
 
-        cls.cache[hash_key] = client
-
+    with _lock:
+        # A client for the given hash_key may have been created while we were doing network I/O.
+        # We choose to keep the existing client in cache and return the one we created,
+        # to reduce contention on client instances.
+        _cache.setdefault(hash_key, client)
         return client
 
-    @classmethod
-    def clear_cache(cls) -> None:
-        cls.cache.clear()
+
+def clear_cache() -> None:
+    with _lock:
+        _cache.clear()
+
+
+def _dict_to_hashable(d: Optional[Dict[str, str]]) -> frozenset[Tuple[str, str]]:
+    """Convert a dict to a hashable data structure"""
+
+    items = tuple() if d is None else d.items()
+    return frozenset(items)
