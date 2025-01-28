@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools as ft
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -46,6 +48,7 @@ def fetch_experiment_sys_attrs(
     project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[ExperimentFilter] = None,
     batch_size: int = _DEFAULT_BATCH_SIZE,
+    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {
         "attributeFilters": [{"path": "sys/name"}, {"path": "sys/id"}],
@@ -55,31 +58,56 @@ def fetch_experiment_sys_attrs(
     if experiment_filter is not None:
         params["query"] = {"query": str(experiment_filter)}
 
-    offset = 0
-    while True:
-        params["pagination"]["offset"] = offset
+    return util.fetch_pages(
+        client=client,
+        fetch_page=ft.partial(_fetch_experiment_page, project_identifier=project_identifier),
+        process_page=_process_experiment_page,
+        make_new_page_params=ft.partial(_make_new_experiment_page_params, batch_size=batch_size),
+        params=params,
+        executor=executor,
+    )
 
-        body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-        response = util.backoff_retry(
-            search_leaderboard_entries_proto.sync_detailed,
-            client=client,
-            project_identifier=project_identifier,
-            type=["run"],
-            body=body,
-        )
+def _fetch_experiment_page(
+    client: AuthenticatedClient,
+    params: dict[str, Any],
+    project_identifier: identifiers.ProjectIdentifier,
+) -> ProtoLeaderboardEntriesSearchResultDTO:
+    body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-        data: ProtoLeaderboardEntriesSearchResultDTO = ProtoLeaderboardEntriesSearchResultDTO.FromString(
-            response.content
-        )
+    response = util.backoff_retry(
+        search_leaderboard_entries_proto.sync_detailed,
+        client=client,
+        project_identifier=project_identifier,
+        type=["run"],
+        body=body,
+    )
 
-        items = []
-        for entry in data.entries:
-            attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
-            item = ExperimentSysAttrs(sys_name=attributes["sys/name"], sys_id=identifiers.SysId(attributes["sys/id"]))
-            items.append(item)
-        yield util.Page(items=items)
+    return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
 
-        if len(data.entries) < batch_size:
-            break
-        offset += batch_size
+
+def _process_experiment_page(
+    data: ProtoLeaderboardEntriesSearchResultDTO,
+) -> util.Page[ExperimentSysAttrs]:
+    items = []
+    for entry in data.entries:
+        attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
+        item = ExperimentSysAttrs(sys_name=attributes["sys/name"], sys_id=identifiers.SysId(attributes["sys/id"]))
+        items.append(item)
+    return util.Page(items=items)
+
+
+def _make_new_experiment_page_params(
+    params: dict[str, Any],
+    data: Optional[ProtoLeaderboardEntriesSearchResultDTO],
+    batch_size: int,
+) -> Optional[dict[str, Any]]:
+    if data is None:
+        params["pagination"]["offset"] = 0
+        return params
+
+    if len(data.entries) < batch_size:
+        return None
+
+    params["pagination"]["offset"] += batch_size
+    return params

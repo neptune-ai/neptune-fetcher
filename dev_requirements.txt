@@ -6,6 +6,5 @@ pytest
 pytest-mock
 pytest-retry
 pytest-timeout
-pytest-xdist
 icecream
 neptune-scale==0.9.1b2
