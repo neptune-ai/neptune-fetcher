@@ -67,6 +67,15 @@ class FloatSeriesAggregates:
     variance: float
 
 
+@dataclass(frozen=True)
+class FloatSeriesAggregatesSubset:
+    last: Optional[float] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    average: Optional[float] = None
+    variance: Optional[float] = None
+
+
 def extract_value(attr: ProtoAttributeDTO) -> Optional[AttributeValue[Any]]:
     if attr.type == "floatSeries":
         return AttributeValue(attr.name, "float_series", extract_aggregates(attr.float_series_properties))

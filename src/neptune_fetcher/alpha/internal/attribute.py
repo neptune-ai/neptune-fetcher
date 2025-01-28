@@ -58,6 +58,7 @@ __ALL__ = ("find_attribute_definitions", "stream_attribute_definitions")
 from neptune_fetcher.alpha.internal.types import (
     AttributeValue,
     extract_value,
+    map_attribute_type_python_to_backend,
 )
 
 
@@ -66,6 +67,9 @@ class AttributeDefinition:
     name: str
     type: str
     source_filter: filter.AttributeFilter
+
+    def key(self) -> Tuple[str, str]:
+        return self.name, self.type
 
 
 def fetch_attribute_definitions(
@@ -105,7 +109,7 @@ def fetch_attribute_definitions(
             return _next(_generator)
 
         filters = split_to_tasks(attribute_filter)
-        returned_items = set()
+        returned_items: set[tuple[str, str]] = set()
         futures = [_executor.submit(_go_fetch_single, _filter) for _filter in filters]
         while futures:
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
@@ -114,8 +118,8 @@ def fetch_attribute_definitions(
                 page, generator = f.result()
                 if page.items:
                     futures.append(_executor.submit(_next, generator))
-                    page_items = [item for item in page.items if item not in returned_items]
-                    returned_items.update(page_items)
+                    page_items = [item for item in page.items if item.key() not in returned_items]
+                    returned_items.update(item.key() for item in page_items)
                     if page_items:
                         yield util.Page(items=page_items)
 
@@ -192,14 +196,14 @@ def _fetch_attribute_definitions_page(
 
 def _process_attribute_definitions_page(
     data: QueryAttributeDefinitionsResultDTO,
-        source_filter: filter.AttributeFilter,
+    source_filter: filter.AttributeFilter,
 ) -> util.Page[AttributeDefinition]:
     items = []
     for entry in data.entries:
         item = AttributeDefinition(
             name=entry.name,
             type=types.map_attribute_type_backend_to_python(str(entry.type)),
-            source_filter=source_filter
+            source_filter=source_filter,
         )
         items.append(item)
     return util.Page(items=items)
@@ -268,10 +272,14 @@ def fetch_attributes(
         "nextPage": {"limit": batch_size},
     }
 
+    attribute_definitions_map = {
+        (ad.name, map_attribute_type_python_to_backend(ad.type)): ad for ad in attribute_definitions
+    }
+
     return util.fetch_pages(
         client=client,
         fetch_page=ft.partial(_fetch_attributes_page, project_identifier=project_identifier),
-        process_page=_process_attributes_page,
+        process_page=ft.partial(_process_attributes_page, attribute_definitions_map=attribute_definitions_map),
         make_new_page_params=_make_new_attributes_page_params,
         params=params,
         executor=executor,
@@ -295,14 +303,38 @@ def _fetch_attributes_page(
     return ProtoQueryAttributesResultDTO.FromString(response.content)
 
 
-def _process_attributes_page(data: ProtoQueryAttributesResultDTO) -> util.Page[AttributeValue]:
+def _process_attributes_page(
+    data: ProtoQueryAttributesResultDTO,
+    attribute_definitions_map: dict[Tuple[str, str], AttributeDefinition],
+) -> util.Page[AttributeValue]:
     items = []
     for entry in data.entries:
         for attr in entry.attributes:
+            attr_definition = attribute_definitions_map.get((attr.name, attr.type))
+            if attr_definition is None:
+                continue
             item = extract_value(attr)
-            if item is not None:
-                items.append(item)
+            if item is None:
+                continue
+            if item.type == "float_series":
+                item = AttributeValue(
+                    name=item.name, type=item.type, value=_filter_aggregates(item.value, attr_definition.source_filter)
+                )
+            items.append(item)
     return util.Page(items=items)
+
+
+def _filter_aggregates(
+    aggregates: types.FloatSeriesAggregates,
+    attribute_filter: filter.AttributeFilter,
+) -> types.FloatSeriesAggregatesSubset:
+    return types.FloatSeriesAggregatesSubset(
+        last=aggregates.last if "last" in attribute_filter.aggregations else None,
+        min=aggregates.min if "min" in attribute_filter.aggregations else None,
+        max=aggregates.max if "max" in attribute_filter.aggregations else None,
+        average=aggregates.average if "average" in attribute_filter.aggregations else None,
+        variance=aggregates.variance if "variance" in attribute_filter.aggregations else None,
+    )
 
 
 def _make_new_attributes_page_params(
