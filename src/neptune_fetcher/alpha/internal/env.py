@@ -35,7 +35,7 @@ class EnvVariable(Generic[T]):
 
     def __init__(self, name: str, value_mapper: Callable[[str], T], default_value: T = _UNSET):
         self.name = name
-        self._value_mapper = staticmethod(value_mapper)
+        self._value_mapper = value_mapper
         self._default_value = default_value
 
     def get(self) -> T:
