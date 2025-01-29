@@ -24,9 +24,13 @@ import pandas as pd
 import pytest
 from neptune_scale import Run
 
-from neptune_fetcher.alpha.context import get_context
+from neptune_fetcher.alpha import (
+    list_experiments,
+    set_project,
+)
 from neptune_fetcher.alpha.experiments import fetch_metrics
 from neptune_fetcher.alpha.filter import (
+    Attribute,
     AttributeFilter,
     ExperimentFilter,
 )
@@ -62,6 +66,14 @@ class TestData:
             for i in range(6):
                 experiment_name = f"pye2e-alpha_{i}_{TEST_DATA_VERSION}"
 
+                configs = {
+                    "test/int-value": i,
+                    "test/float-value": i,
+                    "test/str-value": f"hello_{i}",
+                    "test/bool-value": i % 2 == 0,
+                    "test/datetime-value": datetime.now(),
+                }
+
                 float_series = {
                     path: [float(step * (j + i)) for step in range(NUMBER_OF_STEPS)]
                     for j, path in enumerate(FLOAT_SERIES_PATHS)
@@ -76,9 +88,13 @@ class TestData:
                 float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(NUMBER_OF_STEPS)]
                 self.experiments.append(
                     ExperimentData(
-                        name=experiment_name, config={}, float_series=float_series, unique_series=unique_series
+                        name=experiment_name, config=configs, float_series=float_series, unique_series=unique_series
                     )
                 )
+
+    @property
+    def experiment_names(self):
+        return [exp.name for exp in self.experiments]
 
 
 NOW = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
@@ -110,6 +126,8 @@ def run_with_attributes(client):
             experiment_name=experiment.name,
         )
 
+        run.log_configs(experiment.config)
+
         for index, step in enumerate(experiment.float_series[f"{PATH}/metrics/step"]):
             series = itertools.chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()])
             metrics_data = {path: values[index] for path, values in series}
@@ -122,6 +140,11 @@ def run_with_attributes(client):
         run.close()
 
     return runs
+
+
+@pytest.fixture(autouse=True)
+def set_default_context():
+    set_project(PROJECT)
 
 
 def create_expected_data(
@@ -190,7 +213,6 @@ def test__fetch_metrics_unique(
         step_range=step_range,
         tail_limit=tail_limit,
         include_timestamp=include_timestamp,
-        context=get_context().with_project(PROJECT),
     )
 
     expected = create_expected_data(experiments, type_suffix_in_column_names, include_timestamp)
@@ -206,3 +228,64 @@ def test__fetch_metrics_unique(
         expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
 
     pd.testing.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "regex, expected",
+    [
+        (None, TEST_DATA.experiment_names),
+        (".*", TEST_DATA.experiment_names),
+        ("", TEST_DATA.experiment_names),
+        ("alpha", TEST_DATA.experiment_names),
+        ("alpha_1", [f"pye2e-alpha_1_{TEST_DATA_VERSION}"]),
+        ("alpha_[2,3]", [f"pye2e-alpha_2_{TEST_DATA_VERSION}", f"pye2e-alpha_3_{TEST_DATA_VERSION}"]),
+        ("beta", []),
+        ("alpha_999", []),
+    ],
+)
+def test_list_experiments_with_regex(regex, expected):
+    names = list_experiments(regex)
+    assert len(names) == len(expected)
+    assert set(names) == set(expected)
+
+
+@pytest.mark.parametrize(
+    "filter_, expected",
+    [
+        (ExperimentFilter.eq(Attribute("test/int-value", type="int"), 12345), []),
+        (ExperimentFilter.eq(Attribute("sys/name", type="string"), ""), []),
+        (ExperimentFilter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
+        (
+            ExperimentFilter.matches_all(Attribute("sys/name", type="string"), ["alpha", "1"]),
+            [f"pye2e-alpha_1" f"_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.matches_none(Attribute("sys/name", type="string"), ["3", "4", "5"]),
+            [
+                f"pye2e-alpha_0_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_1_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_2_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (
+            ExperimentFilter.eq(Attribute("test/str-value", type="string"), "hello_1"),
+            [f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute("test/bool-value", type="bool"), False),
+            [
+                f"pye2e-alpha_1_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_3_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_5_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (
+            ExperimentFilter.eq(Attribute("sys/name", type="string"), f"pye2e-alpha_0_{TEST_DATA_VERSION}"),
+            [f"pye2e-alpha_0_{TEST_DATA_VERSION}"],
+        ),
+    ],
+)
+def test_list_experiments_with_filter(filter_, expected):
+    names = list_experiments(filter_)
+    assert set(names) == set(expected)
+    assert len(names) == len(expected)

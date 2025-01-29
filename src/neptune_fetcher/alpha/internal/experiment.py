@@ -92,6 +92,17 @@ def fetch_experiment_sys_attrs(
     )
 
 
+def list_experiments(
+    client: AuthenticatedClient,
+    project_identifier: identifiers.ProjectIdentifier,
+    experiment_filter: Optional[ExperimentFilter] = None,
+    batch_size: int = _DEFAULT_BATCH_SIZE,
+    executor: Optional[Executor] = None,
+) -> Generator[str, None, None]:
+    pages = fetch_experiment_sys_attrs(client, project_identifier, experiment_filter, batch_size, executor)
+    yield from (exp.sys_name for page in pages for exp in page.items)
+
+
 def _fetch_experiment_page(
     client: AuthenticatedClient,
     params: dict[str, Any],
