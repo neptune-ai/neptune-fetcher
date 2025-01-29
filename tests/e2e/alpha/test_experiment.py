@@ -1,6 +1,7 @@
 import os
 import random
 import statistics
+import time
 import uuid
 from dataclasses import (
     dataclass,
@@ -25,10 +26,15 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import env
+from neptune_fetcher.alpha.internal import (
+    env,
+    identifiers,
+)
+from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-PATH = "test/test-experiment"
+TIME_NOW = time.time()
+PATH = f"test/test-experiment-{TIME_NOW}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
 
@@ -51,7 +57,7 @@ class TestData:
     def __post_init__(self):
         if not self.experiments:
             for i in range(6):
-                experiment_name = f"fetch_experiments_table_{i}_e2e"
+                experiment_name = f"fetch_experiments_table_{i}_{TIME_NOW}"
                 config = {
                     f"{PATH}/int-value": 10,
                     f"{PATH}/float-value": 0.5,
@@ -82,10 +88,20 @@ NOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="module")
-def run_with_attributes(project):
+def run_with_attributes(project, client):
     runs = {}
     for experiment in TEST_DATA.experiments:
         project_id = project.project_identifier
+
+        existing = next(
+            fetch_experiment_sys_attrs(
+                client,
+                identifiers.ProjectIdentifier(project_id),
+                ExperimentFilter.name_in(experiment.name),
+            )
+        )
+        if existing.items:
+            continue
 
         run = Run(
             project=project_id,
@@ -102,7 +118,6 @@ def run_with_attributes(project):
 
         runs[experiment.name] = run
 
-    for run in runs.values():
         run.close()
 
     return runs
@@ -250,7 +265,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
         AttributeFilter(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
         AttributeFilter(
             name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
-            name_matches_none=".*[5-9].*",
+            name_matches_none=".*value_[5-9].*",
         ),
         f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
     ],

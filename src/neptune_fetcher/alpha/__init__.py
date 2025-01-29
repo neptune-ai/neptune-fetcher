@@ -28,5 +28,4 @@ from neptune_fetcher.alpha.context import (
     set_context,
     set_project,
 )
-
-from .experiment import fetch_experiments_table
+from neptune_fetcher.alpha.experiment import fetch_experiments_table

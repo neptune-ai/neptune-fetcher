@@ -1,4 +1,5 @@
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import (
     datetime,
@@ -19,8 +20,9 @@ from neptune_fetcher.alpha.internal.experiment import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-EXPERIMENT_NAME = "pye2e-fetcher-test-internal-experiment"
-PATH = "test/test-internal-experiment"
+TIME_NOW = time.time()
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-experiment-{TIME_NOW}"
+PATH = f"test/test-internal-experiment-{TIME_NOW}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
@@ -28,12 +30,25 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
-def run_with_attributes(project):
+def run_with_attributes(client, project):
     import uuid
 
     from neptune_scale import Run
 
+    from neptune_fetcher.alpha.internal import identifiers
+
     project_identifier = project.project_identifier
+
+    existing = next(
+        fetch_experiment_sys_attrs(
+            client,
+            identifiers.ProjectIdentifier(project_identifier),
+            ExperimentFilter.name_in(EXPERIMENT_NAME),
+        )
+    )
+    if existing.items:
+        return
+
     run_id = str(uuid.uuid4())
 
     run = Run(
@@ -55,7 +70,7 @@ def run_with_attributes(project):
     for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
         run.log_metrics(data={path: value}, step=step)
 
-    run.wait_for_processing()
+    run.close()
 
     return run
 
