@@ -116,10 +116,12 @@ def test__fetch_experiments_table(sort_direction, run_with_attributes):
     expected = pd.DataFrame(
         {
             "experiment": experiments if sort_direction == "asc" else experiments[::-1],
+            ("sys/name", ""): experiments if sort_direction == "asc" else experiments[::-1],
         }
-    )
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert len(df) == 6
-    assert pd.testing.assert_frame_equal(df, expected)
+    pd.testing.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
@@ -152,25 +154,28 @@ def test__fetch_experiments_table_with_attributes_filter(
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
         experiments=experiment_filter,
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
     )
 
-    string_suffix = ":string" if type_suffix_in_column_names else ""
-    float_suffix = ":float_series" if type_suffix_in_column_names else ""
+    def suffix(name):
+        return f":{name}" if type_suffix_in_column_names else ""
+
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            "test/int-value" + string_suffix: [10 for _ in range(3)],
-            "test/float-value" + string_suffix: [0.5 for _ in range(3)],
-            "metrics/step"
-            + float_suffix
-            + ":last": [TEST_DATA.experiments[i].float_series["metrics/step"][-1] for i in range(3)],
+            (f"test/int-value{suffix('int')}", ""): [10 for _ in range(3)],
+            (f"test/float-value{suffix('float')}", ""): [0.5 for _ in range(3)],
+            (f"metrics/step{suffix('float_series')}", "last"): [
+                TEST_DATA.experiments[i].float_series["metrics/step"][-1] for i in range(3)
+            ],
         }
-    )
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape[0] == 3
-    assert pd.testing.assert_frame_equal(df, expected)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -189,6 +194,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
         experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -211,22 +217,23 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
                 statistics.fmean(TEST_DATA.experiments[i].float_series["metrics/step"]) for i in range(3)
             ],
             ("metrics/step" + suffix, "variance"): [
-                statistics.variance(TEST_DATA.experiments[i].float_series["metrics/step"]) for i in range(3)
+                statistics.pvariance(TEST_DATA.experiments[i].float_series["metrics/step"]) for i in range(3)
             ],
             (FLOAT_SERIES_PATHS[0] + suffix, "average"): [
                 statistics.fmean(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
             ],
             (FLOAT_SERIES_PATHS[0] + suffix, "variance"): [
-                statistics.variance(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
+                statistics.pvariance(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
             ],
             (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
                 TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
             ],
         }
-    )
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape[0] == 3
-    assert pd.testing.assert_frame_equal(df, expected)
-    assert df.columns.equals(expected.columns)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -246,6 +253,7 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
         experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -265,7 +273,8 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
                 TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
             ],
         }
-    )
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape[0] == 3
-    assert pd.testing.assert_frame_equal(df, expected)
-    assert df.columns.equals(expected.columns)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)

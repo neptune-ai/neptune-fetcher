@@ -73,7 +73,9 @@ def fetch_experiments_table(
     project = _identifiers.ProjectIdentifier(context.project)  # type: ignore
 
     if isinstance(experiments, str):
-        experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all("sys/name", experiments)
+        experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all(
+            Attribute("sys/name", type="string"), experiments
+        )
     else:
         experiments_filter = experiments
 
