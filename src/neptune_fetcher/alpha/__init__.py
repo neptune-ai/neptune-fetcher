@@ -39,3 +39,6 @@ from .experiment import (
     list_experiments,
 )
 from .fetch_metrics import fetch_metrics
+
+from neptune_fetcher.alpha.experiments import list_experiments
+from neptune_fetcher.alpha.filter import ExperimentFilter
