@@ -38,6 +38,7 @@ from neptune_fetcher.alpha.internal import (
     identifiers,
     util,
 )
+from neptune_fetcher.alpha.internal.types import map_attribute_type_python_to_backend
 
 _DIRECTION_PYTHON_TO_BACKEND_MAP: dict[str, str] = {
     "asc": "ascending",
@@ -79,7 +80,7 @@ def fetch_experiment_sys_attrs(
     if sort_by.aggregation is not None:
         params["sorting"]["aggregationMode"] = sort_by.aggregation
     if sort_by.type is not None:
-        params["sorting"]["sortBy"]["type"] = sort_by.type
+        params["sorting"]["sortBy"]["type"] = map_attribute_type_python_to_backend(sort_by.type)
 
     return util.fetch_pages(
         client=client,

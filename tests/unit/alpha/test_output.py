@@ -1,3 +1,6 @@
+import pandas as pd
+from pandas._testing import assert_frame_equal
+
 from neptune_fetcher.alpha.internal.identifiers import SysName
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.types import (
@@ -85,7 +88,12 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=False)
 
     # then
-    assert dataframe.to_dict() == {
-        ("attr1", ""): {"exp1": 42.0, "exp2": float("nan")},
-        ("attr2", ""): {"exp1": float("nan"), "exp2": 43.0},
-    }
+    expected_data = pd.DataFrame.from_dict(
+        {
+            ("attr1", ""): {"exp1": 42.0, "exp2": float("nan")},
+            ("attr2", ""): {"exp1": float("nan"), "exp2": 43.0},
+        }
+    )
+    expected_data.index.name = "experiment"
+    expected_data.columns = pd.MultiIndex.from_tuples(expected_data.columns, names=["attribute", "aggregation"])
+    assert_frame_equal(dataframe, expected_data)
