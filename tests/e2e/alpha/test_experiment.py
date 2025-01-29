@@ -18,7 +18,7 @@ from neptune_fetcher.alpha.internal.experiment import (
     fetch_experiment_sys_attrs,
 )
 
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_PROJECT")
 EXPERIMENT_NAME = "pye2e-fetcher-test-experiment"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
@@ -27,12 +27,12 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
-def run_with_attributes(project):
+def run_with_attributes():
     import uuid
 
     from neptune_scale import Run
 
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
     run_id = str(uuid.uuid4())
 
     run = Run(
@@ -59,9 +59,9 @@ def run_with_attributes(project):
     return run
 
 
-def test_find_experiments_no_filter(client, project, run_with_attributes):
+def test_find_experiments_no_filter(client, run_with_attributes):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None))
@@ -70,9 +70,9 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     assert len(experiment_names) > 0
 
 
-def test_find_experiments_by_name(client, project, run_with_attributes):
+def test_find_experiments_by_name(client, run_with_attributes):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
@@ -91,7 +91,7 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
 
 def test_find_experiments_by_name_not_found(client, project):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_filter = ExperimentFilter.name_eq("name_not_found")
@@ -153,9 +153,9 @@ def test_find_experiments_by_name_not_found(client, project):
         (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
     ],
 )
-def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
+def test_find_experiments_by_config_values(client, run_with_attributes, experiment_filter, found):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
@@ -274,9 +274,9 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
         ),
     ],
 )
-def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
+def test_find_experiments_by_series_values(client, run_with_attributes, experiment_filter, found):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
@@ -428,9 +428,9 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
         ),
     ],
 )
-def test_find_experiments_by_logical_expression(client, project, run_with_attributes, experiment_filter, found):
+def test_find_experiments_by_logical_expression(client, run_with_attributes, experiment_filter, found):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
@@ -442,9 +442,9 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
-def test_find_experiments_paging(client, project, run, run_with_attributes):
+def test_find_experiments_paging(client, run, run_with_attributes):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     experiment_names = _extract_names(
@@ -455,9 +455,9 @@ def test_find_experiments_paging(client, project, run, run_with_attributes):
     assert len(experiment_names) > 1
 
 
-def test_find_experiments_paging_executor(client, project, run_with_attributes):
+def test_find_experiments_paging_executor(client, run_with_attributes):
     # given
-    project_identifier = project.project_identifier
+    project_identifier = NEPTUNE_PROJECT
 
     #  when
     with ThreadPoolExecutor(max_workers=2) as executor:
