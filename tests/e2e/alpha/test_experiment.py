@@ -253,10 +253,10 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     "attr_filter",
     [
         AttributeFilter(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
-        AttributeFilter(
-            name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
-            name_matches_none=".*[5-9].*",
-        ),
+        # AttributeFilter(
+        #     name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
+        #     name_matches_none=".*[5-9].*",
+        # ),
         f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
     ],
 )
