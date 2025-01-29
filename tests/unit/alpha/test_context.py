@@ -25,80 +25,50 @@ from neptune_fetcher.alpha.context import (
 from neptune_fetcher.alpha.internal import env
 
 
-@fixture(autouse=True)
-def default_ctx(monkeypatch):
-    monkeypatch.setenv(env.NEPTUNE_PROJECT.name, "default_project")
-    monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "default_token")
-
-    # Basic sanity checks before each test:
-    # - setting context returns the new context
-    ctx = npt.set_context()
-    assert get_context() == ctx
-
-    # - default context must pick up env variables
-    assert ctx.project == "default_project"
-    assert ctx.api_token == "default_token"
-
-    # - and must be valid
-    validate_context(ctx)
-
-    return ctx
+@fixture
+def default_ctx():
+    return Context(project="default_project", api_token="default_token")
 
 
 def test_context_factory_methods(default_ctx):
-    assert default_ctx.with_project("my_project") == Context(project="my_project", api_token=default_ctx.api_token)
-    assert default_ctx.with_api_token("my_token") == Context(project=default_ctx.project, api_token="my_token")
+    assert default_ctx.with_project("my_project") == Context(project="my_project", api_token="default_token")
+    assert default_ctx.with_api_token("my_token") == Context(project="default_project", api_token="my_token")
 
 
 def test_set_context(default_ctx):
-    npt.set_context(Context(project="my_project", api_token="my_token"))
+    # Full context provided
+    new_ctx = npt.set_context(default_ctx)
     ctx = get_context()
+    assert ctx == new_ctx, "set_context() did not return the new context"
+    assert ctx.project == "default_project"
+    assert ctx.api_token == "default_token"
+
+    # Project only
+    ctx = npt.set_context(Context(project="my_project"))
     assert ctx.project == "my_project"
+    assert ctx.api_token is None
+
+    # API token only
+    ctx = npt.set_context(Context(api_token="my_token"))
+    assert ctx.project is None
     assert ctx.api_token == "my_token"
-    validate_context(ctx)
 
-    npt.set_context()
-    assert get_context() == default_ctx
+    # Empty context
+    ctx = npt.set_context(Context())
+    assert ctx.project is None
+    assert ctx.api_token is None
+
+    # Case for npt.set_context(None) is covered in test_set_context_from_envs
 
 
-def test_set_context_with_project(default_ctx):
-    npt.set_context(default_ctx.with_project("foo"))
+def test_set_project(default_ctx):
+    npt.set_context(default_ctx)
+
+    new_ctx = npt.set_project("my_project")
     ctx = get_context()
-    assert ctx.project == "foo"
-    assert ctx.api_token == default_ctx.api_token
-    validate_context(ctx)
-
-    npt.set_context()
-    assert get_context() == default_ctx
-
-
-def test_set_context_with_api_token(default_ctx):
-    npt.set_context(default_ctx.with_api_token("bar"))
-    ctx = get_context()
-    assert ctx.project == default_ctx.project
-    assert ctx.api_token == "bar"
-    validate_context(ctx)
-
-    npt.set_context()
-    assert get_context() == default_ctx
-
-
-def test_set_project(monkeypatch, default_ctx):
-    npt.set_project("my_project")
-    ctx = get_context()
+    assert ctx == new_ctx, "set_project() did not return the new context"
     assert ctx.project == "my_project"
-    assert ctx.api_token == default_ctx.api_token
-    validate_context(ctx)
-
-    # Make the default context have project = None
-    monkeypatch.delenv(env.NEPTUNE_PROJECT.name)
-    npt.set_context()
-
-    npt.set_project("another_project")
-    ctx = get_context()
-    assert ctx.project == "another_project"
-    assert ctx.api_token == default_ctx.api_token
-    validate_context(ctx)
+    assert ctx.api_token == "default_token"
 
     with pytest.raises(ValueError):
         npt.set_project("")
@@ -107,22 +77,14 @@ def test_set_project(monkeypatch, default_ctx):
         npt.set_project(None)
 
 
-def test_set_api_token(monkeypatch, default_ctx):
-    npt.set_api_token("my_token")
+def test_set_api_token(default_ctx):
+    npt.set_context(default_ctx)
+
+    new_ctx = npt.set_api_token("my_token")
     ctx = get_context()
-    assert ctx.project == default_ctx.project
+    assert ctx == new_ctx, "set_api_token() did not return the new context"
+    assert ctx.project == "default_project"
     assert ctx.api_token == "my_token"
-    validate_context(ctx)
-
-    # Make the default context have api_token = None
-    monkeypatch.delenv(env.NEPTUNE_API_TOKEN.name)
-    npt.set_context()
-
-    npt.set_api_token("another_token")
-    ctx = get_context()
-    assert ctx.project == default_ctx.project
-    assert ctx.api_token == "another_token"
-    validate_context(ctx)
 
     with pytest.raises(ValueError):
         npt.set_api_token("")
@@ -131,52 +93,37 @@ def test_set_api_token(monkeypatch, default_ctx):
         npt.set_api_token(None)
 
 
-def test_reset_context_to_defaults():
-    npt.set_api_token("my_token")
-    npt.set_project("my_project")
+def test_context_from_envs(monkeypatch):
+    # No envs
+    monkeypatch.delenv(env.NEPTUNE_PROJECT.name, raising=False)
+    monkeypatch.delenv(env.NEPTUNE_API_TOKEN.name, raising=False)
+    ctx = npt.set_context()
+    assert ctx.project is None
+    assert ctx.api_token is None
 
-    ctx = get_context()
+    # Required env provided
+    monkeypatch.setenv(env.NEPTUNE_PROJECT.name, "my_project")
+    monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "my_token")
+    ctx = npt.set_context()
     assert ctx.project == "my_project"
     assert ctx.api_token == "my_token"
 
-    npt.set_context()
-    ctx = get_context()
-    assert ctx.project == "default_project"
-    assert ctx.api_token == "default_token"
-
-
-def test_env_no_api_token_fails_validation(monkeypatch):
+    # Project only
+    monkeypatch.setenv(env.NEPTUNE_PROJECT.name, "another_project")
     monkeypatch.delenv(env.NEPTUNE_API_TOKEN.name)
-    npt.set_context()
+    ctx = npt.set_context()
+    assert ctx.project == "another_project"
+    assert ctx.api_token is None
 
-    with pytest.raises(ValueError) as exc:
-        validate_context(get_context())
-
-    exc.match("Unable to determine Neptune API token")
-
-
-def test_env_no_project_fails_validation(monkeypatch):
+    # API token only
     monkeypatch.delenv(env.NEPTUNE_PROJECT.name)
-    npt.set_context()
-
-    with pytest.raises(ValueError) as exc:
-        validate_context(get_context())
-
-    exc.match("Unable to determine Neptune project name")
+    monkeypatch.setenv(env.NEPTUNE_API_TOKEN.name, "another_token")
+    ctx = npt.set_context()
+    assert ctx.project is None
+    assert ctx.api_token == "another_token"
 
 
-def test_no_env_configured_raises(monkeypatch):
-    monkeypatch.delenv(env.NEPTUNE_PROJECT.name)
-    monkeypatch.delenv(env.NEPTUNE_API_TOKEN.name)
-    npt.set_context()
-
-    with pytest.raises(ValueError) as exc:
-        validate_context(get_context())
-
-    exc.match("Unable to determine Neptune")
-
-
-def test_validate_invalid_context():
+def test_validate_context():
     with pytest.raises(ValueError) as exc:
         validate_context(Context())
     exc.match("Unable to determine Neptune")
