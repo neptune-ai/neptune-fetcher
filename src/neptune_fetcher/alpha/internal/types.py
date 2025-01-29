@@ -17,6 +17,7 @@ import warnings
 from dataclasses import dataclass
 from typing import (
     Any,
+    Generator,
     Generic,
     Literal,
     Optional,
@@ -74,6 +75,9 @@ class FloatSeriesAggregatesSubset:
     max: Optional[float] = None
     average: Optional[float] = None
     variance: Optional[float] = None
+
+    def __iter__(self) -> Generator[tuple[str, float], None, None]:
+        return ((k, v) for k, v in self.__dict__.items() if v is not None)
 
 
 def extract_value(attr: ProtoAttributeDTO) -> Optional[AttributeValue[Any]]:

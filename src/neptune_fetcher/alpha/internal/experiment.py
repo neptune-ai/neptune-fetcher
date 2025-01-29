@@ -51,7 +51,7 @@ def _map_direction(direction: Literal["asc", "desc"]) -> str:
 
 @dataclass(frozen=True)
 class ExperimentSysAttrs:
-    sys_name: str
+    sys_name: identifiers.SysName
     sys_id: identifiers.SysId
 
 
@@ -115,7 +115,9 @@ def _process_experiment_page(
     items = []
     for entry in data.entries:
         attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
-        item = ExperimentSysAttrs(sys_name=attributes["sys/name"], sys_id=identifiers.SysId(attributes["sys/id"]))
+        item = ExperimentSysAttrs(
+            sys_name=identifiers.SysName(attributes["sys/name"]), sys_id=identifiers.SysId(attributes["sys/id"])
+        )
         items.append(item)
     return util.Page(items=items)
 

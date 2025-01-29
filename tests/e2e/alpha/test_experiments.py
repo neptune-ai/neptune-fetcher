@@ -2,7 +2,6 @@ import os
 import random
 import statistics
 import uuid
-from collections import defaultdict
 from dataclasses import (
     dataclass,
     field,
@@ -12,20 +11,12 @@ from datetime import (
     timedelta,
     timezone,
 )
-from typing import (
-    Dict,
-    List,
-    Literal,
-    Union,
-)
 
-import numpy as np
 import pandas as pd
 import pytest
 from neptune_scale import Run
 
 from neptune_fetcher.alpha import fetch_experiments_table
-from neptune_fetcher.alpha.experiments import fetch_metrics
 from neptune_fetcher.alpha.filter import (
     Attribute,
     AttributeFilter,
@@ -36,9 +27,9 @@ from neptune_fetcher.alpha.filter import (
 @dataclass
 class ExperimentData:
     name: str
-    config: Dict[str, any]
-    float_series: Dict[str, List[float]]
-    unique_series: Dict[str, List[float]]
+    config: dict[str, any]
+    float_series: dict[str, list[float]]
+    unique_series: dict[str, list[float]]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -48,7 +39,7 @@ FLOAT_SERIES_PATHS = [f"metrics/float-series-value_{j}" for j in range(5)]
 @dataclass
 class TestData:
     neptune_project: str = os.getenv("NEPTUNE_E2E_PROJECT")
-    experiments: List[ExperimentData] = field(default_factory=list)
+    experiments: list[ExperimentData] = field(default_factory=list)
 
     def exp_name(self, index: int) -> str:
         return self.experiments[index].name
@@ -86,7 +77,7 @@ TEST_DATA = TestData()
 NOW = datetime.now(timezone.utc)
 
 
-@pytest.fixture(scope="module", autouse=False)  # TODO: change to True
+@pytest.fixture(scope="module")
 def run_with_attributes(project):
     runs = {}
     for experiment in TEST_DATA.experiments:
@@ -100,7 +91,7 @@ def run_with_attributes(project):
 
         run.log_configs(experiment.config)
 
-        for step in experiment.float_series["metrics/step"]:
+        for step in range(len(experiment.float_series["metrics/step"])):
             metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
             metrics_data["metrics/step"] = step
             run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
@@ -114,10 +105,14 @@ def run_with_attributes(project):
 
 
 @pytest.mark.parametrize("sort_direction", ["asc", "desc"])
-def test__fetch_experiments_table(sort_direction, test_data):
-    df = fetch_experiments_table(sort_by=Attribute("sys/name", type="string"), sort_direction=sort_direction)
+def test__fetch_experiments_table(sort_direction, run_with_attributes):
+    df = fetch_experiments_table(
+        experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction=sort_direction,
+    )
 
-    experiments = [experiment.name for experiment in test_data.experiments]
+    experiments = [experiment.name for experiment in TEST_DATA.experiments]
     expected = pd.DataFrame(
         {
             "experiment": experiments if sort_direction == "asc" else experiments[::-1],
@@ -152,7 +147,9 @@ def test__fetch_experiments_table(sort_direction, test_data):
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-def test__fetch_experiments_table_with_attributes_filter(attr_filter, experiment_filter, type_suffix_in_column_names):
+def test__fetch_experiments_table_with_attributes_filter(
+    run_with_attributes, attr_filter, experiment_filter, type_suffix_in_column_names
+):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
         experiments=experiment_filter,
@@ -187,7 +184,9 @@ def test__fetch_experiments_table_with_attributes_filter(attr_filter, experiment
         | AttributeFilter(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
     ],
 )
-def test__fetch_experiments_table_with_attributes_filter_for_metrics(attr_filter, type_suffix_in_column_names):
+def test__fetch_experiments_table_with_attributes_filter_for_metrics(
+    run_with_attributes, attr_filter, type_suffix_in_column_names
+):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
         experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
@@ -242,7 +241,9 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(attr_filter
         f"metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
     ],
 )
-def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(attr_filter, type_suffix_in_column_names):
+def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
+    run_with_attributes, attr_filter, type_suffix_in_column_names
+):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
         experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
@@ -268,99 +269,3 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(attr_
     assert df.shape[0] == 3
     assert pd.testing.assert_frame_equal(df, expected)
     assert df.columns.equals(expected.columns)
-
-
-def test__fetch_metrics():
-    metrics = fetch_metrics(
-        experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        attributes=AttributeFilter(name_eq=FLOAT_SERIES_PATHS),
-    )
-
-    data = defaultdict(list)
-    for experiment in TEST_DATA.experiments[:3]:
-        steps = experiment.float_series["metrics/step"]
-        for i, step in enumerate(steps):
-            data["experiment"].append(experiment.name)
-            data["step"].append(step)
-            data["metrics/step"].append(step)
-            for path in FLOAT_SERIES_PATHS:
-                data[path].append(experiment.float_series[path][i])
-
-    expected = pd.DataFrame(data)
-
-    assert pd.testing.assert_frame_equal(metrics, expected)
-
-
-def create_expected_data(
-    experiments: list[ExperimentData],
-    type_suffix_in_column_names: bool,
-    include_timestamp: Union[Literal["relative", "absolute"], None],
-) -> pd.DataFrame:
-    x = len(experiments) * len(TEST_DATA.experiments[0].float_series["metrics/step"])
-    data = defaultdict(lambda: [None] * x)
-    suffix = ":float_series" if type_suffix_in_column_names else ""
-
-    index = 0
-    for experiment in experiments:
-        steps = experiment.float_series["metrics/step"]
-
-        for i, step in enumerate(steps):
-
-            def add_value(_path, value):
-                column_name = _path + suffix
-                data[(column_name, "value") if include_timestamp else column_name][index] = value
-
-                if include_timestamp:
-                    if include_timestamp == "relative":
-                        data[(column_name, "timestamp")][index] = timedelta(seconds=int(step))
-                    else:  # absolute
-                        data[(column_name, "timestamp")][index] = NOW + timedelta(seconds=int(step))
-
-            data[("experiment",) if include_timestamp else "experiment"][index] = experiment.name
-
-            data[("step",) if include_timestamp else "step"][index] = step
-            add_value("metrics/step", step)  # add as a metric
-
-            for path in FLOAT_SERIES_PATHS:
-                add_value(path, experiment.float_series[path][i])
-
-            for path in experiment.unique_series:
-                add_value(path, experiment.unique_series[path][i])
-            index += 1
-
-    # Create MultiIndex columns
-    if include_timestamp:
-        columns = pd.MultiIndex.from_tuples(data.keys())
-        return pd.DataFrame(data, columns=columns)
-    else:
-        return pd.DataFrame(data)
-
-
-@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None)])
-@pytest.mark.parametrize("tail_limit", [None, 3, 5])
-@pytest.mark.parametrize("include_timestamp", [None, "relative", "absolute"])
-def test__fetch_metrics_unique(type_suffix_in_column_names, step_range, tail_limit, include_timestamp):
-    experiments = TEST_DATA.experiments[:3]
-    metrics = fetch_metrics(
-        experiments=ExperimentFilter.name_in(*[exp.name for exp in experiments]),
-        attributes=r".*",
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        step_range=step_range,
-        tail_limit=tail_limit,
-        include_timestamp="absolute",
-    )
-
-    expected = create_expected_data(experiments, type_suffix_in_column_names, include_timestamp)
-
-    if step_range != (None, None):
-        step_min, step_max = step_range
-        expected = expected[
-            (expected["step"] >= (step_min if step_min is not None else -np.inf))
-            & (expected["step"] <= (step_max if step_max is not None else np.inf))
-        ].reset_index(drop=True)
-
-    if tail_limit is not None:
-        expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
-
-    assert pd.testing.assert_frame_equal(metrics, expected)

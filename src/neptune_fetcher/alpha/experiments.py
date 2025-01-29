@@ -28,19 +28,15 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import (
-    identifiers,
-    output,
-    util,
-)
-from neptune_fetcher.alpha.internal.attribute import (
-    fetch_attribute_definitions,
-    fetch_attribute_values,
-)
-from neptune_fetcher.alpha.internal.context import get_local_or_global_context
-from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
-from neptune_fetcher.alpha.internal.types import AttributeValue
+from neptune_fetcher.alpha.internal import attribute as _attribute
+from neptune_fetcher.alpha.internal import context as _context
+from neptune_fetcher.alpha.internal import experiment as _experiment
+from neptune_fetcher.alpha.internal import identifiers as _identifiers
+from neptune_fetcher.alpha.internal import output as _output
+from neptune_fetcher.alpha.internal import types as _types
+from neptune_fetcher.alpha.internal import util as _util
+
+__all__ = ("fetch_experiments_table",)
 
 
 def fetch_experiments_table(
@@ -71,10 +67,10 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
-    context = get_local_or_global_context(ctx=context)
+    context = _context.get_local_or_global_context(ctx=context)
     client = AuthenticatedClientBuilder.build(context=context)
     # TODO: I expect context module to prove that project is not None here
-    project = identifiers.ProjectIdentifier(context.project)  # type: ignore
+    project = _identifiers.ProjectIdentifier(context.project)  # type: ignore
 
     if isinstance(experiments, str):
         experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all("sys/name", experiments)
@@ -91,9 +87,9 @@ def fetch_experiments_table(
     else:
         sort_by_attribute = sort_by
 
-    result: dict[ExperimentIdentifier, list[AttributeValue]] = defaultdict(list)
-    with util.create_executor() as executor:
-        experiment_pages = fetch_experiment_sys_attrs(
+    result: dict[_identifiers.SysName, list[_types.AttributeValue]] = defaultdict(list)
+    with _util.create_executor() as executor:
+        experiment_pages = _experiment.fetch_experiment_sys_attrs(
             client=client,
             project_identifier=project,
             experiment_filter=experiments_filter,
@@ -104,8 +100,8 @@ def fetch_experiments_table(
         )
         for experiment_page in experiment_pages:
             for experiment in experiment_page.items:
-                experiment_identifier = identifiers.ExperimentIdentifier(project, experiment.sys_id)
-                attribute_definition_pages = fetch_attribute_definitions(
+                experiment_identifier = _identifiers.ExperimentIdentifier(project, experiment.sys_id)
+                attribute_definition_pages = _attribute.fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
                     experiment_identifiers=[experiment_identifier],
@@ -113,7 +109,7 @@ def fetch_experiments_table(
                     executor=executor,
                 )
                 for attribute_definition_page in attribute_definition_pages:
-                    attribute_values_pages = fetch_attribute_values(
+                    attribute_values_pages = _attribute.fetch_attribute_values(
                         client=client,
                         project_identifier=project,
                         experiment_identifiers=[experiment_identifier],
@@ -121,9 +117,9 @@ def fetch_experiments_table(
                         executor=executor,
                     )
                     for attribute_values_page in attribute_values_pages:
-                        result[experiment_identifier].extend(attribute_values_page.items)
+                        result[experiment.sys_name].extend(attribute_values_page.items)
 
-    dataframe = output.convert_experiment_table_to_dataframe(
+    dataframe = _output.convert_experiment_table_to_dataframe(
         result, type_suffix_in_column_names=type_suffix_in_column_names
     )
     return dataframe

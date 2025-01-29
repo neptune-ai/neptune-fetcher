@@ -16,12 +16,11 @@ from dataclasses import dataclass
 from typing import NewType
 
 ProjectIdentifier = NewType("ProjectIdentifier", str)
-
-
 SysId = NewType("SysId", str)
+SysName = NewType("SysName", str)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExperimentIdentifier:
     project_identifier: ProjectIdentifier
     sys_id: SysId
