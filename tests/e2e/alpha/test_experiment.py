@@ -63,7 +63,7 @@ class TestData:
                 }
 
                 float_series = {
-                    path: [float(step**2) + float(random.uniform(0, 1)) for step in range(10)]
+                    path: [float(step ** 2) + float(random.uniform(0, 1)) for step in range(10)]
                     for path in FLOAT_SERIES_PATHS
                 }
                 unique_series = {
@@ -82,35 +82,39 @@ class TestData:
 TEST_DATA = TestData()
 NOW = datetime.now(timezone.utc)
 
+NEED_INIT = True
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="module", autouse=True)
 def run_with_attributes(project):
-    runs = {}
-    for experiment in TEST_DATA.experiments:
-        project_id = project.project_identifier
+    global NEED_INIT
+    if NEED_INIT:
+        runs = {}
+        for experiment in TEST_DATA.experiments:
+            project_id = project.project_identifier
 
-        run = Run(
-            project=project_id,
-            run_id=experiment.run_id,
-            experiment_name=experiment.name,
-        )
+            run = Run(
+                project=project_id,
+                run_id=experiment.run_id,
+                experiment_name=experiment.name,
+            )
 
-        run.log_configs(experiment.config)
+            run.log_configs(experiment.config)
 
-        for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
-            metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
-            metrics_data[f"{PATH}/metrics/step"] = step
-            run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+            for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
+                metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
+                metrics_data[f"{PATH}/metrics/step"] = step
+                run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
-        runs[experiment.name] = run
+            runs[experiment.name] = run
 
-        run.close()
-
-    return runs
+            run.close()
+        NEED_INIT = False
+        return runs
 
 
 @pytest.mark.parametrize("sort_direction", ["asc", "desc"])
-def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
+def test__fetch_experiments_table(project, sort_direction):
     df = fetch_experiments_table(
         experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
         sort_by=Attribute("sys/name", type="string"),
@@ -156,7 +160,7 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 def test__fetch_experiments_table_with_attributes_filter(
-    project, run_with_attributes, attr_filter, experiment_filter, type_suffix_in_column_names
+    project, attr_filter, experiment_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
@@ -197,7 +201,7 @@ def test__fetch_experiments_table_with_attributes_filter(
     ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_metrics(
-    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+    project, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
@@ -257,7 +261,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     ],
 )
 def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
-    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+    project, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
