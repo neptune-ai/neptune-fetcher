@@ -1,6 +1,7 @@
 import os
 import random
 import statistics
+import time
 import uuid
 from dataclasses import (
     dataclass,
@@ -28,7 +29,8 @@ from neptune_fetcher.alpha.filter import (
 from neptune_fetcher.alpha.internal import env
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-PATH = "test/test-experiment"
+TIME_NOW = time.time()
+PATH = f"test/test-experiment-{TIME_NOW}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
 
@@ -51,7 +53,7 @@ class TestData:
     def __post_init__(self):
         if not self.experiments:
             for i in range(6):
-                experiment_name = f"fetch_experiments_table_{i}_e2e"
+                experiment_name = f"fetch_experiments_table_{i}_{TIME_NOW}"
                 config = {
                     f"{PATH}/int-value": 10,
                     f"{PATH}/float-value": 0.5,
@@ -102,7 +104,6 @@ def run_with_attributes(project):
 
         runs[experiment.name] = run
 
-    for run in runs.values():
         run.close()
 
     return runs

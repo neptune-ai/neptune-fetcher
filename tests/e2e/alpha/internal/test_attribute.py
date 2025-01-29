@@ -22,8 +22,9 @@ from neptune_fetcher.alpha.internal.types import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-EXPERIMENT_NAME = "pye2e-fetcher-test-internal-attribute"
-COMMON_PATH = "test/test-internal-attribute"
+TIME_NOW = time.time()
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-attribute-{TIME_NOW}"
+COMMON_PATH = f"test/test-internal-attribute-{TIME_NOW}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
@@ -68,7 +69,7 @@ def run_with_attributes(project):
     }
     run.log_configs(data)
 
-    run.wait_for_processing()
+    run.close()
 
     return run
 
@@ -134,7 +135,7 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     )
 
     # then
-    assert assert_items_equal(
+    assert_items_equal(
         attributes,
         [
             AttributeDefinition("sys/name", "string", attribute_filter),
@@ -183,7 +184,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
 
     # then
     expected_definitions = [AttributeDefinition(name, type, attribute_filter) for name, type in all_attrs]
-    assert assert_items_equal(attributes, expected_definitions)
+    assert_items_equal(attributes, expected_definitions)
 
 
 def test_fetch_attribute_definitions_no_type_in(client, project, experiment_identifier):
@@ -319,7 +320,7 @@ def test_fetch_attribute_definitions_filter_triple_or(client, project, experimen
     )
 
     # then
-    assert assert_items_equal(
+    assert_items_equal(
         attributes,
         [
             AttributeDefinition(f"{COMMON_PATH}/int_value_a", "int", attribute_filter_1),
@@ -342,7 +343,7 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     )
 
     # then
-    assert assert_items_equal(
+    assert_items_equal(
         attributes,
         [
             AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
@@ -366,7 +367,7 @@ def test_fetch_attribute_definitions_paging_executor(client, project, experiment
     )
 
     # then
-    assert assert_items_equal(
+    assert_items_equal(
         attributes,
         [
             AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
@@ -381,7 +382,8 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter_0 = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = attribute_filter_0
     for i in range(10):
         attribute_filter = attribute_filter | AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
 
@@ -395,9 +397,9 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
     assert_items_equal(
         attributes,
         [
-            AttributeDefinition("sys/creation_time", "datetime", attribute_filter),
-            AttributeDefinition("sys/modification_time", "datetime", attribute_filter),
-            AttributeDefinition("sys/ping_time", "datetime", attribute_filter),
+            AttributeDefinition("sys/creation_time", "datetime", attribute_filter_0),
+            AttributeDefinition("sys/modification_time", "datetime", attribute_filter_0),
+            AttributeDefinition("sys/ping_time", "datetime", attribute_filter_0),
         ],
     )
 
@@ -592,4 +594,4 @@ def _extract_pages(generator):
 
 
 def assert_items_equal(a: list[AttributeDefinition], b: list[AttributeDefinition]):
-    return sorted(a, key=lambda d: d.key()) == sorted(b, key=lambda d: d.key())
+    assert sorted(a, key=lambda d: d.key()) == sorted(b, key=lambda d: d.key())
