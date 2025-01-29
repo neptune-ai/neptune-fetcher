@@ -32,8 +32,9 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal import experiment
 from neptune_fetcher.alpha.internal.api_client import get_client
+from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 
 
@@ -122,7 +123,7 @@ def fetch_metrics(
         experiments=experiments,
         attributes=attributes,
         client=client,
-        project=identifiers.ProjectIdentifier(valid_context.project),  # type: ignore
+        project=ProjectIdentifier(valid_context.project),  # type: ignore
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
@@ -156,3 +157,24 @@ def fetch_metrics(
         df = df.sort_index(axis=1)
         df = df.rename_axis(None, axis=1)
         return df
+
+
+def list_experiments(
+    experiments: Optional[Union[str, ExperimentFilter]] = None, context: Optional[Context] = None
+) -> list[str]:
+    """
+     Returns a list of experiment names in a project.
+
+    `experiments` - a filter specifying which experiments to include
+         - a regex that experiment name must match, or
+         - a Filter object
+    """
+
+    validated_context = validate_context(context or get_context())
+    client = get_client(validated_context)
+
+    if isinstance(experiments, str):
+        experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+
+    assert validated_context.project is not None  # mypy
+    return list(experiment.list_experiments(client, ProjectIdentifier(validated_context.project), experiments))
