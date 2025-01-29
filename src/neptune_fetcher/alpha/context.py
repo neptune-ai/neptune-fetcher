@@ -15,34 +15,105 @@
 #
 
 
-__all__ = ["Context", "set_context", "set_project", "set_api_token"]
+import threading
+from dataclasses import dataclass
+from typing import Optional
 
+from neptune_fetcher.alpha.internal.env import (
+    NEPTUNE_API_TOKEN,
+    NEPTUNE_PROJECT,
+)
 
-from .context_data import Context
-from .internal.context import (
-    sanitize_context_falling_back_to_env,
-    set_global_context,
+__all__ = (
+    "Context",
+    "get_context",
+    "set_context",
+    "set_project",
+    "set_api_token",
+    "validate_context",
 )
 
 
-def init_from_env() -> None:
-    env_context = Context()
-    set_context(env_context)
+@dataclass(frozen=True)
+class Context:
+    project: Optional[str] = None
+    api_token: Optional[str] = None
+
+    def with_project(self, project: str) -> "Context":
+        if not project:
+            raise ValueError("Project name must be provided")
+        return Context(project=project, api_token=self.api_token)
+
+    def with_api_token(self, api_token: str) -> "Context":
+        if not api_token:
+            raise ValueError("API token must be provided")
+        return Context(project=self.project, api_token=api_token)
 
 
-def set_context(context: Context) -> Context:
-    context = sanitize_context_falling_back_to_env(context)
-    set_global_context(context)
+def set_project(project: str) -> Context:
+    global _context
+    with _lock:
+        _context = _context.with_project(project)
+        return _context
+
+
+def set_api_token(api_token: str) -> Context:
+    global _context
+    with _lock:
+        _context = _context.with_api_token(api_token)
+        return _context
+
+
+def get_context() -> Context:
+    with _lock:
+        return _context
+
+
+def set_context(context: Optional[Context] = None) -> Context:
+    global _context
+
+    with _lock:
+        _context = context or _context_from_env()
+        return _context
+
+
+def validate_context(context: Optional[Context] = None) -> Context:
+    assert context is not None, "Context should have been set on import"
+
+    context_error_template = """Unable to determine {thing}.
+
+    Set it using the environment variable {env_var}, by calling neptune.{func}(),
+    or by passing the Context() argument with both fields set.
+    """
+
+    project_not_set_message = context_error_template.format(
+        thing="Neptune project name", env_var=NEPTUNE_PROJECT.name, func="set_project"
+    )
+    api_token_not_set_message = context_error_template.format(
+        thing="Neptune API token", env_var=NEPTUNE_API_TOKEN.name, func="set_api_token"
+    )
+
+    if context.project is None:
+        raise ValueError(project_not_set_message)
+    if context.api_token is None:
+        raise ValueError(api_token_not_set_message)
 
     return context
 
 
-def set_project(project: str) -> Context:
-    return set_context(Context(project=project))
+def _context_from_env() -> Context:
+    try:
+        project = NEPTUNE_PROJECT.get()
+    except ValueError:
+        project = None
+
+    try:
+        api_token = NEPTUNE_API_TOKEN.get()
+    except ValueError:
+        api_token = None
+
+    return Context(project=project, api_token=api_token)
 
 
-def set_api_token(api_token: str) -> Context:
-    return set_context(Context(api_token=api_token))
-
-
-init_from_env()
+_context: Context = _context_from_env()
+_lock = threading.RLock()

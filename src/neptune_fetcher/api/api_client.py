@@ -15,7 +15,11 @@
 
 from __future__ import annotations
 
-__all__ = ["ApiClient"]
+__all__ = (
+    "ApiClient",
+    "create_auth_api_client",
+    "get_config_and_token_urls",
+)
 
 import logging
 import os
@@ -77,8 +81,8 @@ from neptune_fetcher.fields import (
     FieldType,
     FloatPointValue,
 )
-from neptune_fetcher.util import NeptuneException
-from neptune_fetcher.utilities.net import (
+from neptune_fetcher.util import (
+    NeptuneException,
     create_auth_api_client,
     get_config_and_token_urls,
 )
