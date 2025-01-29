@@ -23,6 +23,7 @@ from typing import (
     Callable,
     Generator,
     Generic,
+    Optional,
     TypeVar,
 )
 
