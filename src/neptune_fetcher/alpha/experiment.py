@@ -21,15 +21,15 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.api_client import AuthenticatedClientBuilder
-from neptune_fetcher.alpha.context import Context
+from neptune_fetcher.alpha import Context
+from neptune_fetcher.alpha import context as _context
 from neptune_fetcher.alpha.filter import (
     Attribute,
     AttributeFilter,
     ExperimentFilter,
 )
+from neptune_fetcher.alpha.internal import api_client as _api_client
 from neptune_fetcher.alpha.internal import attribute as _attribute
-from neptune_fetcher.alpha.internal import context as _context
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import output as _output
@@ -67,10 +67,9 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
-    context = _context.get_local_or_global_context(ctx=context)
-    client = AuthenticatedClientBuilder.build(context=context)
-    # TODO: I expect context module to prove that project is not None here
-    project = _identifiers.ProjectIdentifier(context.project)  # type: ignore
+    valid_context = _context.validate_context(context or _context.get_context())
+    client = _api_client.get_client(valid_context)
+    project = _identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     if isinstance(experiments, str):
         experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all(

@@ -22,8 +22,8 @@ from neptune_fetcher.alpha.internal.types import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-EXPERIMENT_NAME = "pye2e-fetcher-test-attribute"
-COMMON_PATH = "test/test-attribute"
+EXPERIMENT_NAME = "pye2e-fetcher-test-internal-attribute"
+COMMON_PATH = "test/test-internal-attribute"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
