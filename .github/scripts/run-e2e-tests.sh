@@ -47,7 +47,7 @@ run_tests() {
   python tests/populate_projects.py
 
   echo "Running tests..."
-  pytest --junitxml="test-results/test-e2e.xml" tests/e2e
+  pytest -s --junitxml="test-results/test-e2e.xml" tests/e2e
 
   EXIT_CODE=$?
 }
