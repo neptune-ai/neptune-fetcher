@@ -271,7 +271,11 @@ def fetch_attribute_values(
     return util.fetch_pages(
         client=client,
         fetch_page=ft.partial(_fetch_attributes_page, project_identifier=project_identifier),
-        process_page=ft.partial(_process_attributes_page, attribute_definitions_map=attribute_definitions_map),
+        process_page=ft.partial(
+            _process_attributes_page,
+            attribute_definitions_map=attribute_definitions_map,
+            project_identifier=project_identifier,
+        ),
         make_new_page_params=_make_new_attributes_page_params,
         params=params,
         executor=executor,
@@ -298,19 +302,26 @@ def _fetch_attributes_page(
 def _process_attributes_page(
     data: ProtoQueryAttributesResultDTO,
     attribute_definitions_map: dict[Tuple[str, str], AttributeDefinition],
+    project_identifier: identifiers.ProjectIdentifier,
 ) -> util.Page[AttributeValue]:
     items = []
     for entry in data.entries:
+        experiment_identifier = identifiers.ExperimentIdentifier(
+            project_identifier=project_identifier, sys_id=identifiers.SysId(entry.experimentShortId)
+        )
         for attr in entry.attributes:
             attr_definition = attribute_definitions_map.get((attr.name, attr.type))
             if attr_definition is None:
                 continue
-            item = extract_value(attr)
+            item = extract_value(attr, experiment_identifier=experiment_identifier)
             if item is None:
                 continue
             if item.type == "float_series":
                 item = AttributeValue(
-                    name=item.name, type=item.type, value=_filter_aggregates(item.value, attr_definition.source_filter)
+                    name=item.name,
+                    type=item.type,
+                    value=_filter_aggregates(item.value, attr_definition.source_filter),
+                    experiment_identifier=item.experiment_identifier,
                 )
             items.append(item)
     return util.Page(items=items)

@@ -15,9 +15,9 @@
 from dataclasses import dataclass
 from typing import NewType
 
-ProjectIdentifier = NewType("ProjectIdentifier", str)
-SysId = NewType("SysId", str)
-SysName = NewType("SysName", str)
+ProjectIdentifier = NewType("ProjectIdentifier", str)  # e.g. "team/john.doe"
+SysId = NewType("SysId", str)  # e.g. "KEY-1234"
+SysName = NewType("SysName", str)  # e.g. "pye2e-fetcher-test-internal-attribute"
 
 
 @dataclass(frozen=True)

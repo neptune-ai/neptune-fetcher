@@ -1,11 +1,15 @@
 import pandas as pd
 from pandas._testing import assert_frame_equal
 
-from neptune_fetcher.alpha.internal.identifiers import SysName
+from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.types import (
     AttributeValue,
     FloatSeriesAggregatesSubset,
+)
+
+EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
+    identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
 )
 
 
@@ -23,8 +27,8 @@ def test_convert_experiment_table_to_dataframe_empty():
 def test_convert_experiment_table_to_dataframe_single_string():
     # given
     experiment_data = {
-        SysName("exp1"): [
-            AttributeValue("attr1", "int", 42),
+        identifiers.SysName("exp1"): [
+            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
         ],
     }
 
@@ -40,8 +44,8 @@ def test_convert_experiment_table_to_dataframe_single_string():
 def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
     # given
     experiment_data = {
-        SysName("exp1"): [
-            AttributeValue("attr1", "int", 42),
+        identifiers.SysName("exp1"): [
+            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
         ],
     }
 
@@ -57,8 +61,13 @@ def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
 def test_convert_experiment_table_to_dataframe_single_float_series():
     # given
     experiment_data = {
-        SysName("exp1"): [
-            AttributeValue("attr1", "float_series", FloatSeriesAggregatesSubset(last=42.0, min=0.0, variance=100.0)),
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                "attr1",
+                "float_series",
+                FloatSeriesAggregatesSubset(last=42.0, min=0.0, variance=100.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
         ],
     }
 
@@ -76,11 +85,11 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
 def test_convert_experiment_table_to_dataframe_disjoint_names():
     # given
     experiment_data = {
-        SysName("exp1"): [
-            AttributeValue("attr1", "int", 42),
+        identifiers.SysName("exp1"): [
+            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
         ],
-        SysName("exp2"): [
-            AttributeValue("attr2", "int", 43),
+        identifiers.SysName("exp2"): [
+            AttributeValue("attr2", "int", 43, EXPERIMENT_IDENTIFIER),
         ],
     }
 

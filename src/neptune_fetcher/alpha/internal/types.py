@@ -29,6 +29,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoFloatSeriesAttributeDTO,
 )
 
+from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.exception import NeptuneWarning
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set")
@@ -57,6 +58,7 @@ class AttributeValue(Generic[T]):
     name: str
     type: Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
     value: T
+    experiment_identifier: identifiers.ExperimentIdentifier
 
 
 @dataclass(frozen=True)
@@ -80,22 +82,26 @@ class FloatSeriesAggregatesSubset:
         return ((k, v) for k, v in self.__dict__.items() if v is not None)
 
 
-def extract_value(attr: ProtoAttributeDTO) -> Optional[AttributeValue[Any]]:
+def extract_value(
+    attr: ProtoAttributeDTO, experiment_identifier: identifiers.ExperimentIdentifier
+) -> Optional[AttributeValue[Any]]:
     if attr.type == "floatSeries":
-        return AttributeValue(attr.name, "float_series", extract_aggregates(attr.float_series_properties))
+        return AttributeValue(
+            attr.name, "float_series", extract_aggregates(attr.float_series_properties), experiment_identifier
+        )
     elif attr.type == "string":
-        return AttributeValue(attr.name, "string", attr.string_properties.value)
+        return AttributeValue(attr.name, "string", attr.string_properties.value, experiment_identifier)
     elif attr.type == "int":
-        return AttributeValue(attr.name, "int", attr.int_properties.value)
+        return AttributeValue(attr.name, "int", attr.int_properties.value, experiment_identifier)
     elif attr.type == "float":
-        return AttributeValue(attr.name, "float", attr.float_properties.value)
+        return AttributeValue(attr.name, "float", attr.float_properties.value, experiment_identifier)
     elif attr.type == "bool":
-        return AttributeValue(attr.name, "bool", attr.bool_properties.value)
+        return AttributeValue(attr.name, "bool", attr.bool_properties.value, experiment_identifier)
     elif attr.type == "datetime":
         timestamp = datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
-        return AttributeValue(attr.name, "datetime", timestamp)
+        return AttributeValue(attr.name, "datetime", timestamp, experiment_identifier)
     elif attr.type == "stringSet":
-        return AttributeValue(attr.name, "string_set", set(attr.string_set_properties.value))
+        return AttributeValue(attr.name, "string_set", set(attr.string_set_properties.value), experiment_identifier)
     elif attr.type == "experimentState":
         return None
     else:

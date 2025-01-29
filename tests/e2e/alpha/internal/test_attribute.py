@@ -434,7 +434,7 @@ def test_fetch_attribute_values_single_string(client, project, experiment_identi
     )
 
     # then
-    assert values == [AttributeValue("sys/name", "string", EXPERIMENT_NAME)]
+    assert values == [AttributeValue("sys/name", "string", EXPERIMENT_NAME, experiment_identifier)]
 
 
 def test_fetch_attribute_values_two_strings(client, project, experiment_identifier):
@@ -491,7 +491,7 @@ def test_fetch_attribute_values_single_series_all_aggregations(client, project, 
         average=average,
         variance=sum((value - average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
     )
-    assert values == [AttributeValue(path, "float_series", aggregates)]
+    assert values == [AttributeValue(path, "float_series", aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_single_series_default_aggregations(client, project, experiment_identifier):
@@ -513,7 +513,7 @@ def test_fetch_attribute_values_single_series_default_aggregations(client, proje
     aggregates = FloatSeriesAggregatesSubset(
         last=FLOAT_SERIES_VALUES[-1],
     )
-    assert values == [AttributeValue(path, "float_series", aggregates)]
+    assert values == [AttributeValue(path, "float_series", aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_single_series_selected_aggregations(client, project, experiment_identifier):
@@ -536,26 +536,27 @@ def test_fetch_attribute_values_single_series_selected_aggregations(client, proj
         min=min(FLOAT_SERIES_VALUES),
         max=max(FLOAT_SERIES_VALUES),
     )
-    assert values == [AttributeValue(path, "float_series", aggregates)]
+    assert values == [AttributeValue(path, "float_series", aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     all_values = [
-        AttributeValue(f"{COMMON_PATH}/int-value", "int", 10),
-        AttributeValue(f"{COMMON_PATH}/float-value", "float", 0.5),
-        AttributeValue(f"{COMMON_PATH}/str-value", "string", "hello"),
-        AttributeValue(f"{COMMON_PATH}/bool-value", "bool", True),
-        AttributeValue(f"{COMMON_PATH}/datetime-value", "datetime", DATETIME_VALUE),
+        AttributeValue(f"{COMMON_PATH}/int-value", "int", 10, experiment_identifier),
+        AttributeValue(f"{COMMON_PATH}/float-value", "float", 0.5, experiment_identifier),
+        AttributeValue(f"{COMMON_PATH}/str-value", "string", "hello", experiment_identifier),
+        AttributeValue(f"{COMMON_PATH}/bool-value", "bool", True, experiment_identifier),
+        AttributeValue(f"{COMMON_PATH}/datetime-value", "datetime", DATETIME_VALUE, experiment_identifier),
         AttributeValue(
             f"{COMMON_PATH}/float-series-value",
             "float_series",
             FloatSeriesAggregatesSubset(
                 last=FLOAT_SERIES_VALUES[-1],
             ),
+            experiment_identifier,
         ),
-        AttributeValue("sys/tags", "string_set", {"string-set-item"}),
+        AttributeValue("sys/tags", "string_set", {"string-set-item"}, experiment_identifier),
     ]
 
     #  when
