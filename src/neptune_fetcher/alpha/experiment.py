@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import (
+    Generator,
     Literal,
     Optional,
     Union,
@@ -99,33 +100,57 @@ def fetch_experiments_table(
             limit=limit,
             executor=executor,
         )
-        for experiment_page in experiment_pages:
-            experiment_identifiers = [
-                _identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in experiment_page.items
-            ]
-            for experiment in experiment_page.items:
+
+        def process_experiment_page_stateful(
+            page: _util.Page[_experiment.ExperimentSysAttrs],
+        ) -> list[_identifiers.ExperimentIdentifier]:
+            for experiment in page.items:
                 result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
                 experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
+            return [_identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in page.items]
 
-            attribute_definition_pages = _attribute.fetch_attribute_definitions(
+        def go_fetch_attribute_definitions(
+            experiment_identifiers: list[_identifiers.ExperimentIdentifier],
+        ) -> Generator[_util.Page[_attribute.AttributeDefinition], None, None]:
+            return _attribute.fetch_attribute_definitions(
                 client=client,
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attributes_filter,
                 executor=executor,
             )
-            for attribute_definition_page in attribute_definition_pages:
-                attribute_values_pages = _attribute.fetch_attribute_values(
-                    client=client,
-                    project_identifier=project,
-                    experiment_identifiers=experiment_identifiers,
-                    attribute_definitions=attribute_definition_page.items,
+
+        def go_fetch_attribute_values(
+            experiment_identifiers: list[_identifiers.ExperimentIdentifier],
+            attribute_definition_page: _util.Page[_attribute.AttributeDefinition],
+        ) -> Generator[_util.Page[_types.AttributeValue], None, None]:
+            return _attribute.fetch_attribute_values(
+                client=client,
+                project_identifier=project,
+                experiment_identifiers=experiment_identifiers,
+                attribute_definitions=attribute_definition_page.items,
+                executor=executor,
+            )
+
+        output = _util.process_concurrently(
+            items=(process_experiment_page_stateful(page) for page in experiment_pages),
+            executor=executor,
+            downstream=lambda experiment_identifiers: _util.process_concurrently(
+                items=go_fetch_attribute_definitions(experiment_identifiers),
+                executor=executor,
+                downstream=lambda definitions_page: _util.process_concurrently(
+                    items=go_fetch_attribute_values(experiment_identifiers, definitions_page),
                     executor=executor,
-                )
-                for attribute_values_page in attribute_values_pages:
-                    for attribute_value in attribute_values_page.items:
-                        sys_id = attribute_value.experiment_identifier.sys_id
-                        result_by_id[sys_id].append(attribute_value)
+                    downstream=_util.return_value,
+                ),
+            ),
+        )
+        attribute_values_pages: list[_util.Page[_types.AttributeValue]] = _util.gather_results(output)
+
+        for attribute_values_page in attribute_values_pages:
+            for attribute_value in attribute_values_page.items:
+                sys_id = attribute_value.experiment_identifier.sys_id
+                result_by_id[sys_id].append(attribute_value)
 
     result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(
