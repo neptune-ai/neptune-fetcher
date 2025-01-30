@@ -2,11 +2,12 @@ import pandas as pd
 from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
-from neptune_fetcher.alpha.internal.types import (
+from neptune_fetcher.alpha.internal.attribute import (
+    AttributeDefinition,
     AttributeValue,
-    FloatSeriesAggregatesSubset,
 )
+from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
+from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -18,7 +19,9 @@ def test_convert_experiment_table_to_dataframe_empty():
     experiment_data = {}
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     assert dataframe.empty
@@ -28,12 +31,14 @@ def test_convert_experiment_table_to_dataframe_single_string():
     # given
     experiment_data = {
         identifiers.SysName("exp1"): [
-            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
         ],
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -45,12 +50,14 @@ def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
     # given
     experiment_data = {
         identifiers.SysName("exp1"): [
-            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
         ],
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=True)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=True
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -63,16 +70,21 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
     experiment_data = {
         identifiers.SysName("exp1"): [
             AttributeValue(
-                "attr1",
-                "float_series",
-                FloatSeriesAggregatesSubset(last=42.0, min=0.0, variance=100.0),
+                AttributeDefinition("attr1", "float_series"),
+                FloatSeriesAggregations(last=42.0, min=0.0, max=100, average=24.0, variance=100.0),
                 EXPERIMENT_IDENTIFIER,
             ),
         ],
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={
+            AttributeDefinition("attr1", "float_series"): {"last", "min", "variance"},
+        },
+        type_suffix_in_column_names=False,
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -86,15 +98,17 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     # given
     experiment_data = {
         identifiers.SysName("exp1"): [
-            AttributeValue("attr1", "int", 42, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
         ],
         identifiers.SysName("exp2"): [
-            AttributeValue("attr2", "int", 43, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr2", "int"), 43, EXPERIMENT_IDENTIFIER),
         ],
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     expected_data = pd.DataFrame.from_dict(

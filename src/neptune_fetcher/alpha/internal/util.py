@@ -28,6 +28,7 @@ from typing import (
     Callable,
     Generator,
     Generic,
+    Iterable,
     Optional,
     TypeVar,
 )
@@ -151,7 +152,7 @@ def create_thread_pool_executor() -> Executor:
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
-def process_concurrently(
+def generate_concurrently(
     items: Generator[T, None, None],
     executor: Executor,
     downstream: Callable[[T], OUT],
@@ -160,11 +161,16 @@ def process_concurrently(
         head = next(items)
         futures = {
             executor.submit(downstream, head),
-            executor.submit(process_concurrently, items, executor, downstream),
+            executor.submit(generate_concurrently, items, executor, downstream),
         }
         return futures, None
     except StopIteration:
         return set(), None
+
+
+def fork_concurrently(item: T, executor: Executor, downstreams: Iterable[Callable[[T], OUT]]) -> OUT:
+    futures = {executor.submit(downstream, item) for downstream in downstreams}
+    return futures, None
 
 
 def return_value(item: R) -> OUT:

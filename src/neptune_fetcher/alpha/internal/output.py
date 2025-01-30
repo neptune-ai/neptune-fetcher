@@ -19,15 +19,18 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.internal.identifiers import SysName
-from neptune_fetcher.alpha.internal.types import (
+from neptune_fetcher.alpha.internal.attribute import (
+    AttributeDefinition,
     AttributeValue,
-    FloatSeriesAggregatesSubset,
 )
+from neptune_fetcher.alpha.internal.identifiers import SysName
+from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 
 def convert_experiment_table_to_dataframe(
-    experiment_data: dict[SysName, list[AttributeValue]], type_suffix_in_column_names: bool
+    experiment_data: dict[SysName, list[AttributeValue]],
+    selected_aggregations: dict[AttributeDefinition, set[str]],
+    type_suffix_in_column_names: bool,
 ) -> pd.DataFrame:
     index_column_name = "experiment"
 
@@ -35,9 +38,9 @@ def convert_experiment_table_to_dataframe(
         return pd.DataFrame(index=[index_column_name])
 
     def get_column_name(attr: AttributeValue) -> str:
-        column_name = attr.name
+        column_name = attr.attribute_definition.name
         if type_suffix_in_column_names:
-            column_name += f":{attr.type}"
+            column_name += f":{attr.attribute_definition.type}"
         return column_name
 
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
@@ -46,13 +49,24 @@ def convert_experiment_table_to_dataframe(
             column_name = get_column_name(value)
             if column_name in row:
                 raise ValueError(f"Duplicate column name: {column_name}")
-            if value.type == "float_series":
-                value_subset: FloatSeriesAggregatesSubset = value.value
-                for agg_name, agg_value in value_subset:
+            if value.attribute_definition.type == "float_series":
+                float_series_aggregations: FloatSeriesAggregations = value.value
+                selected_subset = selected_aggregations.get(value.attribute_definition, set())
+                agg_subset_values = get_aggregation_subset(float_series_aggregations, selected_subset)
+                for agg_name, agg_value in agg_subset_values.items():
                     row[(column_name, agg_name)] = agg_value
             else:
                 row[(column_name, "")] = value.value
         return row
+
+    def get_aggregation_subset(
+        float_series_aggregations: FloatSeriesAggregations, selected_subset: set[str]
+    ) -> dict[str, Any]:
+        result = {}
+        for agg_name in ("last", "min", "max", "average", "variance"):
+            if agg_name in selected_subset:
+                result[agg_name] = getattr(float_series_aggregations, agg_name)
+        return result
 
     rows = []
     for sys_name, values in experiment_data.items():
