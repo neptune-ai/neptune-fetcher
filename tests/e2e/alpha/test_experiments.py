@@ -231,19 +231,37 @@ def test__fetch_metrics_unique(
 
 
 @pytest.mark.parametrize(
-    "regex, expected",
+    "regex, expected_subset",
     [
         (None, TEST_DATA.experiment_names),
         (".*", TEST_DATA.experiment_names),
         ("", TEST_DATA.experiment_names),
         ("alpha", TEST_DATA.experiment_names),
-        ("alpha_1", [f"pye2e-alpha_1_{TEST_DATA_VERSION}"]),
-        ("alpha_[2,3]", [f"pye2e-alpha_2_{TEST_DATA_VERSION}", f"pye2e-alpha_3_{TEST_DATA_VERSION}"]),
+        (ExperimentFilter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
+    ],
+)
+def test_list_experiments_with_regex_and_filters_matching_all(regex, expected_subset):
+    """We need to check if expected names are a subset of all names returned, as
+    the test data could contain other experiments"""
+    names = list_experiments(regex)
+    assert set(expected_subset) <= set(names)
+
+
+@pytest.mark.parametrize(
+    "regex, expected",
+    [
+        (f"alpha_1.*{TEST_DATA_VERSION}", [f"pye2e-alpha_1_{TEST_DATA_VERSION}"]),
+        (
+            f"alpha_[2,3].*{TEST_DATA_VERSION}",
+            [f"pye2e-alpha_2_{TEST_DATA_VERSION}", f"pye2e-alpha_3_{TEST_DATA_VERSION}"],
+        ),
         ("beta", []),
         ("alpha_999", []),
     ],
 )
-def test_list_experiments_with_regex(regex, expected):
+def test_list_experiments_with_regex_matching_some(regex, expected):
+    """This check is more strict than test_list_experiments_with_regex_matching_all, as we are able
+    to predict the exact output because of the filtering applied"""
     names = list_experiments(regex)
     assert len(names) == len(expected)
     assert set(names) == set(expected)
@@ -256,11 +274,12 @@ def test_list_experiments_with_regex(regex, expected):
         (ExperimentFilter.eq(Attribute("sys/name", type="string"), ""), []),
         (ExperimentFilter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
         (
-            ExperimentFilter.matches_all(Attribute("sys/name", type="string"), ["alpha", "1"]),
+            ExperimentFilter.matches_all(Attribute("sys/name", type="string"), [f"alpha.*{TEST_DATA_VERSION}", "1"]),
             [f"pye2e-alpha_1" f"_{TEST_DATA_VERSION}"],
         ),
         (
-            ExperimentFilter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"]),
+            ExperimentFilter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"])
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
             [
                 f"pye2e-alpha_0_{TEST_DATA_VERSION}",
                 f"pye2e-alpha_1_{TEST_DATA_VERSION}",
@@ -268,7 +287,8 @@ def test_list_experiments_with_regex(regex, expected):
             ],
         ),
         (
-            ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1"),
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
             [f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
@@ -285,7 +305,7 @@ def test_list_experiments_with_regex(regex, expected):
         ),
     ],
 )
-def test_list_experiments_with_filter(filter_, expected):
+def test_list_experiments_with_filter_matching_some(filter_, expected):
     names = list_experiments(filter_)
     assert set(names) == set(expected)
     assert len(names) == len(expected)
