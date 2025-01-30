@@ -63,7 +63,7 @@ def fetch_experiment_sys_attrs(
     sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
-    batch_size: int = env.NEPTUNE_FETCHER_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_FETCHER_EXPERIMENT_SYS_ATTRS_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
 ) -> Generator[util.Page[ExperimentSysAttrs], None, None]:
     params: dict[str, Any] = {

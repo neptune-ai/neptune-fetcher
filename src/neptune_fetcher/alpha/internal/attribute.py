@@ -74,7 +74,7 @@ def fetch_attribute_definitions(
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.BaseAttributeFilter,
-    batch_size: int = env.NEPTUNE_FETCHER_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     def split_to_tasks(
@@ -121,7 +121,7 @@ def fetch_attribute_definitions(
                         yield util.Page(items=page_items)
 
     if executor is None:
-        with util.create_executor() as _executor:
+        with util.create_thread_pool_executor() as _executor:
             yield from _main(_executor)
     else:
         yield from _main(executor)
@@ -255,7 +255,7 @@ def fetch_attribute_values(
     project_identifier: identifiers.ProjectIdentifier,
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_definitions: Iterable[AttributeDefinition],
-    batch_size: int = env.NEPTUNE_FETCHER_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeValue], None, None]:
     params: dict[str, Any] = {

@@ -90,7 +90,7 @@ def fetch_experiments_table(
 
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
     result_by_id: dict[_identifiers.SysId, list[_types.AttributeValue]] = {}
-    with _util.create_executor() as executor:
+    with _util.create_thread_pool_executor() as executor:
         experiment_pages = _experiment.fetch_experiment_sys_attrs(
             client=client,
             project_identifier=project,
@@ -145,7 +145,7 @@ def fetch_experiments_table(
                 ),
             ),
         )
-        attribute_values_pages: list[_util.Page[_types.AttributeValue]] = _util.gather_results(output)
+        attribute_values_pages: Generator[_util.Page[_types.AttributeValue], None, None] = _util.gather_results(output)
 
         for attribute_values_page in attribute_values_pages:
             for attribute_value in attribute_values_page.items:

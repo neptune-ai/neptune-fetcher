@@ -146,7 +146,7 @@ def backoff_retry(
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
 
 
-def create_executor() -> Executor:
+def create_thread_pool_executor() -> Executor:
     max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
     return ThreadPoolExecutor(max_workers=max_workers)
 
@@ -171,12 +171,10 @@ def return_value(item: R) -> OUT:
     return set(), item
 
 
-def gather_results(output: OUT) -> list[R]:
-    results = []
-
+def gather_results(output: OUT) -> Generator[R, None, None]:
     futures, value = output
     if value is not None:
-        results.append(value)
+        yield value
     while futures:
         done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
         futures = not_done
@@ -184,6 +182,4 @@ def gather_results(output: OUT) -> list[R]:
             new_futures, value = future.result()
             futures.update(new_futures)
             if value is not None:
-                results.append(value)
-
-    return results
+                yield value
