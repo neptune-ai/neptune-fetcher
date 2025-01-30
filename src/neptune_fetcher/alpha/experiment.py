@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import defaultdict
 from typing import (
     Literal,
     Optional,
@@ -88,7 +87,8 @@ def fetch_experiments_table(
     else:
         sort_by_attribute = sort_by
 
-    result: dict[_identifiers.SysName, list[_types.AttributeValue]] = defaultdict(list)
+    experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
+    result_by_id: dict[_identifiers.SysId, list[_types.AttributeValue]] = {}
     with _util.create_executor() as executor:
         experiment_pages = _experiment.fetch_experiment_sys_attrs(
             client=client,
@@ -100,27 +100,46 @@ def fetch_experiments_table(
             executor=executor,
         )
         for experiment_page in experiment_pages:
+            experiment_identifiers = [
+                _identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in experiment_page.items
+            ]
             for experiment in experiment_page.items:
-                experiment_identifier = _identifiers.ExperimentIdentifier(project, experiment.sys_id)
-                attribute_definition_pages = _attribute.fetch_attribute_definitions(
+                result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
+                experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
+
+            attribute_definition_pages = _attribute.fetch_attribute_definitions(
+                client=client,
+                project_identifiers=[project],
+                experiment_identifiers=experiment_identifiers,
+                attribute_filter=attributes_filter,
+                executor=executor,
+            )
+            for attribute_definition_page in attribute_definition_pages:
+                attribute_values_pages = _attribute.fetch_attribute_values(
                     client=client,
-                    project_identifiers=[project],
-                    experiment_identifiers=[experiment_identifier],
-                    attribute_filter=attributes_filter,
+                    project_identifier=project,
+                    experiment_identifiers=experiment_identifiers,
+                    attribute_definitions=attribute_definition_page.items,
                     executor=executor,
                 )
-                for attribute_definition_page in attribute_definition_pages:
-                    attribute_values_pages = _attribute.fetch_attribute_values(
-                        client=client,
-                        project_identifier=project,
-                        experiment_identifiers=[experiment_identifier],
-                        attribute_definitions=attribute_definition_page.items,
-                        executor=executor,
-                    )
-                    for attribute_values_page in attribute_values_pages:
-                        result[experiment.sys_name].extend(attribute_values_page.items)
+                for attribute_values_page in attribute_values_pages:
+                    for attribute_value in attribute_values_page.items:
+                        sys_id = attribute_value.experiment_identifier.sys_id
+                        result_by_id[sys_id].append(attribute_value)
 
+    result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(
-        result, type_suffix_in_column_names=type_suffix_in_column_names
+        result_by_name, type_suffix_in_column_names=type_suffix_in_column_names
     )
     return dataframe
+
+
+def _map_keys_preserving_order(
+    result_by_id: dict[_identifiers.SysId, list[_types.AttributeValue]],
+    experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName],
+) -> dict[_identifiers.SysName, list[_types.AttributeValue]]:
+    result_by_name = {}
+    for sys_id, values in result_by_id.items():
+        sys_name = experiment_name_mapping[sys_id]
+        result_by_name[sys_name] = values
+    return result_by_name
