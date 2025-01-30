@@ -46,12 +46,12 @@ class ExperimentData:
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
-PATH = "metrics/fetch-metric"
+PATH = "alpha/e2e/tests"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 NUMBER_OF_STEPS = 100
 PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
-TEST_DATA_VERSION = "v2"
+TEST_DATA_VERSION = "v3"
 
 
 @dataclass
@@ -67,11 +67,11 @@ class TestData:
                 experiment_name = f"pye2e-alpha_{i}_{TEST_DATA_VERSION}"
 
                 configs = {
-                    "test/int-value": i,
-                    "test/float-value": i,
-                    "test/str-value": f"hello_{i}",
-                    "test/bool-value": i % 2 == 0,
-                    "test/datetime-value": datetime.now(),
+                    f"{PATH}/test/int-value": i,
+                    f"{PATH}/test/float-value": i,
+                    f"{PATH}/test/str-value": f"hello_{i}",
+                    f"{PATH}/test/bool-value": i % 2 == 0,
+                    f"{PATH}/test/datetime-value": datetime.now(),
                 }
 
                 float_series = {
@@ -252,7 +252,7 @@ def test_list_experiments_with_regex(regex, expected):
 @pytest.mark.parametrize(
     "filter_, expected",
     [
-        (ExperimentFilter.eq(Attribute("test/int-value", type="int"), 12345), []),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 12345), []),
         (ExperimentFilter.eq(Attribute("sys/name", type="string"), ""), []),
         (ExperimentFilter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
         (
@@ -260,7 +260,7 @@ def test_list_experiments_with_regex(regex, expected):
             [f"pye2e-alpha_1" f"_{TEST_DATA_VERSION}"],
         ),
         (
-            ExperimentFilter.matches_none(Attribute("sys/name", type="string"), ["3", "4", "5"]),
+            ExperimentFilter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"]),
             [
                 f"pye2e-alpha_0_{TEST_DATA_VERSION}",
                 f"pye2e-alpha_1_{TEST_DATA_VERSION}",
@@ -268,11 +268,11 @@ def test_list_experiments_with_regex(regex, expected):
             ],
         ),
         (
-            ExperimentFilter.eq(Attribute("test/str-value", type="string"), "hello_1"),
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1"),
             [f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
-            ExperimentFilter.eq(Attribute("test/bool-value", type="bool"), False),
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/bool-value", type="bool"), False),
             [
                 f"pye2e-alpha_1_{TEST_DATA_VERSION}",
                 f"pye2e-alpha_3_{TEST_DATA_VERSION}",
