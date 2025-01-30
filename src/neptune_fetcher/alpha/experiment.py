@@ -12,17 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import concurrent
-from concurrent.futures import (
-    Executor,
-    Future,
-)
 from typing import (
-    Callable,
     Generator,
     Literal,
     Optional,
-    TypeVar,
     Union,
 )
 
@@ -107,15 +100,19 @@ def fetch_experiments_table(
             limit=limit,
             executor=executor,
         )
-        for experiment_page in experiment_pages:
-            experiment_identifiers = [
-                _identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in experiment_page.items
-            ]
-            for experiment in experiment_page.items:
+
+        def process_experiment_page_stateful(
+            page: _util.Page[_experiment.ExperimentSysAttrs],
+        ) -> list[_identifiers.ExperimentIdentifier]:
+            for experiment in page.items:
                 result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
                 experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
+            return [_identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in page.items]
 
-            attribute_definition_pages = _attribute.fetch_attribute_definitions(
+        def go_fetch_attribute_definitions(
+            experiment_identifiers: list[_identifiers.ExperimentIdentifier],
+        ) -> Generator[_util.Page[_attribute.AttributeDefinition], None, None]:
+            return _attribute.fetch_attribute_definitions(
                 client=client,
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
@@ -123,32 +120,37 @@ def fetch_experiments_table(
                 executor=executor,
             )
 
-            def go_fetch_attribute_values(
-                attribute_definition_page: _util.Page[_attribute.AttributeDefinition],
-            ) -> Generator[_util.Page[_types.AttributeValue], None, None]:
-                return _attribute.fetch_attribute_values(
-                    client=client,
-                    project_identifier=project,
-                    experiment_identifiers=experiment_identifiers,
-                    attribute_definitions=attribute_definition_page.items,
-                    executor=executor,
-                )
-
-            output = process_in_parallel(
-                items=attribute_definition_pages,
+        def go_fetch_attribute_values(
+            experiment_identifiers: list[_identifiers.ExperimentIdentifier],
+            attribute_definition_page: _util.Page[_attribute.AttributeDefinition],
+        ) -> Generator[_util.Page[_types.AttributeValue], None, None]:
+            return _attribute.fetch_attribute_values(
+                client=client,
+                project_identifier=project,
+                experiment_identifiers=experiment_identifiers,
+                attribute_definitions=attribute_definition_page.items,
                 executor=executor,
-                downstream=lambda definitions_page: process_in_parallel(
-                    items=go_fetch_attribute_values(definitions_page),
-                    executor=executor,
-                    downstream=return_value,
-                ),
             )
-            attribute_values_pages: list[_util.Page[_types.AttributeValue]] = gather_results(output)
 
-            for attribute_values_page in attribute_values_pages:
-                for attribute_value in attribute_values_page.items:
-                    sys_id = attribute_value.experiment_identifier.sys_id
-                    result_by_id[sys_id].append(attribute_value)
+        output = _util.process_concurrently(
+            items=(process_experiment_page_stateful(page) for page in experiment_pages),
+            executor=executor,
+            downstream=lambda experiment_identifiers: _util.process_concurrently(
+                items=go_fetch_attribute_definitions(experiment_identifiers),
+                executor=executor,
+                downstream=lambda definitions_page: _util.process_concurrently(
+                    items=go_fetch_attribute_values(experiment_identifiers, definitions_page),
+                    executor=executor,
+                    downstream=_util.return_value,
+                ),
+            ),
+        )
+        attribute_values_pages: list[_util.Page[_types.AttributeValue]] = _util.gather_results(output)
+
+        for attribute_values_page in attribute_values_pages:
+            for attribute_value in attribute_values_page.items:
+                sys_id = attribute_value.experiment_identifier.sys_id
+                result_by_id[sys_id].append(attribute_value)
 
     result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(
@@ -166,46 +168,3 @@ def _map_keys_preserving_order(
         sys_name = experiment_name_mapping[sys_id]
         result_by_name[sys_name] = values
     return result_by_name
-
-
-A = TypeVar("A")
-R = TypeVar("R")
-OUT = tuple[set[Future], Optional[R]]
-
-
-def process_in_parallel(
-    items: Generator[A, None, None],
-    downstream: Callable[[A], OUT],
-    executor: Executor,
-) -> OUT:
-    try:
-        head = next(items)
-        futures = {
-            executor.submit(downstream, head),
-            executor.submit(process_in_parallel, items, downstream, executor),
-        }
-        return futures, None
-    except StopIteration:
-        return set(), None
-
-
-def return_value(item: R) -> OUT:
-    return set(), item
-
-
-def gather_results(output: OUT) -> list[R]:
-    results = []
-
-    futures, value = output
-    if value is not None:
-        results.append(value)
-    while futures:
-        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-        futures = not_done
-        for future in done:
-            new_futures, value = future.result()
-            futures.update(new_futures)
-            if value is not None:
-                results.append(value)
-
-    return results

@@ -15,9 +15,11 @@
 
 from __future__ import annotations
 
+import concurrent
 import time
 from concurrent.futures import (
     Executor,
+    Future,
     ThreadPoolExecutor,
 )
 from dataclasses import dataclass
@@ -38,6 +40,7 @@ from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
 R = TypeVar("R")
+OUT = tuple[set[Future], Optional[R]]
 _Params = dict[str, Any]
 
 
@@ -146,3 +149,41 @@ def backoff_retry(
 def create_executor() -> Executor:
     max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
     return ThreadPoolExecutor(max_workers=max_workers)
+
+
+def process_concurrently(
+    items: Generator[T, None, None],
+    executor: Executor,
+    downstream: Callable[[T], OUT],
+) -> OUT:
+    try:
+        head = next(items)
+        futures = {
+            executor.submit(downstream, head),
+            executor.submit(process_concurrently, items, executor, downstream),
+        }
+        return futures, None
+    except StopIteration:
+        return set(), None
+
+
+def return_value(item: R) -> OUT:
+    return set(), item
+
+
+def gather_results(output: OUT) -> list[R]:
+    results = []
+
+    futures, value = output
+    if value is not None:
+        results.append(value)
+    while futures:
+        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+        futures = not_done
+        for future in done:
+            new_futures, value = future.result()
+            futures.update(new_futures)
+            if value is not None:
+                results.append(value)
+
+    return results
