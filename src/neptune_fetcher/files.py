@@ -14,29 +14,6 @@ from neptune_fetcher.api.api_client import ApiClient
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
 
 
-def default_resolve_destination(filename: str, destination: Optional[str] = None) -> Path:
-    """
-    Rules for resolving destination path:
-
-    1. If destination is None, use $CWD/basename
-    2. If destination ends in "/" we assume it's a directory.
-    3. If not:
-        a) if the path is an existing directory, use it as $DEST/basename
-        b) if not, assume the user specified a full target path, and use it as is
-    """
-    basename = Path(filename).name
-    if destination is None:
-        return Path(os.getcwd()) / basename
-
-    dirname = Path(destination)
-    if not destination.endswith("/"):
-        # Destination is not an existing directory, so a full path was provided.
-        if not dirname.is_dir():
-            return dirname
-
-    return dirname / basename
-
-
 def download_file(
     backend: ApiClient,
     *,
@@ -46,12 +23,18 @@ def download_file(
     destination: Optional[str] = None,
     overwrite: bool = False,
     experiment_name: Optional[str] = None,
-    resolve_destination_fn: Callable[[str, str], Path] = default_resolve_destination,
+    resolve_destination_fn: Callable[[str, Optional[str], Optional[str], Optional[str]], Path],
 ):
-    # TODO: Catch all exceptions and convert to ours? Probably doesn't make sense in all cases
+    """
+    resolve_destination_fn: callable that takes user-provided arguments:
+        filename, destination, attribute_path, experiment_name
+        and returns a Path object pointing to the target local download path.
+    """
+    # TODO: Catch all exceptions and convert to ours? Probably doesn't make sense in all cases, but maybe in some:
+    #   - HTTP response code != 200, 404 and 403 in particular
     # TODO: do backoff and resume on failure
 
-    dest_path = resolve_destination_fn(file_path, destination)
+    dest_path = resolve_destination_fn(file_path, destination, attribute_path, experiment_name)
     if dest_path.is_file() and not overwrite:
         raise FileExistsError(f"File already exists: `{dest_path}`. Pass overwrite=True to overwrite it.")
 

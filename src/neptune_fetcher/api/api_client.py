@@ -69,6 +69,13 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 from neptune_retrieval_api.types import Response
+from neptune_storage_api.api.storagebridge import signed_url
+from neptune_storage_api.models import (
+    CreateSignedUrlsRequest,
+    FileToSign,
+    Permission,
+    SignedFile,
+)
 
 from neptune_fetcher.fields import (
     FieldDefinition,
@@ -283,17 +290,26 @@ class ApiClient:
         else:
             return response.parsed
 
-    # TODO: use code from neptune-api if we decide to add this function there. This will allow us to use backoff_retry
-    # as well
     def fetch_file_download_url(
         self, *, project_name: str, file_path: str, permission: Literal["read", "write"]
     ) -> str:
-        body = {"files": [{"project_identifier": project_name, "path": file_path, "permission": permission}]}
-        response = self._backend.get_httpx_client().post("/api/storagebridge/v1/azure/signedUrl", json=body, timeout=60)
-        if response.status_code != 200:
+        # TODO: the storagebridge swagger file does not define CreateSignedUrlsRequest.files properly as FileToSign,
+        # so we need to convert it to dict manually here
+        body = CreateSignedUrlsRequest(
+            files=[
+                FileToSign(project_identifier=project_name, path=file_path, permission=Permission(permission)).to_dict()
+            ]
+        )
+        response = signed_url.sync_detailed(client=self._backend, body=body)
+        if response.status_code.value != 200:
             raise NeptuneException(f"Failed to get file download URL: {response.status_code}: {response.content}")
 
-        return response.json()["files"][0]["url"]
+        # TODO: same reason as above, we need to convert the response from dict manually
+        files = [SignedFile.from_dict(d) for d in response.parsed.files]
+        if not files:
+            raise NeptuneException("Failed to get file download URL: no files returned")
+
+        return files[0].url
 
 
 @dataclass(frozen=True)

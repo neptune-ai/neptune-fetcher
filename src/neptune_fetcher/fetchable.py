@@ -24,10 +24,12 @@ __all__ = [
 ]
 
 import logging
+import os
 from abc import (
     ABC,
     abstractmethod,
 )
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -166,7 +168,37 @@ class FetchableFile(Fetchable):
             destination=destination,
             file_path=file_ref.path,
             overwrite=overwrite,
+            resolve_destination_fn=self.resolve_download_destination,
         )
+
+    @classmethod
+    def resolve_download_destination(
+        cls,
+        filename: str,
+        destination: Optional[str] = None,
+        attribute_path: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+    ) -> Path:
+        """
+        Rules for resolving destination path:
+
+        1. If destination is None, use $CWD/basename
+        2. If destination ends in "/" we assume it's a directory.
+        3. If not:
+            a) if the path is an existing directory, use it as $DEST/basename
+            b) if not, assume the user specified a full target path, and use it as is
+        """
+        basename = Path(filename).name
+        if destination is None:
+            return Path(os.getcwd()) / basename
+
+        dirname = Path(destination)
+        if not destination.endswith("/"):
+            # Destination is not an existing directory, so a full path was provided.
+            if not dirname.is_dir():
+                return dirname
+
+        return dirname / basename
 
 
 def which_fetchable(field: FieldDefinition, *args: Any, **kwargs: Any) -> Fetchable:
