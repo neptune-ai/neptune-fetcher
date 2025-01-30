@@ -23,6 +23,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    Literal,
     Optional,
     Union,
 )
@@ -62,6 +63,12 @@ class AttributeDefinition:
 
 
 @dataclass(frozen=True)
+class AttributeDefinitionAggregation:
+    attribute_definition: AttributeDefinition
+    aggregation: Optional[Literal["last", "min", "max", "average", "variance"]]
+
+
+@dataclass(frozen=True)
 class AttributeValue:
     attribute_definition: AttributeDefinition
     value: Any
@@ -93,37 +100,49 @@ def fetch_attribute_definitions(
 
     seen_items: set[AttributeDefinition] = set()
     for page, _filter in pages_filters:
-        definitions = [item for item in page.items if item not in seen_items]
-        seen_items.update(definitions)
-        yield util.Page(items=definitions)
+        new_items = [item for item in page.items if item not in seen_items]
+        seen_items.update(new_items)
+        yield util.Page(items=new_items)
 
 
-# @dataclass(frozen=True)
-# class AttributeDefinitionAndAggregation:
-#     attribute_definition: AttributeDefinition
-#     aggregations: Optional[Literal["last", "min", "max", "average", "variance"]] = None
+def fetch_attribute_definition_aggregations(
+    client: AuthenticatedClient,
+    project_identifiers: Iterable[identifiers.ProjectIdentifier],
+    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    attribute_filter: filter.BaseAttributeFilter,
+    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    executor: Optional[Executor] = None,
+) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
+    """
+    Each attribute definition is yielded once with aggregation=None when it's first encountered.
+    If the attribute definition is of a type that supports aggregations (for now only float_series),
+    it's then yielded again for each aggregation in the filter.
+    """
 
+    pages_filters = _fetch_attribute_definitions(
+        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
+    )
 
-# def fetch_attribute_definitions_and_aggregations(
-#         client: AuthenticatedClient,
-#         project_identifiers: Iterable[identifiers.ProjectIdentifier],
-#         experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
-#         attribute_filter: filter.BaseAttributeFilter,
-#         batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-#         executor: Optional[Executor] = None,
-# ) -> Generator[util.Page[AttributeDefinitionAndAggregations], None, None]:
-#     pages_filters = _fetch_attribute_definitions(
-#         client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
-#     )
-#
-#     seen_items: set[AttributeDefinition] = set()
-#     seen_items_aggregations: dict[AttributeDefinition, set[Literal["last", "min", "max", "average", "variance"]]] = {}
-#
-#     for page, _filter in pages_filters:
-#
-#         definitions = [item for item in page.items if item not in seen_items]
-#         seen_items.update(definitions)
-#         yield util.Page(items=definitions)
+    seen_items: set[AttributeDefinitionAggregation] = set()
+
+    for page, _filter in pages_filters:
+        new_items = []
+        for item in page.items:
+            attribute_aggregation = AttributeDefinitionAggregation(attribute_definition=item, aggregation=None)
+            if attribute_aggregation not in seen_items:
+                new_items.append(attribute_aggregation)
+                seen_items.add(attribute_aggregation)
+
+            if item.type == "float_series":
+                for aggregation in _filter.aggregations:
+                    attribute_aggregation = AttributeDefinitionAggregation(
+                        attribute_definition=item, aggregation=aggregation
+                    )
+                    if attribute_aggregation not in seen_items:
+                        new_items.append(attribute_aggregation)
+                        seen_items.add(attribute_aggregation)
+
+        yield util.Page(items=new_items)
 
 
 def _fetch_attribute_definitions(
@@ -147,10 +166,10 @@ def _fetch_attribute_definitions(
             )
 
         filters = _split_to_tasks(attribute_filter)
-        output = util.process_concurrently(
+        output = util.generate_concurrently(
             items=(_filter for _filter in filters),
             executor=_executor,
-            downstream=lambda _filter: util.process_concurrently(
+            downstream=lambda _filter: util.generate_concurrently(
                 items=go_fetch_single(_filter),
                 executor=_executor,
                 downstream=lambda page: util.return_value((page, _filter)),

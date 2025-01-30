@@ -2,7 +2,10 @@ import pandas as pd
 from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.attribute import AttributeValue, AttributeDefinition
+from neptune_fetcher.alpha.internal.attribute import (
+    AttributeDefinition,
+    AttributeValue,
+)
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
@@ -16,7 +19,9 @@ def test_convert_experiment_table_to_dataframe_empty():
     experiment_data = {}
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     assert dataframe.empty
@@ -31,7 +36,9 @@ def test_convert_experiment_table_to_dataframe_single_string():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -48,7 +55,9 @@ def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=True)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=True
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -69,9 +78,13 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, selected_aggregations={
-        AttributeDefinition("attr1", "float_series"): {"last", "min", "variance"},
-    }, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={
+            AttributeDefinition("attr1", "float_series"): {"last", "min", "variance"},
+        },
+        type_suffix_in_column_names=False,
+    )
 
     # then
     assert dataframe.to_dict() == {
@@ -93,7 +106,9 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+    )
 
     # then
     expected_data = pd.DataFrame.from_dict(

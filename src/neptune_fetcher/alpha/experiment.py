@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
 from typing import (
     Generator,
     Literal,
@@ -89,6 +90,7 @@ def fetch_experiments_table(
 
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
     result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
+    selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
     with _util.create_thread_pool_executor() as executor:
         experiment_pages = _experiment.fetch_experiment_sys_attrs(
             client=client,
@@ -110,8 +112,8 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_definitions(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-        ) -> Generator[_util.Page[_attribute.AttributeDefinition], None, None]:
-            return _attribute.fetch_attribute_definitions(
+        ) -> Generator[_util.Page[_attribute.AttributeDefinitionAggregation], None, None]:
+            return _attribute.fetch_attribute_definition_aggregations(
                 client=client,
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
@@ -121,39 +123,68 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_values(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-            attribute_definition_page: _util.Page[_attribute.AttributeDefinition],
+            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
         ) -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
+            attribute_definitions = [
+                item.attribute_definition
+                for item in attribute_definition_aggregation_page.items
+                if item.aggregation is None
+            ]
+
             return _attribute.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
                 experiment_identifiers=experiment_identifiers,
-                attribute_definitions=attribute_definition_page.items,
+                attribute_definitions=attribute_definitions,
                 executor=executor,
             )
 
-        output = _util.process_concurrently(
+        def collect_aggregations(
+            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
+        ) -> dict[_attribute.AttributeDefinition, set[str]]:
+            aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
+            for item in attribute_definition_aggregation_page.items:
+                if item.aggregation is not None:
+                    aggregations[item.attribute_definition].add(item.aggregation)
+            return aggregations
+
+        output = _util.generate_concurrently(
             items=(process_experiment_page_stateful(page) for page in experiment_pages),
             executor=executor,
-            downstream=lambda experiment_identifiers: _util.process_concurrently(
+            downstream=lambda experiment_identifiers: _util.generate_concurrently(
                 items=go_fetch_attribute_definitions(experiment_identifiers),
                 executor=executor,
-                downstream=lambda definitions_page: _util.process_concurrently(
-                    items=go_fetch_attribute_values(experiment_identifiers, definitions_page),
+                downstream=lambda definitions_page: _util.fork_concurrently(
+                    item=definitions_page,
                     executor=executor,
-                    downstream=_util.return_value,
+                    downstreams=[
+                        lambda _definitions_page: _util.generate_concurrently(
+                            items=go_fetch_attribute_values(experiment_identifiers, _definitions_page),
+                            executor=executor,
+                            downstream=_util.return_value,
+                        ),
+                        lambda _definitions_page: _util.return_value(collect_aggregations(_definitions_page)),
+                    ],
                 ),
             ),
         )
-        attribute_values_pages: Generator[_util.Page[_attribute.AttributeValue], None, None] = _util.gather_results(
-            output
-        )
+        results: Generator[
+            Union[_util.Page[_attribute.AttributeValue], dict[_attribute.AttributeDefinition, set[str]]], None, None
+        ] = _util.gather_results(output)
 
-        for attribute_values_page in attribute_values_pages:
-            for attribute_value in attribute_values_page.items:
-                sys_id = attribute_value.experiment_identifier.sys_id
-                result_by_id[sys_id].append(attribute_value)
+        for result in results:
+            if isinstance(result, _util.Page):
+                attribute_values_page = result
+                for attribute_value in attribute_values_page.items:
+                    sys_id = attribute_value.experiment_identifier.sys_id
+                    result_by_id[sys_id].append(attribute_value)
+            elif isinstance(result, dict):
+                aggregations = result
+                for attribute_definition, aggregation_set in aggregations.items():
+                    selected_aggregations[attribute_definition].update(aggregation_set)
+            else:
+                raise ValueError(f"Unexpected result type: {type(result)}")
 
-    selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = {}
     result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(
         result_by_name,

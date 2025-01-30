@@ -62,7 +62,11 @@ def convert_experiment_table_to_dataframe(
     def get_aggregation_subset(
         float_series_aggregations: FloatSeriesAggregations, selected_subset: set[str]
     ) -> dict[str, Any]:
-        return {agg_name: getattr(float_series_aggregations, agg_name) for agg_name in selected_subset}
+        result = {}
+        for agg_name in ("last", "min", "max", "average", "variance"):
+            if agg_name in selected_subset:
+                result[agg_name] = getattr(float_series_aggregations, agg_name)
+        return result
 
     rows = []
     for sys_name, values in experiment_data.items():
