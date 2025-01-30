@@ -33,7 +33,6 @@ from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import output as _output
-from neptune_fetcher.alpha.internal import types as _types
 from neptune_fetcher.alpha.internal import util as _util
 
 __all__ = ("fetch_experiments_table",)
@@ -89,7 +88,7 @@ def fetch_experiments_table(
         sort_by_attribute = sort_by
 
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
-    result_by_id: dict[_identifiers.SysId, list[_types.AttributeValue]] = {}
+    result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
     with _util.create_thread_pool_executor() as executor:
         experiment_pages = _experiment.fetch_experiment_sys_attrs(
             client=client,
@@ -123,7 +122,7 @@ def fetch_experiments_table(
         def go_fetch_attribute_values(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
             attribute_definition_page: _util.Page[_attribute.AttributeDefinition],
-        ) -> Generator[_util.Page[_types.AttributeValue], None, None]:
+        ) -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
             return _attribute.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
@@ -145,24 +144,29 @@ def fetch_experiments_table(
                 ),
             ),
         )
-        attribute_values_pages: Generator[_util.Page[_types.AttributeValue], None, None] = _util.gather_results(output)
+        attribute_values_pages: Generator[_util.Page[_attribute.AttributeValue], None, None] = _util.gather_results(
+            output
+        )
 
         for attribute_values_page in attribute_values_pages:
             for attribute_value in attribute_values_page.items:
                 sys_id = attribute_value.experiment_identifier.sys_id
                 result_by_id[sys_id].append(attribute_value)
 
+    selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = {}
     result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(
-        result_by_name, type_suffix_in_column_names=type_suffix_in_column_names
+        result_by_name,
+        selected_aggregations=selected_aggregations,
+        type_suffix_in_column_names=type_suffix_in_column_names,
     )
     return dataframe
 
 
 def _map_keys_preserving_order(
-    result_by_id: dict[_identifiers.SysId, list[_types.AttributeValue]],
+    result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]],
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName],
-) -> dict[_identifiers.SysName, list[_types.AttributeValue]]:
+) -> dict[_identifiers.SysName, list[_attribute.AttributeValue]]:
     result_by_name = {}
     for sys_id, values in result_by_id.items():
         sys_name = experiment_name_mapping[sys_id]

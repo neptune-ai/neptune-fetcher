@@ -17,11 +17,7 @@ import warnings
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
-    Generic,
-    Literal,
     Optional,
-    TypeVar,
 )
 
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
@@ -29,7 +25,6 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoFloatSeriesAttributeDTO,
 )
 
-from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.exception import NeptuneWarning
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set")
@@ -50,19 +45,8 @@ def map_attribute_type_backend_to_python(_type: str) -> str:
     return _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP.get(_type, _type)
 
 
-T = TypeVar("T")
-
-
 @dataclass(frozen=True)
-class AttributeValue(Generic[T]):
-    name: str
-    type: Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]
-    value: T
-    experiment_identifier: identifiers.ExperimentIdentifier
-
-
-@dataclass(frozen=True)
-class FloatSeriesAggregates:
+class FloatSeriesAggregations:
     last: float
     min: float
     max: float
@@ -70,38 +54,21 @@ class FloatSeriesAggregates:
     variance: float
 
 
-@dataclass(frozen=True)
-class FloatSeriesAggregatesSubset:
-    last: Optional[float] = None
-    min: Optional[float] = None
-    max: Optional[float] = None
-    average: Optional[float] = None
-    variance: Optional[float] = None
-
-    def __iter__(self) -> Generator[tuple[str, float], None, None]:
-        return ((k, v) for k, v in self.__dict__.items() if v is not None)
-
-
-def extract_value(
-    attr: ProtoAttributeDTO, experiment_identifier: identifiers.ExperimentIdentifier
-) -> Optional[AttributeValue[Any]]:
+def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
     if attr.type == "floatSeries":
-        return AttributeValue(
-            attr.name, "float_series", extract_aggregates(attr.float_series_properties), experiment_identifier
-        )
+        return _extract_aggregations(attr.float_series_properties)
     elif attr.type == "string":
-        return AttributeValue(attr.name, "string", attr.string_properties.value, experiment_identifier)
+        return attr.string_properties.value
     elif attr.type == "int":
-        return AttributeValue(attr.name, "int", attr.int_properties.value, experiment_identifier)
+        return attr.int_properties.value
     elif attr.type == "float":
-        return AttributeValue(attr.name, "float", attr.float_properties.value, experiment_identifier)
+        return attr.float_properties.value
     elif attr.type == "bool":
-        return AttributeValue(attr.name, "bool", attr.bool_properties.value, experiment_identifier)
+        return attr.bool_properties.value
     elif attr.type == "datetime":
-        timestamp = datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
-        return AttributeValue(attr.name, "datetime", timestamp, experiment_identifier)
+        return datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
     elif attr.type == "stringSet":
-        return AttributeValue(attr.name, "string_set", set(attr.string_set_properties.value), experiment_identifier)
+        return set(attr.string_set_properties.value)
     elif attr.type == "experimentState":
         return None
     else:
@@ -109,8 +76,8 @@ def extract_value(
         return None
 
 
-def extract_aggregates(attr: ProtoFloatSeriesAttributeDTO) -> FloatSeriesAggregates:
-    return FloatSeriesAggregates(
+def _extract_aggregations(attr: ProtoFloatSeriesAttributeDTO) -> FloatSeriesAggregations:
+    return FloatSeriesAggregations(
         last=attr.last,
         min=attr.min,
         max=attr.max,
