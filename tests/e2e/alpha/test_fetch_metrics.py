@@ -25,7 +25,7 @@ import pytest
 from neptune_scale import Run
 
 from neptune_fetcher.alpha.context import get_context
-from neptune_fetcher.alpha.experiments import fetch_metrics
+from neptune_fetcher.alpha.fetch_metrics import fetch_metrics
 from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,

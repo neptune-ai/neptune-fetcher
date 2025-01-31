@@ -33,7 +33,7 @@ from neptune_fetcher.alpha.internal import (
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TIME_NOW = time.time()
+TIME_NOW = int(time.time())
 PATH = f"test/test-experiment-{TIME_NOW}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
@@ -117,7 +117,7 @@ def run_with_attributes(project, client):
             run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
         runs[experiment.name] = run
-
+    for run in runs.values():
         run.close()
 
     return runs
