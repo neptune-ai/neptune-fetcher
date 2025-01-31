@@ -36,7 +36,10 @@ from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import output as _output
 from neptune_fetcher.alpha.internal import util as _util
 
-__all__ = ("fetch_experiments_table",)
+__all__ = (
+    "fetch_experiments_table",
+    "list_experiments",
+)
 
 
 def fetch_experiments_table(
@@ -203,3 +206,28 @@ def _map_keys_preserving_order(
         sys_name = experiment_name_mapping[sys_id]
         result_by_name[sys_name] = values
     return result_by_name
+
+
+def list_experiments(
+    experiments: Optional[Union[str, ExperimentFilter]] = None,
+    context: Optional[Context] = None,
+) -> list[str]:
+    """
+     Returns a list of experiment names in a project.
+
+    `experiments` - a filter specifying which experiments to include
+         - a regex that experiment name must match, or
+         - a Filter object
+    """
+
+    validated_context = _context.validate_context(context or _context.get_context())
+    client = _api_client.get_client(validated_context)
+
+    if isinstance(experiments, str):
+        experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+
+    assert validated_context.project is not None  # mypy
+    pages = _experiment.fetch_experiment_sys_attrs(
+        client, _identifiers.ProjectIdentifier(validated_context.project), experiments
+    )
+    return list(exp.sys_name for page in pages for exp in page.items)

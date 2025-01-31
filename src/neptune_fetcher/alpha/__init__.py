@@ -32,9 +32,10 @@ from neptune_fetcher.alpha.context import (
     set_context,
     set_project,
 )
-
-from .experiment import fetch_experiments_table
-from .fetch_metrics import fetch_metrics
-
-from neptune_fetcher.alpha.experiments import list_experiments
 from neptune_fetcher.alpha.filter import ExperimentFilter
+
+from .experiment import (
+    fetch_experiments_table,
+    list_experiments,
+)
+from .fetch_metrics import fetch_metrics
