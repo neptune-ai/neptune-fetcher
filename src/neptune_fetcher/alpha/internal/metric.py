@@ -12,13 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import concurrent
 import itertools as it
 import logging
-from collections import namedtuple
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field,
+)
 from datetime import (
     datetime,
     timezone,
@@ -74,7 +76,33 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 AttributePath = str
 
-_FloatPointValue = namedtuple("_FloatPointValue", ["experiment", "path", "timestamp", "step", "value"])
+
+@dataclass
+class _FloatPointValues:
+    experiment: str
+    path: str
+    steps: List[float] = field(default_factory=lambda: [])
+    values: List[float] = field(default_factory=lambda: [])
+    timestamps: List[datetime] = field(default_factory=lambda: [])
+
+    def reversed(self) -> "_FloatPointValues":
+        return _FloatPointValues(
+            experiment=self.experiment,
+            path=self.path,
+            steps=list(reversed(self.steps)),
+            values=list(reversed(self.values)),
+            timestamps=list(reversed(self.timestamps)),
+        )
+
+    def extend(self, values: "_FloatPointValues") -> None:
+        self.steps.extend(values.steps)
+        self.values.extend(values.values)
+        self.timestamps.extend(values.timestamps)
+
+    def __len__(self) -> int:
+        return len(self.steps)
+
+
 TOTAL_POINT_LIMIT: int = 1_000_000
 PATHS_PER_BATCH: int = 10_000
 
@@ -89,7 +117,61 @@ class _AttributePathInExperiment:
 def _batch(iterable: List[T], n: int) -> Iterable[List[T]]:
     length = len(iterable)
     for ndx in range(0, length, n):
-        yield iterable[ndx : min(ndx + n, length)]
+        yield iterable[ndx: min(ndx + n, length)]
+
+
+def _create_series(
+    data: Iterable[Iterable[T]],
+) -> pd.Series:
+    return pd.Series(chain.from_iterable(data))
+
+
+def _create_category_series(data: Iterable[Iterable[T]], categories: list[str]) -> pd.Categorical:
+    dtype = pd.CategoricalDtype(categories=categories)
+    return pd.Categorical.from_codes(list(chain.from_iterable(data)), dtype=dtype)
+
+
+class _ResultAccumulator:
+    def __init__(self):  # type: ignore
+        self.timestamp_vectors = []
+        self.step_vectors = []
+        self.value_vectors = []
+        self.experiment_name_to_id = OrderedDict()
+        self.path_name_to_id = OrderedDict()
+        self.experiment_vectors = []
+        self.path_vectors = []
+        self.next_experiment_id = 0
+        self.next_path_id = 0
+
+    def add_float_point_values(self, float_point_values: _FloatPointValues) -> None:
+        self.timestamp_vectors.append(float_point_values.timestamps)
+        self.step_vectors.append(float_point_values.steps)
+        self.value_vectors.append(float_point_values.values)
+
+        if float_point_values.experiment not in self.experiment_name_to_id:
+            self.experiment_name_to_id[float_point_values.experiment] = self.next_experiment_id
+            self.next_experiment_id += 1
+
+        if float_point_values.path not in self.path_name_to_id:
+            self.path_name_to_id[float_point_values.path] = self.next_path_id
+            self.next_path_id += 1
+
+        self.experiment_vectors.append(
+            it.repeat(self.experiment_name_to_id[float_point_values.experiment], len(float_point_values))
+        )
+        self.path_vectors.append(it.repeat(self.path_name_to_id[float_point_values.path], len(float_point_values)))
+
+    def create_dataframe(self, executor: ThreadPoolExecutor) -> pd.DataFrame:
+        series_futures = {
+            "experiment": executor.submit(
+                _create_category_series, self.experiment_vectors, list(self.experiment_name_to_id.keys())
+            ),
+            "path": executor.submit(_create_category_series, self.path_vectors, list(self.path_name_to_id.keys())),
+            "timestamp": executor.submit(_create_series, self.timestamp_vectors),
+            "step": executor.submit(_create_series, self.step_vectors),
+            "value": executor.submit(_create_series, self.value_vectors),
+        }
+        return pd.DataFrame({key: future.result() for key, future in series_futures.items()}, copy=False)
 
 
 def fetch_flat_dataframe_metrics(
@@ -106,7 +188,7 @@ def fetch_flat_dataframe_metrics(
 
         def fetch_values(
             exp_paths: List[_AttributePathInExperiment],
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValues]]:
             _series = _fetch_multiple_series_values(
                 client,
                 exp_paths=exp_paths,
@@ -119,7 +201,7 @@ def fetch_flat_dataframe_metrics(
         def process_definitions(
             _experiments: List[ExperimentSysAttrs],
             _definitions: Generator[util.Page[AttributeDefinition], None, None],
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValues]]:
             definitions_page = next(_definitions, None)
             _futures = []
             if definitions_page:
@@ -141,7 +223,7 @@ def fetch_flat_dataframe_metrics(
 
         def process_experiments(
             experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValues]]:
             _experiments = next(experiment_generator, None)
             _futures = []
             if _experiments:
@@ -163,19 +245,20 @@ def fetch_flat_dataframe_metrics(
             executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
         }
 
-        series: List[Iterable[_FloatPointValue]] = []
+        result_accumulator = _ResultAccumulator()
+
         while futures:
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
             futures = not_done
             for future in done:
                 new_futures, values = future.result()
                 futures.update(new_futures)
-                series.append(values)
+                for float_point_values in values:
+                    result_accumulator.add_float_point_values(float_point_values)
 
-    df = pd.DataFrame(chain.from_iterable(series))
-    # change to category to save memory
-    df[["experiment", "path"]] = df[["experiment", "path"]].astype("category")
-    return df
+        dataframe = result_accumulator.create_dataframe(executor)
+
+        return dataframe
 
 
 @dataclass(frozen=True)
@@ -192,10 +275,13 @@ def _fetch_multiple_series_values(
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> Iterable[_FloatPointValue]:
+) -> Iterable[_FloatPointValues]:
     results = []
-    partial_results: Dict[_AttributePathInExperiment, List[_FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
-    attribute_steps = {exp_path: None for exp_path in exp_paths}
+    partial_results: Dict[_AttributePathInExperiment, _FloatPointValues] = {
+        exp_path: _FloatPointValues(experiment=exp_path.experiment_name, path=exp_path.attribute_path)
+        for exp_path in exp_paths
+    }
+    attribute_steps: dict[_AttributePathInExperiment, Optional[float]] = {exp_path: None for exp_path in exp_paths}
 
     while attribute_steps:
         per_series_point_limit = TOTAL_POINT_LIMIT // len(attribute_steps)
@@ -219,23 +305,23 @@ def _fetch_multiple_series_values(
             order="asc" if not tail_limit else "desc",
         )
 
-        new_attribute_steps = {}
+        new_attribute_steps: dict[_AttributePathInExperiment, Optional[float]] = {}
 
         for path, series_values in values.items():
-            sorted_list = series_values if not tail_limit else reversed(series_values)
-            partial_results[path].extend(sorted_list)
+            sorted_values = series_values if not tail_limit else series_values.reversed()
+            partial_results[path].extend(sorted_values)
 
             is_page_full = len(series_values) == per_series_point_limit
             need_more_points = tail_limit is None or len(partial_results[path]) < tail_limit
             if is_page_full and need_more_points:
-                new_attribute_steps[path] = series_values[-1].step
+                new_attribute_steps[path] = series_values.steps[-1]
             else:
                 path_result = partial_results.pop(path)
                 if path_result:
                     results.append(path_result)
         attribute_steps = new_attribute_steps
 
-    return chain.from_iterable(results)
+    return results
 
 
 def _fetch_series_values(
@@ -244,16 +330,16 @@ def _fetch_series_values(
     per_series_point_limit: int,
     step_range: Tuple[Union[float, None], Union[float, None]],
     order: Literal["asc", "desc"],
-) -> Dict[_AttributePathInExperiment, List[_FloatPointValue]]:
+) -> Dict[_AttributePathInExperiment, _FloatPointValues]:
     series_requests_ids = {}
     series_requests = []
 
     for ix, (exp_path, request) in enumerate(requests.items()):
-        id = f"{ix}"
-        series_requests_ids[id] = exp_path
+        _id = f"{ix}"
+        series_requests_ids[_id] = exp_path
         series_requests.append(
             FloatTimeSeriesValuesRequestSeries(
-                request_id=id,
+                request_id=_id,
                 series=TimeSeries(
                     attribute=exp_path.attribute_path,
                     holder=AttributesHolderIdentifier(
@@ -284,21 +370,24 @@ def _fetch_series_values(
             ),
         )
     )
-
     data = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
-    result = {
-        series_requests_ids[series.requestId]: [
-            _FloatPointValue(
-                experiment=series_requests_ids[series.requestId].experiment_name,
-                path=series_requests_ids[series.requestId].attribute_path,
-                timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
-                value=point.value,
-                step=point.step,
-            )
-            for point in series.series.values
-        ]
-        for series in data.series
-    }
+    result = {}
+    for series in data.series:
+        steps = []
+        values = []
+        timestamps = []
+        for point in series.series.values:
+            steps.append(point.step)
+            values.append(point.value)
+            timestamps.append(datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc))
+
+        result[series_requests_ids[series.requestId]] = _FloatPointValues(
+            experiment=series_requests_ids[series.requestId].experiment_name,
+            path=series_requests_ids[series.requestId].attribute_path,
+            steps=steps,
+            values=values,
+            timestamps=timestamps,
+        )
 
     return result

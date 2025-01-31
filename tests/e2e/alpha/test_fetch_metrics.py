@@ -168,7 +168,7 @@ def create_expected_data(
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None)])
+@pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["float_series"]), ".*"])
 @pytest.mark.parametrize(
@@ -206,4 +206,12 @@ def test__fetch_metrics_unique(
     if tail_limit is not None:
         expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
 
-    pd.testing.assert_frame_equal(result, expected)
+    # Reset categorical type to string to avoid random order
+    expected["experiment"] = expected["experiment"].astype("string")
+    result["experiment"] = result["experiment"].astype("string")
+
+    pd.testing.assert_frame_equal(
+        result.sort_values(["experiment", "step"]).reset_index(drop=True),
+        expected.sort_values(["experiment", "step"]).reset_index(drop=True),
+        check_like=True,
+    )
