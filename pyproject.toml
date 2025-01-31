@@ -99,4 +99,4 @@ ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
 retries = 3
-retry_delay = 2
+retry_delay = 4

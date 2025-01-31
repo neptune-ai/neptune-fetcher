@@ -236,12 +236,16 @@ def list_experiments(
 
     validated_context = _context.validate_context(context or _context.get_context())
     client = _api_client.get_client(validated_context)
+    project_identifier = _identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
     if isinstance(experiments, str):
         experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
-    assert validated_context.project is not None  # mypy
-    pages = _experiment.fetch_experiment_sys_attrs(
-        client, _identifiers.ProjectIdentifier(validated_context.project), experiments
+    _infer.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project_identifier,
+        experiment_filter=experiments,
     )
+
+    pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
     return list(exp.sys_name for page in pages for exp in page.items)

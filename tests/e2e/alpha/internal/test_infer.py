@@ -19,11 +19,10 @@ from neptune_fetcher.alpha.internal.infer import (
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TIME_NOW = time.time()
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-infer-{TIME_NOW}-a"
-EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-infer-{TIME_NOW}-b"
-PATH = f"test/test-internal-experiment-{TIME_NOW}"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-infer-a-{TIME_NOW}"
+EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-infer-b-{TIME_NOW}"
+PATH = f"test/test-internal-infer-{TIME_NOW}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
-DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
