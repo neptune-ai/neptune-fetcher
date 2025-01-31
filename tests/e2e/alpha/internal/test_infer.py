@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import (
     datetime,
     timezone,
@@ -18,10 +17,10 @@ from neptune_fetcher.alpha.internal.infer import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TIME_NOW = time.time()
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-infer-a-{TIME_NOW}"
-EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-infer-b-{TIME_NOW}"
-PATH = f"test/test-internal-infer-{TIME_NOW}"
+TEST_DATA_VERSION = "2025-01-31"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-infer-a-{TEST_DATA_VERSION}"
+EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-infer-b-{TEST_DATA_VERSION}"
+PATH = f"test/test-internal-infer-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
@@ -159,9 +158,7 @@ def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_att
         ),
     ],
 )
-def test_infer_attribute_types_in_filter_single_string(
-    client, project, run_with_attributes, filter_before, filter_after
-):
+def test_infer_attribute_types_in_filter_single(client, project, run_with_attributes, filter_before, filter_after):
     # given
     project_identifier = project.project_identifier
 

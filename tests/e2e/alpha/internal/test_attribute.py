@@ -20,9 +20,9 @@ from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TIME_NOW = time.time()
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-attribute-{TIME_NOW}"
-COMMON_PATH = f"test/test-internal-attribute-{TIME_NOW}"
+TEST_DATA_VERSION = "2025-01-31"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-attribute-{TEST_DATA_VERSION}"
+COMMON_PATH = f"test/test-internal-attribute-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]

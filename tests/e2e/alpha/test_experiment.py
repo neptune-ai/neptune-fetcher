@@ -9,7 +9,6 @@ from dataclasses import (
 )
 from datetime import (
     datetime,
-    timedelta,
     timezone,
 )
 
@@ -34,7 +33,7 @@ from neptune_fetcher.alpha.internal import (
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = str(int(time.time()))
+TEST_DATA_VERSION = "2025-01-31"
 PATH = f"test/test-experiment-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
@@ -95,7 +94,6 @@ class TestData:
 
 
 TEST_DATA = TestData()
-NOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -127,7 +125,7 @@ def run_with_attributes(project, client):
         for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
             metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
             metrics_data[f"{PATH}/metrics/step"] = step
-            run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+            run.log_metrics(data=metrics_data, step=step, timestamp=datetime(2025, 1, 31, 0, 0, int(step)))
 
         runs[experiment.name] = run
     for run in runs.values():
