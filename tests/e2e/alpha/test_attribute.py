@@ -16,8 +16,10 @@ from typing import Iterable
 import pytest
 from neptune_scale import Run
 
-from neptune_fetcher.alpha import set_project
-from neptune_fetcher.alpha.attribute import list_attributes
+from neptune_fetcher.alpha import (
+    list_attributes,
+    set_project,
+)
 from neptune_fetcher.alpha.filter import (
     Attribute,
     AttributeFilter,
