@@ -281,7 +281,6 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
 @pytest.mark.parametrize(
     "filter_, expected",
     [
-        (ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 12345), []),
         (ExperimentFilter.eq(Attribute("sys/name", type="string"), ""), []),
         (ExperimentFilter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
         (
@@ -297,18 +296,109 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
                 f"pye2e-alpha_2_{TEST_DATA_VERSION}",
             ],
         ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_123"), []),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1")
             & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
             [f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
-            ExperimentFilter.eq(Attribute(f"{PATH}/test/bool-value", type="bool"), False),
+            (
+                ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1")
+                | ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_2")
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_1_{TEST_DATA_VERSION}", f"pye2e-alpha_2_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.ne(Attribute(f"{PATH}/test/str-value", type="string"), "hello_1")
+            & ExperimentFilter.eq(Attribute(f"{PATH}/test/str-value", type="string"), "hello_2")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_2_{TEST_DATA_VERSION}"],
+        ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 12345), []),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 2)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_2_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 2)
+            | ExperimentFilter.eq(Attribute(f"{PATH}/test/int-value", type="int"), 3)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_2_{TEST_DATA_VERSION}", f"pye2e-alpha_3_{TEST_DATA_VERSION}"],
+        ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/test/float-value", type="float"), 1.2345), []),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/float-value", type="float"), 3)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_3_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/bool-value", type="bool"), False)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
             [
                 f"pye2e-alpha_1_{TEST_DATA_VERSION}",
                 f"pye2e-alpha_3_{TEST_DATA_VERSION}",
                 f"pye2e-alpha_5_{TEST_DATA_VERSION}",
             ],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/test/bool-value", type="bool"), True)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"pye2e-alpha_0_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_2_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_4_{TEST_DATA_VERSION}",
+            ],
+        ),
+        # TODO: add tests for datetime once we fix how Attribute handles the value
+        # (ExperimentFilter.gt(Attribute(f"{PATH}/test/datetime-value", type="datetime"), datetime.now()), []),
+        (
+            ExperimentFilter.contains_all(
+                Attribute(f"{PATH}/test/string_set-value", type="string_set"), "no-such-string"
+            ),
+            [],
+        ),
+        (
+            ExperimentFilter.contains_all(
+                Attribute(f"{PATH}/test/string_set-value", type="string_set"), ["string-1-0", "string-1-1"]
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            (
+                ExperimentFilter.contains_all(
+                    Attribute(f"{PATH}/test/string_set-value", type="string_set"), "string-1-0"
+                )
+                | ExperimentFilter.contains_all(
+                    Attribute(f"{PATH}/test/string_set-value", type="string_set"), "string-0-0"
+                )
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_0_{TEST_DATA_VERSION}", f"pye2e-alpha_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.contains_none(
+                Attribute(f"{PATH}/test/string_set-value", type="string_set"),
+                ["string-1-0", "string-2-0", "string-3-0"],
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"pye2e-alpha_0_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_4_{TEST_DATA_VERSION}",
+                f"pye2e-alpha_5_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (
+            ExperimentFilter.contains_none(
+                Attribute(f"{PATH}/test/string_set-value", type="string_set"),
+                ["string-1-0", "string-2-0", "string-3-0"],
+            )
+            & ExperimentFilter.contains_all(Attribute(f"{PATH}/test/string_set-value", type="string_set"), "string-0-0")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"pye2e-alpha_0_{TEST_DATA_VERSION}"],
         ),
         (
             ExperimentFilter.eq(Attribute("sys/name", type="string"), f"pye2e-alpha_0_{TEST_DATA_VERSION}"),
