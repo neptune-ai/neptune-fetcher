@@ -117,7 +117,7 @@ class _AttributePathInExperiment:
 def _batch(iterable: List[T], n: int) -> Iterable[List[T]]:
     length = len(iterable)
     for ndx in range(0, length, n):
-        yield iterable[ndx: min(ndx + n, length)]
+        yield iterable[ndx : min(ndx + n, length)]
 
 
 def _create_series(
