@@ -20,6 +20,7 @@ from neptune_scale import Run
 from neptune_fetcher.alpha import (
     Context,
     fetch_experiments_table,
+    list_experiments,
 )
 from neptune_fetcher.alpha.filter import (
     Attribute,
@@ -33,8 +34,8 @@ from neptune_fetcher.alpha.internal import (
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TIME_NOW = int(time.time())
-PATH = f"test/test-experiment-{TIME_NOW}"
+TEST_DATA_VERSION = str(int(time.time()))
+PATH = f"test/test-experiment-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
 
@@ -42,6 +43,7 @@ FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)
 class ExperimentData:
     name: str
     config: dict[str, any]
+    string_sets: dict[str, list[str]]
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -57,15 +59,16 @@ class TestData:
     def __post_init__(self):
         if not self.experiments:
             for i in range(6):
-                experiment_name = f"fetch_experiments_table_{i}_{TIME_NOW}"
+                experiment_name = f"test_experiment_{i}_{TEST_DATA_VERSION}"
                 config = {
-                    f"{PATH}/int-value": 10,
-                    f"{PATH}/float-value": 0.5,
-                    f"{PATH}/str-value": "hello",
-                    f"{PATH}/bool-value": True,
+                    f"{PATH}/int-value": i,
+                    f"{PATH}/float-value": float(i),
+                    f"{PATH}/str-value": f"hello_{i}",
+                    f"{PATH}/bool-value": i % 2 == 0,
                     f"{PATH}/datetime-value": datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc),
                 }
 
+                string_sets = {f"{PATH}/string_set-value": [f"string-{i}-{j}" for j in range(5)]}
                 float_series = {
                     path: [float(step**2) + float(random.uniform(0, 1)) for step in range(10)]
                     for path in FLOAT_SERIES_PATHS
@@ -78,16 +81,24 @@ class TestData:
                 float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(10)]
                 self.experiments.append(
                     ExperimentData(
-                        name=experiment_name, config=config, float_series=float_series, unique_series=unique_series
+                        name=experiment_name,
+                        config=config,
+                        string_sets=string_sets,
+                        float_series=float_series,
+                        unique_series=unique_series,
                     )
                 )
+
+    @property
+    def experiment_names(self):
+        return [exp.name for exp in self.experiments]
 
 
 TEST_DATA = TestData()
 NOW = datetime.now(timezone.utc)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def run_with_attributes(project, client):
     runs = {}
     for experiment in TEST_DATA.experiments:
@@ -110,6 +121,8 @@ def run_with_attributes(project, client):
         )
 
         run.log_configs(experiment.config)
+        # This is how neptune-scale allows setting string set values currently
+        run.log(tags_add=experiment.string_sets)
 
         for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
             metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
@@ -187,8 +200,8 @@ def test__fetch_experiments_table_with_attributes_filter(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            (f"{PATH}/int-value{suffix('int')}", ""): [10 for _ in range(3)],
-            (f"{PATH}/float-value{suffix('float')}", ""): [0.5 for _ in range(3)],
+            (f"{PATH}/int-value{suffix('int')}", ""): [i for i in range(3)],
+            (f"{PATH}/float-value{suffix('float')}", ""): [float(i) for i in range(3)],
             (f"{PATH}/metrics/step{suffix('float_series')}", "last"): [
                 TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
             ],
@@ -305,3 +318,172 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
 
 def _context(project):
     return Context(project=project.project_identifier, api_token=env.NEPTUNE_API_TOKEN.get())
+
+
+@pytest.mark.parametrize(
+    "regex, expected_subset",
+    [
+        (None, TEST_DATA.experiment_names),
+        (".*", TEST_DATA.experiment_names),
+        ("", TEST_DATA.experiment_names),
+        ("test_experiment", TEST_DATA.experiment_names),
+        (ExperimentFilter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
+    ],
+)
+def test_list_experiments_with_regex_and_filters_matching_all(regex, expected_subset):
+    """We need to check if expected names are a subset of all names returned, as
+    the test data could contain other experiments"""
+    names = list_experiments(regex)
+    assert set(expected_subset) <= set(names)
+
+
+@pytest.mark.parametrize(
+    "regex, expected",
+    [
+        (f"experiment_1.*{TEST_DATA_VERSION}", [f"test_experiment_1_{TEST_DATA_VERSION}"]),
+        (
+            f"experiment_[2,3].*{TEST_DATA_VERSION}",
+            [f"test_experiment_2_{TEST_DATA_VERSION}", f"test_experiment_3_{TEST_DATA_VERSION}"],
+        ),
+        ("not-found", []),
+        ("experiment_999", []),
+    ],
+)
+def test_list_experiments_with_regex_matching_some(regex, expected):
+    """This check is more strict than test_list_experiments_with_regex_matching_all, as we are able
+    to predict the exact output because of the filtering applied"""
+    names = list_experiments(regex)
+    assert len(names) == len(expected)
+    assert set(names) == set(expected)
+
+
+@pytest.mark.parametrize(
+    "filter_, expected",
+    [
+        (ExperimentFilter.eq(Attribute("sys/name", type="string"), ""), []),
+        (ExperimentFilter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
+        (
+            ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), [f"experiment.*{TEST_DATA_VERSION}", "_3"]
+            ),
+            [f"test_experiment_3" f"_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.matches_none(
+                Attribute("sys/name", type="string"), ["experiment_3", "experiment_4", "experiment_5"]
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"test_experiment_0_{TEST_DATA_VERSION}",
+                f"test_experiment_1_{TEST_DATA_VERSION}",
+                f"test_experiment_2_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_123"), []),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            (
+                ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
+                | ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_1_{TEST_DATA_VERSION}", f"test_experiment_2_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.ne(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
+            & ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_2_{TEST_DATA_VERSION}"],
+        ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 12345), []),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_2_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
+            | ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 3)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_2_{TEST_DATA_VERSION}", f"test_experiment_3_{TEST_DATA_VERSION}"],
+        ),
+        (ExperimentFilter.eq(Attribute(f"{PATH}/float-value", type="float"), 1.2345), []),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/float-value", type="float"), 3)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_3_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"test_experiment_1_{TEST_DATA_VERSION}",
+                f"test_experiment_3_{TEST_DATA_VERSION}",
+                f"test_experiment_5_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (
+            ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), True)
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"test_experiment_0_{TEST_DATA_VERSION}",
+                f"test_experiment_2_{TEST_DATA_VERSION}",
+                f"test_experiment_4_{TEST_DATA_VERSION}",
+            ],
+        ),
+        # TODO: add tests for datetime once we fix how Attribute handles the value
+        # (ExperimentFilter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
+        (
+            ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "no-such-string"),
+            [],
+        ),
+        (
+            ExperimentFilter.contains_all(
+                Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-1-0", "string-1-1"]
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            (
+                ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-1-0")
+                | ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_0_{TEST_DATA_VERSION}", f"test_experiment_1_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.contains_none(
+                Attribute(f"{PATH}/string_set-value", type="string_set"),
+                ["string-1-0", "string-2-0", "string-3-0"],
+            )
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [
+                f"test_experiment_0_{TEST_DATA_VERSION}",
+                f"test_experiment_4_{TEST_DATA_VERSION}",
+                f"test_experiment_5_{TEST_DATA_VERSION}",
+            ],
+        ),
+        (
+            ExperimentFilter.contains_none(
+                Attribute(f"{PATH}/string_set-value", type="string_set"),
+                ["string-1-0", "string-2-0", "string-3-0"],
+            )
+            & ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
+            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            [f"test_experiment_0_{TEST_DATA_VERSION}"],
+        ),
+        (
+            ExperimentFilter.eq(Attribute("sys/name", type="string"), f"test_experiment_0_{TEST_DATA_VERSION}"),
+            [f"test_experiment_0_{TEST_DATA_VERSION}"],
+        ),
+    ],
+)
+def test_list_experiments_with_filter_matching_some(filter_, expected):
+    names = list_experiments(filter_)
+    assert set(names) == set(expected)
+    assert len(names) == len(expected)
