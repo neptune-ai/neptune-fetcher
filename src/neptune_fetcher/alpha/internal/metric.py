@@ -49,6 +49,7 @@ from neptune_retrieval_api.models import (
     TimeSeriesLineage,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from pandas.core.interchange.dataframe_protocol import DataFrame
 
 from neptune_fetcher.alpha.filter import (
     AttributeFilter,
@@ -172,9 +173,57 @@ def fetch_flat_dataframe_metrics(
                 futures.update(new_futures)
                 series.append(values)
 
-    df = pd.DataFrame(chain.from_iterable(series))
-    # change to category to save memory
-    df[["experiment", "path"]] = df[["experiment", "path"]].astype("category")
+    return _create_flat_dataframe(chain.from_iterable(series))
+
+
+def _create_flat_dataframe(float_point_values: Iterable[_FloatPointValue]) -> DataFrame:
+    """
+        Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
+        by converting strings to categorical codes before DataFrame creation.
+    """
+    # First create mappings for categorical columns
+    experiment_name_mapping = {}
+    path_mapping = {}
+
+    # Prepare column arrays
+    data: Dict[str, List[Union[str, float, datetime]]] = {
+        'experiment': [],
+        'path': [],
+        'timestamp': [],
+        'step': [],
+        'value': []
+    }
+
+    # Process each point, creating categorical mappings as we go
+    for point in float_point_values:
+        # Handle experiment
+        if point.experiment not in experiment_name_mapping:
+            experiment_name_mapping[point.experiment] = len(experiment_name_mapping)
+        data['experiment'].append(experiment_name_mapping[point.experiment])
+
+        # Handle path
+        if point.path not in path_mapping:
+            path_mapping[point.path] = len(path_mapping)
+        data['path'].append(path_mapping[point.path])
+
+        # Add numeric values directly
+        data['timestamp'].append(point.timestamp)
+        data['step'].append(point.step)
+        data['value'].append(point.value)
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+
+    # Convert integer codes back to categorical with proper categories
+    df['experiment'] = pd.Categorical.from_codes(
+        df['experiment'],
+        categories=list(experiment_name_mapping.keys())
+    )
+    df['path'] = pd.Categorical.from_codes(
+        df['path'],
+        categories=list(path_mapping.keys())
+    )
+
     return df
 
 
