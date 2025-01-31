@@ -178,20 +178,20 @@ def fetch_flat_dataframe_metrics(
 
 def _create_flat_dataframe(float_point_values: Iterable[_FloatPointValue]) -> DataFrame:
     """
-        Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
-        by converting strings to categorical codes before DataFrame creation.
+    Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
+    by converting strings to categorical codes before DataFrame creation.
     """
     # First create mappings for categorical columns
-    experiment_name_mapping = {}
-    path_mapping = {}
+    experiment_name_mapping: Dict[str, int] = {}
+    path_mapping: Dict[str, int] = {}
 
     # Prepare column arrays
     data: Dict[str, List[Union[str, float, datetime]]] = {
-        'experiment': [],
-        'path': [],
-        'timestamp': [],
-        'step': [],
-        'value': []
+        "experiment": [],
+        "path": [],
+        "timestamp": [],
+        "step": [],
+        "value": [],
     }
 
     # Process each point, creating categorical mappings as we go
@@ -199,30 +199,24 @@ def _create_flat_dataframe(float_point_values: Iterable[_FloatPointValue]) -> Da
         # Handle experiment
         if point.experiment not in experiment_name_mapping:
             experiment_name_mapping[point.experiment] = len(experiment_name_mapping)
-        data['experiment'].append(experiment_name_mapping[point.experiment])
+        data["experiment"].append(experiment_name_mapping[point.experiment])
 
         # Handle path
         if point.path not in path_mapping:
             path_mapping[point.path] = len(path_mapping)
-        data['path'].append(path_mapping[point.path])
+        data["path"].append(path_mapping[point.path])
 
         # Add numeric values directly
-        data['timestamp'].append(point.timestamp)
-        data['step'].append(point.step)
-        data['value'].append(point.value)
+        data["timestamp"].append(point.timestamp)
+        data["step"].append(point.step)
+        data["value"].append(point.value)
 
     # Create DataFrame
     df = pd.DataFrame(data)
 
     # Convert integer codes back to categorical with proper categories
-    df['experiment'] = pd.Categorical.from_codes(
-        df['experiment'],
-        categories=list(experiment_name_mapping.keys())
-    )
-    df['path'] = pd.Categorical.from_codes(
-        df['path'],
-        categories=list(path_mapping.keys())
-    )
+    df["experiment"] = pd.Categorical.from_codes(df["experiment"], categories=list(experiment_name_mapping.keys()))
+    df["path"] = pd.Categorical.from_codes(df["path"], categories=list(path_mapping.keys()))
 
     return df
 
