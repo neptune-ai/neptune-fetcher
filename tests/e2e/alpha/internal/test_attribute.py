@@ -417,6 +417,34 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
     )
 
 
+def test_fetch_attribute_definitions_experiment_identifier_none(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(client, [project_identifier], None, attribute_filter=attribute_filter)
+    )
+
+    # then
+    assert attributes == [AttributeDefinition("sys/name", "string")]
+
+
+def test_fetch_attribute_definitions_experiment_identifier_empty(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(client, [project_identifier], [], attribute_filter=attribute_filter)
+    )
+
+    # then
+    assert attributes == []
+
+
 def test_fetch_attribute_values_single_string(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier

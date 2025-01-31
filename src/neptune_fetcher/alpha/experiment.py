@@ -33,6 +33,7 @@ from neptune_fetcher.alpha.internal import api_client as _api_client
 from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
+from neptune_fetcher.alpha.internal import infer as _infer
 from neptune_fetcher.alpha.internal import output as _output
 from neptune_fetcher.alpha.internal import util as _util
 
@@ -87,9 +88,22 @@ def fetch_experiments_table(
         attributes_filter = attributes
 
     if isinstance(sort_by, str):
-        sort_by_attribute = Attribute(sort_by, type="string")  # TODO: infer type?
+        sort_by_attribute = Attribute(sort_by)
     else:
         sort_by_attribute = sort_by
+
+    _infer.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project,
+        experiment_filter=experiments_filter,
+    )
+
+    _infer.infer_attribute_types_in_sort_by(
+        client=client,
+        project_identifier=project,
+        experiment_filter=experiments_filter,
+        sort_by=sort_by_attribute,
+    )
 
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
     result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}

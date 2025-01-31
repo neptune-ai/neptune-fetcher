@@ -31,7 +31,7 @@ def client() -> AuthenticatedClient:
 
 
 def pytest_set_filtered_exceptions() -> list[type[BaseException]]:
-    return [AssertionError]
+    return [AssertionError, ValueError]
 
 
 def unique_path(prefix):

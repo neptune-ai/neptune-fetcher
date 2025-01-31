@@ -33,6 +33,7 @@ from neptune_fetcher.alpha.filter import (
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal import infer as _infer
 from neptune_fetcher.alpha.internal.api_client import get_client
 from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 
@@ -72,6 +73,7 @@ def fetch_metrics(
     """
     valid_context = validate_context(context or get_context())
     client = get_client(valid_context)
+    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     experiments = (
         ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
@@ -84,11 +86,17 @@ def fetch_metrics(
         else attributes
     )
 
+    _infer.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project_identifier,
+        experiment_filter=experiments,
+    )
+
     df = fetch_flat_dataframe_metrics(
         experiments=experiments,
         attributes=attributes,
         client=client,
-        project=identifiers.ProjectIdentifier(valid_context.project),  # type: ignore
+        project=project_identifier,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
