@@ -345,10 +345,10 @@ def _context(project):
         (ExperimentFilter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
     ],
 )
-def test_list_experiments_with_regex_and_filters_matching_all(regex, expected_subset):
+def test_list_experiments_with_regex_and_filters_matching_all(project, regex, expected_subset):
     """We need to check if expected names are a subset of all names returned, as
     the test data could contain other experiments"""
-    names = list_experiments(regex)
+    names = list_experiments(regex, context=_context(project))
     assert set(expected_subset) <= set(names)
 
 
@@ -364,10 +364,10 @@ def test_list_experiments_with_regex_and_filters_matching_all(regex, expected_su
         ("experiment_999", []),
     ],
 )
-def test_list_experiments_with_regex_matching_some(regex, expected):
+def test_list_experiments_with_regex_matching_some(project, regex, expected):
     """This check is more strict than test_list_experiments_with_regex_matching_all, as we are able
     to predict the exact output because of the filtering applied"""
-    names = list_experiments(regex)
+    names = list_experiments(regex, context=_context(project))
     assert len(names) == len(expected)
     assert set(names) == set(expected)
 
@@ -387,7 +387,9 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
             ExperimentFilter.matches_none(
                 Attribute("sys/name", type="string"), ["experiment_3", "experiment_4", "experiment_5"]
             )
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [
                 f"test_experiment_0_{TEST_DATA_VERSION}",
                 f"test_experiment_1_{TEST_DATA_VERSION}",
@@ -397,7 +399,9 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
         (ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_123"), []),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_1_{TEST_DATA_VERSION}"],
         ),
         (
@@ -405,36 +409,48 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
                 ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
                 | ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
             )
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_1_{TEST_DATA_VERSION}", f"test_experiment_2_{TEST_DATA_VERSION}"],
         ),
         (
             ExperimentFilter.ne(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
             & ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_2_{TEST_DATA_VERSION}"],
         ),
         (ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 12345), []),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_2_{TEST_DATA_VERSION}"],
         ),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
             | ExperimentFilter.eq(Attribute(f"{PATH}/int-value", type="int"), 3)
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_2_{TEST_DATA_VERSION}", f"test_experiment_3_{TEST_DATA_VERSION}"],
         ),
         (ExperimentFilter.eq(Attribute(f"{PATH}/float-value", type="float"), 1.2345), []),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/float-value", type="float"), 3)
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_3_{TEST_DATA_VERSION}"],
         ),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False)
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [
                 f"test_experiment_1_{TEST_DATA_VERSION}",
                 f"test_experiment_3_{TEST_DATA_VERSION}",
@@ -443,7 +459,9 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
         ),
         (
             ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), True)
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [
                 f"test_experiment_0_{TEST_DATA_VERSION}",
                 f"test_experiment_2_{TEST_DATA_VERSION}",
@@ -476,7 +494,9 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
                 Attribute(f"{PATH}/string_set-value", type="string_set"),
                 ["string-1-0", "string-2-0", "string-3-0"],
             )
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [
                 f"test_experiment_0_{TEST_DATA_VERSION}",
                 f"test_experiment_4_{TEST_DATA_VERSION}",
@@ -489,7 +509,9 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
                 ["string-1-0", "string-2-0", "string-3-0"],
             )
             & ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
-            & ExperimentFilter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
+            & ExperimentFilter.matches_all(
+                Attribute("sys/name", type="string"), f"test_experiment_[0-9]_{TEST_DATA_VERSION}"
+            ),
             [f"test_experiment_0_{TEST_DATA_VERSION}"],
         ),
         (
@@ -498,7 +520,7 @@ def test_list_experiments_with_regex_matching_some(regex, expected):
         ),
     ],
 )
-def test_list_experiments_with_filter_matching_some(filter_, expected):
-    names = list_experiments(filter_)
+def test_list_experiments_with_filter_matching_some(project, filter_, expected):
+    names = list_experiments(filter_, context=_context(project))
     assert set(names) == set(expected)
     assert len(names) == len(expected)
