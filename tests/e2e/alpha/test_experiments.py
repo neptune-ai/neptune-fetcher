@@ -35,12 +35,14 @@ from neptune_fetcher.alpha.filter import (
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
+from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 
 
 @dataclass
 class ExperimentData:
     name: str
     config: Dict[str, any]
+    string_sets: Dict[str, List[str]]
     float_series: Dict[str, List[float]]
     unique_series: Dict[str, List[float]]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -51,7 +53,7 @@ FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)
 NUMBER_OF_STEPS = 100
 PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
-TEST_DATA_VERSION = "v3"
+TEST_DATA_VERSION = "v4"
 
 
 @dataclass
@@ -71,8 +73,11 @@ class TestData:
                     f"{PATH}/test/float-value": float(i),
                     f"{PATH}/test/str-value": f"hello_{i}",
                     f"{PATH}/test/bool-value": i % 2 == 0,
-                    f"{PATH}/test/datetime-value": datetime.now(),
+                    # The backend rounds the milliseconds component, so we're fine with just 0 to be more predictable
+                    f"{PATH}/test/datetime-value": datetime.now(timezone.utc).replace(microsecond=0),
                 }
+
+                string_sets = {f"{PATH}/test/string_set-value": [f"string-{i}-{x}" for x in range(5)]}
 
                 float_series = {
                     path: [float(step * (j + i)) for step in range(NUMBER_OF_STEPS)]
@@ -88,7 +93,11 @@ class TestData:
                 float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(NUMBER_OF_STEPS)]
                 self.experiments.append(
                     ExperimentData(
-                        name=experiment_name, config=configs, float_series=float_series, unique_series=unique_series
+                        name=experiment_name,
+                        config=configs,
+                        string_sets=string_sets,
+                        float_series=float_series,
+                        unique_series=unique_series,
                     )
                 )
 
@@ -110,7 +119,7 @@ def run_with_attributes(client):
             p.items
             for p in fetch_experiment_sys_attrs(
                 client=client,
-                project_identifier=PROJECT,
+                project_identifier=ProjectIdentifier(PROJECT),
                 experiment_filter=ExperimentFilter.name_in(*expected_experiments),
             )
         ]
@@ -127,6 +136,8 @@ def run_with_attributes(client):
         )
 
         run.log_configs(experiment.config)
+        # This is how neptune-scale allows setting string set values currently
+        run.log(tags_add=experiment.string_sets)
 
         for index, step in enumerate(experiment.float_series[f"{PATH}/metrics/step"]):
             series = itertools.chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()])
