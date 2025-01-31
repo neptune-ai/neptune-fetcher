@@ -12,20 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-__all__ = [
-    "Context",
-    "set_context",
-    "set_project",
-    "fetch_experiments_table",
-    "set_api_token",
-]
+import warnings
 
-from neptune_fetcher.alpha.context import (
-    Context,
-    set_api_token,
-    set_context,
-    set_project,
-)
-from neptune_fetcher.alpha.experiment import fetch_experiments_table
+
+class NeptuneWarning(Warning):
+    pass
+
+
+warnings.simplefilter("once", category=NeptuneWarning)

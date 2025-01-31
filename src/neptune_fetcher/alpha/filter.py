@@ -42,14 +42,12 @@ class BaseAttributeFilter(ABC):
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
     name_eq: Union[str, list[str], None] = None
-    type_in: Optional[
-        list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]
-    ] = field(
-        default_factory=lambda: list(types.ALL_TYPES)
-    )  # type: ignore
+    type_in: list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]] = field(
+        default_factory=lambda: list(types.ALL_TYPES)  # type: ignore
+    )
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
-    aggregations: Optional[list[Literal["last", "min", "max", "average", "variance", "auto"]]] = None
+    aggregations: list[Literal["last", "min", "max", "average", "variance"]] = field(default_factory=lambda: ["last"])
 
 
 @dataclass
@@ -71,7 +69,7 @@ class Attribute:
         query = f"`{self.name}`"
 
         if self.type is not None:
-            _type = types.map_attribute_type_user_to_backend(self.type)
+            _type = types.map_attribute_type_python_to_backend(self.type)
             query += f":{_type}"
 
         if self.aggregation is not None:

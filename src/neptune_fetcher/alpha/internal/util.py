@@ -15,14 +15,20 @@
 
 from __future__ import annotations
 
+import concurrent
 import time
-from concurrent.futures import Executor
+from concurrent.futures import (
+    Executor,
+    Future,
+    ThreadPoolExecutor,
+)
 from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
     Generator,
     Generic,
+    Iterable,
     Optional,
     TypeVar,
 )
@@ -30,10 +36,12 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
+from neptune_fetcher.alpha.internal import env
 from neptune_fetcher.util import NeptuneException
 
 T = TypeVar("T")
 R = TypeVar("R")
+OUT = tuple[set[Future], Optional[R]]
 _Params = dict[str, Any]
 
 
@@ -137,3 +145,47 @@ def backoff_retry(
         raise NeptuneException("Unknown error occurred when requesting data")
 
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+
+
+def create_thread_pool_executor() -> Executor:
+    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
+    return ThreadPoolExecutor(max_workers=max_workers)
+
+
+def generate_concurrently(
+    items: Generator[T, None, None],
+    executor: Executor,
+    downstream: Callable[[T], OUT],
+) -> OUT:
+    try:
+        head = next(items)
+        futures = {
+            executor.submit(downstream, head),
+            executor.submit(generate_concurrently, items, executor, downstream),
+        }
+        return futures, None
+    except StopIteration:
+        return set(), None
+
+
+def fork_concurrently(item: T, executor: Executor, downstreams: Iterable[Callable[[T], OUT]]) -> OUT:
+    futures = {executor.submit(downstream, item) for downstream in downstreams}
+    return futures, None
+
+
+def return_value(item: R) -> OUT:
+    return set(), item
+
+
+def gather_results(output: OUT) -> Generator[R, None, None]:
+    futures, value = output
+    if value is not None:
+        yield value
+    while futures:
+        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+        futures = not_done
+        for future in done:
+            new_futures, value = future.result()
+            futures.update(new_futures)
+            if value is not None:
+                yield value

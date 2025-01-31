@@ -1,475 +1,307 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
+import random
+import statistics
+import time
+import uuid
+from dataclasses import (
+    dataclass,
+    field,
+)
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
-from typing import Generator
 
+import pandas as pd
 import pytest
+from neptune_scale import Run
 
+from neptune_fetcher.alpha import (
+    Context,
+    fetch_experiments_table,
+)
 from neptune_fetcher.alpha.filter import (
     Attribute,
+    AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import util
-from neptune_fetcher.alpha.internal.experiment import (
-    ExperimentSysAttrs,
-    fetch_experiment_sys_attrs,
+from neptune_fetcher.alpha.internal import (
+    env,
+    identifiers,
 )
+from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-EXPERIMENT_NAME = "pye2e-fetcher-test-experiment"
-DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
-DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
-FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
-FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
+TIME_NOW = time.time()
+PATH = f"test/test-experiment-{TIME_NOW}"
+FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
+
+
+@dataclass
+class ExperimentData:
+    name: str
+    config: dict[str, any]
+    float_series: dict[str, list[float]]
+    unique_series: dict[str, list[float]]
+    run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+
+@dataclass
+class TestData:
+    experiments: list[ExperimentData] = field(default_factory=list)
+
+    def exp_name(self, index: int) -> str:
+        return self.experiments[index].name
+
+    def __post_init__(self):
+        if not self.experiments:
+            for i in range(6):
+                experiment_name = f"fetch_experiments_table_{i}_{TIME_NOW}"
+                config = {
+                    f"{PATH}/int-value": 10,
+                    f"{PATH}/float-value": 0.5,
+                    f"{PATH}/str-value": "hello",
+                    f"{PATH}/bool-value": True,
+                    f"{PATH}/datetime-value": datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc),
+                }
+
+                float_series = {
+                    path: [float(step**2) + float(random.uniform(0, 1)) for step in range(10)]
+                    for path in FLOAT_SERIES_PATHS
+                }
+                unique_series = {
+                    f"{PATH}/metrics/unique-series-{i}-{j}": [float(random.uniform(0, 100)) for _ in range(10)]
+                    for j in range(3)
+                }
+
+                float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(10)]
+                self.experiments.append(
+                    ExperimentData(
+                        name=experiment_name, config=config, float_series=float_series, unique_series=unique_series
+                    )
+                )
+
+
+TEST_DATA = TestData()
+NOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="module")
-def run_with_attributes(project):
-    import uuid
+def run_with_attributes(project, client):
+    runs = {}
+    for experiment in TEST_DATA.experiments:
+        project_id = project.project_identifier
 
-    from neptune_scale import Run
-
-    project_identifier = project.project_identifier
-    run_id = str(uuid.uuid4())
-
-    run = Run(
-        project=project_identifier,
-        run_id=run_id,
-        experiment_name=EXPERIMENT_NAME,
-    )
-
-    data = {
-        "test/int-value": 10,
-        "test/float-value": 0.5,
-        "test/str-value": "hello",
-        "test/bool-value": True,
-        "test/datetime-value": DATETIME_VALUE,
-    }
-    run.log_configs(data)
-
-    path = "test/float-series-value"
-    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
-        run.log_metrics(data={path: value}, step=step)
-
-    run.wait_for_processing()
-
-    return run
-
-
-def test_find_experiments_no_filter(client, project, run_with_attributes):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None))
-
-    # then
-    assert len(experiment_names) > 0
-
-
-def test_find_experiments_by_name(client, project, run_with_attributes):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
-
-    #  when
-    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    assert experiment_names == [EXPERIMENT_NAME]
-
-
-def test_find_experiments_by_name_not_found(client, project):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_filter = ExperimentFilter.name_eq("name_not_found")
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    assert experiment_names == []
-
-
-@pytest.mark.parametrize(
-    "experiment_filter,found",
-    [
-        (ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10), True),
-        (ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11), False),
-        (ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10), False),
-        (ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 11), True),
-        (ExperimentFilter.ge(Attribute(name="test/int-value", type="int"), 10), True),
-        (ExperimentFilter.gt(Attribute(name="test/int-value", type="int"), 10), False),
-        (ExperimentFilter.le(Attribute(name="test/int-value", type="int"), 10), True),
-        (ExperimentFilter.lt(Attribute(name="test/int-value", type="int"), 10), False),
-        (ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6), False),
-        (ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.6), True),
-        (ExperimentFilter.ge(Attribute(name="test/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.gt(Attribute(name="test/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.le(Attribute(name="test/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.lt(Attribute(name="test/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.eq(Attribute(name="test/bool-value", type="bool"), "True"), True),
-        (ExperimentFilter.eq(Attribute(name="test/bool-value", type="bool"), "False"), False),
-        (ExperimentFilter.ne(Attribute(name="test/bool-value", type="bool"), "True"), False),
-        (ExperimentFilter.ne(Attribute(name="test/bool-value", type="bool"), "False"), True),
-        (ExperimentFilter.eq(Attribute(name="test/str-value", type="string"), "hello"), True),
-        (ExperimentFilter.eq(Attribute(name="test/str-value", type="string"), "hello2"), False),
-        (ExperimentFilter.ne(Attribute(name="test/str-value", type="string"), "hello"), False),
-        (ExperimentFilter.ne(Attribute(name="test/str-value", type="string"), "hello2"), True),
-        (ExperimentFilter.matches_all(Attribute(name="test/str-value", type="string"), "^he..o$"), True),
-        (ExperimentFilter.matches_all(Attribute(name="test/str-value", type="string"), ["^he", "lo$"]), True),
-        (ExperimentFilter.matches_all(Attribute(name="test/str-value", type="string"), ["^he", "y"]), False),
-        (ExperimentFilter.matches_none(Attribute(name="test/str-value", type="string"), "x"), True),
-        (ExperimentFilter.matches_none(Attribute(name="test/str-value", type="string"), ["x", "y"]), True),
-        (ExperimentFilter.matches_none(Attribute(name="test/str-value", type="string"), ["^he", "y"]), False),
-        (ExperimentFilter.contains_all(Attribute(name="test/str-value", type="string"), "ll"), True),
-        (ExperimentFilter.contains_all(Attribute(name="test/str-value", type="string"), ["e", "ll"]), True),
-        (ExperimentFilter.contains_all(Attribute(name="test/str-value", type="string"), ["he", "y"]), False),
-        (ExperimentFilter.contains_none(Attribute(name="test/str-value", type="string"), "x"), True),
-        (ExperimentFilter.contains_none(Attribute(name="test/str-value", type="string"), ["x", "y"]), True),
-        (ExperimentFilter.contains_none(Attribute(name="test/str-value", type="string"), ["he", "y"]), False),
-        (ExperimentFilter.eq(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.eq(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE2), False),
-        (ExperimentFilter.ne(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.ne(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE2), True),
-        (ExperimentFilter.ge(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.gt(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.le(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.lt(Attribute(name="test/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.exists(Attribute(name="test/str-value", type="string")), True),
-        (ExperimentFilter.exists(Attribute(name="test/str-value", type="int")), False),
-        (ExperimentFilter.exists(Attribute(name="test/does-not-exist-value", type="string")), False),
-    ],
-)
-def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    if found:
-        assert experiment_names == [EXPERIMENT_NAME]
-    else:
-        assert experiment_names == []
-
-
-@pytest.mark.parametrize(
-    "experiment_filter,found",
-    [
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
-                FLOAT_SERIES_VALUES[-1],
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
-                FLOAT_SERIES_VALUES[-2],
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.ne(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="last"),
-                FLOAT_SERIES_VALUES[-1],
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
-                min(FLOAT_SERIES_VALUES),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
-                min(FLOAT_SERIES_VALUES) + 1,
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.ne(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="min"),
-                min(FLOAT_SERIES_VALUES),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
-                max(FLOAT_SERIES_VALUES),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
-                max(FLOAT_SERIES_VALUES) + 1,
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.ne(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="max"),
-                max(FLOAT_SERIES_VALUES),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
-                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
-                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES) + 1.0,
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.ne(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="average"),
-                sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.eq(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05 + 1
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.ne(
-                Attribute(name="test/float-series-value", type="float_series", aggregation="variance"), 721.05
-            ),
-            False,
-        ),
-    ],
-)
-def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    if found:
-        assert experiment_names == [EXPERIMENT_NAME]
-    else:
-        assert experiment_names == []
-
-
-@pytest.mark.parametrize(
-    "experiment_filter,found",
-    [
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name="test/float-value", type="float"), 0.5),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.negate(
-                ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.negate(
-                ExperimentFilter.ne(Attribute(name="test/int-value", type="int"), 10),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-                ),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.5),
-                ),
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                ),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.negate(
-                ExperimentFilter.any(
-                    ExperimentFilter.all(
-                        ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 10),
-                        ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                    ),
-                    ExperimentFilter.all(
-                        ExperimentFilter.eq(Attribute(name="test/int-value", type="int"), 11),
-                        ExperimentFilter.eq(Attribute(name="test/float-value", type="float"), 0.6),
-                    ),
-                )
-            ),
-            True,
-        ),
-    ],
-)
-def test_find_experiments_by_logical_expression(client, project, run_with_attributes, experiment_filter, found):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
-
-    # then
-    if found:
-        assert experiment_names == [EXPERIMENT_NAME]
-    else:
-        assert experiment_names == []
-
-
-def test_find_experiments_paging(client, project, run, run_with_attributes):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(
-        fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None, batch_size=1)
-    )
-
-    # then
-    assert len(experiment_names) > 1
-
-
-def test_find_experiments_paging_executor(client, project, run_with_attributes):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        experiment_names = _extract_names(
+        existing = next(
             fetch_experiment_sys_attrs(
-                client, project_identifier, experiment_filter=None, batch_size=1, executor=executor
+                client,
+                identifiers.ProjectIdentifier(project_id),
+                ExperimentFilter.name_in(experiment.name),
             )
         )
+        if existing.items:
+            continue
 
-    # then
-    assert len(experiment_names) > 1
+        run = Run(
+            project=project_id,
+            run_id=experiment.run_id,
+            experiment_name=experiment.name,
+        )
+
+        run.log_configs(experiment.config)
+
+        for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
+            metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
+            metrics_data[f"{PATH}/metrics/step"] = step
+            run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+
+        runs[experiment.name] = run
+
+        run.close()
+
+    return runs
 
 
-def _extract_names(pages: Generator[util.Page[ExperimentSysAttrs], None, None]) -> list[str]:
-    return [item.sys_name for page in pages for item in page.items]
+@pytest.mark.parametrize("sort_direction", ["asc", "desc"])
+def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
+    df = fetch_experiments_table(
+        experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction=sort_direction,
+        context=_context(project),
+    )
+
+    experiments = [experiment.name for experiment in TEST_DATA.experiments]
+    expected = pd.DataFrame(
+        {
+            "experiment": experiments if sort_direction == "asc" else experiments[::-1],
+            ("sys/name", ""): experiments if sort_direction == "asc" else experiments[::-1],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert len(df) == 6
+    pd.testing.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "experiment_filter",
+    [
+        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        ExperimentFilter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
+        ExperimentFilter.name_eq(TEST_DATA.exp_name(0))
+        | ExperimentFilter.name_eq(TEST_DATA.exp_name(1))
+        | ExperimentFilter.name_eq(TEST_DATA.exp_name(2)),
+    ],
+)
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        f"{PATH}/int-value|{PATH}/float-value|{PATH}/metrics/step",
+        AttributeFilter.any(
+            AttributeFilter(f"{PATH}/int-value", type_in=["int"]),
+            AttributeFilter(f"{PATH}/float-value", type_in=["float"]),
+            AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+        ),
+        AttributeFilter(f"{PATH}/int-value", type_in=["int"])
+        | AttributeFilter(f"{PATH}/float-value", type_in=["float"])
+        | AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+    ],
+)
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+def test__fetch_experiments_table_with_attributes_filter(
+    project, run_with_attributes, attr_filter, experiment_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        experiments=experiment_filter,
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=_context(project),
+    )
+
+    def suffix(name):
+        return f":{name}" if type_suffix_in_column_names else ""
+
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
+            (f"{PATH}/int-value{suffix('int')}", ""): [10 for _ in range(3)],
+            (f"{PATH}/float-value{suffix('float')}", ""): [0.5 for _ in range(3)],
+            (f"{PATH}/metrics/step{suffix('float_series')}", "last"): [
+                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert df.shape == (3, 3)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        AttributeFilter(
+            f"{PATH}/metrics/step", type_in=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
+        )
+        | AttributeFilter(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
+        | AttributeFilter(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
+    ],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_metrics(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=_context(project),
+    )
+
+    suffix = ":float_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
+            (f"{PATH}/metrics/step" + suffix, "last"): [
+                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
+            ],
+            (f"{PATH}/metrics/step" + suffix, "min"): [
+                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][0] for i in range(3)
+            ],
+            (f"{PATH}/metrics/step" + suffix, "max"): [
+                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
+            ],
+            (f"{PATH}/metrics/step" + suffix, "average"): [
+                statistics.fmean(TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"]) for i in range(3)
+            ],
+            (f"{PATH}/metrics/step" + suffix, "variance"): [
+                statistics.pvariance(TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"]) for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[0] + suffix, "average"): [
+                statistics.fmean(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[0] + suffix, "variance"): [
+                statistics.pvariance(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
+                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert df.shape == (3, 8)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        AttributeFilter(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
+        AttributeFilter(
+            name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
+            name_matches_none=".*value_[5-9].*",
+        ),
+        f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
+    ],
+)
+def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        experiments=ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=_context(project),
+    )
+
+    suffix = ":float_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
+            (f"{PATH}/metrics/step" + suffix, "last"): [
+                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[0] + suffix, "last"): [
+                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]][-1] for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
+                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert df.shape == (3, 3)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+def _context(project):
+    return Context(project=project.project_identifier, api_token=env.NEPTUNE_API_TOKEN.get())
