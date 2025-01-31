@@ -32,8 +32,8 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import experiment
 from neptune_fetcher.alpha.internal.api_client import get_client
+from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 
@@ -160,7 +160,8 @@ def fetch_metrics(
 
 
 def list_experiments(
-    experiments: Optional[Union[str, ExperimentFilter]] = None, context: Optional[Context] = None
+    experiments: Optional[Union[str, ExperimentFilter]] = None,
+    context: Optional[Context] = None,
 ) -> list[str]:
     """
      Returns a list of experiment names in a project.
@@ -177,4 +178,5 @@ def list_experiments(
         experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
     assert validated_context.project is not None  # mypy
-    return list(experiment.list_experiments(client, ProjectIdentifier(validated_context.project), experiments))
+    pages = fetch_experiment_sys_attrs(client, ProjectIdentifier(validated_context.project), experiments)
+    return list(exp.sys_name for page in pages for exp in page.items)
