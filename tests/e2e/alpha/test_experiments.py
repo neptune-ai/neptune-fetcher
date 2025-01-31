@@ -68,7 +68,7 @@ class TestData:
 
                 configs = {
                     f"{PATH}/test/int-value": i,
-                    f"{PATH}/test/float-value": i,
+                    f"{PATH}/test/float-value": float(i),
                     f"{PATH}/test/str-value": f"hello_{i}",
                     f"{PATH}/test/bool-value": i % 2 == 0,
                     f"{PATH}/test/datetime-value": datetime.now(),
