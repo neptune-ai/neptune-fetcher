@@ -133,7 +133,22 @@ def run_with_attributes(project, client):
     for run in runs.values():
         run.close()
 
-    return runs
+    # Make sure all experiments are visible in the system before starting tests
+    for _ in range(15):
+        existing = next(
+            fetch_experiment_sys_attrs(
+                client,
+                identifiers.ProjectIdentifier(project.project_identifier),
+                ExperimentFilter.name_in(*TEST_DATA.experiment_names),
+            )
+        )
+
+        if len(existing.items) == len(TEST_DATA.experiment_names):
+            return runs
+
+        time.sleep(1)
+
+    raise RuntimeError("Experiments did not appear in the system in time")
 
 
 @pytest.mark.parametrize("sort_direction", ["asc", "desc"])
