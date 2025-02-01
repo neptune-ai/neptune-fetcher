@@ -1,6 +1,14 @@
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
+from typing import (
+    Generator,
+    Tuple,
+)
+
 import pandas as pd
-from datetime import datetime, timedelta, timezone
-from typing import Generator, Tuple
 
 from neptune_fetcher.alpha.internal.metric import _create_flat_dataframe
 
@@ -10,8 +18,9 @@ PATHS = 5
 STEPS = 10
 
 
-def generate_float_point_values(experiments: int, paths: int, steps: int) -> Generator[
-    Tuple[str, str, float, int, float], None, None]:
+def generate_float_point_values(
+    experiments: int, paths: int, steps: int
+) -> Generator[Tuple[str, str, float, int, float], None, None]:
     for experiment in range(experiments):
         for path in range(paths):
             for step in range(steps):

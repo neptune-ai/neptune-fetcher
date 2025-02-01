@@ -68,7 +68,7 @@ class TestData:
                 }
                 unique_series = {
                     f"{PATH}/metrics/unique-series-{i}-{j}": [
-                        float((step + j ** 2) / (i + 1)) for step in range(NUMBER_OF_STEPS)
+                        float((step + j**2) / (i + 1)) for step in range(NUMBER_OF_STEPS)
                     ]
                     for j in range(3)
                 }
@@ -93,10 +93,10 @@ def run_with_attributes(client):
         [
             p.items
             for p in fetch_experiment_sys_attrs(
-            client=client,
-            project_identifier=PROJECT,
-            experiment_filter=ExperimentFilter.name_in(*expected_experiments),
-        )
+                client=client,
+                project_identifier=PROJECT,
+                experiment_filter=ExperimentFilter.name_in(*expected_experiments),
+            )
         ]
     )
     if expected_experiments == {exp.sys_name for exp in existing_experiments}:
@@ -200,9 +200,9 @@ def test__fetch_metrics_unique(
         expected = expected[
             (expected["step"] >= (step_min if step_min is not None else -np.inf))
             & (expected["step"] <= (step_max if step_max is not None else np.inf))
-            ].reset_index(drop=True)
+        ].reset_index(drop=True)
         if expected.empty:
-            expected = expected[['experiment', 'step']]
+            expected = expected[["experiment", "step"]]
 
     if tail_limit is not None:
         expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)

@@ -18,7 +18,6 @@ import itertools as it
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
 from itertools import chain
 from typing import (
     Dict,
@@ -72,6 +71,7 @@ T = TypeVar("T")
 AttributePath = str
 ExperimentName = str
 
+# Tuples are used here to enhance performance
 _FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
 ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex = range(5)
 
@@ -89,7 +89,7 @@ class _AttributePathInExperiment:
 def _batch(iterable: List[T], n: int) -> Iterable[List[T]]:
     length = len(iterable)
     for ndx in range(0, length, n):
-        yield iterable[ndx: min(ndx + n, length)]
+        yield iterable[ndx : min(ndx + n, length)]
 
 
 def fetch_flat_dataframe_metrics(
