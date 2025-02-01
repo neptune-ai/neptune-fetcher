@@ -419,7 +419,7 @@ def list_attributes(
         def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
             experiment_identifiers = (
                 [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                if experiments_page
+                if experiments_page is not None
                 else None
             )
 
