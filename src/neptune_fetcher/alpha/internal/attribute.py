@@ -227,7 +227,7 @@ def _fetch_attribute_definitions_single_filter(
         client=client,
         fetch_page=_fetch_attribute_definitions_page,
         process_page=_process_attribute_definitions_page,
-        make_new_page_params=_make_new_attribute_definitions_page_params,
+        make_new_page_params=ft.partial(_make_new_attribute_definitions_page_params, batch_size=batch_size),
         params=params,
     )
 
@@ -261,7 +261,9 @@ def _process_attribute_definitions_page(
 
 
 def _make_new_attribute_definitions_page_params(
-    params: dict[str, Any], data: Optional[QueryAttributeDefinitionsResultDTO]
+    params: dict[str, Any],
+    data: Optional[QueryAttributeDefinitionsResultDTO],
+    batch_size: int,
 ) -> Optional[dict[str, Any]]:
     if data is None:
         if "nextPageToken" in params["nextPage"]:
@@ -269,7 +271,7 @@ def _make_new_attribute_definitions_page_params(
         return params
 
     next_page_token = data.next_page.next_page_token
-    if not next_page_token:
+    if not next_page_token or len(data.entries) < batch_size:
         return None
 
     params["nextPage"]["nextPageToken"] = next_page_token
@@ -411,11 +413,16 @@ def list_attributes(
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[str, None, None]:
     with util.create_thread_pool_executor() as executor:
+        if attribute_filter is None:
+            attribute_filter = filter.AttributeFilter()
 
-        def list_single_page(experiments_page: util.Page[experiment.ExperimentSysAttrs]) -> set[str]:
-            experiment_identifiers = [
-                identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items
-            ]
+        def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
+            experiment_identifiers = (
+                [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+                if experiments_page
+                else None
+            )
+
             _definitions = set()
             for attrs_page in fetch_attribute_definitions(
                 client,
@@ -428,17 +435,16 @@ def list_attributes(
                 _definitions.update([attr.name for attr in attrs_page.items])
             return _definitions
 
-        if attribute_filter is None:
-            attribute_filter = filter.AttributeFilter()
-
-        matching_experiments = experiment.fetch_experiment_sys_attrs(
-            client,
-            project_identifier=project_id,
-            experiment_filter=experiment_filter,
-            executor=executor,
-        )
-
-        futures = [executor.submit(list_single_page, page) for page in matching_experiments]
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            yield from result
+        if experiment_filter:
+            matching_experiments = experiment.fetch_experiment_sys_attrs(
+                client,
+                project_identifier=project_id,
+                experiment_filter=experiment_filter,
+                executor=executor,
+            )
+            futures = [executor.submit(list_single_page, page) for page in matching_experiments]
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                yield from result
+        else:
+            yield from list_single_page(None)
