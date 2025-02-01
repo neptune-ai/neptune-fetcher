@@ -313,25 +313,35 @@ def fetch_attribute_values(
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeValue], None, None]:
+    attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
+    experiments = [str(e) for e in experiment_identifiers]
+
+    if not attribute_definitions_set or not experiment_identifiers:
+        yield from []
+        return
+
     params: dict[str, Any] = {
-        "experimentIdsFilter": list(str(e) for e in experiment_identifiers),
+        "experimentIdsFilter": experiments,
         "attributeNamesFilter": [ad.name for ad in attribute_definitions],
         "nextPage": {"limit": batch_size},
     }
 
-    attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
+    def _fetch_attributes_page(
+        _client: AuthenticatedClient,
+        _params: dict[str, Any],
+        _project_identifier: identifiers.ProjectIdentifier,
+    ) -> ProtoQueryAttributesResultDTO:
+        response = util.backoff_retry(
+            query_attributes_within_project_proto.sync_detailed,
+            client=_client,
+            body=QueryAttributesBodyDTO.from_dict(_params),
+            project_identifier=_project_identifier,
+        )
+        return ProtoQueryAttributesResultDTO.FromString(response.content)
 
-    if not attribute_definitions:
-
-        def _empty() -> Generator[util.Page[AttributeValue], None, None]:
-            return
-            yield
-
-        return _empty()
-
-    return util.fetch_pages(
+    yield from util.fetch_pages(
         client=client,
-        fetch_page=ft.partial(_fetch_attributes_page, project_identifier=project_identifier),
+        fetch_page=ft.partial(_fetch_attributes_page, _project_identifier=project_identifier),
         process_page=ft.partial(
             _process_attributes_page,
             attribute_definitions_set=attribute_definitions_set,
@@ -341,23 +351,6 @@ def fetch_attribute_values(
         params=params,
         executor=executor,
     )
-
-
-def _fetch_attributes_page(
-    client: AuthenticatedClient,
-    params: dict[str, Any],
-    project_identifier: identifiers.ProjectIdentifier,
-) -> ProtoQueryAttributesResultDTO:
-    body = QueryAttributesBodyDTO.from_dict(params)
-
-    response = util.backoff_retry(
-        query_attributes_within_project_proto.sync_detailed,
-        client=client,
-        body=body,
-        project_identifier=project_identifier,
-    )
-
-    return ProtoQueryAttributesResultDTO.FromString(response.content)
 
 
 def _process_attributes_page(
