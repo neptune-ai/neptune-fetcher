@@ -133,14 +133,21 @@ def fetch_experiments_table(
                 for item in attribute_definition_aggregation_page.items
                 if item.aggregation is None
             ]
+            if attribute_definitions:
+                return _attribute.fetch_attribute_values(
+                    client=client,
+                    project_identifier=project,
+                    experiment_identifiers=experiment_identifiers,
+                    attribute_definitions=attribute_definitions,
+                    executor=executor,
+                )
+            else:
 
-            return _attribute.fetch_attribute_values(
-                client=client,
-                project_identifier=project,
-                experiment_identifiers=experiment_identifiers,
-                attribute_definitions=attribute_definitions,
-                executor=executor,
-            )
+                def empty() -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
+                    return
+                    yield
+
+                return empty()
 
         def collect_aggregations(
             attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
