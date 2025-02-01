@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import concurrent
 import functools as ft
 import itertools as it
 import re
@@ -26,6 +26,7 @@ from typing import (
     Literal,
     Optional,
     Union,
+    cast,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -43,6 +44,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import P
 from neptune_fetcher.alpha import filter
 from neptune_fetcher.alpha.internal import (
     env,
+    experiment,
     identifiers,
     types,
     util,
@@ -397,3 +399,44 @@ def _make_new_attributes_page_params(
 
     params["nextPage"]["nextPageToken"] = next_page_token
     return params
+
+
+def list_attributes(
+    client: AuthenticatedClient,
+    project_id: identifiers.ProjectIdentifier,
+    experiment_filter: Optional[filter.ExperimentFilter] = None,
+    attribute_filter: Optional[filter.BaseAttributeFilter] = None,
+    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+) -> Generator[str, None, None]:
+    with util.create_thread_pool_executor() as executor:
+
+        def list_single_page(experiments_page: util.Page[experiment.ExperimentSysAttrs]) -> set[str]:
+            experiment_identifiers = [
+                identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items
+            ]
+            _definitions = set()
+            for attrs_page in fetch_attribute_definitions(
+                client,
+                [project_id],
+                experiment_identifiers,
+                cast(filter.AttributeFilter, attribute_filter),
+                batch_size,
+                executor,
+            ):
+                _definitions.update([attr.name for attr in attrs_page.items])
+            return _definitions
+
+        if attribute_filter is None:
+            attribute_filter = filter.AttributeFilter()
+
+        matching_experiments = experiment.fetch_experiment_sys_attrs(
+            client,
+            project_identifier=project_id,
+            experiment_filter=experiment_filter,
+            executor=executor,
+        )
+
+        futures = [executor.submit(list_single_page, page) for page in matching_experiments]
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            yield from result
