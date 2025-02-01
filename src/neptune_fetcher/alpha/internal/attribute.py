@@ -406,27 +406,28 @@ def list_attributes(
     experiment_filter: Optional[filter.ExperimentFilter] = None,
     attribute_filter: Optional[filter.BaseAttributeFilter] = None,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-    executor: Optional[Executor] = None,
 ) -> Generator[str, None, None]:
-    def list_single_page(experiments_page: util.Page[experiment.ExperimentSysAttrs]) -> Generator[str, None, None]:
-        experiment_identifiers = [
-            identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items
-        ]
-        for attrs_page in fetch_attribute_definitions(
-            client,
-            [project_id],
-            experiment_identifiers,
-            cast(filter.AttributeFilter, attribute_filter),
-            batch_size,
-            executor,
-        ):
-            yield from (attr.name for attr in attrs_page.items)
+    with util.create_thread_pool_executor() as executor:
 
-    if attribute_filter is None:
-        attribute_filter = filter.AttributeFilter()
+        def list_single_page(experiments_page: util.Page[experiment.ExperimentSysAttrs]) -> set[str]:
+            experiment_identifiers = [
+                identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items
+            ]
+            _definitions = set()
+            for attrs_page in fetch_attribute_definitions(
+                client,
+                [project_id],
+                experiment_identifiers,
+                cast(filter.AttributeFilter, attribute_filter),
+                batch_size,
+                executor,
+            ):
+                _definitions.update([attr.name for attr in attrs_page.items])
+            return _definitions
 
-    executor = executor or util.create_thread_pool_executor()
-    with executor:
+        if attribute_filter is None:
+            attribute_filter = filter.AttributeFilter()
+
         matching_experiments = experiment.fetch_experiment_sys_attrs(
             client,
             project_identifier=project_id,
@@ -435,8 +436,6 @@ def list_attributes(
         )
 
         futures = [executor.submit(list_single_page, page) for page in matching_experiments]
-        while futures:
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            for future in done:
-                yield from future.result()
-            futures = list(not_done)
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            yield from result

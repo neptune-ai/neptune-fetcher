@@ -29,7 +29,7 @@ from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "v2"
+TEST_DATA_VERSION = "v3"
 PATH = f"test/test-attribute-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
@@ -65,7 +65,7 @@ class TestData:
     def __post_init__(self):
         if not self.experiments:
             for i in range(6):
-                experiment_name = f"test_experiment_{i}_{TEST_DATA_VERSION}"
+                experiment_name = f"test_alpha_attribute_{i}_{TEST_DATA_VERSION}"
                 config = {
                     f"{PATH}/int-value": i,
                     f"{PATH}/float-value": float(i),
@@ -110,8 +110,7 @@ def context(project):
     set_project(project.project_identifier)
 
 
-# TODO: zmień na true
-@pytest.fixture(scope="module", autouse=False)
+@pytest.fixture(scope="module", autouse=True)
 def run_with_attributes(project, client):
     runs = {}
     for experiment in TEST_DATA.experiments:
@@ -162,7 +161,7 @@ EXPERIMENTS_IN_THIS_TEST = ExperimentFilter.name_in(*TEST_DATA.experiment_names)
     "experiment_filter",
     (
         EXPERIMENTS_IN_THIS_TEST,
-        rf"test_experiment_[0-9]+_{TEST_DATA_VERSION}",
+        rf"test_alpha_attribute_[0-9]+_{TEST_DATA_VERSION}",
         ".*",
         None,
     ),
@@ -184,11 +183,11 @@ EXPERIMENTS_IN_THIS_TEST = ExperimentFilter.name_in(*TEST_DATA.experiment_names)
                 f"{PATH}/string_set-value",
             },
         ),
-        (r"unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
+        (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
         (AttributeFilter(name_matches_all=PATH), TEST_DATA.all_attribute_names),
         (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
         (
-            AttributeFilter.any(AttributeFilter(name_matches_all="foo"), AttributeFilter(name_matches_all=PATH)),
+            AttributeFilter.any(AttributeFilter(name_matches_all="^(foo)"), AttributeFilter(name_matches_all=PATH)),
             TEST_DATA.all_attribute_names,
         ),
         (AttributeFilter(name_matches_none=".*"), []),
@@ -240,12 +239,12 @@ def test_list_attributes_unknown_name(filter_):
         (r"unique-value-[0-2]", EXPERIMENTS_IN_THIS_TEST, {f"{PATH}/unique-value-{i}" for i in range(3)}),
         (
             rf"{PATH}/unique-value-[0-2]",
-            f"test_experiment_.*_{TEST_DATA_VERSION}",
+            f"test_alpha_attribute_.*_{TEST_DATA_VERSION}",
             {f"{PATH}/unique-value-{i}" for i in range(3)},
         ),
         (
             rf"{PATH}/unique-value-.*",
-            rf"test_experiment_(0|2)_{TEST_DATA_VERSION}",
+            rf"test_alpha_attribute_(0|2)_{TEST_DATA_VERSION}",
             {f"{PATH}/unique-value-0", f"{PATH}/unique-value-2"},
         ),
         (
