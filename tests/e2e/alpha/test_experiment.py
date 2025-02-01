@@ -33,7 +33,7 @@ from neptune_fetcher.alpha.internal import (
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-01-31"
+TEST_DATA_VERSION = "2025-02-01"
 PATH = f"test/test-experiment-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 
@@ -57,6 +57,7 @@ class TestData:
 
     def __post_init__(self):
         if not self.experiments:
+            random.seed(TEST_DATA_VERSION)
             for i in range(6):
                 experiment_name = f"test_experiment_{i}_{TEST_DATA_VERSION}"
                 config = {
