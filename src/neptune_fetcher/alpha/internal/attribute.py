@@ -321,6 +321,14 @@ def fetch_attribute_values(
 
     attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
 
+    if not attribute_definitions:
+
+        def _empty() -> Generator[util.Page[AttributeValue], None, None]:
+            return
+            yield
+
+        return _empty()
+
     return util.fetch_pages(
         client=client,
         fetch_page=ft.partial(_fetch_attributes_page, project_identifier=project_identifier),
