@@ -32,6 +32,7 @@ from neptune_fetcher.alpha.filter import (
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal import attribute
+from neptune_fetcher.alpha.internal import infer as _infer
 from neptune_fetcher.alpha.internal.api_client import get_client
 from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 
@@ -60,7 +61,7 @@ def list_attributes(
     client = get_client(valid_context)
 
     assert valid_context.project is not None  # mypy TODO: remove at some point
-    project_id = ProjectIdentifier(valid_context.project)
+    project_identifier = ProjectIdentifier(valid_context.project)
 
     if isinstance(experiments, str):
         experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
@@ -68,6 +69,10 @@ def list_attributes(
     if isinstance(attributes, str):
         attributes = AttributeFilter(name_matches_all=[attributes])
 
-    result = attribute.list_attributes(client, project_id, experiment_filter=experiments, attribute_filter=attributes)
+    _infer.infer_attribute_types_in_filter(client, project_identifier, experiments)
+
+    result = attribute.list_attributes(
+        client, project_identifier, experiment_filter=experiments, attribute_filter=attributes
+    )
 
     return sorted(set(result))

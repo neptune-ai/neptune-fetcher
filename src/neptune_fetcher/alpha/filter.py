@@ -84,30 +84,44 @@ class Attribute:
 class ExperimentFilter(ABC):
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="==", attribute=attribute, value=value)
 
     @staticmethod
     def ne(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="!=", attribute=attribute, value=value)
 
     @staticmethod
     def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator=">", attribute=attribute, value=value)
 
     @staticmethod
     def ge(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator=">=", attribute=attribute, value=value)
 
     @staticmethod
     def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="<", attribute=attribute, value=value)
 
     @staticmethod
     def le(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="<=", attribute=attribute, value=value)
 
     @staticmethod
     def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         if isinstance(regex, str):
             return _AttributeValuePredicate(operator="MATCHES", attribute=attribute, value=regex)
         else:
@@ -116,6 +130,8 @@ class ExperimentFilter(ABC):
 
     @staticmethod
     def matches_none(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         if isinstance(regex, str):
             return _AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
         else:
@@ -124,6 +140,8 @@ class ExperimentFilter(ABC):
 
     @staticmethod
     def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         if isinstance(value, str):
             return _AttributeValuePredicate(operator="CONTAINS", attribute=attribute, value=value)
         else:
@@ -132,6 +150,8 @@ class ExperimentFilter(ABC):
 
     @staticmethod
     def contains_none(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         if isinstance(value, str):
             return _AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
         else:
@@ -140,6 +160,8 @@ class ExperimentFilter(ABC):
 
     @staticmethod
     def exists(attribute: Union[str, Attribute]) -> "ExperimentFilter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
         return _AttributePredicate(postfix_operator="EXISTS", attribute=attribute)
 
     @staticmethod
@@ -187,14 +209,11 @@ class ExperimentFilter(ABC):
 @dataclass
 class _AttributeValuePredicate(ExperimentFilter):
     operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
-    attribute: Union[str, Attribute]
+    attribute: Attribute
     value: Union[int, float, str, datetime]
 
     def to_query(self) -> str:
-        return f"{self._left_query()} {self.operator} {self._right_query()}"
-
-    def _left_query(self) -> str:
-        return str(self.attribute)
+        return f"{self.attribute} {self.operator} {self._right_query()}"
 
     def _right_query(self) -> str:
         value = str(self.value)
@@ -205,7 +224,7 @@ class _AttributeValuePredicate(ExperimentFilter):
 @dataclass
 class _AttributePredicate(ExperimentFilter):
     postfix_operator: Literal["EXISTS"]
-    attribute: Union[str, Attribute]
+    attribute: Attribute
 
     def to_query(self) -> str:
         return f"{self.attribute} {self.postfix_operator}"

@@ -91,7 +91,7 @@ def _split_to_tasks(
 def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
     executor: Optional[Executor] = None,
@@ -150,7 +150,7 @@ def fetch_attribute_definition_aggregations(
 def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int,
     executor: Optional[Executor],
@@ -189,16 +189,18 @@ def _fetch_attribute_definitions(
 def _fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),
-        "experimentIdsFilter": list(str(e) for e in experiment_identifiers),
         "attributeNameFilter": dict(),
         "nextPage": {"limit": batch_size},
     }
+
+    if experiment_identifiers is not None:
+        params["experimentIdsFilter"] = [str(e) for e in experiment_identifiers]
 
     must_match_regexes = _union_options(
         [

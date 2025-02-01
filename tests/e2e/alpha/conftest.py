@@ -6,6 +6,7 @@ from datetime import (
     timezone,
 )
 
+from _pytest.outcomes import Failed
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 from pytest import fixture
@@ -31,7 +32,7 @@ def client() -> AuthenticatedClient:
 
 
 def pytest_set_filtered_exceptions() -> list[type[BaseException]]:
-    return [AssertionError]
+    return [AssertionError, ValueError, Failed]
 
 
 def unique_path(prefix):

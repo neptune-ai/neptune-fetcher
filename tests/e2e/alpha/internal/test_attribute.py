@@ -20,9 +20,9 @@ from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TIME_NOW = time.time()
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-attribute-{TIME_NOW}"
-COMMON_PATH = f"test/test-internal-attribute-{TIME_NOW}"
+TEST_DATA_VERSION = "2025-01-31"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-attribute-{TEST_DATA_VERSION}"
+COMMON_PATH = f"test/test-internal-attribute-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
@@ -415,6 +415,34 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
             AttributeDefinition("sys/ping_time", "datetime"),
         ],
     )
+
+
+def test_fetch_attribute_definitions_experiment_identifier_none(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(client, [project_identifier], None, attribute_filter=attribute_filter)
+    )
+
+    # then
+    assert attributes == [AttributeDefinition("sys/name", "string")]
+
+
+def test_fetch_attribute_definitions_experiment_identifier_empty(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(client, [project_identifier], [], attribute_filter=attribute_filter)
+    )
+
+    # then
+    assert attributes == []
 
 
 def test_fetch_attribute_values_single_string(client, project, experiment_identifier):
