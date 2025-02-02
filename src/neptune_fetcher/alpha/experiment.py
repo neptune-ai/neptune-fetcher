@@ -118,7 +118,6 @@ def fetch_experiments_table(
                 sort_by=sort_by_attribute,
                 sort_direction=sort_direction,
                 limit=limit,
-                executor=executor,
             )
 
         def process_experiment_page_stateful(
@@ -137,7 +136,6 @@ def fetch_experiments_table(
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attributes_filter,
-                executor=executor,
             )
 
         def go_fetch_attribute_values(
@@ -149,7 +147,6 @@ def fetch_experiments_table(
                 project_identifier=project,
                 experiment_identifiers=experiment_identifiers,
                 attribute_definitions=attribute_definitions,
-                executor=executor,
             )
 
         def filter_definitions(

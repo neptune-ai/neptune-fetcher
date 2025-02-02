@@ -61,30 +61,14 @@ def fetch_pages(
     process_page: Callable[[R], Page[T]],
     make_new_page_params: Callable[[_Params, Optional[R]], Optional[_Params]],
     params: _Params,
-    executor: Optional[Executor] = None,
 ) -> Generator[Page[T], None, None]:
-    if executor is not None:
-        page_params = make_new_page_params(params, None)
-        if page_params is None:
-            return
-        future_data = executor.submit(fetch_page, client, page_params)
-        while page_params is not None:
-            data = future_data.result()
-            page = process_page(data)
-            page_params = make_new_page_params(page_params, data)
+    page_params = make_new_page_params(params, None)
+    while page_params is not None:
+        data = fetch_page(client, page_params)
+        page = process_page(data)
+        page_params = make_new_page_params(page_params, data)
 
-            if page_params is not None:
-                future_data = executor.submit(fetch_page, client, page_params)
-
-            yield page
-    else:
-        page_params = make_new_page_params(params, None)
-        while page_params is not None:
-            data = fetch_page(client, page_params)
-            page = process_page(data)
-            page_params = make_new_page_params(page_params, data)
-
-            yield page
+        yield page
 
 
 def backoff_retry(
@@ -247,8 +231,11 @@ def split_experiments_attributes(
     When their item count is multiplied, it is at most `NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE`.
     Use before fetching attribute values.
     """
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get() - _EXPERIMENT_SIZE
+    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
     attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
+
+    if not attribute_definitions:
+        return
 
     attribute_batches = _split_attribute_definitions(attribute_definitions)
     max_attribute_batch_size = max(
