@@ -186,7 +186,7 @@ def _create_flat_dataframe(values: Iterable[_FloatPointValue]) -> pd.DataFrame:
     path_mapping: Dict[str, int] = {}
     experiment_mapping: Dict[str, int] = {}
 
-    def _create_categories(float_point_values: Iterable[_FloatPointValue]) -> pd.DataFrame:
+    def generate_categorized_rows(float_point_values: Iterable[_FloatPointValue]) -> pd.DataFrame:
         last_experiment_name, last_experiment_category = None, None
         last_path_name, last_path_category = None, None
 
@@ -213,15 +213,15 @@ def _create_flat_dataframe(values: Iterable[_FloatPointValue]) -> pd.DataFrame:
             yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
 
     types = [
-        ("experiment", "uint16"),
-        ("path", "uint16"),
-        ("timestamp", "float64"),
+        ("experiment", "uint32"),
+        ("path", "uint32"),
+        ("timestamp", "uint64"),
         ("step", "float64"),
         ("value", "float64"),
     ]
 
     df = pd.DataFrame(
-        np.fromiter(_create_categories(values), dtype=types),
+        np.fromiter(generate_categorized_rows(values), dtype=types),
     )
     experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
     df["experiment"] = pd.Categorical.from_codes(df["experiment"], dtype=experiment_dtype)
