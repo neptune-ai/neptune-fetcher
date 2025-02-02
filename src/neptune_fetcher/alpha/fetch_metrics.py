@@ -101,31 +101,42 @@ def fetch_metrics(
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
     )
-    if df.empty:
-        return df
 
     if include_timestamp == "absolute":
-        df = df.rename(columns={"timestamp": "absolute_time"})
-        df = df.pivot(
-            index=["experiment", "step"],
-            columns="path",
-            values=["value", "absolute_time"],
-        )
-
-        df = df.swaplevel(axis=1)
-        if type_suffix_in_column_names:
-            df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
-
-        df = df.sort_index(axis=1, level=0)
-        df = df.reset_index()
-        return df
+        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
     elif include_timestamp == "relative":
         raise NotImplementedError("Relative timestamp is not implemented")
     else:
-        df = df.pivot(index=["experiment", "step"], columns="path", values="value")
-        if type_suffix_in_column_names:
-            df = df.rename(columns=lambda x: x + ":float_series", copy=False)
+        return _transform_without_timestamp(df, type_suffix_in_column_names)
 
-        df = df.sort_index(axis=1)
-        df = df.reset_index()
-        return df
+
+def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
+    df = df.rename(columns={"timestamp": "absolute_time"})
+    df = df.pivot(
+        index=["experiment", "step"],
+        columns="path",
+        values=["value", "absolute_time"],
+    )
+
+    df = df.swaplevel(axis=1)
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
+
+    df = df.sort_index(axis=1, level=0)
+    df = df.reset_index()
+    df["experiment"] = df["experiment"].astype("object")
+    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
+    return df
+
+
+def _transform_without_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
+    df = df.pivot(index=["experiment", "step"], columns="path", values="value")
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
+
+    df = df.sort_index(axis=1)
+    df = df.reset_index()
+    df["experiment"] = df["experiment"].astype("object")
+    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
+    return df

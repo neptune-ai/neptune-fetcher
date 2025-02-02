@@ -16,13 +16,8 @@
 import concurrent
 import itertools as it
 import logging
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import (
-    datetime,
-    timezone,
-)
 from itertools import chain
 from typing import (
     Dict,
@@ -36,6 +31,7 @@ from typing import (
     Union,
 )
 
+import numpy as np
 import pandas as pd
 from neptune_api.client import AuthenticatedClient
 from neptune_retrieval_api.api.default import get_multiple_float_series_values_proto
@@ -73,8 +69,12 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 AttributePath = str
+ExperimentName = str
 
-_FloatPointValue = namedtuple("_FloatPointValue", ["experiment", "path", "timestamp", "step", "value"])
+# Tuples are used here to enhance performance
+_FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
+ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex = range(5)
+
 TOTAL_POINT_LIMIT: int = 1_000_000
 PATHS_PER_BATCH: int = 10_000
 
@@ -159,22 +159,76 @@ def fetch_flat_dataframe_metrics(
                 _futures.append(executor.submit(process_definitions, _experiments.items, definitions_generator))
             return _futures, []
 
-        futures = {
-            executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
-        }
+        def _start() -> Iterable[_FloatPointValue]:
+            futures = {
+                executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
+            }
 
-        series: List[Iterable[_FloatPointValue]] = []
-        while futures:
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            futures = not_done
-            for future in done:
-                new_futures, values = future.result()
-                futures.update(new_futures)
-                series.append(values)
+            while futures:
+                done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                futures = not_done
+                for future in done:
+                    new_futures, values = future.result()
+                    futures.update(new_futures)
+                    if values:
+                        yield from values
 
-    df = pd.DataFrame(chain.from_iterable(series))
-    # change to category to save memory
-    df[["experiment", "path"]] = df[["experiment", "path"]].astype("category")
+        df = _create_flat_dataframe(_start())
+        return df
+
+
+def _create_flat_dataframe(values: Iterable[_FloatPointValue]) -> pd.DataFrame:
+    """
+    Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
+    by converting strings to categorical codes before DataFrame creation.
+    """
+
+    path_mapping: Dict[str, int] = {}
+    experiment_mapping: Dict[str, int] = {}
+
+    def generate_categorized_rows(float_point_values: Iterable[_FloatPointValue]) -> pd.DataFrame:
+        last_experiment_name, last_experiment_category = None, None
+        last_path_name, last_path_category = None, None
+
+        for point in float_point_values:
+            exp_category = (
+                last_experiment_category
+                if last_experiment_name == point[ExperimentNameIndex]
+                else experiment_mapping.get(point[ExperimentNameIndex], None)  # type: ignore
+            )
+            path_category = (
+                last_path_category
+                if last_path_name == point[AttributePathIndex]
+                else path_mapping.get(point[AttributePathIndex], None)  # type: ignore
+            )
+
+            if exp_category is None:
+                exp_category = len(experiment_mapping)
+                experiment_mapping[point[ExperimentNameIndex]] = exp_category  # type: ignore
+                last_experiment_name, last_experiment_category = point[ExperimentNameIndex], exp_category
+            if path_category is None:
+                path_category = len(path_mapping)
+                path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
+                last_path_name, last_path_category = point[AttributePathIndex], path_category
+            yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
+
+    types = [
+        ("experiment", "uint32"),
+        ("path", "uint32"),
+        ("timestamp", "uint64"),
+        ("step", "float64"),
+        ("value", "float64"),
+    ]
+
+    df = pd.DataFrame(
+        np.fromiter(generate_categorized_rows(values), dtype=types),
+    )
+    experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
+    df["experiment"] = pd.Categorical.from_codes(df["experiment"], dtype=experiment_dtype)
+
+    path_dtype = pd.CategoricalDtype(categories=list(path_mapping.keys()))
+    df["path"] = pd.Categorical.from_codes(df["path"], dtype=path_dtype)
+
     return df
 
 
@@ -228,12 +282,12 @@ def _fetch_multiple_series_values(
             is_page_full = len(series_values) == per_series_point_limit
             need_more_points = tail_limit is None or len(partial_results[path]) < tail_limit
             if is_page_full and need_more_points:
-                new_attribute_steps[path] = series_values[-1].step
+                new_attribute_steps[path] = series_values[-1][StepIndex]
             else:
                 path_result = partial_results.pop(path)
                 if path_result:
                     results.append(path_result)
-        attribute_steps = new_attribute_steps
+        attribute_steps = new_attribute_steps  # type: ignore
 
     return chain.from_iterable(results)
 
@@ -289,12 +343,12 @@ def _fetch_series_values(
 
     result = {
         series_requests_ids[series.requestId]: [
-            _FloatPointValue(
-                experiment=series_requests_ids[series.requestId].experiment_name,
-                path=series_requests_ids[series.requestId].attribute_path,
-                timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
-                value=point.value,
-                step=point.step,
+            (
+                series_requests_ids[series.requestId].experiment_name,
+                series_requests_ids[series.requestId].attribute_path,
+                point.timestamp_millis,
+                point.step,
+                point.value,
             )
             for point in series.series.values
         ]
