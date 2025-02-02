@@ -411,22 +411,30 @@ def list_attributes(
             attribute_filter = filter.AttributeFilter()
 
         def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
-            experiment_identifiers = (
-                [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                if experiments_page is not None
-                else None
-            )
-
             _definitions = set()
-            for attrs_page in fetch_attribute_definitions(
-                client,
-                [project_id],
-                experiment_identifiers,
-                cast(filter.AttributeFilter, attribute_filter),
-                batch_size,
-                executor,
-            ):
-                _definitions.update([attr.name for attr in attrs_page.items])
+            if experiments_page is None:
+                for attrs_page in fetch_attribute_definitions(
+                    client,
+                    [project_id],
+                    None,
+                    cast(filter.AttributeFilter, attribute_filter),
+                    batch_size,
+                    executor,
+                ):
+                    _definitions.update([attr.name for attr in attrs_page.items])
+            else:
+                for experiment_identifier_split in util.split_experiments(  # TODO: this is done mostly sequentially
+                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+                ):
+                    for attrs_page in fetch_attribute_definitions(
+                        client,
+                        [project_id],
+                        experiment_identifier_split,
+                        cast(filter.AttributeFilter, attribute_filter),
+                        batch_size,
+                        executor,
+                    ):
+                        _definitions.update([attr.name for attr in attrs_page.items])
             return _definitions
 
         if experiment_filter:

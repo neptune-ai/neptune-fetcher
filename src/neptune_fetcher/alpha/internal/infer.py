@@ -27,6 +27,7 @@ from neptune_fetcher.alpha import filter as _filter
 from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
+from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal import util as _util
 
 
@@ -122,17 +123,23 @@ def _infer_attribute_types_from_api(
                 ),
                 executor=_executor,
                 downstream=lambda experiment_page: _util.generate_concurrently(
-                    _attribute.fetch_attribute_definitions(
-                        client=client,
-                        project_identifiers=[project_identifier],
-                        experiment_identifiers=[
+                    items=util.split_experiments(
+                        [
                             _identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
                             for experiment in experiment_page.items
-                        ],
-                        attribute_filter=attribute_filter_by_name,
+                        ]
                     ),
                     executor=_executor,
-                    downstream=_util.return_value,
+                    downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
+                        _attribute.fetch_attribute_definitions(
+                            client=client,
+                            project_identifiers=[project_identifier],
+                            experiment_identifiers=experiment_identifiers_split,
+                            attribute_filter=attribute_filter_by_name,
+                        ),
+                        executor=_executor,
+                        downstream=_util.return_value,
+                    ),
                 ),
             )
         attribute_definition_pages: Generator[
