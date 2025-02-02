@@ -109,15 +109,17 @@ def fetch_experiments_table(
     result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
     selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
     with _util.create_thread_pool_executor() as executor:
-        experiment_pages = _experiment.fetch_experiment_sys_attrs(
-            client=client,
-            project_identifier=project,
-            experiment_filter=experiments_filter,
-            sort_by=sort_by_attribute,
-            sort_direction=sort_direction,
-            limit=limit,
-            executor=executor,
-        )
+
+        def go_fetch_experiment_sys_attrs() -> Generator[_util.Page[_experiment.ExperimentSysAttrs], None, None]:
+            return _experiment.fetch_experiment_sys_attrs(
+                client=client,
+                project_identifier=project,
+                experiment_filter=experiments_filter,
+                sort_by=sort_by_attribute,
+                sort_direction=sort_direction,
+                limit=limit,
+                executor=executor,
+            )
 
         def process_experiment_page_stateful(
             page: _util.Page[_experiment.ExperimentSysAttrs],
@@ -140,14 +142,8 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_values(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
+            attribute_definitions: list[_attribute.AttributeDefinition],
         ) -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
-            attribute_definitions = [
-                item.attribute_definition
-                for item in attribute_definition_aggregation_page.items
-                if item.aggregation is None
-            ]
-
             return _attribute.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
@@ -155,6 +151,15 @@ def fetch_experiments_table(
                 attribute_definitions=attribute_definitions,
                 executor=executor,
             )
+
+        def filter_definitions(
+            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
+        ) -> list[_attribute.AttributeDefinition]:
+            return [
+                item.attribute_definition
+                for item in attribute_definition_aggregation_page.items
+                if item.aggregation is None
+            ]
 
         def collect_aggregations(
             attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
@@ -166,22 +171,34 @@ def fetch_experiments_table(
             return aggregations
 
         output = _util.generate_concurrently(
-            items=(process_experiment_page_stateful(page) for page in experiment_pages),
+            items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
             executor=executor,
             downstream=lambda experiment_identifiers: _util.generate_concurrently(
-                items=go_fetch_attribute_definitions(experiment_identifiers),
+                items=_util.split_experiments(experiment_identifiers),
                 executor=executor,
-                downstream=lambda definitions_page: _util.fork_concurrently(
-                    item=definitions_page,
+                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
+                    items=go_fetch_attribute_definitions(experiment_identifiers_split),
                     executor=executor,
-                    downstreams=[
-                        lambda _definitions_page: _util.generate_concurrently(
-                            items=go_fetch_attribute_values(experiment_identifiers, _definitions_page),
-                            executor=executor,
-                            downstream=_util.return_value,
-                        ),
-                        lambda _definitions_page: _util.return_value(collect_aggregations(_definitions_page)),
-                    ],
+                    downstream=lambda definition_aggs_page: _util.fork_concurrently(
+                        item=definition_aggs_page,
+                        executor=executor,
+                        downstreams=[
+                            lambda _definition_aggs_page: _util.generate_concurrently(
+                                items=_util.split_experiments_attributes(
+                                    experiment_identifiers_split, filter_definitions(_definition_aggs_page)
+                                ),
+                                executor=executor,
+                                downstream=lambda split_pair: _util.generate_concurrently(
+                                    items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
+                                    executor=executor,
+                                    downstream=_util.return_value,
+                                ),
+                            ),
+                            lambda _definition_aggs_page: _util.return_value(
+                                collect_aggregations(_definition_aggs_page)
+                            ),
+                        ],
+                    ),
                 ),
             ),
         )

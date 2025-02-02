@@ -155,9 +155,8 @@ def _fetch_attribute_definitions(
     batch_size: int,
     executor: Optional[Executor],
 ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-    def use_executor(
-        _executor: Executor,
-    ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
+    with util.use_or_create_thread_pool_executor(executor) as _executor:
+
         def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
             return _fetch_attribute_definitions_single_filter(
                 client=client,
@@ -178,12 +177,6 @@ def _fetch_attribute_definitions(
             ),
         )
         yield from util.gather_results(output)
-
-    if executor is None:
-        with util.create_thread_pool_executor() as _executor:
-            yield from use_executor(_executor)
-    else:
-        yield from use_executor(executor)
 
 
 def _fetch_attribute_definitions_single_filter(
@@ -332,34 +325,35 @@ def fetch_attribute_values(
         "nextPage": {"limit": batch_size},
     }
 
-    def _fetch_attributes_page(
-        _client: AuthenticatedClient,
-        _params: dict[str, Any],
-        _project_identifier: identifiers.ProjectIdentifier,
-    ) -> ProtoQueryAttributesResultDTO:
-        response = util.backoff_retry(
-            query_attributes_within_project_proto.sync_detailed,
-            client=_client,
-            body=QueryAttributesBodyDTO.from_dict(_params),
-            project_identifier=_project_identifier,
-        )
-        return ProtoQueryAttributesResultDTO.FromString(response.content)
-
     yield from util.fetch_pages(
         client=client,
-        fetch_page=ft.partial(_fetch_attributes_page, _project_identifier=project_identifier),
+        fetch_page=ft.partial(_fetch_attribute_values_page, project_identifier=project_identifier),
         process_page=ft.partial(
-            _process_attributes_page,
+            _process_attribute_values_page,
             attribute_definitions_set=attribute_definitions_set,
             project_identifier=project_identifier,
         ),
-        make_new_page_params=_make_new_attributes_page_params,
+        make_new_page_params=_make_new_attribute_values_page_params,
         params=params,
         executor=executor,
     )
 
 
-def _process_attributes_page(
+def _fetch_attribute_values_page(
+    client: AuthenticatedClient,
+    params: dict[str, Any],
+    project_identifier: identifiers.ProjectIdentifier,
+) -> ProtoQueryAttributesResultDTO:
+    response = util.backoff_retry(
+        query_attributes_within_project_proto.sync_detailed,
+        client=client,
+        body=QueryAttributesBodyDTO.from_dict(params),
+        project_identifier=project_identifier,
+    )
+    return ProtoQueryAttributesResultDTO.FromString(response.content)
+
+
+def _process_attribute_values_page(
     data: ProtoQueryAttributesResultDTO,
     attribute_definitions_set: set[AttributeDefinition],
     project_identifier: identifiers.ProjectIdentifier,
@@ -389,7 +383,7 @@ def _process_attributes_page(
     return util.Page(items=items)
 
 
-def _make_new_attributes_page_params(
+def _make_new_attribute_values_page_params(
     params: dict[str, Any], data: Optional[ProtoQueryAttributesResultDTO]
 ) -> Optional[dict[str, Any]]:
     if data is None:

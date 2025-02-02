@@ -16,7 +16,10 @@ from neptune_fetcher.alpha.internal.attribute import (
     fetch_attribute_definitions,
     fetch_attribute_values,
 )
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.identifiers import (
+    ExperimentIdentifier,
+    SysId,
+)
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -590,3 +593,35 @@ def _extract_pages(generator):
 
 def assert_items_equal(a: list[AttributeDefinition], b: list[AttributeDefinition]):
     assert sorted(a, key=lambda d: (d.name, d.type)) == sorted(b, key=lambda d: (d.name, d.type))
+
+
+def test_fetch_attribute_definitions_experiment_large_number_experiment_identifiers(
+    client, project, experiment_identifier
+):
+    # given
+    project_identifier = project.project_identifier
+
+    experiment_identifiers = [experiment_identifier] + _generate_experiment_identifiers(project_identifier, 240 * 1024)
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(
+            client, [project_identifier], experiment_identifiers, attribute_filter=attribute_filter
+        )
+    )
+
+    # then
+    assert attributes == [AttributeDefinition("sys/name", "string")]
+
+
+def _generate_experiment_identifiers(project_identifier, size_bytes: int):
+    per_uuid_size = 50
+
+    identifiers_count = (size_bytes + per_uuid_size) // per_uuid_size
+
+    experiment_identifiers = [
+        ExperimentIdentifier(project_identifier, SysId(f"TEST-{i}")) for i in range(identifiers_count)
+    ]
+
+    return experiment_identifiers

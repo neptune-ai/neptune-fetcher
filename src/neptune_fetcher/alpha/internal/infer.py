@@ -101,7 +101,7 @@ def _infer_attribute_types_from_api(
 ) -> None:
     attribute_filter_by_name = _filter.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    def use_executor(_executor: Executor) -> dict[str, set[str]]:
+    with _util.use_or_create_thread_pool_executor(executor) as _executor:
         if experiment_filter is None:
             output = _util.generate_concurrently(
                 _attribute.fetch_attribute_definitions(
@@ -143,13 +143,6 @@ def _infer_attribute_types_from_api(
         for attribute_definition_page in attribute_definition_pages:
             for attr_def in attribute_definition_page.items:
                 attribute_name_to_definition[attr_def.name].add(attr_def.type)
-        return attribute_name_to_definition
-
-    if executor is not None:
-        attribute_name_to_definition = use_executor(executor)
-    else:
-        with _util.create_thread_pool_executor() as executor:
-            attribute_name_to_definition = use_executor(executor)
 
     for name, types in attribute_name_to_definition.items():
         if len(types) > 1:
