@@ -118,12 +118,12 @@ def run_with_attributes_b(client, project):
     return run
 
 
-def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_attributes):
+def test_infer_attribute_types_in_filter_no_filter(client, executor, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_filter(client, project_identifier, experiment_filter=None)
+    infer_attribute_types_in_filter(client, project_identifier, None, executor, executor)
 
     # then
     # no exception is raised
@@ -158,12 +158,20 @@ def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_att
         ),
     ],
 )
-def test_infer_attribute_types_in_filter_single(client, project, run_with_attributes, filter_before, filter_after):
+def test_infer_attribute_types_in_filter_single(
+    client, executor, project, run_with_attributes, filter_before, filter_after
+):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+    infer_attribute_types_in_filter(
+        client,
+        project_identifier,
+        filter_before,
+        executor,
+        executor,
+    )
 
     # then
     assert filter_before == filter_after
@@ -180,12 +188,21 @@ def test_infer_attribute_types_in_filter_single(client, project, run_with_attrib
         (Attribute(f"{PATH}/float-series-value"), Attribute(f"{PATH}/float-series-value", type="float_series")),
     ],
 )
-def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes, attribute_before, attribute_after):
+def infer_attribute_types_in_sort_by_single(
+    client, executor, project, run_with_attributes, attribute_before, attribute_after
+):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_sort_by(client, project_identifier, experiment_filter=None, sort_by=attribute_before)
+    infer_attribute_types_in_sort_by(
+        client,
+        project_identifier,
+        experiment_filter=None,
+        sort_by=attribute_before,
+        executor=executor,
+        fetch_attribute_definitions_executor=executor,
+    )
 
     # then
     assert attribute_before == attribute_after
@@ -197,13 +214,19 @@ def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes
         ExperimentFilter.eq(f"{PATH}/does-not-exist", 10),
     ],
 )
-def test_infer_attribute_types_in_filter_missing(client, project, filter_before):
+def test_infer_attribute_types_in_filter_missing(client, executor, project, filter_before):
     # given
     project_identifier = project.project_identifier
 
     #  when
     with pytest.raises(ValueError) as exc_info:
-        infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+        infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiment_filter=filter_before,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
+        )
 
     # then
     assert "Failed to infer types for attributes" in str(exc_info.value)
@@ -217,14 +240,19 @@ def test_infer_attribute_types_in_filter_missing(client, project, filter_before)
         (Attribute(f"{PATH}/int-value"), ExperimentFilter.name_in(EXPERIMENT_NAME + "does-not-exist")),
     ],
 )
-def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, experiment_filter):
+def test_infer_attribute_types_in_sort_by_missing(client, executor, project, attribute, experiment_filter):
     # given
     project_identifier = project.project_identifier
 
     #  when
     with pytest.raises(ValueError) as exc_info:
         infer_attribute_types_in_sort_by(
-            client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute
+            client,
+            project_identifier,
+            experiment_filter=experiment_filter,
+            sort_by=attribute,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -239,14 +267,20 @@ def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, ex
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types(
-    client, project, run_with_attributes, run_with_attributes_b, filter_before
+    client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
     with pytest.raises(ValueError) as exc_info:
-        infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+        infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiment_filter=filter_before,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
+        )
 
     # then
     assert "Multiple type candidates found for attribute" in str(exc_info.value)
@@ -268,7 +302,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types(
-    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
+    client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
@@ -276,7 +310,12 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     #  when
     with pytest.raises(ValueError) as exc_info:
         infer_attribute_types_in_sort_by(
-            client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute_before
+            client,
+            project_identifier,
+            experiment_filter=experiment_filter,
+            sort_by=attribute_before,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -309,14 +348,26 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
-    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter, attribute_after
+    client,
+    executor,
+    project,
+    run_with_attributes,
+    run_with_attributes_b,
+    attribute_before,
+    experiment_filter,
+    attribute_after,
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
     infer_attribute_types_in_sort_by(
-        client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute_before
+        client,
+        project_identifier,
+        experiment_filter=experiment_filter,
+        sort_by=attribute_before,
+        executor=executor,
+        fetch_attribute_definitions_executor=executor,
     )
 
     # then

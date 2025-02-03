@@ -33,6 +33,7 @@ from neptune_fetcher.alpha.filter import (
 )
 from neptune_fetcher.alpha.internal import attribute
 from neptune_fetcher.alpha.internal import infer as _infer
+from neptune_fetcher.alpha.internal import util as _util
 from neptune_fetcher.alpha.internal.api_client import get_client
 from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 
@@ -69,10 +70,25 @@ def list_attributes(
     if isinstance(attributes, str):
         attributes = AttributeFilter(name_matches_all=[attributes])
 
-    _infer.infer_attribute_types_in_filter(client, project_identifier, experiments)
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        _infer.infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiments,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    result = attribute.list_attributes(
-        client, project_identifier, experiment_filter=experiments, attribute_filter=attributes
-    )
+        result = attribute.list_attributes(
+            client,
+            project_identifier,
+            experiment_filter=experiments,
+            attribute_filter=attributes,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    return sorted(set(result))
+        return sorted(set(result))

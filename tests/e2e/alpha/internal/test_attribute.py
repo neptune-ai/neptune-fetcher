@@ -16,7 +16,10 @@ from neptune_fetcher.alpha.internal.attribute import (
     fetch_attribute_definitions,
     fetch_attribute_values,
 )
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.identifiers import (
+    ExperimentIdentifier,
+    SysId,
+)
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -103,7 +106,7 @@ def experiment_identifier(client, project, run_with_attributes) -> ExperimentIde
     return ExperimentIdentifier(project_identifier, sys_id)
 
 
-def test_fetch_attribute_definitions_single_string(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_string(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -111,7 +114,7 @@ def test_fetch_attribute_definitions_single_string(client, project, experiment_i
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, executor=executor
         )
     )
 
@@ -119,7 +122,7 @@ def test_fetch_attribute_definitions_single_string(client, project, experiment_i
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
-def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_does_not_exist(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -127,7 +130,11 @@ def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_
     attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -135,7 +142,7 @@ def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_
     assert attributes == []
 
 
-def test_fetch_attribute_definitions_two_strings(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_two_strings(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -143,7 +150,11 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -157,7 +168,7 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     )
 
 
-def test_fetch_attribute_definitions_single_series(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_series(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
@@ -166,7 +177,11 @@ def test_fetch_attribute_definitions_single_series(client, project, experiment_i
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -174,7 +189,7 @@ def test_fetch_attribute_definitions_single_series(client, project, experiment_i
     assert attributes == [AttributeDefinition(path, "float_series")]
 
 
-def test_fetch_attribute_definitions_all_types(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_all_types(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     all_attrs = [
@@ -191,7 +206,11 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
     attribute_filter = AttributeFilter(name_eq=[name for name, _ in all_attrs])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -200,7 +219,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
     assert_items_equal(attributes, expected_definitions)
 
 
-def test_fetch_attribute_definitions_no_type_in(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_no_type_in(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -208,7 +227,11 @@ def test_fetch_attribute_definitions_no_type_in(client, project, experiment_iden
     attribute_filter = AttributeFilter(name_eq="sys/name")
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -216,7 +239,7 @@ def test_fetch_attribute_definitions_no_type_in(client, project, experiment_iden
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
-def test_fetch_attribute_definitions_regex_matches_all(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_regex_matches_all(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -224,7 +247,11 @@ def test_fetch_attribute_definitions_regex_matches_all(client, project, experime
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -239,7 +266,7 @@ def test_fetch_attribute_definitions_regex_matches_all(client, project, experime
     )
 
 
-def test_fetch_attribute_definitions_regex_matches_none(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_regex_matches_none(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -249,7 +276,11 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
     )
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -263,7 +294,7 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
     )
 
 
-def test_fetch_attribute_definitions_multiple_projects(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_multiple_projects(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     project_identifier_2 = f"{project_identifier}-does-not-exist"
@@ -276,6 +307,7 @@ def test_fetch_attribute_definitions_multiple_projects(client, project, experime
             [project_identifier, project_identifier, project_identifier_2],
             [experiment_identifier],
             attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -283,7 +315,7 @@ def test_fetch_attribute_definitions_multiple_projects(client, project, experime
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
-def test_fetch_attribute_definitions_filter_or(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_filter_or(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -294,7 +326,11 @@ def test_fetch_attribute_definitions_filter_or(client, project, experiment_ident
     attribute_filter = attribute_filter_1 | attribute_filter_2
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -316,7 +352,9 @@ def test_fetch_attribute_definitions_filter_or(client, project, experiment_ident
         lambda a, b, c: AttributeFilter.any(a, AttributeFilter.any(b, c)),
     ],
 )
-def test_fetch_attribute_definitions_filter_triple_or(client, project, experiment_identifier, make_attribute_filter):
+def test_fetch_attribute_definitions_filter_triple_or(
+    client, executor, project, experiment_identifier, make_attribute_filter
+):
     # given
     project_identifier = project.project_identifier
 
@@ -328,7 +366,11 @@ def test_fetch_attribute_definitions_filter_triple_or(client, project, experimen
     #  when
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=executor,
         )
     )
 
@@ -343,7 +385,7 @@ def test_fetch_attribute_definitions_filter_triple_or(client, project, experimen
     )
 
 
-def test_fetch_attribute_definitions_paging(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_paging(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -351,7 +393,12 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=executor,
         )
     )
 
@@ -366,7 +413,7 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     )
 
 
-def test_fetch_attribute_definitions_paging_executor(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_paging_executor(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -375,7 +422,12 @@ def test_fetch_attribute_definitions_paging_executor(client, project, experiment
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=executor,
         )
     )
 
@@ -390,7 +442,7 @@ def test_fetch_attribute_definitions_paging_executor(client, project, experiment
     )
 
 
-def test_fetch_attribute_definitions_should_deduplicate_items(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_should_deduplicate_items(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
@@ -402,7 +454,12 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=executor,
         )
     )
 
@@ -417,28 +474,40 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
     )
 
 
-def test_fetch_attribute_definitions_experiment_identifier_none(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_experiment_identifier_none(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
-        fetch_attribute_definitions(client, [project_identifier], None, attribute_filter=attribute_filter)
+        fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            None,
+            attribute_filter=attribute_filter,
+            executor=executor,
+        )
     )
 
     # then
     assert attributes == [AttributeDefinition("sys/name", "string")]
 
 
-def test_fetch_attribute_definitions_experiment_identifier_empty(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_experiment_identifier_empty(client, executor, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
 
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
-        fetch_attribute_definitions(client, [project_identifier], [], attribute_filter=attribute_filter)
+        fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            [],
+            attribute_filter=attribute_filter,
+            executor=executor,
+        )
     )
 
     # then
@@ -590,3 +659,39 @@ def _extract_pages(generator):
 
 def assert_items_equal(a: list[AttributeDefinition], b: list[AttributeDefinition]):
     assert sorted(a, key=lambda d: (d.name, d.type)) == sorted(b, key=lambda d: (d.name, d.type))
+
+
+def test_fetch_attribute_definitions_experiment_large_number_experiment_identifiers(
+    client, executor, project, experiment_identifier
+):
+    # given
+    project_identifier = project.project_identifier
+
+    experiment_identifiers = [experiment_identifier] + _generate_experiment_identifiers(project_identifier, 240 * 1024)
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            experiment_identifiers,
+            attribute_filter=attribute_filter,
+            executor=executor,
+        )
+    )
+
+    # then
+    assert attributes == [AttributeDefinition("sys/name", "string")]
+
+
+def _generate_experiment_identifiers(project_identifier, size_bytes: int):
+    per_uuid_size = 50
+
+    identifiers_count = (size_bytes + per_uuid_size) // per_uuid_size
+
+    experiment_identifiers = [
+        ExperimentIdentifier(project_identifier, SysId(f"TEST-{i}")) for i in range(identifiers_count)
+    ]
+
+    return experiment_identifiers

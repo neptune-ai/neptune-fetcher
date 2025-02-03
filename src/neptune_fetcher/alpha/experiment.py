@@ -92,32 +92,41 @@ def fetch_experiments_table(
     else:
         sort_by_attribute = sort_by
 
-    _infer.infer_attribute_types_in_filter(
-        client=client,
-        project_identifier=project,
-        experiment_filter=experiments_filter,
-    )
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
 
-    _infer.infer_attribute_types_in_sort_by(
-        client=client,
-        project_identifier=project,
-        experiment_filter=experiments_filter,
-        sort_by=sort_by_attribute,
-    )
+        _infer.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project,
+            experiment_filter=experiments_filter,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
-    result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
-    selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
-    with _util.create_thread_pool_executor() as executor:
-        experiment_pages = _experiment.fetch_experiment_sys_attrs(
+        _infer.infer_attribute_types_in_sort_by(
             client=client,
             project_identifier=project,
             experiment_filter=experiments_filter,
             sort_by=sort_by_attribute,
-            sort_direction=sort_direction,
-            limit=limit,
             executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
+
+        experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
+        result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
+        selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
+
+        def go_fetch_experiment_sys_attrs() -> Generator[_util.Page[_experiment.ExperimentSysAttrs], None, None]:
+            return _experiment.fetch_experiment_sys_attrs(
+                client=client,
+                project_identifier=project,
+                experiment_filter=experiments_filter,
+                sort_by=sort_by_attribute,
+                sort_direction=sort_direction,
+                limit=limit,
+            )
 
         def process_experiment_page_stateful(
             page: _util.Page[_experiment.ExperimentSysAttrs],
@@ -135,26 +144,28 @@ def fetch_experiments_table(
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attributes_filter,
-                executor=executor,
+                executor=fetch_attribute_definitions_executor,
             )
 
         def go_fetch_attribute_values(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
+            attribute_definitions: list[_attribute.AttributeDefinition],
         ) -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
-            attribute_definitions = [
-                item.attribute_definition
-                for item in attribute_definition_aggregation_page.items
-                if item.aggregation is None
-            ]
-
             return _attribute.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
                 experiment_identifiers=experiment_identifiers,
                 attribute_definitions=attribute_definitions,
-                executor=executor,
             )
+
+        def filter_definitions(
+            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
+        ) -> list[_attribute.AttributeDefinition]:
+            return [
+                item.attribute_definition
+                for item in attribute_definition_aggregation_page.items
+                if item.aggregation is None
+            ]
 
         def collect_aggregations(
             attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
@@ -166,22 +177,34 @@ def fetch_experiments_table(
             return aggregations
 
         output = _util.generate_concurrently(
-            items=(process_experiment_page_stateful(page) for page in experiment_pages),
+            items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
             executor=executor,
             downstream=lambda experiment_identifiers: _util.generate_concurrently(
-                items=go_fetch_attribute_definitions(experiment_identifiers),
+                items=_util.split_experiments(experiment_identifiers),
                 executor=executor,
-                downstream=lambda definitions_page: _util.fork_concurrently(
-                    item=definitions_page,
+                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
+                    items=go_fetch_attribute_definitions(experiment_identifiers_split),
                     executor=executor,
-                    downstreams=[
-                        lambda _definitions_page: _util.generate_concurrently(
-                            items=go_fetch_attribute_values(experiment_identifiers, _definitions_page),
-                            executor=executor,
-                            downstream=_util.return_value,
-                        ),
-                        lambda _definitions_page: _util.return_value(collect_aggregations(_definitions_page)),
-                    ],
+                    downstream=lambda definition_aggs_page: _util.fork_concurrently(
+                        item=definition_aggs_page,
+                        executor=executor,
+                        downstreams=[
+                            lambda _definition_aggs_page: _util.generate_concurrently(
+                                items=_util.split_experiments_attributes(
+                                    experiment_identifiers_split, filter_definitions(_definition_aggs_page)
+                                ),
+                                executor=executor,
+                                downstream=lambda split_pair: _util.generate_concurrently(
+                                    items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
+                                    executor=executor,
+                                    downstream=_util.return_value,
+                                ),
+                            ),
+                            lambda _definition_aggs_page: _util.return_value(
+                                collect_aggregations(_definition_aggs_page)
+                            ),
+                        ],
+                    ),
                 ),
             ),
         )
@@ -241,11 +264,18 @@ def list_experiments(
     if isinstance(experiments, str):
         experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
-    _infer.infer_attribute_types_in_filter(
-        client=client,
-        project_identifier=project_identifier,
-        experiment_filter=experiments,
-    )
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        _infer.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project_identifier,
+            experiment_filter=experiments,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
-    return list(exp.sys_name for page in pages for exp in page.items)
+        pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
+
+        return list(exp.sys_name for page in pages for exp in page.items)

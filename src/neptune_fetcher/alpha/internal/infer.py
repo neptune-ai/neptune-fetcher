@@ -34,6 +34,8 @@ def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
     experiment_filter: Optional[_filter.ExperimentFilter],
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
 ) -> None:
     if experiment_filter is None:
         return
@@ -52,6 +54,8 @@ def infer_attribute_types_in_filter(
         project_identifier=project_identifier,
         experiment_filter=None,
         attributes=attributes,
+        executor=executor,
+        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
     )
     attributes = _filter_untyped(attributes)
     if attributes:
@@ -63,6 +67,8 @@ def infer_attribute_types_in_sort_by(
     project_identifier: _identifiers.ProjectIdentifier,
     experiment_filter: Optional[_filter.ExperimentFilter],
     sort_by: _filter.Attribute,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
 ) -> None:
     attributes = _filter_untyped([sort_by])
     if not attributes:
@@ -78,6 +84,8 @@ def infer_attribute_types_in_sort_by(
         project_identifier=project_identifier,
         experiment_filter=experiment_filter,
         attributes=attributes,
+        executor=executor,
+        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
     )
     attributes = _filter_untyped(attributes)
     if attributes:
@@ -97,59 +105,60 @@ def _infer_attribute_types_from_api(
     project_identifier: _identifiers.ProjectIdentifier,
     experiment_filter: Optional[_filter.ExperimentFilter],
     attributes: Iterable[_filter.Attribute],
-    executor: Optional[Executor] = None,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
 ) -> None:
     attribute_filter_by_name = _filter.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    def use_executor(_executor: Executor) -> dict[str, set[str]]:
-        if experiment_filter is None:
-            output = _util.generate_concurrently(
-                _attribute.fetch_attribute_definitions(
-                    client=client,
-                    project_identifiers=[project_identifier],
-                    experiment_identifiers=None,
-                    attribute_filter=attribute_filter_by_name,
+    if experiment_filter is None:
+        output = _util.generate_concurrently(
+            _attribute.fetch_attribute_definitions(
+                client=client,
+                project_identifiers=[project_identifier],
+                experiment_identifiers=None,
+                attribute_filter=attribute_filter_by_name,
+                executor=fetch_attribute_definitions_executor,
+            ),
+            executor=executor,
+            downstream=_util.return_value,
+        )
+    else:
+        output = _util.generate_concurrently(
+            items=_experiment.fetch_experiment_sys_attrs(
+                client=client,
+                project_identifier=project_identifier,
+                experiment_filter=experiment_filter,
+            ),
+            executor=executor,
+            downstream=lambda experiment_page: _util.generate_concurrently(
+                items=_util.split_experiments(
+                    [
+                        _identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
+                        for experiment in experiment_page.items
+                    ]
                 ),
-                executor=_executor,
-                downstream=_util.return_value,
-            )
-        else:
-            output = _util.generate_concurrently(
-                items=_experiment.fetch_experiment_sys_attrs(
-                    client=client,
-                    project_identifier=project_identifier,
-                    experiment_filter=experiment_filter,
-                ),
-                executor=_executor,
-                downstream=lambda experiment_page: _util.generate_concurrently(
+                executor=executor,
+                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
                     _attribute.fetch_attribute_definitions(
                         client=client,
                         project_identifiers=[project_identifier],
-                        experiment_identifiers=[
-                            _identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
-                            for experiment in experiment_page.items
-                        ],
+                        experiment_identifiers=experiment_identifiers_split,
                         attribute_filter=attribute_filter_by_name,
+                        executor=fetch_attribute_definitions_executor,
                     ),
-                    executor=_executor,
+                    executor=executor,
                     downstream=_util.return_value,
                 ),
-            )
-        attribute_definition_pages: Generator[
-            _util.Page[_attribute.AttributeDefinition], None, None
-        ] = _util.gather_results(output)
+            ),
+        )
+    attribute_definition_pages: Generator[
+        _util.Page[_attribute.AttributeDefinition], None, None
+    ] = _util.gather_results(output)
 
-        attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
-        for attribute_definition_page in attribute_definition_pages:
-            for attr_def in attribute_definition_page.items:
-                attribute_name_to_definition[attr_def.name].add(attr_def.type)
-        return attribute_name_to_definition
-
-    if executor is not None:
-        attribute_name_to_definition = use_executor(executor)
-    else:
-        with _util.create_thread_pool_executor() as executor:
-            attribute_name_to_definition = use_executor(executor)
+    attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
+    for attribute_definition_page in attribute_definition_pages:
+        for attr_def in attribute_definition_page.items:
+            attribute_name_to_definition[attr_def.name].add(attr_def.type)
 
     for name, types in attribute_name_to_definition.items():
         if len(types) > 1:

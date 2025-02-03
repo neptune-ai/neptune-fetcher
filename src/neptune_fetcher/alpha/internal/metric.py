@@ -16,7 +16,7 @@
 import concurrent
 import itertools as it
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from itertools import chain
 from typing import (
@@ -51,7 +51,6 @@ from neptune_fetcher.alpha.filter import (
     ExperimentFilter,
 )
 from neptune_fetcher.alpha.internal import (
-    env,
     identifiers,
     util,
 )
@@ -97,84 +96,91 @@ def fetch_flat_dataframe_metrics(
     attributes: AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
 ) -> pd.DataFrame:
-    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    def fetch_values(
+        exp_paths: List[_AttributePathInExperiment],
+    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        _series = _fetch_multiple_series_values(
+            client,
+            exp_paths=exp_paths,
+            include_inherited=lineage_to_the_root,
+            step_range=step_range,
+            tail_limit=tail_limit,
+        )
+        return [], _series
 
-        def fetch_values(
-            exp_paths: List[_AttributePathInExperiment],
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-            _series = _fetch_multiple_series_values(
-                client,
-                exp_paths=exp_paths,
-                include_inherited=lineage_to_the_root,
-                step_range=step_range,
-                tail_limit=tail_limit,
-            )
-            return [], _series
+    def process_definitions(
+        _experiments: List[ExperimentSysAttrs],
+        _definitions: Generator[util.Page[AttributeDefinition], None, None],
+    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        definitions_page = next(_definitions, None)
+        _futures = []
+        if definitions_page:
+            _futures.append(executor.submit(process_definitions, _experiments, _definitions))
 
-        def process_definitions(
-            _experiments: List[ExperimentSysAttrs],
-            _definitions: Generator[util.Page[AttributeDefinition], None, None],
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-            definitions_page = next(_definitions, None)
-            _futures = []
-            if definitions_page:
-                _futures.append(executor.submit(process_definitions, _experiments, _definitions))
+            paths = definitions_page.items
 
-                paths = definitions_page.items
+            product = it.product(_experiments, paths)
+            exp_paths = [
+                _AttributePathInExperiment(ExpId(project, _exp.sys_id), _exp.sys_name, _path.name)
+                for _exp, _path in product
+                if _path.type == "float_series"
+            ]
 
-                product = it.product(_experiments, paths)
-                exp_paths = [
-                    _AttributePathInExperiment(ExpId(project, _exp.sys_id), _exp.sys_name, _path.name)
-                    for _exp, _path in product
-                    if _path.type == "float_series"
-                ]
+            for batch in _batch(exp_paths, PATHS_PER_BATCH):
+                _futures.append(executor.submit(fetch_values, batch))
 
-                for batch in _batch(exp_paths, PATHS_PER_BATCH):
-                    _futures.append(executor.submit(fetch_values, batch))
+        return _futures, []
 
-            return _futures, []
+    def process_experiments(
+        experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
+    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
+        _experiments = next(experiment_generator, None)
+        _futures = []
 
-        def process_experiments(
-            experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
-        ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-            _experiments = next(experiment_generator, None)
-            _futures = []
-            if _experiments:
-                _futures.append(executor.submit(process_experiments, experiment_generator))
-            if _experiments and _experiments.items:
+        if _experiments:
+            _futures.append(executor.submit(process_experiments, experiment_generator))
+
+        if _experiments and _experiments.items:
+            experiment_identifiers = [
+                identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
+            ]
+            sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
+
+            for experiment_identifiers_split in util.split_experiments(experiment_identifiers):
+                sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
-                    experiment_identifiers=[
-                        identifiers.ExperimentIdentifier(project, experiment.sys_id)
-                        for experiment in _experiments.items
-                    ],
+                    experiment_identifiers=experiment_identifiers_split,
                     attribute_filter=attributes,
+                    executor=fetch_attribute_definitions_executor,
                 )
-                _futures.append(executor.submit(process_definitions, _experiments.items, definitions_generator))
-            return _futures, []
+                _futures.append(executor.submit(process_definitions, sys_attrs_split, definitions_generator))
 
-        def _start() -> Iterable[_FloatPointValue]:
-            futures = {
-                executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
-            }
+        return _futures, []
 
-            while futures:
-                done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-                futures = not_done
-                for future in done:
-                    new_futures, values = future.result()
-                    futures.update(new_futures)
-                    if values:
-                        yield from values
+    def _start() -> Iterable[_FloatPointValue]:
+        futures = {
+            executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
+        }
 
-        df = _create_flat_dataframe(_start())
-        return df
+        while futures:
+            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            futures = not_done
+            for future in done:
+                new_futures, values = future.result()
+                futures.update(new_futures)
+                if values:
+                    yield from values
+
+    df = _create_flat_dataframe(_start())
+    return df
 
 
 def _create_flat_dataframe(values: Iterable[_FloatPointValue]) -> pd.DataFrame:

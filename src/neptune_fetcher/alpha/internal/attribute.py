@@ -93,8 +93,8 @@ def fetch_attribute_definitions(
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
+    executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     pages_filters = _fetch_attribute_definitions(
         client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
@@ -112,8 +112,8 @@ def fetch_attribute_definition_aggregations(
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.BaseAttributeFilter,
+    executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
     """
     Each attribute definition is yielded once with aggregation=None when it's first encountered.
@@ -153,37 +153,34 @@ def _fetch_attribute_definitions(
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int,
-    executor: Optional[Executor],
+    executor: Executor,
 ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-    def use_executor(
-        _executor: Executor,
-    ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-        def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
-            return _fetch_attribute_definitions_single_filter(
-                client=client,
-                project_identifiers=project_identifiers,
-                experiment_identifiers=experiment_identifiers,
-                attribute_filter=_filter,
-                batch_size=batch_size,
-            )
+    def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
+        return _fetch_attribute_definitions_single_filter(
+            client=client,
+            project_identifiers=project_identifiers,
+            experiment_identifiers=experiment_identifiers,
+            attribute_filter=_filter,
+            batch_size=batch_size,
+        )
 
-        filters = _split_to_tasks(attribute_filter)
+    filters = _split_to_tasks(attribute_filter)
+
+    if len(filters) == 1:
+        head = filters[0]
+        for page in go_fetch_single(head):
+            yield page, head
+    else:
         output = util.generate_concurrently(
             items=(_filter for _filter in filters),
-            executor=_executor,
+            executor=executor,
             downstream=lambda _filter: util.generate_concurrently(
                 items=go_fetch_single(_filter),
-                executor=_executor,
-                downstream=lambda page: util.return_value((page, _filter)),
+                executor=executor,
+                downstream=lambda _page: util.return_value((_page, _filter)),
             ),
         )
         yield from util.gather_results(output)
-
-    if executor is None:
-        with util.create_thread_pool_executor() as _executor:
-            yield from use_executor(_executor)
-    else:
-        yield from use_executor(executor)
 
 
 def _fetch_attribute_definitions_single_filter(
@@ -317,7 +314,6 @@ def fetch_attribute_values(
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_definitions: Iterable[AttributeDefinition],
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
-    executor: Optional[Executor] = None,
 ) -> Generator[util.Page[AttributeValue], None, None]:
     attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
     experiments = [str(e) for e in experiment_identifiers]
@@ -332,34 +328,34 @@ def fetch_attribute_values(
         "nextPage": {"limit": batch_size},
     }
 
-    def _fetch_attributes_page(
-        _client: AuthenticatedClient,
-        _params: dict[str, Any],
-        _project_identifier: identifiers.ProjectIdentifier,
-    ) -> ProtoQueryAttributesResultDTO:
-        response = util.backoff_retry(
-            query_attributes_within_project_proto.sync_detailed,
-            client=_client,
-            body=QueryAttributesBodyDTO.from_dict(_params),
-            project_identifier=_project_identifier,
-        )
-        return ProtoQueryAttributesResultDTO.FromString(response.content)
-
     yield from util.fetch_pages(
         client=client,
-        fetch_page=ft.partial(_fetch_attributes_page, _project_identifier=project_identifier),
+        fetch_page=ft.partial(_fetch_attribute_values_page, project_identifier=project_identifier),
         process_page=ft.partial(
-            _process_attributes_page,
+            _process_attribute_values_page,
             attribute_definitions_set=attribute_definitions_set,
             project_identifier=project_identifier,
         ),
-        make_new_page_params=_make_new_attributes_page_params,
+        make_new_page_params=_make_new_attribute_values_page_params,
         params=params,
-        executor=executor,
     )
 
 
-def _process_attributes_page(
+def _fetch_attribute_values_page(
+    client: AuthenticatedClient,
+    params: dict[str, Any],
+    project_identifier: identifiers.ProjectIdentifier,
+) -> ProtoQueryAttributesResultDTO:
+    response = util.backoff_retry(
+        query_attributes_within_project_proto.sync_detailed,
+        client=client,
+        body=QueryAttributesBodyDTO.from_dict(params),
+        project_identifier=project_identifier,
+    )
+    return ProtoQueryAttributesResultDTO.FromString(response.content)
+
+
+def _process_attribute_values_page(
     data: ProtoQueryAttributesResultDTO,
     attribute_definitions_set: set[AttributeDefinition],
     project_identifier: identifiers.ProjectIdentifier,
@@ -389,7 +385,7 @@ def _process_attributes_page(
     return util.Page(items=items)
 
 
-def _make_new_attributes_page_params(
+def _make_new_attribute_values_page_params(
     params: dict[str, Any], data: Optional[ProtoQueryAttributesResultDTO]
 ) -> Optional[dict[str, Any]]:
     if data is None:
@@ -408,43 +404,48 @@ def _make_new_attributes_page_params(
 def list_attributes(
     client: AuthenticatedClient,
     project_id: identifiers.ProjectIdentifier,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
     experiment_filter: Optional[filter.ExperimentFilter] = None,
     attribute_filter: Optional[filter.BaseAttributeFilter] = None,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[str, None, None]:
-    with util.create_thread_pool_executor() as executor:
-        if attribute_filter is None:
-            attribute_filter = filter.AttributeFilter()
+    if attribute_filter is None:
+        attribute_filter = filter.AttributeFilter()
 
-        def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
-            experiment_identifiers = (
-                [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                if experiments_page is not None
-                else None
-            )
-
-            _definitions = set()
+    def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
+        _definitions = set()
+        if experiments_page is None:
             for attrs_page in fetch_attribute_definitions(
                 client,
                 [project_id],
-                experiment_identifiers,
+                None,
                 cast(filter.AttributeFilter, attribute_filter),
-                batch_size,
-                executor,
+                fetch_attribute_definitions_executor,
             ):
                 _definitions.update([attr.name for attr in attrs_page.items])
-            return _definitions
-
-        if experiment_filter:
-            matching_experiments = experiment.fetch_experiment_sys_attrs(
-                client,
-                project_identifier=project_id,
-                experiment_filter=experiment_filter,
-                executor=executor,
-            )
-            futures = [executor.submit(list_single_page, page) for page in matching_experiments]
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                yield from result
         else:
-            yield from list_single_page(None)
+            for experiment_identifier_split in util.split_experiments(  # TODO: this is done mostly sequentially
+                [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+            ):
+                for attrs_page in fetch_attribute_definitions(
+                    client,
+                    [project_id],
+                    experiment_identifier_split,
+                    cast(filter.AttributeFilter, attribute_filter),
+                    fetch_attribute_definitions_executor,
+                ):
+                    _definitions.update([attr.name for attr in attrs_page.items])
+        return _definitions
+
+    if experiment_filter:
+        matching_experiments = experiment.fetch_experiment_sys_attrs(
+            client,
+            project_identifier=project_id,
+            experiment_filter=experiment_filter,
+        )
+        futures = [executor.submit(list_single_page, page) for page in matching_experiments]
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            yield from result
+    else:
+        yield from list_single_page(None)
