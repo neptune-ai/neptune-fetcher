@@ -46,7 +46,7 @@ class ExperimentData:
 PATH = "metrics/fetch-metric"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 NUMBER_OF_STEPS = 100
-PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
+NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
 TEST_DATA_VERSION = "v2"
 
@@ -106,7 +106,7 @@ def run_with_attributes(client, project):
     runs = {}
     for experiment in TEST_DATA.experiments:
         run = Run(
-            project=PROJECT,
+            project=project.project_identifier,
             run_id=experiment.run_id,
             experiment_name=experiment.name,
         )
