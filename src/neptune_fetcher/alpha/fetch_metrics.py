@@ -27,10 +27,10 @@ from neptune_fetcher.alpha.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal import infer as _infer
@@ -40,7 +40,7 @@ from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 
 
 def fetch_metrics(
-    experiments: Union[str, ExperimentFilter],
+    experiments: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
     include_timestamp: Optional[Literal["relative", "absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -77,7 +77,7 @@ def fetch_metrics(
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     experiments = (
-        ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+        Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
         if isinstance(experiments, str)
         else experiments
     )

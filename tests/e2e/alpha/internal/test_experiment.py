@@ -7,9 +7,9 @@ from typing import Generator
 
 import pytest
 
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.experiment import (
@@ -41,7 +41,7 @@ def run_with_attributes(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            ExperimentFilter.name_in(EXPERIMENT_NAME),
+            Filter.name_in(EXPERIMENT_NAME),
         )
     )
     if existing.items:
@@ -89,14 +89,14 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = ExperimentFilter.name_eq(EXPERIMENT_NAME)
+    experiment_filter = Filter.name_eq(EXPERIMENT_NAME)
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
-    experiment_filter = ExperimentFilter.name_in(EXPERIMENT_NAME, "experiment_not_found")
+    experiment_filter = Filter.name_in(EXPERIMENT_NAME, "experiment_not_found")
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
@@ -108,7 +108,7 @@ def test_find_experiments_by_name_not_found(client, project):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = ExperimentFilter.name_eq("name_not_found")
+    experiment_filter = Filter.name_eq("name_not_found")
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
@@ -118,53 +118,53 @@ def test_find_experiments_by_name_not_found(client, project):
 @pytest.mark.parametrize(
     "experiment_filter,found",
     [
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 11), True),
-        (ExperimentFilter.ge(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (ExperimentFilter.gt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (ExperimentFilter.le(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (ExperimentFilter.lt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), True),
-        (ExperimentFilter.ge(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.gt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.le(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (ExperimentFilter.lt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), True),
-        (ExperimentFilter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), "^he..o$"), True),
-        (ExperimentFilter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "lo$"]), True),
-        (ExperimentFilter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
-        (ExperimentFilter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
-        (ExperimentFilter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
-        (ExperimentFilter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
-        (ExperimentFilter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), "ll"), True),
-        (ExperimentFilter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["e", "ll"]), True),
-        (ExperimentFilter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
-        (ExperimentFilter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
-        (ExperimentFilter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
-        (ExperimentFilter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), True),
-        (ExperimentFilter.ge(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.gt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.le(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (ExperimentFilter.lt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (ExperimentFilter.exists(Attribute(name=f"{PATH}/str-value", type="string")), True),
-        (ExperimentFilter.exists(Attribute(name=f"{PATH}/str-value", type="int")), False),
-        (ExperimentFilter.exists(Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
+        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
+        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11), False),
+        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
+        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 11), True),
+        (Filter.ge(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
+        (Filter.gt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
+        (Filter.le(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
+        (Filter.lt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
+        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
+        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), False),
+        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
+        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), True),
+        (Filter.ge(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
+        (Filter.gt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
+        (Filter.le(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
+        (Filter.lt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
+        (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), True),
+        (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), False),
+        (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), False),
+        (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), True),
+        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), True),
+        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), False),
+        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), False),
+        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), True),
+        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), "^he..o$"), True),
+        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "lo$"]), True),
+        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
+        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
+        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
+        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
+        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), "ll"), True),
+        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["e", "ll"]), True),
+        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
+        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
+        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
+        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
+        (Filter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (Filter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), False),
+        (Filter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (Filter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), True),
+        (Filter.ge(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (Filter.gt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (Filter.le(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (Filter.lt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (Filter.exists(Attribute(name=f"{PATH}/str-value", type="string")), True),
+        (Filter.exists(Attribute(name=f"{PATH}/str-value", type="int")), False),
+        (Filter.exists(Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
     ],
 )
 def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
@@ -185,103 +185,103 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     "experiment_filter,found",
     [
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
             True,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-2],
             ),
             False,
         ),
         (
-            ExperimentFilter.ne(
+            Filter.ne(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
             False,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES) + 1,
             ),
             False,
         ),
         (
-            ExperimentFilter.ne(
+            Filter.ne(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES) + 1,
             ),
             False,
         ),
         (
-            ExperimentFilter.ne(
+            Filter.ne(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES) + 1.0,
             ),
             False,
         ),
         (
-            ExperimentFilter.ne(
+            Filter.ne(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05
             ),
             True,
         ),
         (
-            ExperimentFilter.eq(
+            Filter.eq(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05 + 1
             ),
             False,
         ),
         (
-            ExperimentFilter.ne(
+            Filter.ne(
                 Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05
             ),
             False,
@@ -306,135 +306,135 @@ def test_find_experiments_by_series_values(client, project, run_with_attributes,
     "experiment_filter,found",
     [
         (
-            ExperimentFilter.all(
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.all(
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             True,
         ),
         (
-            ExperimentFilter.all(
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.all(
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             False,
         ),
         (
-            ExperimentFilter.all(
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.all(
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             False,
         ),
         (
-            ExperimentFilter.all(
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.all(
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             False,
         ),
         (
-            ExperimentFilter.any(
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.any(
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             True,
         ),
         (
-            ExperimentFilter.any(
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.any(
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             True,
         ),
         (
-            ExperimentFilter.any(
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.any(
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             True,
         ),
         (
-            ExperimentFilter.any(
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+            Filter.any(
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
             ),
             False,
         ),
         (
-            ExperimentFilter.negate(
-                ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+            Filter.negate(
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
             ),
             False,
         ),
         (
-            ExperimentFilter.negate(
-                ExperimentFilter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+            Filter.negate(
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
             ),
             True,
         ),
         (
-            ExperimentFilter.all(
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+            Filter.all(
+                Filter.any(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
                 ),
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
-                ),
-            ),
-            True,
-        ),
-        (
-            ExperimentFilter.all(
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
-                ),
-                ExperimentFilter.any(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
-                ),
-            ),
-            False,
-        ),
-        (
-            ExperimentFilter.any(
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
-                ),
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                Filter.any(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
                 ),
             ),
             True,
         ),
         (
-            ExperimentFilter.any(
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+            Filter.all(
+                Filter.any(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
                 ),
-                ExperimentFilter.all(
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                Filter.any(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
                 ),
             ),
             False,
         ),
         (
-            ExperimentFilter.negate(
-                ExperimentFilter.any(
-                    ExperimentFilter.all(
-                        ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                        ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+            Filter.any(
+                Filter.all(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                ),
+                Filter.all(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                ),
+            ),
+            True,
+        ),
+        (
+            Filter.any(
+                Filter.all(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                ),
+                Filter.all(
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                ),
+            ),
+            False,
+        ),
+        (
+            Filter.negate(
+                Filter.any(
+                    Filter.all(
+                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
                     ),
-                    ExperimentFilter.all(
-                        ExperimentFilter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                        ExperimentFilter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.all(
+                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
+                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
                     ),
                 )
             ),

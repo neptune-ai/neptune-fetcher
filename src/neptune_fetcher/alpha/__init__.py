@@ -24,7 +24,7 @@ __all__ = [
     "set_api_token",
     "list_attributes",
     "list_experiments",
-    "ExperimentFilter",
+    "Filter",
 ]
 
 from neptune_fetcher.alpha.attribute import list_attributes
@@ -34,7 +34,7 @@ from neptune_fetcher.alpha.context import (
     set_context,
     set_project,
 )
-from neptune_fetcher.alpha.filter import ExperimentFilter
+from neptune_fetcher.alpha.filters import Filter
 
 from .experiment import (
     fetch_experiments_table,

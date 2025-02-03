@@ -26,9 +26,9 @@ from neptune_scale import Run
 
 from neptune_fetcher.alpha.context import get_context
 from neptune_fetcher.alpha.fetch_metrics import fetch_metrics
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
@@ -96,7 +96,7 @@ def run_with_attributes(client, project):
             for p in fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=identifiers.ProjectIdentifier(project.project_identifier),
-                experiment_filter=ExperimentFilter.name_in(*expected_experiments),
+                experiment_filter=Filter.name_in(*expected_experiments),
             )
         ]
     )
@@ -174,7 +174,7 @@ def create_expected_data(
 @pytest.mark.parametrize(
     "exp_filter",
     [
-        lambda: ExperimentFilter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
     ],
 )

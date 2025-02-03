@@ -24,10 +24,10 @@ import pandas as pd
 
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.alpha import context as _context
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import api_client as _api_client
 from neptune_fetcher.alpha.internal import attribute as _attribute
@@ -44,7 +44,7 @@ __all__ = (
 
 
 def fetch_experiments_table(
-    experiments: Optional[Union[str, ExperimentFilter]] = None,
+    experiments: Optional[Union[str, Filter]] = None,
     attributes: Union[str, AttributeFilter] = "^sys/name$",
     sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
@@ -76,9 +76,7 @@ def fetch_experiments_table(
     project = _identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     if isinstance(experiments, str):
-        experiments_filter: Optional[ExperimentFilter] = ExperimentFilter.matches_all(
-            Attribute("sys/name", type="string"), experiments
-        )
+        experiments_filter: Optional[Filter] = Filter.matches_all(Attribute("sys/name", type="string"), experiments)
     else:
         experiments_filter = experiments
 
@@ -246,7 +244,7 @@ def _map_keys_preserving_order(
 
 
 def list_experiments(
-    experiments: Optional[Union[str, ExperimentFilter]] = None,
+    experiments: Optional[Union[str, Filter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -262,7 +260,7 @@ def list_experiments(
     project_identifier = _identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
     if isinstance(experiments, str):
-        experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
     with (
         _util.create_thread_pool_executor() as executor,

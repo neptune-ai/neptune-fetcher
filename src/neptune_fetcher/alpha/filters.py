@@ -28,7 +28,7 @@ from typing import (
 
 from neptune_fetcher.alpha.internal import types
 
-__ALL__ = ("AttributeFilter", "ExperimentFilter")
+__ALL__ = ("AttributeFilter", "Filter")
 
 
 class BaseAttributeFilter(ABC):
@@ -81,122 +81,122 @@ class Attribute:
         return self.to_query()
 
 
-class ExperimentFilter(ABC):
+class Filter(ABC):
     @staticmethod
-    def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="==", attribute=attribute, value=value)
 
     @staticmethod
-    def ne(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def ne(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="!=", attribute=attribute, value=value)
 
     @staticmethod
-    def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator=">", attribute=attribute, value=value)
 
     @staticmethod
-    def ge(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def ge(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator=">=", attribute=attribute, value=value)
 
     @staticmethod
-    def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="<", attribute=attribute, value=value)
 
     @staticmethod
-    def le(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "ExperimentFilter":
+    def le(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributeValuePredicate(operator="<=", attribute=attribute, value=value)
 
     @staticmethod
-    def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
+    def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
             return _AttributeValuePredicate(operator="MATCHES", attribute=attribute, value=regex)
         else:
-            filters = [ExperimentFilter.matches_all(attribute, r) for r in regex]
-            return ExperimentFilter.all(*filters)
+            filters = [Filter.matches_all(attribute, r) for r in regex]
+            return Filter.all(*filters)
 
     @staticmethod
-    def matches_none(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "ExperimentFilter":
+    def matches_none(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
             return _AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
         else:
-            filters = [ExperimentFilter.matches_none(attribute, r) for r in regex]
-            return ExperimentFilter.all(*filters)
+            filters = [Filter.matches_none(attribute, r) for r in regex]
+            return Filter.all(*filters)
 
     @staticmethod
-    def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
+    def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
             return _AttributeValuePredicate(operator="CONTAINS", attribute=attribute, value=value)
         else:
-            filters = [ExperimentFilter.contains_all(attribute, v) for v in value]
-            return ExperimentFilter.all(*filters)
+            filters = [Filter.contains_all(attribute, v) for v in value]
+            return Filter.all(*filters)
 
     @staticmethod
-    def contains_none(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "ExperimentFilter":
+    def contains_none(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
             return _AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
         else:
-            filters = [ExperimentFilter.contains_none(attribute, v) for v in value]
-            return ExperimentFilter.all(*filters)
+            filters = [Filter.contains_none(attribute, v) for v in value]
+            return Filter.all(*filters)
 
     @staticmethod
-    def exists(attribute: Union[str, Attribute]) -> "ExperimentFilter":
+    def exists(attribute: Union[str, Attribute]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         return _AttributePredicate(postfix_operator="EXISTS", attribute=attribute)
 
     @staticmethod
-    def all(*filters: "ExperimentFilter") -> "ExperimentFilter":
+    def all(*filters: "Filter") -> "Filter":
         return _AssociativeOperator(operator="AND", filters=filters)
 
     @staticmethod
-    def any(*filters: "ExperimentFilter") -> "ExperimentFilter":
+    def any(*filters: "Filter") -> "Filter":
         return _AssociativeOperator(operator="OR", filters=filters)
 
     @staticmethod
-    def negate(filter_: "ExperimentFilter") -> "ExperimentFilter":
+    def negate(filter_: "Filter") -> "Filter":
         return _PrefixOperator(operator="NOT", filter_=filter_)
 
-    def __and__(self, other: "ExperimentFilter") -> "ExperimentFilter":
+    def __and__(self, other: "Filter") -> "Filter":
         return self.all(self, other)
 
-    def __or__(self, other: "ExperimentFilter") -> "ExperimentFilter":
+    def __or__(self, other: "Filter") -> "Filter":
         return self.any(self, other)
 
-    def __invert__(self) -> "ExperimentFilter":
+    def __invert__(self) -> "Filter":
         return self.negate(self)
 
     @staticmethod
-    def name_eq(name: str) -> "ExperimentFilter":
+    def name_eq(name: str) -> "Filter":
         name_attribute = Attribute(name="sys/name", type="string")
-        return ExperimentFilter.eq(name_attribute, name)
+        return Filter.eq(name_attribute, name)
 
     @staticmethod
-    def name_in(*names: str) -> "ExperimentFilter":
+    def name_in(*names: str) -> "Filter":
         if len(names) == 1:
-            return ExperimentFilter.name_eq(names[0])
+            return Filter.name_eq(names[0])
         else:
-            filters = [ExperimentFilter.name_eq(name) for name in names]
-            return ExperimentFilter.any(*filters)
+            filters = [Filter.name_eq(name) for name in names]
+            return Filter.any(*filters)
 
     @abc.abstractmethod
     def to_query(self) -> str:
@@ -207,7 +207,7 @@ class ExperimentFilter(ABC):
 
 
 @dataclass
-class _AttributeValuePredicate(ExperimentFilter):
+class _AttributeValuePredicate(Filter):
     operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
     attribute: Attribute
     value: Union[int, float, str, datetime]
@@ -222,7 +222,7 @@ class _AttributeValuePredicate(ExperimentFilter):
 
 
 @dataclass
-class _AttributePredicate(ExperimentFilter):
+class _AttributePredicate(Filter):
     postfix_operator: Literal["EXISTS"]
     attribute: Attribute
 
@@ -231,9 +231,9 @@ class _AttributePredicate(ExperimentFilter):
 
 
 @dataclass
-class _AssociativeOperator(ExperimentFilter):
+class _AssociativeOperator(Filter):
     operator: Literal["AND", "OR"]
-    filters: Iterable[ExperimentFilter]
+    filters: Iterable[Filter]
 
     def to_query(self) -> str:
         filter_queries = [f"({child})" for child in self.filters]
@@ -241,9 +241,9 @@ class _AssociativeOperator(ExperimentFilter):
 
 
 @dataclass
-class _PrefixOperator(ExperimentFilter):
+class _PrefixOperator(Filter):
     operator: Literal["NOT"]
-    filter_: ExperimentFilter
+    filter_: Filter
 
     def to_query(self) -> str:
         return f"{self.operator} ({self.filter_})"
