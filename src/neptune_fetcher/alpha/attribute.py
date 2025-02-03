@@ -91,4 +91,4 @@ def list_attributes(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-    return sorted(set(result))
+        return sorted(set(result))

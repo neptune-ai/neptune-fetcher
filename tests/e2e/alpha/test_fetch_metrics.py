@@ -30,6 +30,7 @@ from neptune_fetcher.alpha.filter import (
     AttributeFilter,
     ExperimentFilter,
 )
+from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 
 
@@ -86,7 +87,7 @@ TEST_DATA = TestData()
 
 
 @pytest.fixture(scope="module", autouse=True)
-def run_with_attributes(client):
+def run_with_attributes(client, project):
     # TODO: remove this once we have a way to create experiments
     expected_experiments = {exp.name for exp in TEST_DATA.experiments}
     existing_experiments = it.chain.from_iterable(
@@ -94,7 +95,7 @@ def run_with_attributes(client):
             p.items
             for p in fetch_experiment_sys_attrs(
                 client=client,
-                project_identifier=PROJECT,
+                project_identifier=identifiers.ProjectIdentifier(project.project_identifier),
                 experiment_filter=ExperimentFilter.name_in(*expected_experiments),
             )
         ]
@@ -179,7 +180,7 @@ def create_expected_data(
 )
 @pytest.mark.parametrize("include_timestamp", [None, "absolute"])  # "relative",
 def test__fetch_metrics_unique(
-    type_suffix_in_column_names, step_range, tail_limit, include_timestamp, attr_filter, exp_filter
+    project, type_suffix_in_column_names, step_range, tail_limit, include_timestamp, attr_filter, exp_filter
 ):
     experiments = TEST_DATA.experiments[:3]
 
@@ -190,7 +191,7 @@ def test__fetch_metrics_unique(
         step_range=step_range,
         tail_limit=tail_limit,
         include_timestamp=include_timestamp,
-        context=get_context().with_project(PROJECT),
+        context=get_context().with_project(project.project_identifier),
     )
 
     expected = create_expected_data(experiments, type_suffix_in_column_names, include_timestamp)

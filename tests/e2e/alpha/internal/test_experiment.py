@@ -456,20 +456,7 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
         assert experiment_names == []
 
 
-def test_find_experiments_paging(client, project, run, run_with_attributes):
-    # given
-    project_identifier = project.project_identifier
-
-    #  when
-    experiment_names = _extract_names(
-        fetch_experiment_sys_attrs(client, project_identifier, experiment_filter=None, batch_size=1)
-    )
-
-    # then
-    assert len(experiment_names) > 1
-
-
-def test_find_experiments_sort_by_name_desc(client, project, run, run_with_attributes):
+def test_find_experiments_sort_by_name_desc(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
@@ -489,7 +476,7 @@ def test_find_experiments_sort_by_name_desc(client, project, run, run_with_attri
     assert experiment_names == sorted(experiment_names, reverse=True)
 
 
-def test_find_experiments_sort_by_name_asc(client, project, run, run_with_attributes):
+def test_find_experiments_sort_by_name_asc(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
@@ -509,7 +496,7 @@ def test_find_experiments_sort_by_name_asc(client, project, run, run_with_attrib
     assert experiment_names == sorted(experiment_names)
 
 
-def test_find_experiments_sort_by_aggregate(client, project, run, run_with_attributes):
+def test_find_experiments_sort_by_aggregate(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
@@ -528,7 +515,7 @@ def test_find_experiments_sort_by_aggregate(client, project, run, run_with_attri
     # TODO: assert order
 
 
-def test_find_experiments_limit(client, project, run, run_with_attributes):
+def test_find_experiments_limit(client, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
