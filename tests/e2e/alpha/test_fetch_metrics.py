@@ -147,8 +147,6 @@ def create_expected_data(
                 )
 
     df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
-    df["experiment"] = df["experiment"].astype("category")
-    df["path"] = df["path"].astype("category")
     if include_timestamp == "absolute":
         df = df.rename(columns={"timestamp": "absolute_time"})
         df = df.pivot(
@@ -159,6 +157,7 @@ def create_expected_data(
         df = df.swaplevel(axis=1)
         df = df.sort_index(axis=1, level=0)
         df = df.reset_index()
+        df = df.sort_values(by=["experiment", "step"])
         return df
     else:
         df = df.pivot(index=["experiment", "step"], columns="path", values="value")
@@ -168,7 +167,7 @@ def create_expected_data(
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None)])
+@pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["float_series"]), ".*"])
 @pytest.mark.parametrize(
@@ -202,8 +201,14 @@ def test__fetch_metrics_unique(
             (expected["step"] >= (step_min if step_min is not None else -np.inf))
             & (expected["step"] <= (step_max if step_max is not None else np.inf))
         ].reset_index(drop=True)
+        if expected.empty:
+            expected = expected[["experiment", "step"]]
 
     if tail_limit is not None:
         expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
 
-    pd.testing.assert_frame_equal(result, expected)
+    pd.testing.assert_frame_equal(
+        result,
+        expected,
+        check_like=True,
+    )
