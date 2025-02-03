@@ -36,6 +36,8 @@ from neptune_api.models import (
     Error,
 )
 
+from neptune_fetcher.transport import Urllib3Transport
+
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
 
 
@@ -118,5 +120,5 @@ def create_auth_api_client(
         token_refreshing_endpoint=token_refreshing_urls.token_endpoint,
         api_key_exchange_callback=exchange_api_key,
         verify_ssl=NEPTUNE_VERIFY_SSL,
-        httpx_args={"mounts": proxies, "http2": False},
+        httpx_args={"mounts": proxies, "http2": False, 'transport': Urllib3Transport()},
     )
