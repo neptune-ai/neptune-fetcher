@@ -10,7 +10,6 @@ from neptune_fetcher.alpha.filter import (
     Attribute,
     ExperimentFilter,
 )
-from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.infer import (
     infer_attribute_types_in_filter,
@@ -119,14 +118,12 @@ def run_with_attributes_b(client, project):
     return run
 
 
-def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_attributes):
+def test_infer_attribute_types_in_filter_no_filter(client, executor, project, run_with_attributes):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_filter(
-        client, project_identifier, None, util.create_thread_pool_executor(), util.create_thread_pool_executor()
-    )
+    infer_attribute_types_in_filter(client, project_identifier, None, executor, executor)
 
     # then
     # no exception is raised
@@ -161,7 +158,9 @@ def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_att
         ),
     ],
 )
-def test_infer_attribute_types_in_filter_single(client, project, run_with_attributes, filter_before, filter_after):
+def test_infer_attribute_types_in_filter_single(
+    client, executor, project, run_with_attributes, filter_before, filter_after
+):
     # given
     project_identifier = project.project_identifier
 
@@ -170,8 +169,8 @@ def test_infer_attribute_types_in_filter_single(client, project, run_with_attrib
         client,
         project_identifier,
         filter_before,
-        util.create_thread_pool_executor(),
-        util.create_thread_pool_executor(),
+        executor,
+        executor,
     )
 
     # then
@@ -189,7 +188,9 @@ def test_infer_attribute_types_in_filter_single(client, project, run_with_attrib
         (Attribute(f"{PATH}/float-series-value"), Attribute(f"{PATH}/float-series-value", type="float_series")),
     ],
 )
-def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes, attribute_before, attribute_after):
+def infer_attribute_types_in_sort_by_single(
+    client, executor, project, run_with_attributes, attribute_before, attribute_after
+):
     # given
     project_identifier = project.project_identifier
 
@@ -199,8 +200,8 @@ def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes
         project_identifier,
         experiment_filter=None,
         sort_by=attribute_before,
-        executor=util.create_thread_pool_executor(),
-        fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+        executor=executor,
+        fetch_attribute_definitions_executor=executor,
     )
 
     # then
@@ -213,7 +214,7 @@ def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes
         ExperimentFilter.eq(f"{PATH}/does-not-exist", 10),
     ],
 )
-def test_infer_attribute_types_in_filter_missing(client, project, filter_before):
+def test_infer_attribute_types_in_filter_missing(client, executor, project, filter_before):
     # given
     project_identifier = project.project_identifier
 
@@ -223,8 +224,8 @@ def test_infer_attribute_types_in_filter_missing(client, project, filter_before)
             client,
             project_identifier,
             experiment_filter=filter_before,
-            executor=util.create_thread_pool_executor(),
-            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -239,7 +240,7 @@ def test_infer_attribute_types_in_filter_missing(client, project, filter_before)
         (Attribute(f"{PATH}/int-value"), ExperimentFilter.name_in(EXPERIMENT_NAME + "does-not-exist")),
     ],
 )
-def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, experiment_filter):
+def test_infer_attribute_types_in_sort_by_missing(client, executor, project, attribute, experiment_filter):
     # given
     project_identifier = project.project_identifier
 
@@ -250,8 +251,8 @@ def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, ex
             project_identifier,
             experiment_filter=experiment_filter,
             sort_by=attribute,
-            executor=util.create_thread_pool_executor(),
-            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -266,7 +267,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, ex
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types(
-    client, project, run_with_attributes, run_with_attributes_b, filter_before
+    client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
@@ -277,8 +278,8 @@ def test_infer_attribute_types_in_filter_conflicting_types(
             client,
             project_identifier,
             experiment_filter=filter_before,
-            executor=util.create_thread_pool_executor(),
-            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -301,7 +302,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types(
-    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
+    client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
@@ -313,8 +314,8 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
             project_identifier,
             experiment_filter=experiment_filter,
             sort_by=attribute_before,
-            executor=util.create_thread_pool_executor(),
-            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
         )
 
     # then
@@ -347,7 +348,14 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
-    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter, attribute_after
+    client,
+    executor,
+    project,
+    run_with_attributes,
+    run_with_attributes_b,
+    attribute_before,
+    experiment_filter,
+    attribute_after,
 ):
     # given
     project_identifier = project.project_identifier
@@ -358,8 +366,8 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
         project_identifier,
         experiment_filter=experiment_filter,
         sort_by=attribute_before,
-        executor=util.create_thread_pool_executor(),
-        fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+        executor=executor,
+        fetch_attribute_definitions_executor=executor,
     )
 
     # then
