@@ -445,8 +445,7 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
                 f"test_experiment_4_{TEST_DATA_VERSION}",
             ],
         ),
-        # TODO: add tests for datetime once we fix how Attribute handles the value
-        # (Filter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
+        (Filter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
         (
             Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "no-such-string"),
             [],

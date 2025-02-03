@@ -216,6 +216,8 @@ class _AttributeValuePredicate(Filter):
         return f"{self.attribute} {self.operator} {self._right_query()}"
 
     def _right_query(self) -> str:
+        if isinstance(self.value, datetime):
+            return f'"{self.value.astimezone().isoformat()}"'
         value = str(self.value)
         value = value.replace("\\", r"\\").replace('"', r"\"")
         return f'"{value}"'
