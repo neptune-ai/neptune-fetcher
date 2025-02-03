@@ -28,9 +28,9 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import (
     env,
@@ -58,7 +58,7 @@ class ExperimentSysAttrs:
 def fetch_experiment_sys_attrs(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[ExperimentFilter] = None,
+    experiment_filter: Optional[Filter] = None,
     sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,

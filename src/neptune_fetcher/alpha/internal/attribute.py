@@ -41,7 +41,7 @@ from neptune_retrieval_api.models import (
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
-from neptune_fetcher.alpha import filter
+import neptune_fetcher.alpha.filters as filter
 from neptune_fetcher.alpha.internal import (
     env,
     experiment,
@@ -406,7 +406,7 @@ def list_attributes(
     project_id: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    experiment_filter: Optional[filter.ExperimentFilter] = None,
+    experiment_filter: Optional[filter.Filter] = None,
     attribute_filter: Optional[filter.BaseAttributeFilter] = None,
 ) -> Generator[str, None, None]:
     if attribute_filter is None:

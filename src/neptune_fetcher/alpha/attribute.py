@@ -26,10 +26,10 @@ from neptune_fetcher.alpha.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import attribute
 from neptune_fetcher.alpha.internal import infer as _infer
@@ -39,7 +39,7 @@ from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 
 
 def list_attributes(
-    experiments: Optional[Union[str, ExperimentFilter]] = None,
+    experiments: Optional[Union[str, Filter]] = None,
     attributes: Optional[Union[str, AttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
@@ -65,7 +65,7 @@ def list_attributes(
     project_identifier = ProjectIdentifier(valid_context.project)
 
     if isinstance(experiments, str):
-        experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
     if isinstance(attributes, str):
         attributes = AttributeFilter(name_matches_all=[attributes])

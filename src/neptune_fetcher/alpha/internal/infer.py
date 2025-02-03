@@ -23,7 +23,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.alpha import filter as _filter
+import neptune_fetcher.alpha.filters as _filter
 from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
@@ -33,7 +33,7 @@ from neptune_fetcher.alpha.internal import util as _util
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.ExperimentFilter],
+    experiment_filter: Optional[_filter.Filter],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> None:
@@ -65,7 +65,7 @@ def infer_attribute_types_in_filter(
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.ExperimentFilter],
+    experiment_filter: Optional[_filter.Filter],
     sort_by: _filter.Attribute,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
@@ -103,7 +103,7 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.ExperimentFilter],
+    experiment_filter: Optional[_filter.Filter],
     attributes: Iterable[_filter.Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
@@ -175,7 +175,7 @@ def _filter_untyped(
     return [attr for attr in attributes if attr.type is None]
 
 
-def _walk_attributes(experiment_filter: _filter.ExperimentFilter) -> Iterable[_filter.Attribute]:
+def _walk_attributes(experiment_filter: _filter.Filter) -> Iterable[_filter.Attribute]:
     if isinstance(experiment_filter, _filter._AttributeValuePredicate):
         yield experiment_filter.attribute
     elif isinstance(experiment_filter, _filter._AttributePredicate):

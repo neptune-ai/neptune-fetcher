@@ -46,9 +46,9 @@ from neptune_retrieval_api.models import (
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import (
     identifiers,
@@ -92,7 +92,7 @@ def _batch(iterable: List[T], n: int) -> Iterable[List[T]]:
 
 
 def fetch_flat_dataframe_metrics(
-    experiments: ExperimentFilter,
+    experiments: Filter,
     attributes: AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,

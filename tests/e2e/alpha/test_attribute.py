@@ -20,10 +20,10 @@ from neptune_fetcher.alpha import (
     list_attributes,
     set_project,
 )
-from neptune_fetcher.alpha.filter import (
+from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
-    ExperimentFilter,
+    Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
@@ -120,7 +120,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
-                ExperimentFilter.name_in(experiment.name),
+                Filter.name_in(experiment.name),
             )
         )
         if existing.items:
@@ -154,7 +154,7 @@ def _drop_sys_attr_names(attributes: Iterable[str]) -> list[str]:
 
 # Convenience filter to limit searches to experiments belonging to this test,
 # in case the run has some extra experiments.
-EXPERIMENTS_IN_THIS_TEST = ExperimentFilter.name_in(*TEST_DATA.experiment_names)
+EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
 
 
 @pytest.mark.parametrize(
@@ -249,40 +249,39 @@ def test_list_attributes_unknown_name(filter_):
         ),
         (
             rf"{PATH}/unique-value-.*",
-            ExperimentFilter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0"),
+            Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0"),
             {f"{PATH}/unique-value-0"},
         ),
         (
             rf"{PATH}/unique-value-.*",
-            ExperimentFilter.contains_none(
+            Filter.contains_none(
                 Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-0-0", "string-1-0", "string-4-0"]
             ),
             {f"{PATH}/unique-value-{i}" for i in (2, 3, 5)},
         ),
         (
             AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
-            ExperimentFilter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
+            Filter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
             [],
         ),
         (
             AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
-            ExperimentFilter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345")
-            & EXPERIMENTS_IN_THIS_TEST,
+            Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
             [],
         ),
         (
             f"{PATH}/unique-value",
-            ExperimentFilter.lt(Attribute(f"{PATH}/int-value", type="int"), 3) & EXPERIMENTS_IN_THIS_TEST,
+            Filter.lt(Attribute(f"{PATH}/int-value", type="int"), 3) & EXPERIMENTS_IN_THIS_TEST,
             {f"{PATH}/unique-value-{i}" for i in range(3)},
         ),
         (
             f"{PATH}/unique-value",
-            ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
+            Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
             {f"{PATH}/unique-value-{i}" for i in (1, 3, 5)},
         ),
         (
             f"{PATH}/unique-value",
-            ExperimentFilter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
+            Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
             {f"{PATH}/unique-value-{i}" for i in (1, 3, 5)},
         ),
     ],
