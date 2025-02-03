@@ -44,7 +44,10 @@ from neptune_retrieval_api.models import (
     TimeSeries,
     TimeSeriesLineage,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+    ProtoFloatSeriesValuesDTO,
+    ProtoFloatSeriesValuesResponseDTO,
+)
 
 from neptune_fetcher.alpha.filter import (
     AttributeFilter,
@@ -70,6 +73,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 AttributePath = str
 ExperimentName = str
+Length = int
 
 # Tuples are used here to enhance performance
 _FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
@@ -240,6 +244,19 @@ class _SeriesRequest:
     after_step: Optional[float]
 
 
+def _map_proto_to_values(
+    _proto_values: Iterable[ProtoFloatSeriesValuesDTO], _path: _AttributePathInExperiment
+) -> Iterable[_FloatPointValue]:
+    for point in _proto_values:
+        yield (
+            _path.experiment_name,
+            _path.attribute_path,
+            point.timestamp_millis,
+            point.step,
+            point.value,
+        )
+
+
 def _fetch_multiple_series_values(
     client: AuthenticatedClient,
     exp_paths: List[_AttributePathInExperiment],
@@ -248,7 +265,9 @@ def _fetch_multiple_series_values(
     tail_limit: Optional[int] = None,
 ) -> Iterable[_FloatPointValue]:
     results = []
-    partial_results: Dict[_AttributePathInExperiment, List[_FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
+    partial_results: Dict[_AttributePathInExperiment, Tuple[Iterable[_FloatPointValue], Length]] = {
+        exp_path: ([], 0) for exp_path in exp_paths
+    }
     attribute_steps = {exp_path: None for exp_path in exp_paths}
 
     while attribute_steps:
@@ -275,19 +294,23 @@ def _fetch_multiple_series_values(
 
         new_attribute_steps = {}
 
-        for path, series_values in values.items():
-            sorted_list = series_values if not tail_limit else reversed(series_values)
-            partial_results[path].extend(sorted_list)
+        for path, series_values in values:
+            sorted_values = series_values if not tail_limit else reversed(series_values)
+
+            partial_values, length = partial_results[path]
+            _values_chain = chain(partial_values, _map_proto_to_values(sorted_values, path))
+            partial_results[path] = _values_chain, length + len(series_values)
 
             is_page_full = len(series_values) == per_series_point_limit
-            need_more_points = tail_limit is None or len(partial_results[path]) < tail_limit
+            need_more_points = tail_limit is None or (length + len(series_values)) < tail_limit
             if is_page_full and need_more_points:
-                new_attribute_steps[path] = series_values[-1][StepIndex]
+                new_attribute_steps[path] = series_values[-1].step
+
             else:
-                path_result = partial_results.pop(path)
-                if path_result:
+                path_result, length = partial_results.pop(path)
+                if length > 0:
                     results.append(path_result)
-        attribute_steps = new_attribute_steps  # type: ignore
+        attribute_steps = new_attribute_steps
 
     return chain.from_iterable(results)
 
@@ -298,7 +321,7 @@ def _fetch_series_values(
     per_series_point_limit: int,
     step_range: Tuple[Union[float, None], Union[float, None]],
     order: Literal["asc", "desc"],
-) -> Dict[_AttributePathInExperiment, List[_FloatPointValue]]:
+) -> Generator[Tuple[_AttributePathInExperiment, List[ProtoFloatSeriesValuesDTO]], None, None]:
     series_requests_ids = {}
     series_requests = []
 
@@ -341,18 +364,5 @@ def _fetch_series_values(
 
     data = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
-    result = {
-        series_requests_ids[series.requestId]: [
-            (
-                series_requests_ids[series.requestId].experiment_name,
-                series_requests_ids[series.requestId].attribute_path,
-                point.timestamp_millis,
-                point.step,
-                point.value,
-            )
-            for point in series.series.values
-        ]
-        for series in data.series
-    }
-
-    return result
+    for series in data.series:
+        yield series_requests_ids[series.requestId], series.series.values
