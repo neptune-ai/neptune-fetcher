@@ -16,6 +16,7 @@ import concurrent
 import functools as ft
 import itertools as it
 import re
+from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -93,9 +94,10 @@ def fetch_attribute_definitions(
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    executor: Optional[Executor] = None
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size
+        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
     )
 
     seen_items: set[AttributeDefinition] = set()
@@ -111,6 +113,7 @@ def fetch_attribute_definition_aggregations(
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    executor: Optional[Executor] = None
 ) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
     """
     Each attribute definition is yielded once with aggregation=None when it's first encountered.
@@ -119,7 +122,7 @@ def fetch_attribute_definition_aggregations(
     """
 
     pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size
+        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
     )
 
     seen_items: set[AttributeDefinitionAggregation] = set()
@@ -150,8 +153,9 @@ def _fetch_attribute_definitions(
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int,
+    executor: Optional[Executor]
 ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-    with util.create_thread_pool_executor() as executor:
+    with util.use_or_create_thread_pool_executor(executor) as _executor:
 
         def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
             return _fetch_attribute_definitions_single_filter(
@@ -162,17 +166,19 @@ def _fetch_attribute_definitions(
                 batch_size=batch_size,
             )
 
+        print('_fetch_attribute_definitions: start')
         filters = _split_to_tasks(attribute_filter)
         output = util.generate_concurrently(
             items=(_filter for _filter in filters),
-            executor=executor,
+            executor=_executor,
             downstream=lambda _filter: util.generate_concurrently(
                 items=go_fetch_single(_filter),
-                executor=executor,
+                executor=_executor,
                 downstream=lambda page: util.return_value((page, _filter)),
             ),
         )
         yield from util.gather_results(output)
+        print('_fetch_attribute_definitions: end')
 
 
 def _fetch_attribute_definitions_single_filter(
@@ -182,6 +188,7 @@ def _fetch_attribute_definitions_single_filter(
     attribute_filter: filter.AttributeFilter,
     batch_size: int,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
+    print('_fetch_attribute_definitions_single_filter: start')
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),
         "attributeNameFilter": dict(),
@@ -212,6 +219,7 @@ def _fetch_attribute_definitions_single_filter(
 
     # note: attribute_filter.aggregations is intentionally ignored
 
+    print('_fetch_attribute_definitions_single_filter: end')
     return util.fetch_pages(
         client=client,
         fetch_page=_fetch_attribute_definitions_page,
@@ -374,6 +382,7 @@ def _process_attribute_values_page(
             )
             items.append(attr_value)
 
+    print(".", end="", flush=True)
     return util.Page(items=items)
 
 

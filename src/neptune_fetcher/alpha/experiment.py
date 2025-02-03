@@ -136,6 +136,7 @@ def fetch_experiments_table(
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attributes_filter,
+                executor=executor,
             )
 
         def go_fetch_attribute_values(

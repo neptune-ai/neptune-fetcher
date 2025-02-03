@@ -110,6 +110,7 @@ def _fetch_experiment_page(
 def _process_experiment_page(
     data: ProtoLeaderboardEntriesSearchResultDTO,
 ) -> util.Page[ExperimentSysAttrs]:
+    print("_process_experiment_page")
     items = []
     for entry in data.entries:
         attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
