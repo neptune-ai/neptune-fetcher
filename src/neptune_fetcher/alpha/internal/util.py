@@ -22,7 +22,6 @@ from concurrent.futures import (
     Future,
     ThreadPoolExecutor,
 )
-from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -136,24 +135,9 @@ def backoff_retry(
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
 
 
-def create_thread_pool_executor(needed_workers: Optional[int] = None) -> Executor:
+def create_thread_pool_executor() -> Executor:
     max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
-    if needed_workers is not None:
-        max_workers = min(max_workers, needed_workers)
     return ThreadPoolExecutor(max_workers=max_workers)
-
-
-@contextmanager
-def use_or_create_thread_pool_executor(executor: Optional[Executor] = None) -> Generator[Executor, None, None]:
-    """
-    A context manager that yields the provided ThreadPoolExecutor or creates a new one if none is provided.
-    The executor is shut down after the context manager exits if it was created by this function.
-    """
-    if executor is None:
-        with create_thread_pool_executor() as executor:
-            yield executor
-    else:
-        yield executor
 
 
 def generate_concurrently(

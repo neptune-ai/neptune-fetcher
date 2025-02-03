@@ -34,6 +34,7 @@ from neptune_fetcher.alpha.filter import (
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal import infer as _infer
+from neptune_fetcher.alpha.internal import util as _util
 from neptune_fetcher.alpha.internal.api_client import get_client
 from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 
@@ -86,21 +87,30 @@ def fetch_metrics(
         else attributes
     )
 
-    _infer.infer_attribute_types_in_filter(
-        client=client,
-        project_identifier=project_identifier,
-        experiment_filter=experiments,
-    )
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        _infer.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project_identifier,
+            experiment_filter=experiments,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    df = fetch_flat_dataframe_metrics(
-        experiments=experiments,
-        attributes=attributes,
-        client=client,
-        project=project_identifier,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-    )
+        df = fetch_flat_dataframe_metrics(
+            experiments=experiments,
+            attributes=attributes,
+            client=client,
+            project=project_identifier,
+            step_range=step_range,
+            lineage_to_the_root=lineage_to_the_root,
+            tail_limit=tail_limit,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
+
     if df.empty:
         return df
 

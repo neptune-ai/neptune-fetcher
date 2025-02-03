@@ -10,6 +10,7 @@ from neptune_fetcher.alpha.filter import (
     Attribute,
     ExperimentFilter,
 )
+from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.infer import (
     infer_attribute_types_in_filter,
@@ -123,7 +124,9 @@ def test_infer_attribute_types_in_filter_no_filter(client, project, run_with_att
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_filter(client, project_identifier, experiment_filter=None)
+    infer_attribute_types_in_filter(
+        client, project_identifier, None, util.create_thread_pool_executor(), util.create_thread_pool_executor()
+    )
 
     # then
     # no exception is raised
@@ -163,7 +166,13 @@ def test_infer_attribute_types_in_filter_single(client, project, run_with_attrib
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+    infer_attribute_types_in_filter(
+        client,
+        project_identifier,
+        filter_before,
+        util.create_thread_pool_executor(),
+        util.create_thread_pool_executor(),
+    )
 
     # then
     assert filter_before == filter_after
@@ -185,7 +194,14 @@ def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes
     project_identifier = project.project_identifier
 
     #  when
-    infer_attribute_types_in_sort_by(client, project_identifier, experiment_filter=None, sort_by=attribute_before)
+    infer_attribute_types_in_sort_by(
+        client,
+        project_identifier,
+        experiment_filter=None,
+        sort_by=attribute_before,
+        executor=util.create_thread_pool_executor(),
+        fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+    )
 
     # then
     assert attribute_before == attribute_after
@@ -203,7 +219,13 @@ def test_infer_attribute_types_in_filter_missing(client, project, filter_before)
 
     #  when
     with pytest.raises(ValueError) as exc_info:
-        infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+        infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiment_filter=filter_before,
+            executor=util.create_thread_pool_executor(),
+            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+        )
 
     # then
     assert "Failed to infer types for attributes" in str(exc_info.value)
@@ -224,7 +246,12 @@ def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, ex
     #  when
     with pytest.raises(ValueError) as exc_info:
         infer_attribute_types_in_sort_by(
-            client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute
+            client,
+            project_identifier,
+            experiment_filter=experiment_filter,
+            sort_by=attribute,
+            executor=util.create_thread_pool_executor(),
+            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
         )
 
     # then
@@ -246,7 +273,13 @@ def test_infer_attribute_types_in_filter_conflicting_types(
 
     #  when
     with pytest.raises(ValueError) as exc_info:
-        infer_attribute_types_in_filter(client, project_identifier, experiment_filter=filter_before)
+        infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiment_filter=filter_before,
+            executor=util.create_thread_pool_executor(),
+            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
+        )
 
     # then
     assert "Multiple type candidates found for attribute" in str(exc_info.value)
@@ -276,7 +309,12 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     #  when
     with pytest.raises(ValueError) as exc_info:
         infer_attribute_types_in_sort_by(
-            client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute_before
+            client,
+            project_identifier,
+            experiment_filter=experiment_filter,
+            sort_by=attribute_before,
+            executor=util.create_thread_pool_executor(),
+            fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
         )
 
     # then
@@ -316,7 +354,12 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
 
     #  when
     infer_attribute_types_in_sort_by(
-        client, project_identifier, experiment_filter=experiment_filter, sort_by=attribute_before
+        client,
+        project_identifier,
+        experiment_filter=experiment_filter,
+        sort_by=attribute_before,
+        executor=util.create_thread_pool_executor(),
+        fetch_attribute_definitions_executor=util.create_thread_pool_executor(),
     )
 
     # then

@@ -10,6 +10,7 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.alpha.filter import AttributeFilter
+from neptune_fetcher.alpha.internal import util
 from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     AttributeValue,
@@ -114,7 +115,11 @@ def test_fetch_attribute_definitions_single_string(client, project, experiment_i
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -130,7 +135,11 @@ def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_
     attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -146,7 +155,11 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -169,7 +182,11 @@ def test_fetch_attribute_definitions_single_series(client, project, experiment_i
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -194,7 +211,11 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
     attribute_filter = AttributeFilter(name_eq=[name for name, _ in all_attrs])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -211,7 +232,11 @@ def test_fetch_attribute_definitions_no_type_in(client, project, experiment_iden
     attribute_filter = AttributeFilter(name_eq="sys/name")
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -227,7 +252,11 @@ def test_fetch_attribute_definitions_regex_matches_all(client, project, experime
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -252,7 +281,11 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
     )
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -279,6 +312,7 @@ def test_fetch_attribute_definitions_multiple_projects(client, project, experime
             [project_identifier, project_identifier, project_identifier_2],
             [experiment_identifier],
             attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -297,7 +331,11 @@ def test_fetch_attribute_definitions_filter_or(client, project, experiment_ident
     attribute_filter = attribute_filter_1 | attribute_filter_2
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -331,7 +369,11 @@ def test_fetch_attribute_definitions_filter_triple_or(client, project, experimen
     #  when
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -354,7 +396,12 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -378,7 +425,12 @@ def test_fetch_attribute_definitions_paging_executor(client, project, experiment
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -405,7 +457,12 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, project, e
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter, batch_size=1
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+            batch_size=1,
+            executor=util.create_thread_pool_executor(),
         )
     )
 
@@ -427,7 +484,13 @@ def test_fetch_attribute_definitions_experiment_identifier_none(client, project,
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
-        fetch_attribute_definitions(client, [project_identifier], None, attribute_filter=attribute_filter)
+        fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            None,
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
+        )
     )
 
     # then
@@ -441,7 +504,13 @@ def test_fetch_attribute_definitions_experiment_identifier_empty(client, project
     #  when
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
-        fetch_attribute_definitions(client, [project_identifier], [], attribute_filter=attribute_filter)
+        fetch_attribute_definitions(
+            client,
+            [project_identifier],
+            [],
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
+        )
     )
 
     # then
@@ -607,7 +676,11 @@ def test_fetch_attribute_definitions_experiment_large_number_experiment_identifi
     attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions(
-            client, [project_identifier], experiment_identifiers, attribute_filter=attribute_filter
+            client,
+            [project_identifier],
+            experiment_identifiers,
+            attribute_filter=attribute_filter,
+            executor=util.create_thread_pool_executor(),
         )
     )
 

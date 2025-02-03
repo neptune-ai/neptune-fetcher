@@ -92,23 +92,31 @@ def fetch_experiments_table(
     else:
         sort_by_attribute = sort_by
 
-    _infer.infer_attribute_types_in_filter(
-        client=client,
-        project_identifier=project,
-        experiment_filter=experiments_filter,
-    )
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
 
-    _infer.infer_attribute_types_in_sort_by(
-        client=client,
-        project_identifier=project,
-        experiment_filter=experiments_filter,
-        sort_by=sort_by_attribute,
-    )
+        _infer.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project,
+            experiment_filter=experiments_filter,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
-    result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
-    selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
-    with _util.create_thread_pool_executor() as executor:
+        _infer.infer_attribute_types_in_sort_by(
+            client=client,
+            project_identifier=project,
+            experiment_filter=experiments_filter,
+            sort_by=sort_by_attribute,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
+
+        experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
+        result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
+        selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
 
         def go_fetch_experiment_sys_attrs() -> Generator[_util.Page[_experiment.ExperimentSysAttrs], None, None]:
             return _experiment.fetch_experiment_sys_attrs(
@@ -136,6 +144,7 @@ def fetch_experiments_table(
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
                 attribute_filter=attributes_filter,
+                executor=fetch_attribute_definitions_executor,
             )
 
         def go_fetch_attribute_values(
@@ -255,11 +264,18 @@ def list_experiments(
     if isinstance(experiments, str):
         experiments = ExperimentFilter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
-    _infer.infer_attribute_types_in_filter(
-        client=client,
-        project_identifier=project_identifier,
-        experiment_filter=experiments,
-    )
+    with (
+        _util.create_thread_pool_executor() as executor,
+        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        _infer.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project_identifier,
+            experiment_filter=experiments,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        )
 
-    pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
+        pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
+
     return list(exp.sys_name for page in pages for exp in page.items)
