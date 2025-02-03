@@ -327,6 +327,7 @@ def fetch_attribute_values(
             _process_attribute_values_page,
             attribute_definitions_set=attribute_definitions_set,
             project_identifier=project_identifier,
+            experiments=experiments,
         ),
         make_new_page_params=_make_new_attribute_values_page_params,
         params=params,
@@ -351,6 +352,7 @@ def _process_attribute_values_page(
     data: ProtoQueryAttributesResultDTO,
     attribute_definitions_set: set[AttributeDefinition],
     project_identifier: identifiers.ProjectIdentifier,
+    experiments: list[str],
 ) -> util.Page[AttributeValue]:
     items = []
     for entry in data.entries:
@@ -373,6 +375,9 @@ def _process_attribute_values_page(
                 experiment_identifier=experiment_identifier,
             )
             items.append(attr_value)
+
+    total_items = len(attribute_definitions_set) * len(experiments)
+    print(f"_process_attribute_values_page: returning {len(items)} / {total_items} [{len(items) / total_items}] items")
 
     return util.Page(items=items)
 

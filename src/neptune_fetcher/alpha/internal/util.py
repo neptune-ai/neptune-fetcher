@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import concurrent
+import math
 import time
 from concurrent.futures import (
     Executor,
@@ -213,11 +214,14 @@ def split_experiments(
     identifier_num = len(experiment_identifiers)
     batch_num = _ceil_div(identifier_num, identifier_num_limit)
 
+    print(f"split_experiments: start identifier_num={identifier_num}, batch_num={batch_num}")
     if batch_num <= 1:
+        print(f"split_experiments: yield {len(experiment_identifiers)} experiments")
         yield experiment_identifiers
     else:
         batch_size = _ceil_div(identifier_num, batch_num)
         for i in range(0, identifier_num, batch_size):
+            print(f"split_experiments: yield {batch_size} experiments")
             yield experiment_identifiers[i : i + batch_size]
 
 
@@ -231,13 +235,17 @@ def split_experiments_attributes(
     When their item count is multiplied, it is at most `NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE`.
     Use before fetching attribute values.
     """
+    if not experiment_identifiers or not attribute_definitions:
+        return
+
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
     attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
 
-    if not attribute_definitions:
-        return
+    expected_page_num = _ceil_div(len(experiment_identifiers) * len(attribute_definitions), attribute_values_batch_size)
+    acceptable_single_query_page_num = max(1, math.floor(expected_page_num ** (1/3)))
+    final_attribute_values_batch_size = attribute_values_batch_size * acceptable_single_query_page_num
 
-    attribute_batches = _split_attribute_definitions(attribute_definitions)
+    attribute_batches = _split_attribute_definitions(attribute_definitions, final_attribute_values_batch_size)
     max_attribute_batch_size = max(
         sum(_attribute_definition_size(attr) for attr in batch) for batch in attribute_batches
     )
@@ -245,12 +253,14 @@ def split_experiments_attributes(
 
     experiments_batch: list[identifiers.ExperimentIdentifier] = []
     total_batch_size = max_attribute_batch_size
+    print(f"split_experiments_attributes: start experiment_num={len(experiment_identifiers)}, attribute_num={len(attribute_definitions)}, acceptable_single_query_page_num={acceptable_single_query_page_num}, final_attribute_values_batch_size={final_attribute_values_batch_size}")
     for experiment in experiment_identifiers:
         if (
-            len(experiments_batch) * max_attribute_batch_len >= attribute_values_batch_size
+            len(experiments_batch) * max_attribute_batch_len >= final_attribute_values_batch_size
             or total_batch_size + _EXPERIMENT_SIZE > query_size_limit
         ):
             for attribute_batch in attribute_batches:
+                print(f"split_experiments_attributes: yield {len(experiments_batch)} [{len(experiment_identifiers)}] experiments, {len(attribute_batch)} [{len(attribute_definitions)}] attributes")
                 yield experiments_batch, attribute_batch
             experiments_batch = []
             total_batch_size = max_attribute_batch_size
@@ -258,14 +268,14 @@ def split_experiments_attributes(
         total_batch_size += _EXPERIMENT_SIZE
     if experiments_batch:
         for attribute_batch in attribute_batches:
+            print(f"split_experiments_attributes: yield {len(experiments_batch)} [{len(experiment_identifiers)}] experiments, {len(attribute_batch)} [{len(attribute_definitions)}] attributes")
             yield experiments_batch, attribute_batch
 
 
 def _split_attribute_definitions(
-    attribute_definitions: list[attribute.AttributeDefinition],
+    attribute_definitions: list[attribute.AttributeDefinition], attribute_values_batch_size: int
 ) -> list[list[attribute.AttributeDefinition]]:
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get() - _EXPERIMENT_SIZE
-    attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
 
     attribute_batches = []
     current_batch: list[attribute.AttributeDefinition] = []
