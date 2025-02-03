@@ -136,8 +136,10 @@ def backoff_retry(
     raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
 
 
-def create_thread_pool_executor() -> Executor:
+def create_thread_pool_executor(needed_workers: Optional[int] = None) -> Executor:
     max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
+    if needed_workers is not None:
+        max_workers = min(max_workers, needed_workers)
     return ThreadPoolExecutor(max_workers=max_workers)
 
 

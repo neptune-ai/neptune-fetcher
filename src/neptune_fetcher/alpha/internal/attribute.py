@@ -151,28 +151,33 @@ def _fetch_attribute_definitions(
     attribute_filter: filter.BaseAttributeFilter,
     batch_size: int,
 ) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-    with util.create_thread_pool_executor() as executor:
-
-        def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
-            return _fetch_attribute_definitions_single_filter(
-                client=client,
-                project_identifiers=project_identifiers,
-                experiment_identifiers=experiment_identifiers,
-                attribute_filter=_filter,
-                batch_size=batch_size,
-            )
-
-        filters = _split_to_tasks(attribute_filter)
-        output = util.generate_concurrently(
-            items=(_filter for _filter in filters),
-            executor=executor,
-            downstream=lambda _filter: util.generate_concurrently(
-                items=go_fetch_single(_filter),
-                executor=executor,
-                downstream=lambda page: util.return_value((page, _filter)),
-            ),
+    def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
+        return _fetch_attribute_definitions_single_filter(
+            client=client,
+            project_identifiers=project_identifiers,
+            experiment_identifiers=experiment_identifiers,
+            attribute_filter=_filter,
+            batch_size=batch_size,
         )
-        yield from util.gather_results(output)
+
+    filters = _split_to_tasks(attribute_filter)
+
+    if len(filters) == 1:
+        head = filters[0]
+        for page in go_fetch_single(head):
+            yield page, head
+    else:
+        with util.create_thread_pool_executor(needed_workers=len(filters)) as executor:
+            output = util.generate_concurrently(
+                items=(_filter for _filter in filters),
+                executor=executor,
+                downstream=lambda _filter: util.generate_concurrently(
+                    items=go_fetch_single(_filter),
+                    executor=executor,
+                    downstream=lambda _page: util.return_value((_page, _filter)),
+                ),
+            )
+            yield from util.gather_results(output)
 
 
 def _fetch_attribute_definitions_single_filter(
