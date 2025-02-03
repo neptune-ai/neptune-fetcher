@@ -142,19 +142,27 @@ def fetch_flat_dataframe_metrics(
     ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
         _experiments = next(experiment_generator, None)
         _futures = []
+
         if _experiments:
             _futures.append(executor.submit(process_experiments, experiment_generator))
+
         if _experiments and _experiments.items:
-            definitions_generator = fetch_attribute_definitions(
-                client=client,
-                project_identifiers=[project],
-                experiment_identifiers=[
-                    identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
-                ],
-                attribute_filter=attributes,
-                executor=fetch_attribute_definitions_executor,
-            )
-            _futures.append(executor.submit(process_definitions, _experiments.items, definitions_generator))
+            experiment_identifiers = [
+                identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
+            ]
+            sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
+
+            for experiment_identifiers_split in util.split_experiments(experiment_identifiers):
+                sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
+                definitions_generator = fetch_attribute_definitions(
+                    client=client,
+                    project_identifiers=[project],
+                    experiment_identifiers=experiment_identifiers_split,
+                    attribute_filter=attributes,
+                    executor=fetch_attribute_definitions_executor,
+                )
+                _futures.append(executor.submit(process_definitions, sys_attrs_split, definitions_generator))
+
         return _futures, []
 
     futures = {executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))}
