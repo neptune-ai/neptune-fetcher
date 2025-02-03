@@ -1,11 +1,13 @@
 import os
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
 from typing import Generator
 
 import pytest
+import pytz
 
 from neptune_fetcher.alpha.filters import (
     Attribute,
@@ -17,8 +19,11 @@ from neptune_fetcher.alpha.internal.experiment import (
     fetch_experiment_sys_attrs,
 )
 
+SYSTEM_TZ = pytz.timezone(datetime.now(timezone.utc).astimezone().tzname())
+ONE_SECOND = timedelta(seconds=1)
+
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-01-31"
+TEST_DATA_VERSION = "2025-02-03"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-experiment-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-experiment-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
@@ -165,6 +170,48 @@ def test_find_experiments_by_name_not_found(client, project):
         (Filter.exists(Attribute(name=f"{PATH}/str-value", type="string")), True),
         (Filter.exists(Attribute(name=f"{PATH}/str-value", type="int")), False),
         (Filter.exists(Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                DATETIME_VALUE.astimezone(pytz.timezone("CET")),
+            ),
+            True,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                (DATETIME_VALUE + ONE_SECOND).astimezone(pytz.timezone("CET")),
+            ),
+            False,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                DATETIME_VALUE.astimezone(pytz.timezone("EST")),
+            ),
+            True,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                (DATETIME_VALUE + ONE_SECOND).astimezone(pytz.timezone("EST")),
+            ),
+            False,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                DATETIME_VALUE.astimezone(SYSTEM_TZ).replace(tzinfo=None),
+            ),
+            True,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                (DATETIME_VALUE + ONE_SECOND).astimezone(SYSTEM_TZ).replace(tzinfo=None),
+            ),
+            False,
+        ),
     ],
 )
 def test_find_experiments_by_config_values(client, project, run_with_attributes, experiment_filter, found):
