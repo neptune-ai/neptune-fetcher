@@ -19,6 +19,7 @@ from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
+    Callable,
     Generator,
     Iterable,
     List,
@@ -400,52 +401,72 @@ def _make_new_attribute_values_page_params(
     return params
 
 
-def list_attributes(
+def generate_attribute_definitions(
     client: AuthenticatedClient,
-    project_id: identifiers.ProjectIdentifier,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
+    project_identifier: identifiers.ProjectIdentifier,
     experiment_filter: Optional[filter.Filter],
     attribute_filter: filter.BaseAttributeFilter,
-) -> Generator[str, None, None]:
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
+    downstream: Callable[[util.Page[AttributeDefinition]], util.OUT],
+) -> util.OUT:
     if experiment_filter is not None:
-        output = util.generate_concurrently(
+        return util.generate_concurrently(
             items=experiment.fetch_experiment_sys_attrs(
                 client,
-                project_identifier=project_id,
+                project_identifier=project_identifier,
                 experiment_filter=experiment_filter,
             ),
             executor=executor,
             downstream=lambda experiments_page: util.generate_concurrently(
                 items=util.split_experiments(
-                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+                    [identifiers.ExperimentIdentifier(project_identifier, e.sys_id) for e in experiments_page.items]
                 ),
                 executor=executor,
                 downstream=lambda experiment_identifier_split: util.generate_concurrently(
                     items=fetch_attribute_definitions(
                         client,
-                        [project_id],
+                        [project_identifier],
                         experiment_identifier_split,
                         cast(filter.AttributeFilter, attribute_filter),
                         fetch_attribute_definitions_executor,
                     ),
                     executor=executor,
-                    downstream=util.return_value,
+                    downstream=downstream,
                 ),
             ),
         )
     else:
-        output = util.generate_concurrently(
+        return util.generate_concurrently(
             items=fetch_attribute_definitions(
                 client,
-                [project_id],
+                [project_identifier],
                 None,
                 cast(filter.AttributeFilter, attribute_filter),
                 fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=util.return_value,
+            downstream=downstream,
         )
+
+
+def list_attributes(
+    client: AuthenticatedClient,
+    project_identifier: identifiers.ProjectIdentifier,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
+    experiment_filter: Optional[filter.Filter],
+    attribute_filter: filter.BaseAttributeFilter,
+) -> Generator[str, None, None]:
+    output = generate_attribute_definitions(
+        client=client,
+        project_identifier=project_identifier,
+        experiment_filter=experiment_filter,
+        attribute_filter=attribute_filter,
+        executor=executor,
+        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        downstream=util.return_value,
+    )
 
     results: Generator[util.Page[AttributeDefinition], None, None] = util.gather_results(output)
     for page in results:
