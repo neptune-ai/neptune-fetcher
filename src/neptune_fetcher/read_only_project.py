@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__all__ = [
-    "ReadOnlyProject",
-]
+__all__ = ["ReadOnlyProject"]
 
 import collections
 import concurrent.futures
@@ -64,12 +62,14 @@ from neptune_fetcher.util import (
     NeptuneWarning,
     escape_nql_criterion,
     getenv_int,
+    warn_unsupported_value_type,
 )
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ENV_NAME = "NEPTUNE_PROJECT"
-SYS_COLUMNS = ["sys/id", "sys/name", "sys/custom_run_id"]
+SYS_ID = "sys/id"
+SYS_COLUMNS = [SYS_ID, "sys/name", "sys/custom_run_id"]
 
 MAX_CUMULATIVE_LENGTH = 100000
 MAX_QUERY_LENGTH = 250000
@@ -166,9 +166,7 @@ class ReadOnlyProject:
             yield {column: exp.attributes.get(column, None) for column in SYS_COLUMNS}
 
     def fetch_read_only_runs(
-        self,
-        with_ids: Optional[List[str]] = None,
-        custom_ids: Optional[List[str]] = None,
+        self, with_ids: Optional[List[str]] = None, custom_ids: Optional[List[str]] = None, eager_load_fields=True
     ) -> Iterator[ReadOnlyRun]:
         """Lists runs of the project in the form of read-only runs.
 
@@ -177,16 +175,33 @@ class ReadOnlyProject:
         Args:
             with_ids: List of run ids to fetch.
             custom_ids: List of custom run ids to fetch.
+            eager_load_fields: Whether to eagerly load the run fields definitions.
+                If `False`, individual fields are loaded only when accessed. Default is `True`.
         """
-        for run_id in with_ids or []:
-            yield ReadOnlyRun(read_only_project=self, with_id=run_id)
 
-        for custom_id in custom_ids or []:
-            yield ReadOnlyRun(read_only_project=self, custom_id=custom_id)
+        queries = []
+        if with_ids:
+            queries.append(_make_leaderboard_nql(is_run=True, with_ids=with_ids))
+
+        if custom_ids:
+            queries.append(_make_leaderboard_nql(is_run=True, custom_ids=custom_ids))
+
+        for query in queries:
+            runs = list_objects_from_project(
+                backend=self._backend,
+                project_id=self._project_id,
+                query=str(query),
+                object_type="run",
+                columns=[SYS_ID],
+            )
+
+            for run in runs:
+                yield ReadOnlyRun._create(
+                    read_only_project=self, sys_id=run.attributes[SYS_ID], eager_load_fields=eager_load_fields
+                )
 
     def fetch_read_only_experiments(
-        self,
-        names: Optional[List[str]] = None,
+        self, names: Optional[List[str]] = None, eager_load_fields=True
     ) -> Iterator[ReadOnlyRun]:
         """Lists experiments of the project in the form of read-only runs.
 
@@ -194,6 +209,8 @@ class ReadOnlyProject:
 
         Args:
             names: List of experiment names to fetch.
+            eager_load_fields: Whether to eagerly load the run fields definitions.
+                If `False`, individual fields are loaded only when accessed. Default is `True`.
 
         Example:
             ```
@@ -202,8 +219,20 @@ class ReadOnlyProject:
                 ...
             ```
         """
-        for name in names or []:
-            yield ReadOnlyRun(read_only_project=self, experiment_name=name)
+        if names is None or names == []:
+            return
+        query = _make_leaderboard_nql(is_run=False, names=names)
+        experiments = list_objects_from_project(
+            backend=self._backend,
+            project_id=self._project_id,
+            query=str(query),
+            object_type="experiment",
+            columns=[SYS_ID],
+        )
+        for exp in experiments:
+            yield ReadOnlyRun._create(
+                read_only_project=self, sys_id=exp.attributes[SYS_ID], eager_load_fields=eager_load_fields
+            )
 
     def fetch_runs(self) -> "DataFrame":
         """Fetches a table containing identifiers and names of runs in the project.
@@ -595,6 +624,35 @@ class ReadOnlyProject:
             if remaining <= 0 or not next_page_token:
                 break
 
+    def _fetch_sys_id(
+        self, sys_id: Optional[str] = None, custom_id: Optional[str] = None, experiment_name: Optional[str] = None
+    ) -> Optional[str]:
+        if sys_id is not None:
+            query = _make_leaderboard_nql(with_ids=[sys_id], trashed=False)
+            object_type = "run"
+
+        elif custom_id is not None:
+            query = _make_leaderboard_nql(custom_ids=[custom_id], trashed=False)
+            object_type = "run"
+
+        elif experiment_name is not None:
+            query = _make_leaderboard_nql(names=[experiment_name], trashed=False)
+            object_type = "experiment"
+
+        container = list(
+            list_objects_from_project(
+                backend=self._backend,
+                project_id=self._project_id,
+                limit=1,
+                columns=[SYS_ID],
+                query=str(query),
+                object_type=object_type,
+            )
+        )
+        if len(container) == 0:
+            return None
+        return container[0].attributes[SYS_ID]
+
 
 def _extract_value(attr: ProtoAttributeDTO) -> Any:
     if attr.type == "string":
@@ -614,7 +672,8 @@ def _extract_value(attr: ProtoAttributeDTO) -> Any:
     elif attr.type == "experimentState":
         return "experiment_state"
     else:
-        raise ValueError(f"Unsupported attribute type: {attr.type}, please update the client")
+        warn_unsupported_value_type(attr.type)
+        return None
 
 
 def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> List[str]:
@@ -742,7 +801,7 @@ def _stream_runs(
 
 
 def _find_sort_type(backend, project_id, sort_by):
-    if sort_by == "sys/id":
+    if sort_by == SYS_ID:
         return "string"
     elif sort_by == "sys/creation_time":
         return "datetime"
@@ -789,6 +848,7 @@ def _make_leaderboard_nql(
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
     names_regex: Optional[str] = None,
+    names: Optional[List[str]] = None,
     names_exclude_regex: Optional[Union[str, Iterable[str]]] = None,
     custom_id_regex: Optional[Union[str, Iterable[str]]] = None,
     is_run: bool = True,
@@ -833,6 +893,26 @@ def _make_leaderboard_nql(
                 ],
                 aggregator=NQLAggregator.AND,
             )
+
+    if names is not None:
+        query = NQLQueryAggregate(
+            items=[
+                query,
+                NQLQueryAggregate(
+                    items=[
+                        NQLQueryAttribute(
+                            name="sys/name",
+                            type=NQLAttributeType.STRING,
+                            operator=NQLAttributeOperator.EQUALS,
+                            value=escape_nql_criterion(name),
+                        )
+                        for name in names
+                    ],
+                    aggregator=NQLAggregator.OR,
+                ),
+            ],
+            aggregator=NQLAggregator.AND,
+        )
 
     if isinstance(names_exclude_regex, str):
         names_exclude_regex = [names_exclude_regex]
@@ -903,7 +983,7 @@ def list_objects_from_project(
     columns: Iterable[str] = None,
     query: str = "(`sys/trashed`:bool = false)",
     limit: Optional[int] = None,
-    sort_by: Tuple[str, str, Literal["ascending", "descending"]] = ("sys/id", "string", "descending"),
+    sort_by: Tuple[str, str, Literal["ascending", "descending"]] = (SYS_ID, "string", "descending"),
 ) -> Generator[_AttributeContainer, None, None]:
     offset = 0
     batch_size = 10_000

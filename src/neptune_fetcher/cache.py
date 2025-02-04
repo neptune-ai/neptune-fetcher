@@ -47,8 +47,12 @@ from neptune_fetcher.fields import (
     ObjectState,
     String,
     StringSet,
+    Unsupported,
 )
-from neptune_fetcher.util import getenv_int
+from neptune_fetcher.util import (
+    getenv_int,
+    warn_unsupported_value_type,
+)
 
 # Maximum number of paths to fetch in a single request for fields definitions.
 MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
@@ -158,4 +162,5 @@ def _extract_value(attr: ProtoAttributeDTO) -> Union[Field, FloatSeries]:
     elif attr.type == "experimentState":
         return ObjectState(FieldType.OBJECT_STATE, "experiment_state")
     else:
-        raise ValueError(f"Unsupported attribute type: {attr.type}, please update the neptune-fetcher")
+        warn_unsupported_value_type(attr.type)
+        return Unsupported(FieldType.UNSUPPORTED, None)
