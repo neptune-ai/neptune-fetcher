@@ -66,6 +66,7 @@ def fetch_experiments_table(
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
     `context` - a Context object to be used; primarily useful for switching projects
+
     Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
     aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
@@ -255,6 +256,7 @@ def list_experiments(
     `experiments` - a filter specifying which experiments to include
          - a regex that experiment name must match, or
          - a Filter object
+    `context` - a Context object to be used; primarily useful for switching projects
     """
 
     validated_context = _context.validate_context(context or _context.get_context())
