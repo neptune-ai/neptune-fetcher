@@ -23,6 +23,7 @@ from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     AttributeValue,
 )
+from neptune_fetcher.alpha.internal.exception import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal.identifiers import SysName
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
@@ -48,7 +49,7 @@ def convert_experiment_table_to_dataframe(
         for value in values:
             column_name = get_column_name(value)
             if column_name in row:
-                raise ValueError(f"Duplicate column name: {column_name}")
+                raise ConflictingAttributeTypes([value.attribute_definition.name])
             if value.attribute_definition.type == "float_series":
                 float_series_aggregations: FloatSeriesAggregations = value.value
                 selected_subset = selected_aggregations.get(value.attribute_definition, set())

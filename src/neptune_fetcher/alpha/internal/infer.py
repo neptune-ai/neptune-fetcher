@@ -23,17 +23,18 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-import neptune_fetcher.alpha.filters as _filter
+import neptune_fetcher.alpha.filters as _filters
 from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import util as _util
+from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
 
 
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.Filter],
+    experiment_filter: Optional[_filters.Filter],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> None:
@@ -59,14 +60,14 @@ def infer_attribute_types_in_filter(
     )
     attributes = _filter_untyped(attributes)
     if attributes:
-        raise ValueError(f"Failed to infer types for attributes: {', '.join(str(a) for a in attributes)}")
+        raise AttributeTypeInferenceError(attribute_names=[a.name for a in attributes])
 
 
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.Filter],
-    sort_by: _filter.Attribute,
+    experiment_filter: Optional[_filters.Filter],
+    sort_by: _filters.Attribute,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> None:
@@ -89,11 +90,11 @@ def infer_attribute_types_in_sort_by(
     )
     attributes = _filter_untyped(attributes)
     if attributes:
-        raise ValueError(f"Failed to infer types for attributes: {', '.join(str(a) for a in attributes)}")
+        raise AttributeTypeInferenceError(attribute_names=[a.name for a in attributes])
 
 
 def _infer_attribute_types_from_attribute(
-    attributes: Iterable[_filter.Attribute],
+    attributes: Iterable[_filters.Attribute],
 ) -> None:
     for attribute in attributes:
         if attribute.aggregation:
@@ -103,12 +104,12 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: _identifiers.ProjectIdentifier,
-    experiment_filter: Optional[_filter.Filter],
-    attributes: Iterable[_filter.Attribute],
+    experiment_filter: Optional[_filters.Filter],
+    attributes: Iterable[_filters.Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> None:
-    attribute_filter_by_name = _filter.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
+    attribute_filter_by_name = _filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
     if experiment_filter is None:
         output = _util.generate_concurrently(
@@ -162,7 +163,7 @@ def _infer_attribute_types_from_api(
 
     for name, types in attribute_name_to_definition.items():
         if len(types) > 1:
-            raise ValueError(f"Multiple type candidates found for attribute name '{name}': {', '.join(types)}")
+            raise AttributeTypeInferenceError(attribute_names=[name])
 
     for attribute in attributes:
         if attribute.name in attribute_name_to_definition:
@@ -170,20 +171,20 @@ def _infer_attribute_types_from_api(
 
 
 def _filter_untyped(
-    attributes: Iterable[_filter.Attribute],
-) -> list[_filter.Attribute]:
+    attributes: Iterable[_filters.Attribute],
+) -> list[_filters.Attribute]:
     return [attr for attr in attributes if attr.type is None]
 
 
-def _walk_attributes(experiment_filter: _filter.Filter) -> Iterable[_filter.Attribute]:
-    if isinstance(experiment_filter, _filter._AttributeValuePredicate):
+def _walk_attributes(experiment_filter: _filters.Filter) -> Iterable[_filters.Attribute]:
+    if isinstance(experiment_filter, _filters._AttributeValuePredicate):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, _filter._AttributePredicate):
+    elif isinstance(experiment_filter, _filters._AttributePredicate):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, _filter._AssociativeOperator):
+    elif isinstance(experiment_filter, _filters._AssociativeOperator):
         for child in experiment_filter.filters:
             yield from _walk_attributes(child)
-    elif isinstance(experiment_filter, _filter._PrefixOperator):
+    elif isinstance(experiment_filter, _filters._PrefixOperator):
         yield from _walk_attributes(experiment_filter.filter_)
     else:
-        raise ValueError(f"Unexpected filter type: {type(experiment_filter)}")
+        raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")

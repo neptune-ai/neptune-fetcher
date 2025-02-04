@@ -10,6 +10,7 @@ from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
+from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.infer import (
     infer_attribute_types_in_filter,
@@ -219,7 +220,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError) as exc_info:
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -227,10 +228,6 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Failed to infer types for attributes" in str(exc_info.value)
-
 
 @pytest.mark.parametrize(
     "attribute,experiment_filter",
@@ -245,7 +242,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError) as exc_info:
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -254,10 +251,6 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Failed to infer types for attributes" in str(exc_info.value)
-
 
 @pytest.mark.parametrize(
     "filter_before",
@@ -301,7 +294,7 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError) as exc_info:
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -309,10 +302,6 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Multiple type candidates found for attribute" in str(exc_info.value)
-
 
 @pytest.mark.parametrize(
     "attribute_before,experiment_filter",
@@ -365,7 +354,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError) as exc_info:
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -374,10 +363,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Multiple type candidates found for attribute" in str(exc_info.value)
-
 
 @pytest.mark.parametrize(
     "attribute_before,experiment_filter,attribute_after",
