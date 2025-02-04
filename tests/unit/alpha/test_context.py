@@ -23,6 +23,7 @@ from neptune_fetcher.alpha.context import (
     validate_context,
 )
 from neptune_fetcher.alpha.internal import env
+from neptune_fetcher.alpha.internal.exception import NeptuneProjectNotProvided, NeptuneApiTokenNotProvided
 
 
 @fixture
@@ -124,14 +125,11 @@ def test_context_from_envs(monkeypatch):
 
 
 def test_validate_context():
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NeptuneProjectNotProvided) as exc:
         validate_context(Context())
-    exc.match("Unable to determine Neptune")
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NeptuneApiTokenNotProvided) as exc:
         validate_context(Context(project="foo"))
-    exc.match("Unable to determine Neptune API token")
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(NeptuneProjectNotProvided) as exc:
         validate_context(Context(api_token="bar"))
-    exc.match("Unable to determine Neptune project name")
