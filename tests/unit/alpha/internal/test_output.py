@@ -7,6 +7,7 @@ from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     AttributeValue,
 )
+from neptune_fetcher.alpha.internal.exception import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
@@ -127,10 +128,10 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
     # given
     experiment_data = {
         identifiers.SysName("exp1"): [
-            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "int"), 42, EXPERIMENT_IDENTIFIER),
         ],
         identifiers.SysName("exp2"): [
-            AttributeValue(AttributeDefinition("attr1", "float"), 0.43, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "float"), 0.43, EXPERIMENT_IDENTIFIER),
         ],
     }
 
@@ -142,8 +143,8 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
     # then
     expected_data = pd.DataFrame.from_dict(
         {
-            ("attr1:int", ""): {"exp1": 42.0, "exp2": float("nan")},
-            ("attr1:float", ""): {"exp1": float("nan"), "exp2": 0.43},
+            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
+            ("attr1/a:b:c:float", ""): {"exp1": float("nan"), "exp2": 0.43},
         }
     )
     expected_data.index.name = "experiment"
@@ -155,18 +156,18 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_without_suffix(
     # given
     experiment_data = {
         identifiers.SysName("exp1"): [
-            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "int"), 42, EXPERIMENT_IDENTIFIER),
         ],
         identifiers.SysName("exp2"): [
-            AttributeValue(AttributeDefinition("attr1", "float"), 0.43, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "float"), 0.43, EXPERIMENT_IDENTIFIER),
         ],
     }
 
     # when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ConflictingAttributeTypes) as exc_info:
         convert_experiment_table_to_dataframe(
             experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
         )
 
     # then
-    assert str(exc_info.value) == "Duplicate attribute names with conflicting types: attr1 (float, int)"
+    assert "attr1/a:b:c" in str(exc_info.value)

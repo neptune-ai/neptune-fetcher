@@ -66,14 +66,15 @@ def convert_experiment_table_to_dataframe(
                 result[agg_name] = getattr(float_series_aggregations, agg_name)
         return result
 
-    def reduce_index_column(df: pd.DataFrame) -> pd.DataFrame:
+    def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:
         if type_suffix_in_column_names:
             return df
 
         # Transform the column by removing the type
         original_columns = df.columns
         df.columns = [
-            (col[0].split(":")[0], col[1]) if isinstance(col, tuple) else col.split(":")[0] for col in df.columns
+            (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
+            for col in df.columns
         ]
 
         # Check for duplicate names
@@ -86,12 +87,9 @@ def convert_experiment_table_to_dataframe(
                     continue
 
                 if new_col in duplicated_names_set:
-                    conflicting_types.setdefault(new_col[0], set()).add(original_col[0].split(":")[1])
+                    conflicting_types.setdefault(new_col[0], set()).add(original_col[0].rsplit(":", 1)[1])
 
-            conflict_reason = ", ".join(
-                f"{name} ({', '.join(sorted(types))})" for name, types in conflicting_types.items()
-            )
-            raise ValueError(f"Duplicate attribute names with conflicting types: {conflict_reason}")
+            raise ConflictingAttributeTypes(conflicting_types.keys())  # TODO: add conflicting types to the exception
 
         return df
 
@@ -102,7 +100,7 @@ def convert_experiment_table_to_dataframe(
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
-    dataframe = reduce_index_column(dataframe)
+    dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
     dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
 
