@@ -263,10 +263,38 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
     "filter_before",
     [
         Filter.eq(f"{PATH}/conflicting-type-int-str-value", 10),
-        Filter.eq(f"{PATH}/conflicting-type-int-float-value", 0.5),
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types(
+    client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
+):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    with pytest.raises(ValueError) as exc_info:
+        infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            experiment_filter=filter_before,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
+        )
+
+    # then
+    assert "Multiple type candidates found for attribute" in str(exc_info.value)
+
+
+@pytest.mark.skip(
+    reason="Backend inconsistently skips one of the two records (int/float). Merge with the test above when fixed"
+)
+@pytest.mark.parametrize(
+    "filter_before",
+    [
+        Filter.eq(f"{PATH}/conflicting-type-int-float-value", 0.5),
+    ],
+)
+def test_infer_attribute_types_in_filter_conflicting_types_todo(
     client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
@@ -290,18 +318,47 @@ def test_infer_attribute_types_in_filter_conflicting_types(
     "attribute_before,experiment_filter",
     [
         (Attribute(f"{PATH}/conflicting-type-int-str-value"), None),
-        (Attribute(f"{PATH}/conflicting-type-int-float-value"), None),
         (
             Attribute(f"{PATH}/conflicting-type-int-str-value"),
             Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
         ),
+    ],
+)
+def test_infer_attribute_types_in_sort_by_conflicting_types(
+    client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
+):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    with pytest.raises(ValueError) as exc_info:
+        infer_attribute_types_in_sort_by(
+            client,
+            project_identifier,
+            experiment_filter=experiment_filter,
+            sort_by=attribute_before,
+            executor=executor,
+            fetch_attribute_definitions_executor=executor,
+        )
+
+    # then
+    assert "Multiple type candidates found for attribute" in str(exc_info.value)
+
+
+@pytest.mark.skip(
+    reason="Backend inconsistently skips one of the two records (int/float). Merge with the test above when fixed"
+)
+@pytest.mark.parametrize(
+    "attribute_before,experiment_filter",
+    [
+        (Attribute(f"{PATH}/conflicting-type-int-float-value"), None),
         (
             Attribute(f"{PATH}/conflicting-type-int-float-value"),
             Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
         ),
     ],
 )
-def test_infer_attribute_types_in_sort_by_conflicting_types(
+def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
     client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given

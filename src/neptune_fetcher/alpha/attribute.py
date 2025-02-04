@@ -31,11 +31,11 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import attribute
+from neptune_fetcher.alpha.internal import api_client as _api_client
+from neptune_fetcher.alpha.internal import attribute as _attribute
+from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import infer as _infer
 from neptune_fetcher.alpha.internal import util as _util
-from neptune_fetcher.alpha.internal.api_client import get_client
-from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 
 
 def list_attributes(
@@ -59,15 +59,16 @@ def list_attributes(
     """
 
     valid_context = validate_context(context or get_context())
-    client = get_client(valid_context)
-
+    client = _api_client.get_client(valid_context)
     assert valid_context.project is not None  # mypy TODO: remove at some point
-    project_identifier = ProjectIdentifier(valid_context.project)
+    project_identifier = _identifiers.ProjectIdentifier(valid_context.project)
 
     if isinstance(experiments, str):
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
-    if isinstance(attributes, str):
+    if attributes is None:
+        attributes = AttributeFilter()
+    elif isinstance(attributes, str):
         attributes = AttributeFilter(name_matches_all=[attributes])
 
     with (
@@ -82,7 +83,7 @@ def list_attributes(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-        result = attribute.list_attributes(
+        result = _attribute.list_attributes(
             client,
             project_identifier,
             experiment_filter=experiments,
