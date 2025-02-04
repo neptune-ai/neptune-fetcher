@@ -267,7 +267,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError):
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -275,9 +275,6 @@ def test_infer_attribute_types_in_filter_conflicting_types(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Multiple type candidates found for attribute" in str(exc_info.value)
 
 
 @pytest.mark.skip(
@@ -323,7 +320,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(AttributeTypeInferenceError):
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -332,9 +329,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
-
-    # then
-    assert "Multiple type candidates found for attribute" in str(exc_info.value)
 
 
 @pytest.mark.skip(
