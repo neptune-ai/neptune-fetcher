@@ -25,7 +25,6 @@ from typing import (
     Literal,
     Optional,
     Union,
-    cast,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -403,10 +402,10 @@ def _make_new_attribute_values_page_params(
 def list_attributes(
     client: AuthenticatedClient,
     project_id: identifiers.ProjectIdentifier,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     experiment_filter: Optional[filter.Filter],
     attribute_filter: filter.BaseAttributeFilter,
+    executor: Executor,
+    fetch_attribute_definitions_executor: Executor,
 ) -> Generator[str, None, None]:
     if experiment_filter is not None:
         output = util.generate_concurrently(
@@ -426,7 +425,7 @@ def list_attributes(
                         client,
                         [project_id],
                         experiment_identifier_split,
-                        cast(filter.AttributeFilter, attribute_filter),
+                        attribute_filter,
                         fetch_attribute_definitions_executor,
                     ),
                     executor=executor,
@@ -440,7 +439,7 @@ def list_attributes(
                 client,
                 [project_id],
                 None,
-                cast(filter.AttributeFilter, attribute_filter),
+                attribute_filter,
                 fetch_attribute_definitions_executor,
             ),
             executor=executor,
