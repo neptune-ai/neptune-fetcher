@@ -54,6 +54,7 @@ def list_attributes(
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
             not supported in this function.
+    `context` - a Context object to be used; primarily useful for switching projects
 
     Returns a list of unique attribute names in experiments matching the filter.
     """
