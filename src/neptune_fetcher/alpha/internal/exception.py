@@ -104,7 +104,7 @@ class ConflictingAttributeTypes(NeptuneError):
             """
 {h1}ConflictingAttributeTypes: Multiple types detected for attributes [{attribute_names}]{end}
 
-Use {python}type_suffix_in_column_names=True{end} to will append the type to the column name,
+Use {python}type_suffix_in_column_names=True{end} to append the type to the column name,
 and present each column separately.
 
 Alternatively, specify the attribute type explicitly using {python}AttributeFilter(..., type_in=[...]){end}.
