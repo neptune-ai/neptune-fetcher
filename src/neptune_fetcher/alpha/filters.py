@@ -74,8 +74,8 @@ class Attribute:
     type: Optional[Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set"]] = None
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "Aggregation")
-        _validate_allowed_value(self.type, types.ALL_TYPES, "Type")  # type: ignore
+        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
 
     def to_query(self) -> str:
         query = f"`{self.name}`"

@@ -22,14 +22,14 @@ def test_attribute_invalid_aggregation():
     # Test invalid aggregation values
     with pytest.raises(ValueError) as exc_info:
         Attribute(name="test", aggregation="invalid_agg")
-    assert f"Aggregation must be one of: {sorted(types.ALL_AGGREGATIONS)}" in str(exc_info.value)
+    assert f"aggregation must be one of: {sorted(types.ALL_AGGREGATIONS)}" in str(exc_info.value)
 
 
 def test_attribute_invalid_type():
     # Test invalid type values
     with pytest.raises(ValueError) as exc_info:
         Attribute(name="test", type="invalid_type")
-    assert f"Type must be one of: {sorted(types.ALL_TYPES)}" in str(exc_info.value)
+    assert f"type must be one of: {sorted(types.ALL_TYPES)}" in str(exc_info.value)
 
 
 @pytest.mark.parametrize("aggregation", types.ALL_AGGREGATIONS)
