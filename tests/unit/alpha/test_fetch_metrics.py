@@ -7,6 +7,9 @@ import pytest
 from neptune_fetcher.alpha.fetch_metrics import (
     _transform_with_absolute_timestamp,
     _transform_without_timestamp,
+    _validate_include_timestamp,
+    _validate_step_range,
+    _validate_tail_limit,
 )
 
 
@@ -137,3 +140,68 @@ def test_transform_empty_dataframe_with_timestamp(type_suffix_in_column_names: b
     )
     expected_df.columns.names = None, None
     pd.testing.assert_frame_equal(transformed_df, expected_df, check_index_type=False, check_column_type=False)
+
+
+def test_validate_step_range():
+    # Valid cases
+    _validate_step_range((None, None))
+    _validate_step_range((0, None))
+    _validate_step_range((None, 10))
+    _validate_step_range((0, 10))
+    _validate_step_range((0.5, 10.5))
+    _validate_step_range((0, 0))  # equal values are allowed
+
+
+def test_validate_step_range_invalid():
+    # Invalid types
+    with pytest.raises(ValueError, match="must be a tuple of two values"):
+        _validate_step_range([None, None])
+
+    with pytest.raises(ValueError, match="must be a tuple of two values"):
+        _validate_step_range((None,))
+
+    # Invalid value types
+    with pytest.raises(ValueError, match="start must be None or a number"):
+        _validate_step_range(("0", None))
+
+    with pytest.raises(ValueError, match="end must be None or a number"):
+        _validate_step_range((None, "10"))
+
+    # Invalid range
+    with pytest.raises(ValueError, match="start must be less than or equal to end"):
+        _validate_step_range((10, 0))
+
+
+def test_validate_tail_limit():
+    # Valid cases
+    _validate_tail_limit(None)
+    _validate_tail_limit(1)
+    _validate_tail_limit(100)
+
+    # Invalid cases
+    with pytest.raises(ValueError, match="must be None or an integer"):
+        _validate_tail_limit(1.5)
+
+    with pytest.raises(ValueError, match="must be None or an integer"):
+        _validate_tail_limit("1")
+
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        _validate_tail_limit(0)
+
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        _validate_tail_limit(-1)
+
+
+def test_validate_include_timestamp():
+    # Valid cases
+    _validate_include_timestamp(None)
+    _validate_include_timestamp("absolute")
+
+
+def test_validate_include_timestamp_invalid():
+    # Invalid cases
+    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
+        _validate_include_timestamp("invalid")
+
+    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
+        _validate_include_timestamp("relative")

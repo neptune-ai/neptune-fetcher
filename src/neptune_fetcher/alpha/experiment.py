@@ -71,6 +71,8 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
+    _validate_limit(limit)
+    _validate_sort_direction(sort_direction)
     valid_context = _context.validate_context(context or _context.get_context())
     client = _api_client.get_client(valid_context)
     project = _identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
@@ -277,3 +279,18 @@ def list_experiments(
         pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
 
         return list(exp.sys_name for page in pages for exp in page.items)
+
+
+def _validate_limit(limit: Optional[int]) -> None:
+    """Validate that limit is either None or a positive integer."""
+    if limit is not None:
+        if not isinstance(limit, int):
+            raise ValueError("limit must be None or an integer")
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
+
+def _validate_sort_direction(sort_direction: str) -> None:
+    """Validate that sort_direction is either 'asc' or 'desc'."""
+    if sort_direction not in ("asc", "desc"):
+        raise ValueError("sort_direction must be either 'asc' or 'desc'")
