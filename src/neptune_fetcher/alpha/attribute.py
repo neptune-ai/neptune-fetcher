@@ -76,16 +76,16 @@ def list_attributes(
         _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
         _infer.infer_attribute_types_in_filter(
-            client,
-            project_identifier,
-            experiments,
+            client=client,
+            project_identifier=project_identifier,
+            experiment_filter=experiments,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
         result = _attribute.list_attributes(
-            client,
-            project_identifier,
+            client=client,
+            project_identifier=project_identifier,
             experiment_filter=experiments,
             attribute_filter=attributes,
             executor=executor,

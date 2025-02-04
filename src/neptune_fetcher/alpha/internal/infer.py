@@ -25,7 +25,6 @@ from neptune_api.client import AuthenticatedClient
 
 import neptune_fetcher.alpha.filters as _filters
 from neptune_fetcher.alpha.internal import attribute as _attribute
-from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import util as _util
 from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
@@ -111,47 +110,16 @@ def _infer_attribute_types_from_api(
 ) -> None:
     attribute_filter_by_name = _filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    if experiment_filter is None:
-        output = _util.generate_concurrently(
-            _attribute.fetch_attribute_definitions(
-                client=client,
-                project_identifiers=[project_identifier],
-                experiment_identifiers=None,
-                attribute_filter=attribute_filter_by_name,
-                executor=fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=_util.return_value,
-        )
-    else:
-        output = _util.generate_concurrently(
-            items=_experiment.fetch_experiment_sys_attrs(
-                client=client,
-                project_identifier=project_identifier,
-                experiment_filter=experiment_filter,
-            ),
-            executor=executor,
-            downstream=lambda experiment_page: _util.generate_concurrently(
-                items=_util.split_experiments(
-                    [
-                        _identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
-                        for experiment in experiment_page.items
-                    ]
-                ),
-                executor=executor,
-                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
-                    _attribute.fetch_attribute_definitions(
-                        client=client,
-                        project_identifiers=[project_identifier],
-                        experiment_identifiers=experiment_identifiers_split,
-                        attribute_filter=attribute_filter_by_name,
-                        executor=fetch_attribute_definitions_executor,
-                    ),
-                    executor=executor,
-                    downstream=_util.return_value,
-                ),
-            ),
-        )
+    output = _attribute.generate_attribute_definitions(
+        client=client,
+        project_identifier=project_identifier,
+        experiment_filter=experiment_filter,
+        attribute_filter=attribute_filter_by_name,
+        executor=executor,
+        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        downstream=_util.return_value,
+    )
+
     attribute_definition_pages: Generator[
         _util.Page[_attribute.AttributeDefinition], None, None
     ] = _util.gather_results(output)
