@@ -33,7 +33,10 @@ __all__ = (
     "validate_context",
 )
 
-from neptune_fetcher.alpha.internal.exception import NeptuneProjectNotProvided, NeptuneApiTokenNotProvided
+from neptune_fetcher.alpha.internal.exception import (
+    NeptuneApiTokenNotProvided,
+    NeptuneProjectNotProvided,
+)
 
 
 @dataclass(frozen=True)

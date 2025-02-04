@@ -16,6 +16,7 @@
 
 __all__ = [
     "Context",
+    "get_context",
     "set_api_token",
     "set_context",
     "set_project",
@@ -23,9 +24,10 @@ __all__ = [
     "list_attributes",
     "fetch_experiments_table",
     "fetch_metrics",
+    "filters",
 ]
 
-import neptune_fetcher.alpha.filters
+import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.attribute import list_attributes
 from neptune_fetcher.alpha.context import (
     Context,
@@ -34,6 +36,7 @@ from neptune_fetcher.alpha.context import (
     set_context,
     set_project,
 )
+
 from .experiment import (
     fetch_experiments_table,
     list_experiments,

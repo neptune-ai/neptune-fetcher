@@ -47,7 +47,6 @@ from neptune_fetcher.alpha.internal import (
     types,
     util,
 )
-
 from neptune_fetcher.alpha.internal.types import (
     extract_value,
     map_attribute_type_backend_to_python,

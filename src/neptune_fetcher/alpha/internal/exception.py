@@ -16,46 +16,60 @@
 
 import platform
 import warnings
-from typing import Iterable
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+)
 
 import neptune_fetcher.alpha.internal.env as env
 
 
 class NeptuneError(Exception):
-    def __init__(self, message: str, **kwargs):
+    def __init__(self, message: str, **kwargs: Any) -> None:
         super().__init__(message.format(**kwargs, **_styles))
+
 
 class NeptuneWarning(Warning):
-    def __init__(self, message: str,  **kwargs):
+    def __init__(self, message: str, **kwargs: Any) -> None:
         super().__init__(message.format(**kwargs, **_styles))
 
+
 class NeptuneUserError(NeptuneError):
-    def __init__(self, message: str, **kwargs):
+    def __init__(self, message: str, **kwargs: Any) -> None:
         super().__init__(message, **kwargs)
 
+
 class NeptuneProjectNotProvided(NeptuneUserError):
-    def __init__(self):
-        super().__init__("""
+    def __init__(self) -> None:
+        super().__init__(
+            """
 {h1}NeptuneProjectNotProvided: The project name was not provided.{end}
 
 Make sure to specify the project name with `set_project()` function,
 by providing the `context` argument with `project` and `api_token` set to the function call,
 or with the `NEPTUNE_PROJECT` environment variable.
-""")
+"""
+        )
+
 
 class NeptuneApiTokenNotProvided(NeptuneUserError):
-    def __init__(self):
-        super().__init__("""
+    def __init__(self) -> None:
+        super().__init__(
+            """
 {h1}NeptuneApiTokenNotProvided: The Neptune API token was not provided.{end}
 
 Make sure to specify the API token with `set_api_token()` function,
 by providing the `context` argument with `project` and `api_token` set to the function call,
 or with the `NEPTUNE_API_TOKEN` environment variable.
-""")
+"""
+        )
+
 
 class AttributeTypeInferenceError(NeptuneError):
-    def __init__(self, attribute_names: Iterable[str]):
-        super().__init__("""
+    def __init__(self, attribute_names: Iterable[str]) -> None:
+        super().__init__(
+            """
 {h1}AttributeTypeInferenceError: Failed to infer types for attributes [{attribute_names}]{end}
 
 The attribute types could not be determined. More than one attribute type fits the passed arguments.
@@ -67,29 +81,36 @@ In order to resolve this, specify the attribute type explicitly:
         sort_by=Attribute("config/batch_size", type="int"),
         ...
     )
-    
+
     fetch_metrics(
         experiments=Filter.eq(Attribute("config/batch_size", type="int"), 64),
         ...
     )
-    
+
     list_attributes(
         experiments=Filter.eq(Attribute("config/batch_size", type="int"), 64),
         ...
     )
     {end}
-""", attribute_names=', '.join(attribute_names))
+""",
+            attribute_names=", ".join(attribute_names),
+        )
+
 
 class ConflictingAttributeTypes(NeptuneError):
-    def __init__(self, attribute_names: Iterable[str]):
-        super().__init__("""
+    def __init__(self, attribute_names: Iterable[str]) -> None:
+        super().__init__(
+            """
 {h1}ConflictingAttributeTypes: Multiple types detected for attributes [{attribute_names}]{end}
 
 Use {python}type_suffix_in_column_names=True{end} to will append the type to the column name,
 and present each column separately.
 
 Alternatively, specify the attribute type explicitly using {python}AttributeFilter(..., type_in=[...]){end}.
-""", attribute_names=', '.join(attribute_names))
+""",
+            attribute_names=", ".join(attribute_names),
+        )
+
 
 EMPTY_STYLES = {
     "h1": "",
@@ -121,10 +142,12 @@ UNIX_STYLES = {
 
 _styles = UNIX_STYLES if platform.system() in ["Linux", "Darwin"] else EMPTY_STYLES
 
-def get_styles():
+
+def get_styles() -> Dict[str, str]:
     if env.NEPTUNE_ENABLE_COLORS.get():
         return _styles
     return EMPTY_STYLES
+
 
 warnings.simplefilter("once", category=NeptuneWarning)
 
@@ -134,6 +157,7 @@ warnings.simplefilter("once", category=NeptuneWarning)
 # The bug basically makes `warnings.simplefilter("once", NeptuneWarning)` not work as expected, and would flood
 # the user with warnings in some cases.
 _warned_types = set()
+
 
 def warn_unsupported_value_type(type_: str) -> None:
     if type_ in _warned_types:

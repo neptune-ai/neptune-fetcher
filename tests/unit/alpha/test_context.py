@@ -23,7 +23,10 @@ from neptune_fetcher.alpha.context import (
     validate_context,
 )
 from neptune_fetcher.alpha.internal import env
-from neptune_fetcher.alpha.internal.exception import NeptuneProjectNotProvided, NeptuneApiTokenNotProvided
+from neptune_fetcher.alpha.internal.exception import (
+    NeptuneApiTokenNotProvided,
+    NeptuneProjectNotProvided,
+)
 
 
 @fixture
@@ -125,11 +128,11 @@ def test_context_from_envs(monkeypatch):
 
 
 def test_validate_context():
-    with pytest.raises(NeptuneProjectNotProvided) as exc:
+    with pytest.raises(NeptuneProjectNotProvided):
         validate_context(Context())
 
-    with pytest.raises(NeptuneApiTokenNotProvided) as exc:
+    with pytest.raises(NeptuneApiTokenNotProvided):
         validate_context(Context(project="foo"))
 
-    with pytest.raises(NeptuneProjectNotProvided) as exc:
+    with pytest.raises(NeptuneProjectNotProvided):
         validate_context(Context(api_token="bar"))
