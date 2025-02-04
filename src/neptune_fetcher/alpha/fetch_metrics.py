@@ -187,7 +187,7 @@ def _validate_tail_limit(tail_limit: Optional[int]) -> None:
             raise ValueError("tail_limit must be greater than 0")
 
 
-def _validate_include_timestamp(include_timestamp: Optional[Literal["relative", "absolute"]]) -> None:
+def _validate_include_timestamp(include_timestamp: Optional[Literal["absolute"]]) -> None:
     if include_timestamp is not None:
-        if include_timestamp not in ["relative", "absolute"]:
-            raise ValueError("include_timestamp must be either 'relative' or 'absolute'")
+        if include_timestamp not in ["absolute"]:
+            raise ValueError("include_timestamp must be 'absolute'")

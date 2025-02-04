@@ -195,11 +195,13 @@ def test_validate_tail_limit():
 def test_validate_include_timestamp():
     # Valid cases
     _validate_include_timestamp(None)
-    _validate_include_timestamp("relative")
     _validate_include_timestamp("absolute")
 
 
 def test_validate_include_timestamp_invalid():
     # Invalid cases
-    with pytest.raises(ValueError, match="include_timestamp must be either 'relative' or 'absolute'"):
+    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
         _validate_include_timestamp("invalid")
+
+    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
+        _validate_include_timestamp("relative")
