@@ -221,7 +221,7 @@ def fetch_experiments_table(
                 for attribute_definition, aggregation_set in aggregations.items():
                     selected_aggregations[attribute_definition].update(aggregation_set)
             else:
-                raise ValueError(f"Unexpected result type: {type(result)}")
+                raise RuntimeError(f"Unexpected result type: {type(result)}")
 
     result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
     dataframe = _output.convert_experiment_table_to_dataframe(

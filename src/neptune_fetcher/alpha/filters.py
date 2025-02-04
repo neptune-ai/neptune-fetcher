@@ -28,7 +28,7 @@ from typing import (
 
 from neptune_fetcher.alpha.internal import types
 
-__ALL__ = ("AttributeFilter", "Filter")
+__all__ = ["Filter", "AttributeFilter", "Attribute"]
 
 
 class BaseAttributeFilter(ABC):

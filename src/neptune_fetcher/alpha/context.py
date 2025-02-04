@@ -33,6 +33,11 @@ __all__ = (
     "validate_context",
 )
 
+from neptune_fetcher.alpha.internal.exception import (
+    NeptuneApiTokenNotProvided,
+    NeptuneProjectNotProvided,
+)
+
 
 @dataclass(frozen=True)
 class Context:
@@ -80,23 +85,10 @@ def set_context(context: Optional[Context] = None) -> Context:
 def validate_context(context: Optional[Context] = None) -> Context:
     assert context is not None, "Context should have been set on import"
 
-    context_error_template = """Unable to determine {thing}.
-
-    Set it using the environment variable {env_var}, by calling neptune.{func}(),
-    or by passing the Context() argument with both fields set.
-    """
-
-    project_not_set_message = context_error_template.format(
-        thing="Neptune project name", env_var=NEPTUNE_PROJECT.name, func="set_project"
-    )
-    api_token_not_set_message = context_error_template.format(
-        thing="Neptune API token", env_var=NEPTUNE_API_TOKEN.name, func="set_api_token"
-    )
-
     if context.project is None:
-        raise ValueError(project_not_set_message)
+        raise NeptuneProjectNotProvided()
     if context.api_token is None:
-        raise ValueError(api_token_not_set_message)
+        raise NeptuneApiTokenNotProvided()
 
     return context
 

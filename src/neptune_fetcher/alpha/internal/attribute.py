@@ -39,7 +39,7 @@ from neptune_retrieval_api.models import (
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
-import neptune_fetcher.alpha.filters as filter
+import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.internal import (
     env,
     experiment,
@@ -47,9 +47,6 @@ from neptune_fetcher.alpha.internal import (
     types,
     util,
 )
-
-__ALL__ = ("find_attribute_definitions", "stream_attribute_definitions")
-
 from neptune_fetcher.alpha.internal.types import (
     extract_value,
     map_attribute_type_backend_to_python,
@@ -76,21 +73,21 @@ class AttributeValue:
 
 
 def _split_to_tasks(
-    _attribute_filter: filter.BaseAttributeFilter,
-) -> List[filter.AttributeFilter]:
-    if isinstance(_attribute_filter, filter.AttributeFilter):
+    _attribute_filter: filters.BaseAttributeFilter,
+) -> List[filters.AttributeFilter]:
+    if isinstance(_attribute_filter, filters.AttributeFilter):
         return [_attribute_filter]
-    elif isinstance(_attribute_filter, filter._AttributeFilterAlternative):
+    elif isinstance(_attribute_filter, filters._AttributeFilterAlternative):
         return list(it.chain.from_iterable(_split_to_tasks(child) for child in _attribute_filter.filters))
     else:
-        raise ValueError(f"Unexpected filter type: {type(_attribute_filter)}")
+        raise RuntimeError(f"Unexpected filter type: {type(_attribute_filter)}")
 
 
 def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
-    attribute_filter: filter.BaseAttributeFilter,
+    attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
@@ -109,7 +106,7 @@ def fetch_attribute_definition_aggregations(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
-    attribute_filter: filter.BaseAttributeFilter,
+    attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
@@ -149,11 +146,11 @@ def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
-    attribute_filter: filter.BaseAttributeFilter,
+    attribute_filter: filters.BaseAttributeFilter,
     batch_size: int,
     executor: Executor,
-) -> Generator[tuple[util.Page[AttributeDefinition], filter.AttributeFilter], None, None]:
-    def go_fetch_single(_filter: filter.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
+) -> Generator[tuple[util.Page[AttributeDefinition], filters.AttributeFilter], None, None]:
+    def go_fetch_single(_filter: filters.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
         return _fetch_attribute_definitions_single_filter(
             client=client,
             project_identifiers=project_identifiers,
@@ -162,15 +159,15 @@ def _fetch_attribute_definitions(
             batch_size=batch_size,
         )
 
-    filters = _split_to_tasks(attribute_filter)
+    filters_ = _split_to_tasks(attribute_filter)
 
-    if len(filters) == 1:
-        head = filters[0]
+    if len(filters_) == 1:
+        head = filters_[0]
         for page in go_fetch_single(head):
             yield page, head
     else:
         output = util.generate_concurrently(
-            items=(_filter for _filter in filters),
+            items=(_filter for _filter in filters_),
             executor=executor,
             downstream=lambda _filter: util.generate_concurrently(
                 items=go_fetch_single(_filter),
@@ -185,7 +182,7 @@ def _fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
-    attribute_filter: filter.AttributeFilter,
+    attribute_filter: filters.AttributeFilter,
     batch_size: int,
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {
@@ -402,8 +399,8 @@ def _make_new_attribute_values_page_params(
 def list_attributes(
     client: AuthenticatedClient,
     project_id: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filter.Filter],
-    attribute_filter: filter.BaseAttributeFilter,
+    experiment_filter: Optional[filters.Filter],
+    attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> Generator[str, None, None]:

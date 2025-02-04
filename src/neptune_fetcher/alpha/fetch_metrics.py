@@ -42,7 +42,7 @@ from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 def fetch_metrics(
     experiments: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
-    include_timestamp: Optional[Literal["relative", "absolute"]] = None,
+    include_timestamp: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
@@ -113,8 +113,8 @@ def fetch_metrics(
 
     if include_timestamp == "absolute":
         return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
-    elif include_timestamp == "relative":
-        raise NotImplementedError("Relative timestamp is not implemented")
+    # elif include_timestamp == "relative":
+    #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
         return _transform_without_timestamp(df, type_suffix_in_column_names)
 
