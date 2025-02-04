@@ -232,8 +232,8 @@ def split_experiments_attributes(
     experiments_batch: list[identifiers.ExperimentIdentifier] = []
     total_batch_size = max_attribute_batch_size
     for experiment in experiment_identifiers:
-        if (
-            len(experiments_batch) * max_attribute_batch_len >= attribute_values_batch_size
+        if experiments_batch and (
+            (len(experiments_batch) + 1) * max_attribute_batch_len > attribute_values_batch_size
             or total_batch_size + _EXPERIMENT_SIZE > query_size_limit
         ):
             for attribute_batch in attribute_batches:
@@ -258,7 +258,9 @@ def _split_attribute_definitions(
     current_batch_size = 0
     for attr in attribute_definitions:
         attr_size = _attribute_definition_size(attr)
-        if len(current_batch) >= attribute_values_batch_size or current_batch_size + attr_size > query_size_limit:
+        if current_batch and (
+            len(current_batch) >= attribute_values_batch_size or current_batch_size + attr_size > query_size_limit
+        ):
             attribute_batches.append(current_batch)
             current_batch = []
             current_batch_size = 0
