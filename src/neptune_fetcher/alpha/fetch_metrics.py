@@ -132,10 +132,12 @@ def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_n
     if type_suffix_in_column_names:
         df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
 
-    df = df.sort_index(axis=1, level=0)
     df = df.reset_index()
-    df["experiment"] = df["experiment"].astype("object")
+    df["experiment"] = df["experiment"].astype(str)
     df = df.sort_values(by=["experiment", "step"], ignore_index=True)
+    df.columns.names = (None, None)
+    df = df.set_index(["experiment", "step"])
+    df = df.sort_index(axis=1, level=0)
     return df
 
 
@@ -144,8 +146,10 @@ def _transform_without_timestamp(df: pd.DataFrame, type_suffix_in_column_names: 
     if type_suffix_in_column_names:
         df = df.rename(columns=lambda x: x + ":float_series", copy=False)
 
-    df = df.sort_index(axis=1)
     df = df.reset_index()
-    df["experiment"] = df["experiment"].astype("object")
+    df["experiment"] = df["experiment"].astype(str)
     df = df.sort_values(by=["experiment", "step"], ignore_index=True)
+    df.columns.name = None
+    df = df.set_index(["experiment", "step"])
+    df = df.sort_index(axis=1)
     return df

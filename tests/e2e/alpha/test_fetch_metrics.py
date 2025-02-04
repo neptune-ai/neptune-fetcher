@@ -16,6 +16,8 @@ from typing import (
     Dict,
     List,
     Literal,
+    Optional,
+    Tuple,
     Union,
 )
 
@@ -25,7 +27,11 @@ import pytest
 from neptune_scale import Run
 
 from neptune_fetcher.alpha.context import get_context
-from neptune_fetcher.alpha.fetch_metrics import fetch_metrics
+from neptune_fetcher.alpha.fetch_metrics import (
+    _transform_with_absolute_timestamp,
+    _transform_without_timestamp,
+    fetch_metrics,
+)
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
@@ -129,42 +135,55 @@ def create_expected_data(
     experiments: list[ExperimentData],
     type_suffix_in_column_names: bool,
     include_timestamp: Union[Literal["relative", "absolute"], None],
-) -> pd.DataFrame:
-    suffix = ":float_series" if type_suffix_in_column_names else ""
+    step_range: Tuple[Optional[int], Optional[int]],
+    tail_limit: Optional[int],
+) -> Tuple[pd.DataFrame, List[str], set[str]]:
     rows = []
+    columns = set()
+    filtered_exps = set()
+
+    step_filter = (
+        step_range[0] if step_range[0] is not None else -np.inf,
+        step_range[1] if step_range[1] is not None else np.inf,
+    )
     for experiment in experiments:
         steps = experiment.float_series[f"{PATH}/metrics/step"]
 
         for path, series in chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()]):
+            filtered = []
             for step in steps:
-                rows.append(
-                    (
-                        experiment.name,
-                        path + suffix,
-                        NOW + timedelta(seconds=int(step)),
-                        step,
-                        series[int(step)],
+                if step >= step_filter[0] and step <= step_filter[1]:
+                    columns.add(f"{path}:float_series" if type_suffix_in_column_names else path)
+                    filtered_exps.add(experiment.name)
+                    filtered.append(
+                        (
+                            experiment.name,
+                            path,
+                            int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
+                            step,
+                            series[int(step)],
+                        )
                     )
-                )
+            limited = filtered[-tail_limit:] if tail_limit is not None else filtered
+            rows.extend(limited)
 
     df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
+    df["experiment"] = df["experiment"].astype(str)
+    df["path"] = df["path"].astype(str)
+    df["timestamp"] = df["timestamp"].astype(int)
+    df["step"] = df["step"].astype(float)
+    df["value"] = df["value"].astype(float)
+
+    sorted_columns = list(sorted(columns))
     if include_timestamp == "absolute":
-        df = df.rename(columns={"timestamp": "absolute_time"})
-        df = df.pivot(
-            index=["experiment", "step"],
-            columns="path",
-            values=["value", "absolute_time"],
+        absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
+        return (
+            _transform_with_absolute_timestamp(df, type_suffix_in_column_names),
+            list(chain.from_iterable(absolute_columns)),
+            filtered_exps,
         )
-        df = df.swaplevel(axis=1)
-        df = df.sort_index(axis=1, level=0)
-        df = df.reset_index()
-        df = df.sort_values(by=["experiment", "step"])
-        return df
     else:
-        df = df.pivot(index=["experiment", "step"], columns="path", values="value")
-        df = df.sort_index(axis=1)
-        df = df.reset_index()
-        return df
+        return _transform_without_timestamp(df, type_suffix_in_column_names), sorted_columns, filtered_exps
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -194,22 +213,11 @@ def test__fetch_metrics_unique(
         context=get_context().with_project(project.project_identifier),
     )
 
-    expected = create_expected_data(experiments, type_suffix_in_column_names, include_timestamp)
-
-    if step_range != (None, None):
-        step_min, step_max = step_range
-        expected = expected[
-            (expected["step"] >= (step_min if step_min is not None else -np.inf))
-            & (expected["step"] <= (step_max if step_max is not None else np.inf))
-        ].reset_index(drop=True)
-        if expected.empty:
-            expected = expected[["experiment", "step"]]
-
-    if tail_limit is not None:
-        expected = expected.groupby("experiment").tail(tail_limit).reset_index(drop=True)
-
-    pd.testing.assert_frame_equal(
-        result,
-        expected,
-        check_like=True,
+    expected, columns, filtred_exps = create_expected_data(
+        experiments, type_suffix_in_column_names, include_timestamp, step_range, tail_limit
     )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtred_exps
