@@ -42,7 +42,7 @@ from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
 def fetch_metrics(
     experiments: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
-    include_timestamp: Optional[Literal["absolute"]] = None,
+    include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
@@ -61,7 +61,7 @@ def fetch_metrics(
         - an AttributeFilter object;
                 If `AttributeFilter.aggregations` is set, an exception will be raised as
                 they're not supported in this function.
-    `include_timestamp` - whether to include relative or absolute timestamp
+    `include_time` - whether to include absolute timestamp
     `step_range` - a tuple specifying the range of steps to include; can represent an open interval
     `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
         If False, only includes points from the most recent experiment in the lineage.
@@ -70,11 +70,11 @@ def fetch_metrics(
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
 
-    If `include_timestamp` is set, each metric column has an additional sub-column with requested timestamp values.
+    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
     _validate_step_range(step_range)
     _validate_tail_limit(tail_limit)
-    _validate_include_timestamp(include_timestamp)
+    _validate_include_time(include_time)
 
     valid_context = validate_context(context or get_context())
 
@@ -116,9 +116,9 @@ def fetch_metrics(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-    if include_timestamp == "absolute":
+    if include_time == "absolute":
         return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
-    # elif include_timestamp == "relative":
+    # elif include_time == "relative":
     #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
         return _transform_without_timestamp(df, type_suffix_in_column_names)
@@ -187,7 +187,7 @@ def _validate_tail_limit(tail_limit: Optional[int]) -> None:
             raise ValueError("tail_limit must be greater than 0")
 
 
-def _validate_include_timestamp(include_timestamp: Optional[Literal["absolute"]]) -> None:
-    if include_timestamp is not None:
-        if include_timestamp not in ["absolute"]:
-            raise ValueError("include_timestamp must be 'absolute'")
+def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
+    if include_time is not None:
+        if include_time not in ["absolute"]:
+            raise ValueError("include_time must be 'absolute'")
