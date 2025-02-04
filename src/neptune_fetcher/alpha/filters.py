@@ -49,6 +49,14 @@ class AttributeFilter(BaseAttributeFilter):
     name_matches_none: Union[str, list[str], None] = None
     aggregations: list[Literal["last", "min", "max", "average", "variance"]] = field(default_factory=lambda: ["last"])
 
+    def __post_init__(self) -> None:
+        _validate_string_or_string_list(self.name_eq, "name_eq")
+        _validate_string_or_string_list(self.name_matches_all, "name_matches_all")
+        _validate_string_or_string_list(self.name_matches_none, "name_matches_none")
+
+        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")  # type: ignore
+        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")  # type: ignore
+
 
 @dataclass
 class _AttributeFilterAlternative(BaseAttributeFilter):
@@ -64,6 +72,10 @@ class Attribute:
     name: str
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]] = None
     type: Optional[Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set"]] = None
+
+    def __post_init__(self) -> None:
+        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
 
     def to_query(self) -> str:
         query = f"`{self.name}`"
@@ -210,7 +222,14 @@ class Filter(ABC):
 class _AttributeValuePredicate(Filter):
     operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
     attribute: Attribute
-    value: Union[int, float, str, datetime]
+    value: Union[bool, int, float, str, datetime]
+
+    def __post_init__(self) -> None:
+        allowed_operators = {"==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"}
+        _validate_allowed_value(self.operator, allowed_operators, "operator")
+
+        if not isinstance(self.value, (bool, int, float, str, datetime)):
+            raise TypeError(f"Invalid value type: {type(self.value).__name__}. Expected int, float, str, or datetime.")
 
     def to_query(self) -> str:
         return f"{self.attribute} {self.operator} {self._right_query()}"
@@ -249,3 +268,25 @@ class _PrefixOperator(Filter):
 
     def to_query(self) -> str:
         return f"{self.operator} ({self.filter_})"
+
+
+def _validate_string_or_string_list(value: Optional[Union[str, list[str]]], field_name: str) -> None:
+    """Validate that a value is either None, a string, or a list of strings."""
+    if value is not None:
+        if isinstance(value, list):
+            if not all(isinstance(item, str) for item in value):
+                raise ValueError(f"{field_name} must be a string or list of strings")
+        elif not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string or list of strings")
+
+
+def _validate_list_of_allowed_values(value: list[str], allowed_values: set[str], field_name: str) -> None:
+    """Validate that a value is a list containing only allowed values."""
+    if not isinstance(value, list) or not all(isinstance(v, str) and v in allowed_values for v in value):
+        raise ValueError(f"{field_name} must be a list of valid values: {sorted(allowed_values)}")
+
+
+def _validate_allowed_value(value: Optional[str], allowed_values: set[str], field_name: str) -> None:
+    """Validate that a value is either None or one of the allowed values."""
+    if value is not None and (not isinstance(value, str) or value not in allowed_values):
+        raise ValueError(f"{field_name} must be one of: {sorted(allowed_values)}")
