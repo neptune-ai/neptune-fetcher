@@ -72,7 +72,7 @@ def fetch_experiments_table(
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
     _validate_limit(limit)
-    _validate_sort_direction(sort_direction)
+    _sort_direction = _validate_sort_direction(sort_direction)
     valid_context = _context.validate_context(context or _context.get_context())
     client = _api_client.get_client(valid_context)
     project = _identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
@@ -124,7 +124,7 @@ def fetch_experiments_table(
                 project_identifier=project,
                 experiment_filter=experiments_filter,
                 sort_by=sort_by_attribute,
-                sort_direction=sort_direction,
+                sort_direction=_sort_direction,
                 limit=limit,
             )
 
@@ -290,7 +290,8 @@ def _validate_limit(limit: Optional[int]) -> None:
             raise ValueError("limit must be greater than 0")
 
 
-def _validate_sort_direction(sort_direction: str) -> None:
+def _validate_sort_direction(sort_direction: Literal["asc", "desc"]) -> Literal["asc", "desc"]:
     """Validate that sort_direction is either 'asc' or 'desc'."""
     if sort_direction not in ("asc", "desc"):
         raise ValueError("sort_direction must be either 'asc' or 'desc'")
+    return sort_direction
