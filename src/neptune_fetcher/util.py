@@ -99,7 +99,7 @@ def warn_unsupported_value_type(type_: str) -> None:
         "Upgrade neptune-fetcher to access this data.",
         NeptuneWarning,
     )
-    
+
 
 @dataclass
 class TokenRefreshingURLs:
@@ -114,7 +114,7 @@ class TokenRefreshingURLs:
 
 
 def get_config_and_token_urls(
-        *, credentials: Credentials, proxies: Optional[Dict[str, str]]
+    *, credentials: Credentials, proxies: Optional[Dict[str, str]]
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
     with Client(base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=NEPTUNE_VERIFY_SSL) as client:
         config = get_client_config.sync(client=client)
@@ -126,11 +126,11 @@ def get_config_and_token_urls(
 
 
 def create_auth_api_client(
-        *,
-        credentials: Credentials,
-        config: ClientConfig,
-        token_refreshing_urls: TokenRefreshingURLs,
-        proxies: Optional[Dict[str, str]],
+    *,
+    credentials: Credentials,
+    config: ClientConfig,
+    token_refreshing_urls: TokenRefreshingURLs,
+    proxies: Optional[Dict[str, str]],
 ) -> AuthenticatedClient:
     return AuthenticatedClient(
         base_url=credentials.base_url,
