@@ -72,7 +72,12 @@ def fetch_metrics(
 
     If `include_timestamp` is set, each metric column has an additional sub-column with requested timestamp values.
     """
+    _validate_step_range(step_range)
+    _validate_tail_limit(tail_limit)
+    _validate_include_timestamp(include_timestamp)
+
     valid_context = validate_context(context or get_context())
+
     client = get_client(valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
@@ -153,3 +158,36 @@ def _transform_without_timestamp(df: pd.DataFrame, type_suffix_in_column_names: 
     df = df.set_index(["experiment", "step"])
     df = df.sort_index(axis=1)
     return df
+
+
+def _validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> None:
+    """Validate that a step range tuple contains valid values and is properly ordered."""
+    if not isinstance(step_range, tuple) or len(step_range) != 2:
+        raise ValueError("step_range must be a tuple of two values")
+
+    start, end = step_range
+
+    # Validate types
+    if start is not None and not isinstance(start, (int, float)):
+        raise ValueError("step_range start must be None or a number")
+    if end is not None and not isinstance(end, (int, float)):
+        raise ValueError("step_range end must be None or a number")
+
+    # Validate range order if both values are provided
+    if start is not None and end is not None and start > end:
+        raise ValueError("step_range start must be less than or equal to end")
+
+
+def _validate_tail_limit(tail_limit: Optional[int]) -> None:
+    """Validate that tail_limit is either None or a positive integer."""
+    if tail_limit is not None:
+        if not isinstance(tail_limit, int):
+            raise ValueError("tail_limit must be None or an integer")
+        if tail_limit <= 0:
+            raise ValueError("tail_limit must be greater than 0")
+
+
+def _validate_include_timestamp(include_timestamp: Optional[Literal["relative", "absolute"]]) -> None:
+    if include_timestamp is not None:
+        if include_timestamp not in ["relative", "absolute"]:
+            raise ValueError("include_timestamp must be either 'relative' or 'absolute'")
