@@ -7,7 +7,7 @@ import pytest
 from neptune_fetcher.alpha.fetch_metrics import (
     _transform_with_absolute_timestamp,
     _transform_without_timestamp,
-    _validate_include_timestamp,
+    _validate_include_time,
     _validate_step_range,
     _validate_tail_limit,
 )
@@ -192,16 +192,16 @@ def test_validate_tail_limit():
         _validate_tail_limit(-1)
 
 
-def test_validate_include_timestamp():
+def test_validate_include_time():
     # Valid cases
-    _validate_include_timestamp(None)
-    _validate_include_timestamp("absolute")
+    _validate_include_time(None)
+    _validate_include_time("absolute")
 
 
-def test_validate_include_timestamp_invalid():
+def test_validate_include_time_invalid():
     # Invalid cases
-    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
-        _validate_include_timestamp("invalid")
+    with pytest.raises(ValueError, match="include_time must be 'absolute'"):
+        _validate_include_time("invalid")
 
-    with pytest.raises(ValueError, match="include_timestamp must be 'absolute'"):
-        _validate_include_timestamp("relative")
+    with pytest.raises(ValueError, match="include_time must be 'absolute'"):
+        _validate_include_time("relative")

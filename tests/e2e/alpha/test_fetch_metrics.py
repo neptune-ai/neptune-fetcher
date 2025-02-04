@@ -134,7 +134,7 @@ def run_with_attributes(client, project):
 def create_expected_data(
     experiments: list[ExperimentData],
     type_suffix_in_column_names: bool,
-    include_timestamp: Union[Literal["relative", "absolute"], None],
+    include_time: Union[Literal["absolute"], None],
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
@@ -175,7 +175,7 @@ def create_expected_data(
     df["value"] = df["value"].astype(float)
 
     sorted_columns = list(sorted(columns))
-    if include_timestamp == "absolute":
+    if include_time == "absolute":
         absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
         return (
             _transform_with_absolute_timestamp(df, type_suffix_in_column_names),
@@ -197,9 +197,9 @@ def create_expected_data(
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
     ],
 )
-@pytest.mark.parametrize("include_timestamp", [None, "absolute"])  # "relative",
+@pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
 def test__fetch_metrics_unique(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_timestamp, attr_filter, exp_filter
+    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
 ):
     experiments = TEST_DATA.experiments[:3]
 
@@ -209,12 +209,12 @@ def test__fetch_metrics_unique(
         type_suffix_in_column_names=type_suffix_in_column_names,
         step_range=step_range,
         tail_limit=tail_limit,
-        include_timestamp=include_timestamp,
+        include_time=include_time,
         context=get_context().with_project(project.project_identifier),
     )
 
     expected, columns, filtred_exps = create_expected_data(
-        experiments, type_suffix_in_column_names, include_timestamp, step_range, tail_limit
+        experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
     )
 
     pd.testing.assert_frame_equal(result, expected)
