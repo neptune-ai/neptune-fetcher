@@ -83,7 +83,8 @@ In order to resolve this, specify the attribute type explicitly:
     )
 
     fetch_metrics(
-        experiments=Filter.eq(Attribute("config/batch_size", type="int"), 64),
+        experiments=Filter.eq(Attribute("config/batch_size", type="int"), 64)
+                    | Filter.eq(Attribute("config/batch_size", type="float"), 64.0),
         ...
     )
 
