@@ -50,8 +50,7 @@ def fetch_metrics(
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation),
-    or single-value attributes. In case of the latter, their historical values are returned.
+    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
     `experiments` - a filter specifying which experiments to include
         - a regex that experiment name must match, or
