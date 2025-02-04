@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.internal import identifiers
@@ -6,6 +7,7 @@ from neptune_fetcher.alpha.internal.attribute import (
     AttributeDefinition,
     AttributeValue,
 )
+from neptune_fetcher.alpha.internal.exception import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
@@ -120,3 +122,52 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     expected_data.index.name = "experiment"
     expected_data.columns = pd.MultiIndex.from_tuples(expected_data.columns, names=["attribute", "aggregation"])
     assert_frame_equal(dataframe, expected_data)
+
+
+def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "int"), 42, EXPERIMENT_IDENTIFIER),
+        ],
+        identifiers.SysName("exp2"): [
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "float"), 0.43, EXPERIMENT_IDENTIFIER),
+        ],
+    }
+
+    # when
+    dataframe = convert_experiment_table_to_dataframe(
+        experiment_data, selected_aggregations={}, type_suffix_in_column_names=True
+    )
+
+    # then
+    expected_data = pd.DataFrame.from_dict(
+        {
+            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
+            ("attr1/a:b:c:float", ""): {"exp1": float("nan"), "exp2": 0.43},
+        }
+    )
+    expected_data.index.name = "experiment"
+    expected_data.columns = pd.MultiIndex.from_tuples(expected_data.columns, names=["attribute", "aggregation"])
+    assert_frame_equal(dataframe, expected_data)
+
+
+def test_convert_experiment_table_to_dataframe_conflicting_types_without_suffix():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "int"), 42, EXPERIMENT_IDENTIFIER),
+        ],
+        identifiers.SysName("exp2"): [
+            AttributeValue(AttributeDefinition("attr1/a:b:c", "float"), 0.43, EXPERIMENT_IDENTIFIER),
+        ],
+    }
+
+    # when
+    with pytest.raises(ConflictingAttributeTypes) as exc_info:
+        convert_experiment_table_to_dataframe(
+            experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
+        )
+
+    # then
+    assert "attr1/a:b:c" in str(exc_info.value)

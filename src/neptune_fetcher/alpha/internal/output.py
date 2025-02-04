@@ -38,12 +38,6 @@ def convert_experiment_table_to_dataframe(
     if not experiment_data:
         return pd.DataFrame(index=[index_column_name])
 
-    def get_column_name(attr: AttributeValue) -> str:
-        column_name = attr.attribute_definition.name
-        if type_suffix_in_column_names:
-            column_name += f":{attr.attribute_definition.type}"
-        return column_name
-
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
         row = {}
         for value in values:
@@ -60,6 +54,9 @@ def convert_experiment_table_to_dataframe(
                 row[(column_name, "")] = value.value
         return row
 
+    def get_column_name(attr: AttributeValue) -> str:
+        return f"{attr.attribute_definition.name}:{attr.attribute_definition.type}"
+
     def get_aggregation_subset(
         float_series_aggregations: FloatSeriesAggregations, selected_subset: set[str]
     ) -> dict[str, Any]:
@@ -69,13 +66,41 @@ def convert_experiment_table_to_dataframe(
                 result[agg_name] = getattr(float_series_aggregations, agg_name)
         return result
 
-    rows = []
+    def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:
+        if type_suffix_in_column_names:
+            return df
+
+        # Transform the column by removing the type
+        original_columns = df.columns
+        df.columns = [
+            (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
+            for col in df.columns
+        ]
+
+        # Check for duplicate names
+        duplicated_names = df.columns[df.columns.duplicated(keep=False)]  # type: ignore
+        duplicated_names_set = set(duplicated_names)
+        if duplicated_names.any():
+            conflicting_types: dict[str, set[str]] = {}
+            for original_col, new_col in zip(original_columns, df.columns):
+                if isinstance(new_col, str):
+                    continue
+
+                if new_col in duplicated_names_set:
+                    conflicting_types.setdefault(new_col[0], set()).add(original_col[0].rsplit(":", 1)[1])
+
+            raise ConflictingAttributeTypes(conflicting_types.keys())  # TODO: add conflicting types to the exception
+
+        return df
+
+    rows: list[dict[Union[str, tuple[str, str]], Any]] = []
     for sys_name, values in experiment_data.items():
         row: dict[Union[str, tuple[str, str]], Any] = convert_row(values)  # type: ignore
         row[index_column_name] = sys_name
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
+    dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
     dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
 
