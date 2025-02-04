@@ -9,7 +9,7 @@ style = "semver"
 pattern = "default-unprefixed"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 
 # Base neptune package
 neptune-api = "^0.10.0"
@@ -61,8 +61,8 @@ packages = [
 
 [tool.black]
 line-length = 120
-target-version = ['py37', 'py38', 'py39', 'py310']
-include = '\.pyi?$,\_pb2\.py$'
+target-version = ["py38", "py39", "py310", "py311"]
+include = '\.pyi?$'
 exclude = '''
 /(
     \.git
@@ -82,14 +82,11 @@ force_grid_wrap = 2
 [tool.flake8]
 max-line-length = 120
 extend-ignore = "E203"
-exclude = [
-    "src/neptune/api/proto/*"
-]
-
 
 [tool.mypy]
-files = 'src/neptune_fetcher'
-mypy_path = "stubs"
+mypy_path = "src/"
+packages = "neptune_fetcher.alpha"
+follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"
@@ -99,3 +96,7 @@ warn_return_any = "True"
 show_error_codes = "True"
 warn_unused_ignores = "True"
 ignore_missing_imports = "True"
+
+[tool.pytest.ini_options]
+retries = 3
+retry_delay = 2

@@ -12,3 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass
+from typing import NewType
+
+ProjectIdentifier = NewType("ProjectIdentifier", str)  # e.g. "team/john.doe"
+SysId = NewType("SysId", str)  # e.g. "KEY-1234"
+SysName = NewType("SysName", str)  # e.g. "pye2e-fetcher-test-internal-attribute"
+
+
+@dataclass(frozen=True)
+class ExperimentIdentifier:
+    project_identifier: ProjectIdentifier
+    sys_id: SysId
+
+    def __str__(self) -> str:
+        return f"{self.project_identifier}/{self.sys_id}"
