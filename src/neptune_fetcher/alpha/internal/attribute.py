@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import concurrent
 import functools as ft
 import itertools as it
 import re
@@ -406,46 +405,49 @@ def list_attributes(
     project_id: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    experiment_filter: Optional[filter.Filter] = None,
-    attribute_filter: Optional[filter.BaseAttributeFilter] = None,
+    experiment_filter: Optional[filter.Filter],
+    attribute_filter: filter.BaseAttributeFilter,
 ) -> Generator[str, None, None]:
-    if attribute_filter is None:
-        attribute_filter = filter.AttributeFilter()
-
-    def list_single_page(experiments_page: Optional[util.Page[experiment.ExperimentSysAttrs]]) -> set[str]:
-        _definitions = set()
-        if experiments_page is None:
-            for attrs_page in fetch_attribute_definitions(
+    if experiment_filter is not None:
+        output = util.generate_concurrently(
+            items=experiment.fetch_experiment_sys_attrs(
+                client,
+                project_identifier=project_id,
+                experiment_filter=experiment_filter,
+            ),
+            executor=executor,
+            downstream=lambda experiments_page: util.generate_concurrently(
+                items=util.split_experiments(
+                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+                ),
+                executor=executor,
+                downstream=lambda experiment_identifier_split: util.generate_concurrently(
+                    items=fetch_attribute_definitions(
+                        client,
+                        [project_id],
+                        experiment_identifier_split,
+                        cast(filter.AttributeFilter, attribute_filter),
+                        fetch_attribute_definitions_executor,
+                    ),
+                    executor=executor,
+                    downstream=util.return_value,
+                ),
+            ),
+        )
+    else:
+        output = util.generate_concurrently(
+            items=fetch_attribute_definitions(
                 client,
                 [project_id],
                 None,
                 cast(filter.AttributeFilter, attribute_filter),
                 fetch_attribute_definitions_executor,
-            ):
-                _definitions.update([attr.name for attr in attrs_page.items])
-        else:
-            for experiment_identifier_split in util.split_experiments(  # TODO: this is done mostly sequentially
-                [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-            ):
-                for attrs_page in fetch_attribute_definitions(
-                    client,
-                    [project_id],
-                    experiment_identifier_split,
-                    cast(filter.AttributeFilter, attribute_filter),
-                    fetch_attribute_definitions_executor,
-                ):
-                    _definitions.update([attr.name for attr in attrs_page.items])
-        return _definitions
-
-    if experiment_filter:
-        matching_experiments = experiment.fetch_experiment_sys_attrs(
-            client,
-            project_identifier=project_id,
-            experiment_filter=experiment_filter,
+            ),
+            executor=executor,
+            downstream=util.return_value,
         )
-        futures = [executor.submit(list_single_page, page) for page in matching_experiments]
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            yield from result
-    else:
-        yield from list_single_page(None)
+
+    results: Generator[util.Page[AttributeDefinition], None, None] = util.gather_results(output)
+    for page in results:
+        for item in page.items:
+            yield item.name
