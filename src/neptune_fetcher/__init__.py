@@ -32,11 +32,11 @@ try:
 
 Uninstall it before using `neptune-fetcher`:
 
-    pip uninstall neptune-experimental
+    pip uninstall -y neptune-experimental neptune-fetcher; pip install neptune-fetcher
 
 If you're using `uv`:
 
-    uv pip uninstall neptune-experimental
+    uv pip uninstall neptune-experimental neptune-fetcher; uv pip install neptune-fetcher
 
     """
     )
