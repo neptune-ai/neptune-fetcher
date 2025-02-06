@@ -13,26 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import concurrent
-import itertools as it
 import logging
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from itertools import chain
 from typing import (
-    Dict,
-    Generator,
     Iterable,
-    List,
     Literal,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
-import numpy as np
-import pandas as pd
 from neptune_api.client import AuthenticatedClient
 from neptune_retrieval_api.api.default import get_multiple_float_series_values_proto
 from neptune_retrieval_api.models import (
@@ -46,197 +37,26 @@ from neptune_retrieval_api.models import (
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
-from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier as ExpId
-from neptune_fetcher.alpha.internal.retrieval import (
-    split,
-    util,
-)
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
-    AttributeDefinition,
-    fetch_attribute_definitions,
-)
-from neptune_fetcher.alpha.internal.retrieval.search import (
-    ExperimentSysAttrs,
-    fetch_experiment_sys_attrs,
-)
+from neptune_fetcher.alpha.internal.retrieval import util
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 AttributePath = str
 ExperimentName = str
 
 # Tuples are used here to enhance performance
-_FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
+FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
 ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex = range(5)
 
 TOTAL_POINT_LIMIT: int = 1_000_000
-PATHS_PER_BATCH: int = 10_000
 
 
 @dataclass(frozen=True)
-class _AttributePathInExperiment:
+class AttributePathInExperiment:
     experiment_identifier: identifiers.ExperimentIdentifier
     experiment_name: str
     attribute_path: AttributePath
-
-
-def _batch(iterable: List[T], n: int) -> Iterable[List[T]]:
-    length = len(iterable)
-    for ndx in range(0, length, n):
-        yield iterable[ndx : min(ndx + n, length)]
-
-
-def fetch_flat_dataframe_metrics(
-    experiments: Filter,
-    attributes: AttributeFilter,
-    client: AuthenticatedClient,
-    project: identifiers.ProjectIdentifier,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-) -> pd.DataFrame:
-    def fetch_values(
-        exp_paths: List[_AttributePathInExperiment],
-    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-        _series = _fetch_multiple_series_values(
-            client,
-            exp_paths=exp_paths,
-            include_inherited=lineage_to_the_root,
-            step_range=step_range,
-            tail_limit=tail_limit,
-        )
-        return [], _series
-
-    def process_definitions(
-        _experiments: List[ExperimentSysAttrs],
-        _definitions: Generator[util.Page[AttributeDefinition], None, None],
-    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-        definitions_page = next(_definitions, None)
-        _futures = []
-        if definitions_page:
-            _futures.append(executor.submit(process_definitions, _experiments, _definitions))
-
-            paths = definitions_page.items
-
-            product = it.product(_experiments, paths)
-            exp_paths = [
-                _AttributePathInExperiment(ExpId(project, _exp.sys_id), _exp.sys_name, _path.name)
-                for _exp, _path in product
-                if _path.type == "float_series"
-            ]
-
-            for batch in _batch(exp_paths, PATHS_PER_BATCH):
-                _futures.append(executor.submit(fetch_values, batch))
-
-        return _futures, []
-
-    def process_experiments(
-        experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
-    ) -> Tuple[List[concurrent.futures.Future], Iterable[_FloatPointValue]]:
-        _experiments = next(experiment_generator, None)
-        _futures = []
-
-        if _experiments:
-            _futures.append(executor.submit(process_experiments, experiment_generator))
-
-        if _experiments and _experiments.items:
-            experiment_identifiers = [
-                identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
-            ]
-            sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
-
-            for experiment_identifiers_split in split.split_experiments(experiment_identifiers):
-                sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
-                definitions_generator = fetch_attribute_definitions(
-                    client=client,
-                    project_identifiers=[project],
-                    experiment_identifiers=experiment_identifiers_split,
-                    attribute_filter=attributes,
-                    executor=fetch_attribute_definitions_executor,
-                )
-                _futures.append(executor.submit(process_definitions, sys_attrs_split, definitions_generator))
-
-        return _futures, []
-
-    def _start() -> Iterable[_FloatPointValue]:
-        futures = {
-            executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
-        }
-
-        while futures:
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            futures = not_done
-            for future in done:
-                new_futures, values = future.result()
-                futures.update(new_futures)
-                if values:
-                    yield from values
-
-    df = _create_flat_dataframe(_start())
-    return df
-
-
-def _create_flat_dataframe(values: Iterable[_FloatPointValue]) -> pd.DataFrame:
-    """
-    Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
-    by converting strings to categorical codes before DataFrame creation.
-    """
-
-    path_mapping: Dict[str, int] = {}
-    experiment_mapping: Dict[str, int] = {}
-
-    def generate_categorized_rows(float_point_values: Iterable[_FloatPointValue]) -> pd.DataFrame:
-        last_experiment_name, last_experiment_category = None, None
-        last_path_name, last_path_category = None, None
-
-        for point in float_point_values:
-            exp_category = (
-                last_experiment_category
-                if last_experiment_name == point[ExperimentNameIndex]
-                else experiment_mapping.get(point[ExperimentNameIndex], None)  # type: ignore
-            )
-            path_category = (
-                last_path_category
-                if last_path_name == point[AttributePathIndex]
-                else path_mapping.get(point[AttributePathIndex], None)  # type: ignore
-            )
-
-            if exp_category is None:
-                exp_category = len(experiment_mapping)
-                experiment_mapping[point[ExperimentNameIndex]] = exp_category  # type: ignore
-                last_experiment_name, last_experiment_category = point[ExperimentNameIndex], exp_category
-            if path_category is None:
-                path_category = len(path_mapping)
-                path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
-                last_path_name, last_path_category = point[AttributePathIndex], path_category
-            yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
-
-    types = [
-        ("experiment", "uint32"),
-        ("path", "uint32"),
-        ("timestamp", "uint64"),
-        ("step", "float64"),
-        ("value", "float64"),
-    ]
-
-    df = pd.DataFrame(
-        np.fromiter(generate_categorized_rows(values), dtype=types),
-    )
-    experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
-    df["experiment"] = pd.Categorical.from_codes(df["experiment"], dtype=experiment_dtype)
-
-    path_dtype = pd.CategoricalDtype(categories=list(path_mapping.keys()))
-    df["path"] = pd.Categorical.from_codes(df["path"], dtype=path_dtype)
-
-    return df
 
 
 @dataclass(frozen=True)
@@ -247,15 +67,15 @@ class _SeriesRequest:
     after_step: Optional[float]
 
 
-def _fetch_multiple_series_values(
+def fetch_multiple_series_values(
     client: AuthenticatedClient,
-    exp_paths: List[_AttributePathInExperiment],
+    exp_paths: list[AttributePathInExperiment],
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> Iterable[_FloatPointValue]:
+) -> Iterable[FloatPointValue]:
     results = []
-    partial_results: Dict[_AttributePathInExperiment, List[_FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
+    partial_results: dict[AttributePathInExperiment, list[FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
     attribute_steps = {exp_path: None for exp_path in exp_paths}
 
     while attribute_steps:
@@ -301,11 +121,11 @@ def _fetch_multiple_series_values(
 
 def _fetch_series_values(
     client: AuthenticatedClient,
-    requests: Dict[_AttributePathInExperiment, _SeriesRequest],
+    requests: dict[AttributePathInExperiment, _SeriesRequest],
     per_series_point_limit: int,
     step_range: Tuple[Union[float, None], Union[float, None]],
     order: Literal["asc", "desc"],
-) -> Dict[_AttributePathInExperiment, List[_FloatPointValue]]:
+) -> dict[AttributePathInExperiment, list[FloatPointValue]]:
     series_requests_ids = {}
     series_requests = []
 

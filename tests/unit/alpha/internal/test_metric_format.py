@@ -10,7 +10,7 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.internal.retrieval.metrics import _create_flat_dataframe
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import _create_flat_dataframe
 
 # Constants for the test
 EXPERIMENTS = 5
