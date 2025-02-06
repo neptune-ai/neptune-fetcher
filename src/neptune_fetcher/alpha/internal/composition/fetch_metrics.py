@@ -22,21 +22,21 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.context import (
-    Context,
-    get_context,
-    validate_context,
-)
 from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.api_client.client import get_client
-from neptune_fetcher.alpha.internal.api_client.metrics import fetch_flat_dataframe_metrics
+from neptune_fetcher.alpha.internal.client import get_client
 from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal.context import (
+    Context,
+    get_context,
+    validate_context,
+)
+from neptune_fetcher.alpha.internal.retrieval.metrics import fetch_flat_dataframe_metrics
 
 
 def fetch_metrics(

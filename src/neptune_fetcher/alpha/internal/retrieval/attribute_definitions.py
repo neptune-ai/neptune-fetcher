@@ -39,9 +39,9 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client import attribute_types as types
-from neptune_fetcher.alpha.internal.api_client import util
 from neptune_fetcher.alpha.internal.composition import concurrency
+from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
+from neptune_fetcher.alpha.internal.retrieval import util
 
 
 @dataclass(frozen=True)

@@ -20,10 +20,10 @@ from typing import (
 import pandas as pd
 
 from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
-from neptune_fetcher.alpha.internal.api_client.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.identifiers import SysName
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
 
 def convert_experiment_table_to_dataframe(

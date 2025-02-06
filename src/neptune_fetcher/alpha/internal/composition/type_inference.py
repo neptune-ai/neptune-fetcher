@@ -26,11 +26,11 @@ from neptune_api.client import AuthenticatedClient
 import neptune_fetcher.alpha.filters as _filters
 from neptune_fetcher.alpha.exception import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _attribute
-from neptune_fetcher.alpha.internal.api_client import search as _search
-from neptune_fetcher.alpha.internal.api_client import split as _split
-from neptune_fetcher.alpha.internal.api_client import util as _util
 from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
+from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as _attribute
+from neptune_fetcher.alpha.internal.retrieval import search as _search
+from neptune_fetcher.alpha.internal.retrieval import split as _split
+from neptune_fetcher.alpha.internal.retrieval import util as _util
 
 
 def infer_attribute_types_in_filter(

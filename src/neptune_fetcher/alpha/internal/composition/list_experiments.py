@@ -17,24 +17,23 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha import context as _context
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
+from neptune_fetcher.alpha.internal import client as _client
+from neptune_fetcher.alpha.internal import context as _context
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal.api_client import client as _client
-from neptune_fetcher.alpha.internal.api_client import search as _search
 from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal.retrieval import search as _search
 
 __all__ = ("list_experiments",)
 
 
 def list_experiments(
     experiments: Optional[Union[str, Filter]] = None,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
      Returns a list of experiment names in a project.

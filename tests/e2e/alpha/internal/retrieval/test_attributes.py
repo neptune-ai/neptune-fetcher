@@ -10,18 +10,18 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.alpha.filters import AttributeFilter
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import (
-    AttributeDefinition,
-    fetch_attribute_definitions,
-)
-from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
-from neptune_fetcher.alpha.internal.api_client.attribute_values import (
-    AttributeValue,
-    fetch_attribute_values,
-)
 from neptune_fetcher.alpha.internal.identifiers import (
     ExperimentIdentifier,
     SysId,
+)
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
+    AttributeDefinition,
+    fetch_attribute_definitions,
+)
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_values import (
+    AttributeValue,
+    fetch_attribute_values,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -41,7 +41,7 @@ def run_with_attributes(client, project):
 
     from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.alpha.internal import identifiers
-    from neptune_fetcher.alpha.internal.api_client.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
@@ -95,7 +95,7 @@ def run_with_attributes(client, project):
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> ExperimentIdentifier:
     from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.api_client.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 

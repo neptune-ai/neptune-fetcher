@@ -13,8 +13,8 @@ from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
-from neptune_fetcher.alpha.internal.api_client import util
-from neptune_fetcher.alpha.internal.api_client.search import (
+from neptune_fetcher.alpha.internal.retrieval import util
+from neptune_fetcher.alpha.internal.retrieval.search import (
     ExperimentSysAttrs,
     fetch_experiment_sys_attrs,
 )

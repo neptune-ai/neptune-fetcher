@@ -4,10 +4,10 @@ from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
-from neptune_fetcher.alpha.internal.api_client.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.output_format import convert_experiment_table_to_dataframe
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
 EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")

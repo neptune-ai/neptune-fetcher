@@ -30,9 +30,9 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client import util
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.api_client.attribute_types import (
+from neptune_fetcher.alpha.internal.retrieval import util
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
 )

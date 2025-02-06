@@ -51,19 +51,19 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.api_client import (
+from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier as ExpId
+from neptune_fetcher.alpha.internal.retrieval import (
     split,
     util,
 )
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import (
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
     AttributeDefinition,
     fetch_attribute_definitions,
 )
-from neptune_fetcher.alpha.internal.api_client.search import (
+from neptune_fetcher.alpha.internal.retrieval.search import (
     ExperimentSysAttrs,
     fetch_experiment_sys_attrs,
 )
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier as ExpId
 
 logger = logging.getLogger(__name__)
 

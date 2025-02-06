@@ -22,23 +22,22 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha import context as _context
 from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
+from neptune_fetcher.alpha.internal import client as _client
+from neptune_fetcher.alpha.internal import context as _context
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal import output_format as _output
-from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _adef
-from neptune_fetcher.alpha.internal.api_client import attribute_values as _aval
-from neptune_fetcher.alpha.internal.api_client import client as _client
-from neptune_fetcher.alpha.internal.api_client import search as _search
-from neptune_fetcher.alpha.internal.api_client import split as _split
-from neptune_fetcher.alpha.internal.api_client import util as _util
 from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as _adef
+from neptune_fetcher.alpha.internal.retrieval import attribute_values as _aval
+from neptune_fetcher.alpha.internal.retrieval import search as _search
+from neptune_fetcher.alpha.internal.retrieval import split as _split
+from neptune_fetcher.alpha.internal.retrieval import util as _util
 
 __all__ = ("fetch_experiments_table",)
 
@@ -50,7 +49,7 @@ def fetch_experiments_table(
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> pd.DataFrame:
     """
     `experiments` - a filter specifying which experiments to include in the table

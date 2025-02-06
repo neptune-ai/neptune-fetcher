@@ -21,7 +21,7 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client import attribute_definitions as adef
+from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as adef
 
 _EXPERIMENT_SIZE = 50
 

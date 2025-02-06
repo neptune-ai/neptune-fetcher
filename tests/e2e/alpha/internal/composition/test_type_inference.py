@@ -11,11 +11,11 @@ from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
-from neptune_fetcher.alpha.internal.api_client.search import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.composition.type_inference import (
     infer_attribute_types_in_filter,
     infer_attribute_types_in_sort_by,
 )
+from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"

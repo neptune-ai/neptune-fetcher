@@ -36,8 +36,8 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client import util
-from neptune_fetcher.alpha.internal.api_client.attribute_types import map_attribute_type_python_to_backend
+from neptune_fetcher.alpha.internal.retrieval import util
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import map_attribute_type_python_to_backend
 
 _DIRECTION_PYTHON_TO_BACKEND_MAP: dict[str, str] = {
     "asc": "ascending",

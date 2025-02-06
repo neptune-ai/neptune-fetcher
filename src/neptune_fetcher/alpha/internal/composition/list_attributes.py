@@ -23,25 +23,25 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.alpha.context import (
-    Context,
-    get_context,
-    validate_context,
-)
 from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
     BaseAttributeFilter,
     Filter,
 )
+from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _adef
-from neptune_fetcher.alpha.internal.api_client import client as _client
-from neptune_fetcher.alpha.internal.api_client import search as _search
-from neptune_fetcher.alpha.internal.api_client import split as _split
-from neptune_fetcher.alpha.internal.api_client import util as _util
 from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal.context import (
+    Context,
+    get_context,
+    validate_context,
+)
+from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as _adef
+from neptune_fetcher.alpha.internal.retrieval import search as _search
+from neptune_fetcher.alpha.internal.retrieval import split as _split
+from neptune_fetcher.alpha.internal.retrieval import util as _util
 
 
 def list_attributes(

@@ -30,7 +30,7 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client.search import fetch_experiment_sys_attrs
+from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-02-01"
