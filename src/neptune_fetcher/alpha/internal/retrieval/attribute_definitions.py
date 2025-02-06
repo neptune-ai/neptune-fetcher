@@ -15,11 +15,11 @@
 import functools as ft
 import itertools as it
 import re
-from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
     Iterable,
+    NamedTuple,
     Optional,
     Union,
 )
@@ -40,8 +40,7 @@ from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
 from neptune_fetcher.alpha.internal.retrieval import util
 
 
-@dataclass(frozen=True)
-class AttributeDefinition:
+class AttributeDefinition(NamedTuple):
     name: str
     type: str
 

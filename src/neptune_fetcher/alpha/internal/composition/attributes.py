@@ -14,11 +14,11 @@
 # limitations under the License.
 
 from concurrent.futures import Executor
-from dataclasses import dataclass
 from typing import (
     Generator,
     Iterable,
     Literal,
+    NamedTuple,
     Optional,
 )
 
@@ -34,8 +34,7 @@ from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as at
 from neptune_fetcher.alpha.internal.retrieval import util
 
 
-@dataclass(frozen=True)
-class AttributeDefinitionAggregation:
+class AttributeDefinitionAggregation(NamedTuple):
     attribute_definition: att_defs.AttributeDefinition
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]]
 

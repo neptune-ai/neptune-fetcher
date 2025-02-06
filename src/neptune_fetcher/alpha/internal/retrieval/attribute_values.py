@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools as ft
-from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
     Iterable,
+    NamedTuple,
     Optional,
 )
 
@@ -38,8 +38,7 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
 )
 
 
-@dataclass(frozen=True)
-class AttributeValue:
+class AttributeValue(NamedTuple):
     attribute_definition: AttributeDefinition
     value: Any
     experiment_identifier: identifiers.ExperimentIdentifier

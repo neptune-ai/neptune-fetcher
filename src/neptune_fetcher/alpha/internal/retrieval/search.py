@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools as ft
-from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
@@ -27,6 +26,7 @@ from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
+from typing_extensions import NamedTuple
 
 from neptune_fetcher.alpha.filters import (
     Attribute,
@@ -49,8 +49,7 @@ def _map_direction(direction: Literal["asc", "desc"]) -> str:
     return _DIRECTION_PYTHON_TO_BACKEND_MAP[direction]
 
 
-@dataclass(frozen=True)
-class ExperimentSysAttrs:
+class ExperimentSysAttrs(NamedTuple):
     sys_name: identifiers.SysName
     sys_id: identifiers.SysId
 

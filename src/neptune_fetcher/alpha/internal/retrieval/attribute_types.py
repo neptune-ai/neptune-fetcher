@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-from dataclasses import dataclass
 from typing import (
     Any,
+    NamedTuple,
     Optional,
 )
 
@@ -45,8 +45,7 @@ def map_attribute_type_backend_to_python(_type: str) -> str:
     return _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP.get(_type, _type)
 
 
-@dataclass(frozen=True)
-class FloatSeriesAggregations:
+class FloatSeriesAggregations(NamedTuple):
     last: float
     min: float
     max: float
