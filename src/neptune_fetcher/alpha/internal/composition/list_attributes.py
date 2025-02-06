@@ -30,18 +30,22 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
-from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
-from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.composition import (
+    concurrency,
+    type_inference,
+)
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as _adef
-from neptune_fetcher.alpha.internal.retrieval import search as _search
-from neptune_fetcher.alpha.internal.retrieval import split as _split
-from neptune_fetcher.alpha.internal.retrieval import util as _util
+from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
+from neptune_fetcher.alpha.internal.retrieval import (
+    search,
+    split,
+    util,
+)
 
 
 def list_attributes(
@@ -68,7 +72,7 @@ def list_attributes(
     valid_context = validate_context(context or get_context())
     client = _client.get_client(valid_context)
     assert valid_context.project is not None  # mypy TODO: remove at some point
-    project_identifier = _identifiers.ProjectIdentifier(valid_context.project)
+    project_identifier = identifiers.ProjectIdentifier(valid_context.project)
 
     if isinstance(experiments, str):
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
@@ -79,10 +83,10 @@ def list_attributes(
         attributes = AttributeFilter(name_matches_all=[attributes])
 
     with (
-        _concurrency.create_thread_pool_executor() as executor,
-        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        concurrency.create_thread_pool_executor() as executor,
+        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        _infer.infer_attribute_types_in_filter(
+        type_inference.infer_attribute_types_in_filter(
             client,
             project_identifier,
             experiments,
@@ -104,27 +108,27 @@ def list_attributes(
 
 def _list_attributes(
     client: _client.AuthenticatedClient,
-    project_id: _identifiers.ProjectIdentifier,
+    project_id: identifiers.ProjectIdentifier,
     experiment_filter: Optional[Filter],
     attribute_filter: BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
 ) -> Generator[str, None, None]:
     if experiment_filter is not None:
-        output = _concurrency.generate_concurrently(
-            items=_search.fetch_experiment_sys_attrs(
+        output = concurrency.generate_concurrently(
+            items=search.fetch_experiment_sys_attrs(
                 client,
                 project_identifier=project_id,
                 experiment_filter=experiment_filter,
             ),
             executor=executor,
-            downstream=lambda experiments_page: _concurrency.generate_concurrently(
-                items=_split.split_experiments(
-                    [_identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+            downstream=lambda experiments_page: concurrency.generate_concurrently(
+                items=split.split_experiments(
+                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
                 ),
                 executor=executor,
-                downstream=lambda experiment_identifier_split: _concurrency.generate_concurrently(
-                    items=_adef.fetch_attribute_definitions(
+                downstream=lambda experiment_identifier_split: concurrency.generate_concurrently(
+                    items=att_defs.fetch_attribute_definitions(
                         client,
                         [project_id],
                         experiment_identifier_split,
@@ -132,13 +136,13 @@ def _list_attributes(
                         fetch_attribute_definitions_executor,
                     ),
                     executor=executor,
-                    downstream=_concurrency.return_value,
+                    downstream=concurrency.return_value,
                 ),
             ),
         )
     else:
-        output = _concurrency.generate_concurrently(
-            items=_adef.fetch_attribute_definitions(
+        output = concurrency.generate_concurrently(
+            items=att_defs.fetch_attribute_definitions(
                 client,
                 [project_id],
                 None,
@@ -146,10 +150,10 @@ def _list_attributes(
                 fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=_concurrency.return_value,
+            downstream=concurrency.return_value,
         )
 
-    results: Generator[_util.Page[_adef.AttributeDefinition], None, None] = _concurrency.gather_results(output)
+    results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
     for page in results:
         for item in page.items:
             yield item.name

@@ -22,7 +22,6 @@ from typing import (
     Literal,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
@@ -37,8 +36,11 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.client import get_client
-from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
-from neptune_fetcher.alpha.internal.composition import type_inference as _infer
+from neptune_fetcher.alpha.internal.composition import (
+    concurrency,
+    type_inference,
+)
+from neptune_fetcher.alpha.internal.composition.util import batched
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
@@ -68,8 +70,7 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 
-T = TypeVar("T")
-PATHS_PER_BATCH: int = 10_000
+_PATHS_PER_BATCH: int = 10_000
 
 
 def fetch_metrics(
@@ -125,10 +126,10 @@ def fetch_metrics(
     )
 
     with (
-        _concurrency.create_thread_pool_executor() as executor,
-        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        concurrency.create_thread_pool_executor() as executor,
+        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        _infer.infer_attribute_types_in_filter(
+        type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
             experiment_filter=experiments,
@@ -266,7 +267,7 @@ def _fetch_flat_dataframe_metrics(
                 if _path.type == "float_series"
             ]
 
-            for batch in _batch(exp_paths, PATHS_PER_BATCH):
+            for batch in batched(exp_paths, _PATHS_PER_BATCH):
                 _futures.append(executor.submit(fetch_values, batch))
 
         return _futures, []
@@ -315,12 +316,6 @@ def _fetch_flat_dataframe_metrics(
 
     df = _create_flat_dataframe(_start())
     return df
-
-
-def _batch(iterable: list[T], n: int) -> Iterable[list[T]]:
-    length = len(iterable)
-    for ndx in range(0, length, n):
-        yield iterable[ndx : min(ndx + n, length)]
 
 
 def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:

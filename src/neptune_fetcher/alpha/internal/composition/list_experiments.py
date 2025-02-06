@@ -23,10 +23,12 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import context as _context
-from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
-from neptune_fetcher.alpha.internal.composition import type_inference as _infer
-from neptune_fetcher.alpha.internal.retrieval import search as _search
+from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.composition import (
+    concurrency,
+    type_inference,
+)
+from neptune_fetcher.alpha.internal.retrieval import search
 
 __all__ = ("list_experiments",)
 
@@ -46,16 +48,16 @@ def list_experiments(
 
     validated_context = _context.validate_context(context or _context.get_context())
     client = _client.get_client(validated_context)
-    project_identifier = _identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
+    project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
     if isinstance(experiments, str):
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
     with (
-        _concurrency.create_thread_pool_executor() as executor,
-        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        concurrency.create_thread_pool_executor() as executor,
+        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        _infer.infer_attribute_types_in_filter(
+        type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
             experiment_filter=experiments,
@@ -63,6 +65,6 @@ def list_experiments(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-        pages = _search.fetch_experiment_sys_attrs(client, project_identifier, experiments)
+        pages = search.fetch_experiment_sys_attrs(client, project_identifier, experiments)
 
         return list(exp.sys_name for page in pages for exp in page.items)

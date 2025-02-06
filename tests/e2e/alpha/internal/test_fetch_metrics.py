@@ -26,6 +26,7 @@ import pandas as pd
 import pytest
 from neptune_scale import Run
 
+from neptune_fetcher.alpha import fetch_metrics
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
@@ -34,7 +35,6 @@ from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition.fetch_metrics import (
     _transform_with_absolute_timestamp,
     _transform_without_timestamp,
-    fetch_metrics,
 )
 from neptune_fetcher.alpha.internal.context import get_context
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
