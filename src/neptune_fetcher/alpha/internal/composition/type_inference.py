@@ -28,7 +28,9 @@ from neptune_fetcher.alpha.exception import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _attribute
 from neptune_fetcher.alpha.internal.api_client import search as _search
+from neptune_fetcher.alpha.internal.api_client import split as _split
 from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 
 
 def infer_attribute_types_in_filter(
@@ -112,7 +114,7 @@ def _infer_attribute_types_from_api(
     attribute_filter_by_name = _filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
     if experiment_filter is None:
-        output = _util.generate_concurrently(
+        output = _concurrency.generate_concurrently(
             _attribute.fetch_attribute_definitions(
                 client=client,
                 project_identifiers=[project_identifier],
@@ -121,25 +123,25 @@ def _infer_attribute_types_from_api(
                 executor=fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=_util.return_value,
+            downstream=_concurrency.return_value,
         )
     else:
-        output = _util.generate_concurrently(
+        output = _concurrency.generate_concurrently(
             items=_search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project_identifier,
                 experiment_filter=experiment_filter,
             ),
             executor=executor,
-            downstream=lambda experiment_page: _util.generate_concurrently(
-                items=_util.split_experiments(
+            downstream=lambda experiment_page: _concurrency.generate_concurrently(
+                items=_split.split_experiments(
                     [
                         _identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
                         for experiment in experiment_page.items
                     ]
                 ),
                 executor=executor,
-                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
+                downstream=lambda experiment_identifiers_split: _concurrency.generate_concurrently(
                     _attribute.fetch_attribute_definitions(
                         client=client,
                         project_identifiers=[project_identifier],
@@ -148,13 +150,13 @@ def _infer_attribute_types_from_api(
                         executor=fetch_attribute_definitions_executor,
                     ),
                     executor=executor,
-                    downstream=_util.return_value,
+                    downstream=_concurrency.return_value,
                 ),
             ),
         )
     attribute_definition_pages: Generator[
         _util.Page[_attribute.AttributeDefinition], None, None
-    ] = _util.gather_results(output)
+    ] = _concurrency.gather_results(output)
 
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
     for attribute_definition_page in attribute_definition_pages:

@@ -33,9 +33,9 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.api_client import util as _util
 from neptune_fetcher.alpha.internal.api_client.client import get_client
 from neptune_fetcher.alpha.internal.api_client.metrics import fetch_flat_dataframe_metrics
+from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
 
@@ -92,8 +92,8 @@ def fetch_metrics(
     )
 
     with (
-        _util.create_thread_pool_executor() as executor,
-        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        _concurrency.create_thread_pool_executor() as executor,
+        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
         _infer.infer_attribute_types_in_filter(
             client=client,

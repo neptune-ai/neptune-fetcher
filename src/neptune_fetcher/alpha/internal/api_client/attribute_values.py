@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools as ft
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -27,19 +26,12 @@ from neptune_retrieval_api.api.default import query_attributes_within_project_pr
 from neptune_retrieval_api.models import QueryAttributesBodyDTO
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
-import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.api_client import (
-    search,
-    util,
-)
-from neptune_fetcher.alpha.internal.api_client.attribute_definitions import (
-    AttributeDefinition,
-    fetch_attribute_definitions,
-)
+from neptune_fetcher.alpha.internal.api_client import util
+from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.api_client.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
@@ -144,56 +136,3 @@ def _make_new_attribute_values_page_params(
 
     params["nextPage"]["nextPageToken"] = next_page_token
     return params
-
-
-def list_attributes(
-    client: AuthenticatedClient,
-    project_id: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filters.Filter],
-    attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
-) -> Generator[str, None, None]:
-    if experiment_filter is not None:
-        output = util.generate_concurrently(
-            items=search.fetch_experiment_sys_attrs(
-                client,
-                project_identifier=project_id,
-                experiment_filter=experiment_filter,
-            ),
-            executor=executor,
-            downstream=lambda experiments_page: util.generate_concurrently(
-                items=util.split_experiments(
-                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                ),
-                executor=executor,
-                downstream=lambda experiment_identifier_split: util.generate_concurrently(
-                    items=fetch_attribute_definitions(
-                        client,
-                        [project_id],
-                        experiment_identifier_split,
-                        attribute_filter,
-                        fetch_attribute_definitions_executor,
-                    ),
-                    executor=executor,
-                    downstream=util.return_value,
-                ),
-            ),
-        )
-    else:
-        output = util.generate_concurrently(
-            items=fetch_attribute_definitions(
-                client,
-                [project_id],
-                None,
-                attribute_filter,
-                fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=util.return_value,
-        )
-
-    results: Generator[util.Page[AttributeDefinition], None, None] = util.gather_results(output)
-    for page in results:
-        for item in page.items:
-            yield item.name

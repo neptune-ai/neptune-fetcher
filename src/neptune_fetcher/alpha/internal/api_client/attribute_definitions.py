@@ -41,6 +41,7 @@ from neptune_fetcher.alpha.internal import (
 )
 from neptune_fetcher.alpha.internal.api_client import attribute_types as types
 from neptune_fetcher.alpha.internal.api_client import util
+from neptune_fetcher.alpha.internal.composition import concurrency
 
 
 @dataclass(frozen=True)
@@ -149,16 +150,16 @@ def _fetch_attribute_definitions(
         for page in go_fetch_single(head):
             yield page, head
     else:
-        output = util.generate_concurrently(
+        output = concurrency.generate_concurrently(
             items=(_filter for _filter in filters_),
             executor=executor,
-            downstream=lambda _filter: util.generate_concurrently(
+            downstream=lambda _filter: concurrency.generate_concurrently(
                 items=go_fetch_single(_filter),
                 executor=executor,
-                downstream=lambda _page: util.return_value((_page, _filter)),
+                downstream=lambda _page: concurrency.return_value((_page, _filter)),
             ),
         )
-        yield from util.gather_results(output)
+        yield from concurrency.gather_results(output)
 
 
 def _fetch_attribute_definitions_single_filter(

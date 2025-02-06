@@ -7,7 +7,7 @@ from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.api_client.attribute_values import AttributeValue
-from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
+from neptune_fetcher.alpha.internal.output_format import convert_experiment_table_to_dataframe
 
 EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")

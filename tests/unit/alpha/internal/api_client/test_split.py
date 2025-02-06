@@ -4,7 +4,7 @@ import pytest
 
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.api_client.util import (
+from neptune_fetcher.alpha.internal.api_client.split import (
     split_experiments,
     split_experiments_attributes,
 )

@@ -26,7 +26,7 @@ from neptune_fetcher.alpha.filters import (
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
 from neptune_fetcher.alpha.internal.api_client import client as _client
 from neptune_fetcher.alpha.internal.api_client import search as _search
-from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
 __all__ = ("list_experiments",)
@@ -53,8 +53,8 @@ def list_experiments(
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
     with (
-        _util.create_thread_pool_executor() as executor,
-        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        _concurrency.create_thread_pool_executor() as executor,
+        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
         _infer.infer_attribute_types_in_filter(
             client=client,

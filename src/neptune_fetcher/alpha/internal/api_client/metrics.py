@@ -51,7 +51,10 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.api_client import util
+from neptune_fetcher.alpha.internal.api_client import (
+    split,
+    util,
+)
 from neptune_fetcher.alpha.internal.api_client.attribute_definitions import (
     AttributeDefinition,
     fetch_attribute_definitions,
@@ -150,7 +153,7 @@ def fetch_flat_dataframe_metrics(
             ]
             sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
 
-            for experiment_identifiers_split in util.split_experiments(experiment_identifiers):
+            for experiment_identifiers_split in split.split_experiments(experiment_identifiers):
                 sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,

@@ -30,12 +30,14 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal import output as _output
+from neptune_fetcher.alpha.internal import output_format as _output
 from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _adef
 from neptune_fetcher.alpha.internal.api_client import attribute_values as _aval
 from neptune_fetcher.alpha.internal.api_client import client as _client
 from neptune_fetcher.alpha.internal.api_client import search as _search
+from neptune_fetcher.alpha.internal.api_client import split as _split
 from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.composition import concurrency as _concurrency
 from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
 __all__ = ("fetch_experiments_table",)
@@ -92,8 +94,8 @@ def fetch_experiments_table(
         sort_by_attribute = sort_by
 
     with (
-        _util.create_thread_pool_executor() as executor,
-        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        _concurrency.create_thread_pool_executor() as executor,
+        _concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
 
         _infer.infer_attribute_types_in_filter(
@@ -175,31 +177,31 @@ def fetch_experiments_table(
                     aggregations[item.attribute_definition].add(item.aggregation)
             return aggregations
 
-        output = _util.generate_concurrently(
+        output = _concurrency.generate_concurrently(
             items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
             executor=executor,
-            downstream=lambda experiment_identifiers: _util.generate_concurrently(
-                items=_util.split_experiments(experiment_identifiers),
+            downstream=lambda experiment_identifiers: _concurrency.generate_concurrently(
+                items=_split.split_experiments(experiment_identifiers),
                 executor=executor,
-                downstream=lambda experiment_identifiers_split: _util.generate_concurrently(
+                downstream=lambda experiment_identifiers_split: _concurrency.generate_concurrently(
                     items=go_fetch_attribute_definitions(experiment_identifiers_split),
                     executor=executor,
-                    downstream=lambda definition_aggs_page: _util.fork_concurrently(
+                    downstream=lambda definition_aggs_page: _concurrency.fork_concurrently(
                         item=definition_aggs_page,
                         executor=executor,
                         downstreams=[
-                            lambda _definition_aggs_page: _util.generate_concurrently(
-                                items=_util.split_experiments_attributes(
+                            lambda _definition_aggs_page: _concurrency.generate_concurrently(
+                                items=_split.split_experiments_attributes(
                                     experiment_identifiers_split, filter_definitions(_definition_aggs_page)
                                 ),
                                 executor=executor,
-                                downstream=lambda split_pair: _util.generate_concurrently(
+                                downstream=lambda split_pair: _concurrency.generate_concurrently(
                                     items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
                                     executor=executor,
-                                    downstream=_util.return_value,
+                                    downstream=_concurrency.return_value,
                                 ),
                             ),
-                            lambda _definition_aggs_page: _util.return_value(
+                            lambda _definition_aggs_page: _concurrency.return_value(
                                 collect_aggregations(_definition_aggs_page)
                             ),
                         ],
@@ -209,7 +211,7 @@ def fetch_experiments_table(
         )
         results: Generator[
             Union[_util.Page[_aval.AttributeValue], dict[_adef.AttributeDefinition, set[str]]], None, None
-        ] = _util.gather_results(output)
+        ] = _concurrency.gather_results(output)
 
         for result in results:
             if isinstance(result, _util.Page):
