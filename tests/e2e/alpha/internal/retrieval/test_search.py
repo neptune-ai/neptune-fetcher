@@ -24,8 +24,8 @@ ONE_SECOND = timedelta(seconds=1)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-02-03"
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-experiment-{TEST_DATA_VERSION}"
-PATH = f"test/test-internal-experiment-{TEST_DATA_VERSION}"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-search-{TEST_DATA_VERSION}"
+PATH = f"test/test-internal-retrieval-search-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]

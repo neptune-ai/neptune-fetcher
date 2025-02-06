@@ -31,6 +31,7 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.composition import attributes as _attributes
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
@@ -128,7 +129,7 @@ def _list_attributes(
                 ),
                 executor=executor,
                 downstream=lambda experiment_identifier_split: concurrency.generate_concurrently(
-                    items=att_defs.fetch_attribute_definitions(
+                    items=_attributes.fetch_attribute_definitions(
                         client,
                         [project_id],
                         experiment_identifier_split,
@@ -142,7 +143,7 @@ def _list_attributes(
         )
     else:
         output = concurrency.generate_concurrently(
-            items=att_defs.fetch_attribute_definitions(
+            items=_attributes.fetch_attribute_definitions(
                 client,
                 [project_id],
                 None,

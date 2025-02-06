@@ -33,6 +33,7 @@ from neptune_fetcher.alpha.internal import (
     identifiers,
     output_format,
 )
+from neptune_fetcher.alpha.internal.composition import attributes as _attributes
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
@@ -144,8 +145,8 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_definitions(
             experiment_identifiers: list[identifiers.ExperimentIdentifier],
-        ) -> Generator[util.Page[att_defs.AttributeDefinitionAggregation], None, None]:
-            return att_defs.fetch_attribute_definition_aggregations(
+        ) -> Generator[util.Page[_attributes.AttributeDefinitionAggregation], None, None]:
+            return _attributes.fetch_attribute_definition_aggregations(
                 client=client,
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
@@ -165,7 +166,7 @@ def fetch_experiments_table(
             )
 
         def filter_definitions(
-            attribute_definition_aggregation_page: util.Page[att_defs.AttributeDefinitionAggregation],
+            attribute_definition_aggregation_page: util.Page[_attributes.AttributeDefinitionAggregation],
         ) -> list[att_defs.AttributeDefinition]:
             return [
                 item.attribute_definition
@@ -174,7 +175,7 @@ def fetch_experiments_table(
             ]
 
         def collect_aggregations(
-            attribute_definition_aggregation_page: util.Page[att_defs.AttributeDefinitionAggregation],
+            attribute_definition_aggregation_page: util.Page[_attributes.AttributeDefinitionAggregation],
         ) -> dict[att_defs.AttributeDefinition, set[str]]:
             aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
             for item in attribute_definition_aggregation_page.items:

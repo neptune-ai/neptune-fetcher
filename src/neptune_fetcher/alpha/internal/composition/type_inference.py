@@ -27,6 +27,7 @@ from neptune_fetcher.alpha import filters
 from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import concurrency
+from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
@@ -117,7 +118,7 @@ def _infer_attribute_types_from_api(
 
     if experiment_filter is None:
         output = concurrency.generate_concurrently(
-            att_defs.fetch_attribute_definitions(
+            fetch_attribute_definitions(
                 client=client,
                 project_identifiers=[project_identifier],
                 experiment_identifiers=None,
@@ -144,7 +145,7 @@ def _infer_attribute_types_from_api(
                 ),
                 executor=executor,
                 downstream=lambda experiment_identifiers_split: concurrency.generate_concurrently(
-                    att_defs.fetch_attribute_definitions(
+                    fetch_attribute_definitions(
                         client=client,
                         project_identifiers=[project_identifier],
                         experiment_identifiers=experiment_identifiers_split,

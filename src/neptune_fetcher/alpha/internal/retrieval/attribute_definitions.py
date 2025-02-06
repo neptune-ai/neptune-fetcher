@@ -15,14 +15,11 @@
 import functools as ft
 import itertools as it
 import re
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
     Iterable,
-    List,
-    Literal,
     Optional,
     Union,
 )
@@ -39,7 +36,6 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
 from neptune_fetcher.alpha.internal.retrieval import util
 
@@ -50,124 +46,23 @@ class AttributeDefinition:
     type: str
 
 
-@dataclass(frozen=True)
-class AttributeDefinitionAggregation:
-    attribute_definition: AttributeDefinition
-    aggregation: Optional[Literal["last", "min", "max", "average", "variance"]]
-
-
-def _split_to_tasks(
+def split_attribute_filters(
     _attribute_filter: filters.BaseAttributeFilter,
-) -> List[filters.AttributeFilter]:
+) -> list[filters.AttributeFilter]:
     if isinstance(_attribute_filter, filters.AttributeFilter):
         return [_attribute_filter]
     elif isinstance(_attribute_filter, filters._AttributeFilterAlternative):
-        return list(it.chain.from_iterable(_split_to_tasks(child) for child in _attribute_filter.filters))
+        return list(it.chain.from_iterable(split_attribute_filters(child) for child in _attribute_filter.filters))
     else:
         raise RuntimeError(f"Unexpected filter type: {type(_attribute_filter)}")
 
 
-def fetch_attribute_definitions(
-    client: AuthenticatedClient,
-    project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
-    attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeDefinition], None, None]:
-    pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
-    )
-
-    seen_items: set[AttributeDefinition] = set()
-    for page, _filter in pages_filters:
-        new_items = [item for item in page.items if item not in seen_items]
-        seen_items.update(new_items)
-        yield util.Page(items=new_items)
-
-
-def fetch_attribute_definition_aggregations(
-    client: AuthenticatedClient,
-    project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
-    attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
-    """
-    Each attribute definition is yielded once with aggregation=None when it's first encountered.
-    If the attribute definition is of a type that supports aggregations (for now only float_series),
-    it's then yielded again for each aggregation in the filter.
-    """
-
-    pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
-    )
-
-    seen_items: set[AttributeDefinitionAggregation] = set()
-
-    for page, _filter in pages_filters:
-        new_items = []
-        for item in page.items:
-            attribute_aggregation = AttributeDefinitionAggregation(attribute_definition=item, aggregation=None)
-            if attribute_aggregation not in seen_items:
-                new_items.append(attribute_aggregation)
-                seen_items.add(attribute_aggregation)
-
-            if item.type == "float_series":
-                for aggregation in _filter.aggregations:
-                    attribute_aggregation = AttributeDefinitionAggregation(
-                        attribute_definition=item, aggregation=aggregation
-                    )
-                    if attribute_aggregation not in seen_items:
-                        new_items.append(attribute_aggregation)
-                        seen_items.add(attribute_aggregation)
-
-        yield util.Page(items=new_items)
-
-
-def _fetch_attribute_definitions(
-    client: AuthenticatedClient,
-    project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
-    attribute_filter: filters.BaseAttributeFilter,
-    batch_size: int,
-    executor: Executor,
-) -> Generator[tuple[util.Page[AttributeDefinition], filters.AttributeFilter], None, None]:
-    def go_fetch_single(_filter: filters.AttributeFilter) -> Generator[util.Page[AttributeDefinition], None, None]:
-        return _fetch_attribute_definitions_single_filter(
-            client=client,
-            project_identifiers=project_identifiers,
-            experiment_identifiers=experiment_identifiers,
-            attribute_filter=_filter,
-            batch_size=batch_size,
-        )
-
-    filters_ = _split_to_tasks(attribute_filter)
-
-    if len(filters_) == 1:
-        head = filters_[0]
-        for page in go_fetch_single(head):
-            yield page, head
-    else:
-        output = concurrency.generate_concurrently(
-            items=(_filter for _filter in filters_),
-            executor=executor,
-            downstream=lambda _filter: concurrency.generate_concurrently(
-                items=go_fetch_single(_filter),
-                executor=executor,
-                downstream=lambda _page: concurrency.return_value((_page, _filter)),
-            ),
-        )
-        yield from concurrency.gather_results(output)
-
-
-def _fetch_attribute_definitions_single_filter(
+def fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
     attribute_filter: filters.AttributeFilter,
-    batch_size: int,
+    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),

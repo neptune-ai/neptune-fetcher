@@ -40,6 +40,7 @@ from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
 )
+from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
 from neptune_fetcher.alpha.internal.composition.util import batched
 from neptune_fetcher.alpha.internal.context import (
     Context,
@@ -51,10 +52,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
     split,
     util,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
-    AttributeDefinition,
-    fetch_attribute_definitions,
-)
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.metrics import (
     AttributePathIndex,
     AttributePathInExperiment,
