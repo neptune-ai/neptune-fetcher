@@ -28,17 +28,14 @@ __all__ = [
 ]
 
 import neptune_fetcher.alpha.filters as filters
-from neptune_fetcher.alpha.attribute import list_attributes
-from neptune_fetcher.alpha.context import (
+from neptune_fetcher.alpha.internal.composition.fetch_experiments_table import fetch_experiments_table
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import fetch_metrics
+from neptune_fetcher.alpha.internal.composition.list_attributes import list_attributes
+from neptune_fetcher.alpha.internal.composition.list_experiments import list_experiments
+from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
     set_api_token,
     set_context,
     set_project,
 )
-
-from .experiment import (
-    fetch_experiments_table,
-    list_experiments,
-)
-from .fetch_metrics import fetch_metrics

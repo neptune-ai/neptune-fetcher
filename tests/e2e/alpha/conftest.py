@@ -12,7 +12,7 @@ from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 from pytest import fixture
 
-from neptune_fetcher.alpha.internal import util
+from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.api.api_client import (
     create_auth_api_client,
     get_config_and_token_urls,
@@ -35,7 +35,7 @@ def client() -> AuthenticatedClient:
 
 @fixture(scope="module")
 def executor() -> Executor:
-    return util.create_thread_pool_executor()
+    return concurrency.create_thread_pool_executor()
 
 
 def pytest_set_filtered_exceptions() -> list[type[BaseException]]:

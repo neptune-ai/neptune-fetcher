@@ -6,21 +6,21 @@ from datetime import (
 
 import pytest
 
+from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
-from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
-from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
-from neptune_fetcher.alpha.internal.infer import (
+from neptune_fetcher.alpha.internal.composition.type_inference import (
     infer_attribute_types_in_filter,
     infer_attribute_types_in_sort_by,
 )
+from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-infer-a-{TEST_DATA_VERSION}"
-EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-infer-b-{TEST_DATA_VERSION}"
+EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-composition-type-inference-a-{TEST_DATA_VERSION}"
+EXPERIMENT_NAME_B = f"pye2e-fetcher-test-internal-composition-type-inference-b-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-infer-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]

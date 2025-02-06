@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.alpha.fetch_metrics import (
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import (
     _transform_with_absolute_timestamp,
     _transform_without_timestamp,
     _validate_include_time,

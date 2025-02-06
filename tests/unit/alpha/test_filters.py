@@ -7,7 +7,7 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import types
+from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
 
 
 def test_attribute_valid_values():

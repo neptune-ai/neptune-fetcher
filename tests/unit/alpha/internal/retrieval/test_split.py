@@ -2,15 +2,13 @@ import os
 
 import pytest
 
-from neptune_fetcher.alpha.internal import (
-    attribute,
-    identifiers,
-)
+from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.env import (
     NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE,
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
 )
-from neptune_fetcher.alpha.internal.util import (
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.retrieval.split import (
     split_experiments,
     split_experiments_attributes,
 )
@@ -20,7 +18,7 @@ EXPERIMENT_IDENTIFIERS = [
     for n in range(10)
 ]
 EXPERIMENT_IDENTIFIER = EXPERIMENT_IDENTIFIERS[0]
-ATTRIBUTE_DEFINITIONS = [attribute.AttributeDefinition(f"config/attribute{n}", "string") for n in range(10)]
+ATTRIBUTE_DEFINITIONS = [AttributeDefinition(f"config/attribute{n}", "string") for n in range(10)]
 ATTRIBUTE_DEFINITION = ATTRIBUTE_DEFINITIONS[0]
 ATTRIBUTE_DEFINITION_SIZES = [len(attr.name) for attr in ATTRIBUTE_DEFINITIONS]
 ATTRIBUTE_DEFINITION_SIZE = ATTRIBUTE_DEFINITION_SIZES[0]

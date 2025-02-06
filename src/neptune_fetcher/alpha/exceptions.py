@@ -144,7 +144,7 @@ UNIX_STYLES = {
 _styles = UNIX_STYLES if platform.system() in ["Linux", "Darwin"] else EMPTY_STYLES
 
 
-def get_styles() -> Dict[str, str]:
+def _get_styles() -> Dict[str, str]:  # TODO: unused?
     if env.NEPTUNE_ENABLE_COLORS.get():
         return _styles
     return EMPTY_STYLES
