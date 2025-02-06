@@ -24,14 +24,12 @@ __all__ = [
     "list_attributes",
     "fetch_experiments_table",
     "fetch_metrics",
-    "filters",
 ]
 
-import neptune_fetcher.alpha.filters as filters
-from neptune_fetcher.alpha.internal.composition.fetch_experiments_table import fetch_experiments_table
-from neptune_fetcher.alpha.internal.composition.fetch_metrics import fetch_metrics
-from neptune_fetcher.alpha.internal.composition.list_attributes import list_attributes
-from neptune_fetcher.alpha.internal.composition.list_experiments import list_experiments
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import fetch_experiment_metrics as fetch_metrics
+from neptune_fetcher.alpha.internal.composition.fetch_table import fetch_experiments_table
+from neptune_fetcher.alpha.internal.composition.list_attributes import list_experiment_attributes as list_attributes
+from neptune_fetcher.alpha.internal.composition.list_containers import list_experiments
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,

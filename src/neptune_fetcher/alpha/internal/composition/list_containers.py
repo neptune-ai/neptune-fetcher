@@ -30,7 +30,10 @@ from neptune_fetcher.alpha.internal.composition import (
 )
 from neptune_fetcher.alpha.internal.retrieval import search
 
-__all__ = ("list_experiments",)
+__all__ = (
+    "list_experiments",
+    "list_runs",
+)
 
 
 def list_experiments(
@@ -68,3 +71,10 @@ def list_experiments(
         pages = search.fetch_experiment_sys_attrs(client, project_identifier, experiments)
 
         return list(exp.sys_name for page in pages for exp in page.items)
+
+
+def list_runs(
+    runs: Optional[Union[str, Filter]] = None,
+    context: Optional[_context.Context] = None,
+) -> list[str]:
+    return []

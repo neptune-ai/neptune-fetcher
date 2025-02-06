@@ -68,10 +68,16 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 
+__all__ = (
+    "fetch_experiment_metrics",
+    "fetch_run_metrics",
+)
+
+
 _PATHS_PER_BATCH: int = 10_000
 
 
-def fetch_metrics(
+def fetch_experiment_metrics(
     experiments: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
@@ -153,6 +159,19 @@ def fetch_metrics(
     #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
         return _transform_without_timestamp(df, type_suffix_in_column_names)
+
+
+def fetch_run_metrics(
+    experiments: Union[str, Filter],
+    attributes: Union[str, AttributeFilter],
+    include_time: Optional[Literal["absolute"]] = None,
+    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
+    lineage_to_the_root: bool = True,
+    tail_limit: Optional[int] = None,
+    type_suffix_in_column_names: bool = False,
+    context: Optional[Context] = None,
+) -> pd.DataFrame:
+    ...
 
 
 def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
