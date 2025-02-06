@@ -31,11 +31,11 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import api_client as _api_client
-from neptune_fetcher.alpha.internal import attribute as _attribute
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal import infer as _infer
-from neptune_fetcher.alpha.internal import util as _util
+from neptune_fetcher.alpha.internal.api_client import attribute_values as _aval
+from neptune_fetcher.alpha.internal.api_client import client as _client
+from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
 
 def list_attributes(
@@ -60,7 +60,7 @@ def list_attributes(
     """
 
     valid_context = validate_context(context or get_context())
-    client = _api_client.get_client(valid_context)
+    client = _client.get_client(valid_context)
     assert valid_context.project is not None  # mypy TODO: remove at some point
     project_identifier = _identifiers.ProjectIdentifier(valid_context.project)
 
@@ -84,7 +84,7 @@ def list_attributes(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-        result = _attribute.list_attributes(
+        result = _aval.list_attributes(
             client,
             project_identifier,
             experiment_filter=experiments,

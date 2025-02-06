@@ -6,13 +6,13 @@ from datetime import (
 
 import pytest
 
+from neptune_fetcher.alpha.exception import AttributeTypeInferenceError
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
-from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
-from neptune_fetcher.alpha.internal.experiment import fetch_experiment_sys_attrs
-from neptune_fetcher.alpha.internal.infer import (
+from neptune_fetcher.alpha.internal.api_client.search import fetch_experiment_sys_attrs
+from neptune_fetcher.alpha.internal.composition.type_inference import (
     infer_attribute_types_in_filter,
     infer_attribute_types_in_sort_by,
 )

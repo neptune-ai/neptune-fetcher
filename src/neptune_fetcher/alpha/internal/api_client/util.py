@@ -36,12 +36,12 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
+from neptune_fetcher.alpha.exception import NeptuneError
 from neptune_fetcher.alpha.internal import (
-    attribute,
     env,
     identifiers,
 )
-from neptune_fetcher.util import NeptuneException
+from neptune_fetcher.alpha.internal.api_client import attribute_definitions as adef
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -114,7 +114,7 @@ def backoff_retry(
 
             # Not a TooManyRequests or InternalServerError code
             if not (code == 429 or 500 <= code < 600):
-                raise NeptuneException(f"Unexpected server response {response.status_code}: {str(response.content)}")
+                raise NeptuneError(f"Unexpected server response {response.status_code}: {str(response.content)}")
 
         if tries == max_tries:
             break
@@ -130,9 +130,9 @@ def backoff_retry(
     if last_response:
         msg.append(f"Last response: {last_response.status_code}: {str(last_response.content)}")
     if not msg:
-        raise NeptuneException("Unknown error occurred when requesting data")
+        raise NeptuneError("Unknown error occurred when requesting data")
 
-    raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+    raise NeptuneError(f"Failed to get response after {tries} retries. " + "\n".join(msg))
 
 
 def create_thread_pool_executor() -> Executor:
@@ -182,7 +182,7 @@ def gather_results(output: OUT) -> Generator[R, None, None]:
 _EXPERIMENT_SIZE = 50
 
 
-def _attribute_definition_size(attr: attribute.AttributeDefinition) -> int:
+def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
     return len(attr.name.encode("utf-8"))
 
 
@@ -209,8 +209,8 @@ def split_experiments(
 
 def split_experiments_attributes(
     experiment_identifiers: list[identifiers.ExperimentIdentifier],
-    attribute_definitions: list[attribute.AttributeDefinition],
-) -> Generator[tuple[list[identifiers.ExperimentIdentifier], list[attribute.AttributeDefinition]]]:
+    attribute_definitions: list[adef.AttributeDefinition],
+) -> Generator[tuple[list[identifiers.ExperimentIdentifier], list[adef.AttributeDefinition]]]:
     """
     Splits a pair of experiment identifiers and attribute_definitions into batches that:
     When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
@@ -248,13 +248,13 @@ def split_experiments_attributes(
 
 
 def _split_attribute_definitions(
-    attribute_definitions: list[attribute.AttributeDefinition],
-) -> list[list[attribute.AttributeDefinition]]:
+    attribute_definitions: list[adef.AttributeDefinition],
+) -> list[list[adef.AttributeDefinition]]:
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get() - _EXPERIMENT_SIZE
     attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
 
     attribute_batches = []
-    current_batch: list[attribute.AttributeDefinition] = []
+    current_batch: list[adef.AttributeDefinition] = []
     current_batch_size = 0
     for attr in attribute_definitions:
         attr_size = _attribute_definition_size(attr)

@@ -24,11 +24,11 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 import neptune_fetcher.alpha.filters as _filters
-from neptune_fetcher.alpha.internal import attribute as _attribute
-from neptune_fetcher.alpha.internal import experiment as _experiment
+from neptune_fetcher.alpha.exception import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal import util as _util
-from neptune_fetcher.alpha.internal.exception import AttributeTypeInferenceError
+from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _attribute
+from neptune_fetcher.alpha.internal.api_client import search as _search
+from neptune_fetcher.alpha.internal.api_client import util as _util
 
 
 def infer_attribute_types_in_filter(
@@ -125,7 +125,7 @@ def _infer_attribute_types_from_api(
         )
     else:
         output = _util.generate_concurrently(
-            items=_experiment.fetch_experiment_sys_attrs(
+            items=_search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project_identifier,
                 experiment_filter=experiment_filter,

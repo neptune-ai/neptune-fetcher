@@ -19,13 +19,11 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.internal.attribute import (
-    AttributeDefinition,
-    AttributeValue,
-)
-from neptune_fetcher.alpha.internal.exception import ConflictingAttributeTypes
+from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
+from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.api_client.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.identifiers import SysName
-from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 
 def convert_experiment_table_to_dataframe(

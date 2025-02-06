@@ -33,10 +33,10 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal import infer as _infer
-from neptune_fetcher.alpha.internal import util as _util
-from neptune_fetcher.alpha.internal.api_client import get_client
-from neptune_fetcher.alpha.internal.metric import fetch_flat_dataframe_metrics
+from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.api_client.client import get_client
+from neptune_fetcher.alpha.internal.api_client.metrics import fetch_flat_dataframe_metrics
+from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
 
 def fetch_metrics(

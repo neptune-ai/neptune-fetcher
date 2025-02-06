@@ -50,15 +50,13 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import (
-    identifiers,
-    util,
-)
-from neptune_fetcher.alpha.internal.attribute import (
+from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.api_client import util
+from neptune_fetcher.alpha.internal.api_client.attribute_definitions import (
     AttributeDefinition,
     fetch_attribute_definitions,
 )
-from neptune_fetcher.alpha.internal.experiment import (
+from neptune_fetcher.alpha.internal.api_client.search import (
     ExperimentSysAttrs,
     fetch_experiment_sys_attrs,
 )

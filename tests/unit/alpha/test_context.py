@@ -22,11 +22,11 @@ from neptune_fetcher.alpha.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal import env
-from neptune_fetcher.alpha.internal.exception import (
+from neptune_fetcher.alpha.exception import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )
+from neptune_fetcher.alpha.internal import env
 
 
 @fixture

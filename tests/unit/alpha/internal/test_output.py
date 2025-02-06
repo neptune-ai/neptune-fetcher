@@ -2,14 +2,12 @@ import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
+from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.attribute import (
-    AttributeDefinition,
-    AttributeValue,
-)
-from neptune_fetcher.alpha.internal.exception import ConflictingAttributeTypes
+from neptune_fetcher.alpha.internal.api_client.attribute_definitions import AttributeDefinition
+from neptune_fetcher.alpha.internal.api_client.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.api_client.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.output import convert_experiment_table_to_dataframe
-from neptune_fetcher.alpha.internal.types import FloatSeriesAggregations
 
 EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")

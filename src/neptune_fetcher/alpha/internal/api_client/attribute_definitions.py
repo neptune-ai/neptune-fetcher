@@ -28,29 +28,19 @@ from typing import (
 )
 
 from neptune_api.client import AuthenticatedClient
-from neptune_retrieval_api.api.default import (
-    query_attribute_definitions_within_project,
-    query_attributes_within_project_proto,
-)
+from neptune_retrieval_api.api.default import query_attribute_definitions_within_project
 from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
-    QueryAttributesBodyDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
 import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.internal import (
     env,
-    experiment,
     identifiers,
-    types,
-    util,
 )
-from neptune_fetcher.alpha.internal.types import (
-    extract_value,
-    map_attribute_type_backend_to_python,
-)
+from neptune_fetcher.alpha.internal.api_client import attribute_types as types
+from neptune_fetcher.alpha.internal.api_client import util
 
 
 @dataclass(frozen=True)
@@ -63,13 +53,6 @@ class AttributeDefinition:
 class AttributeDefinitionAggregation:
     attribute_definition: AttributeDefinition
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]]
-
-
-@dataclass(frozen=True)
-class AttributeValue:
-    attribute_definition: AttributeDefinition
-    value: Any
-    experiment_identifier: identifiers.ExperimentIdentifier
 
 
 def _split_to_tasks(
@@ -301,149 +284,3 @@ def _union_options(options: list[Optional[list[str]]]) -> Optional[list[str]]:
             result.extend(option)
 
     return result
-
-
-def fetch_attribute_values(
-    client: AuthenticatedClient,
-    project_identifier: identifiers.ProjectIdentifier,
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
-    attribute_definitions: Iterable[AttributeDefinition],
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeValue], None, None]:
-    attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
-    experiments = [str(e) for e in experiment_identifiers]
-
-    if not attribute_definitions_set or not experiment_identifiers:
-        yield from []
-        return
-
-    params: dict[str, Any] = {
-        "experimentIdsFilter": experiments,
-        "attributeNamesFilter": [ad.name for ad in attribute_definitions],
-        "nextPage": {"limit": batch_size},
-    }
-
-    yield from util.fetch_pages(
-        client=client,
-        fetch_page=ft.partial(_fetch_attribute_values_page, project_identifier=project_identifier),
-        process_page=ft.partial(
-            _process_attribute_values_page,
-            attribute_definitions_set=attribute_definitions_set,
-            project_identifier=project_identifier,
-        ),
-        make_new_page_params=_make_new_attribute_values_page_params,
-        params=params,
-    )
-
-
-def _fetch_attribute_values_page(
-    client: AuthenticatedClient,
-    params: dict[str, Any],
-    project_identifier: identifiers.ProjectIdentifier,
-) -> ProtoQueryAttributesResultDTO:
-    response = util.backoff_retry(
-        query_attributes_within_project_proto.sync_detailed,
-        client=client,
-        body=QueryAttributesBodyDTO.from_dict(params),
-        project_identifier=project_identifier,
-    )
-    return ProtoQueryAttributesResultDTO.FromString(response.content)
-
-
-def _process_attribute_values_page(
-    data: ProtoQueryAttributesResultDTO,
-    attribute_definitions_set: set[AttributeDefinition],
-    project_identifier: identifiers.ProjectIdentifier,
-) -> util.Page[AttributeValue]:
-    items = []
-    for entry in data.entries:
-        experiment_identifier = identifiers.ExperimentIdentifier(
-            project_identifier=project_identifier, sys_id=identifiers.SysId(entry.experimentShortId)
-        )
-
-        for attr in entry.attributes:
-            attr_definition = AttributeDefinition(name=attr.name, type=map_attribute_type_backend_to_python(attr.type))
-            if attr_definition not in attribute_definitions_set:
-                continue
-
-            item_value = extract_value(attr)
-            if item_value is None:
-                continue
-
-            attr_value = AttributeValue(
-                attribute_definition=attr_definition,
-                value=item_value,
-                experiment_identifier=experiment_identifier,
-            )
-            items.append(attr_value)
-
-    return util.Page(items=items)
-
-
-def _make_new_attribute_values_page_params(
-    params: dict[str, Any], data: Optional[ProtoQueryAttributesResultDTO]
-) -> Optional[dict[str, Any]]:
-    if data is None:
-        if "nextPageToken" in params["nextPage"]:
-            del params["nextPage"]["nextPageToken"]
-        return params
-
-    next_page_token = data.nextPage.nextPageToken
-    if not next_page_token:
-        return None
-
-    params["nextPage"]["nextPageToken"] = next_page_token
-    return params
-
-
-def list_attributes(
-    client: AuthenticatedClient,
-    project_id: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filters.Filter],
-    attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
-) -> Generator[str, None, None]:
-    if experiment_filter is not None:
-        output = util.generate_concurrently(
-            items=experiment.fetch_experiment_sys_attrs(
-                client,
-                project_identifier=project_id,
-                experiment_filter=experiment_filter,
-            ),
-            executor=executor,
-            downstream=lambda experiments_page: util.generate_concurrently(
-                items=util.split_experiments(
-                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                ),
-                executor=executor,
-                downstream=lambda experiment_identifier_split: util.generate_concurrently(
-                    items=fetch_attribute_definitions(
-                        client,
-                        [project_id],
-                        experiment_identifier_split,
-                        attribute_filter,
-                        fetch_attribute_definitions_executor,
-                    ),
-                    executor=executor,
-                    downstream=util.return_value,
-                ),
-            ),
-        )
-    else:
-        output = util.generate_concurrently(
-            items=fetch_attribute_definitions(
-                client,
-                [project_id],
-                None,
-                attribute_filter,
-                fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=util.return_value,
-        )
-
-    results: Generator[util.Page[AttributeDefinition], None, None] = util.gather_results(output)
-    for page in results:
-        for item in page.items:
-            yield item.name

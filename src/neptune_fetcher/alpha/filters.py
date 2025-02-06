@@ -26,7 +26,7 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.alpha.internal import types
+from neptune_fetcher.alpha.internal.api_client import attribute_types as types
 
 __all__ = ["Filter", "AttributeFilter", "Attribute"]
 

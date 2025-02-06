@@ -29,18 +29,16 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import api_client as _api_client
-from neptune_fetcher.alpha.internal import attribute as _attribute
-from neptune_fetcher.alpha.internal import experiment as _experiment
 from neptune_fetcher.alpha.internal import identifiers as _identifiers
-from neptune_fetcher.alpha.internal import infer as _infer
 from neptune_fetcher.alpha.internal import output as _output
-from neptune_fetcher.alpha.internal import util as _util
+from neptune_fetcher.alpha.internal.api_client import attribute_definitions as _adef
+from neptune_fetcher.alpha.internal.api_client import attribute_values as _aval
+from neptune_fetcher.alpha.internal.api_client import client as _client
+from neptune_fetcher.alpha.internal.api_client import search as _search
+from neptune_fetcher.alpha.internal.api_client import util as _util
+from neptune_fetcher.alpha.internal.composition import type_inference as _infer
 
-__all__ = (
-    "fetch_experiments_table",
-    "list_experiments",
-)
+__all__ = ("fetch_experiments_table",)
 
 
 def fetch_experiments_table(
@@ -75,7 +73,7 @@ def fetch_experiments_table(
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
     valid_context = _context.validate_context(context or _context.get_context())
-    client = _api_client.get_client(valid_context)
+    client = _client.get_client(valid_context)
     project = _identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     if isinstance(experiments, str):
@@ -116,11 +114,11 @@ def fetch_experiments_table(
         )
 
         experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName] = {}
-        result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]] = {}
-        selected_aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
+        result_by_id: dict[_identifiers.SysId, list[_aval.AttributeValue]] = {}
+        selected_aggregations: dict[_adef.AttributeDefinition, set[str]] = defaultdict(set)
 
-        def go_fetch_experiment_sys_attrs() -> Generator[_util.Page[_experiment.ExperimentSysAttrs], None, None]:
-            return _experiment.fetch_experiment_sys_attrs(
+        def go_fetch_experiment_sys_attrs() -> Generator[_util.Page[_search.ExperimentSysAttrs], None, None]:
+            return _search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
                 experiment_filter=experiments_filter,
@@ -130,7 +128,7 @@ def fetch_experiments_table(
             )
 
         def process_experiment_page_stateful(
-            page: _util.Page[_experiment.ExperimentSysAttrs],
+            page: _util.Page[_search.ExperimentSysAttrs],
         ) -> list[_identifiers.ExperimentIdentifier]:
             for experiment in page.items:
                 result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
@@ -139,8 +137,8 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_definitions(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-        ) -> Generator[_util.Page[_attribute.AttributeDefinitionAggregation], None, None]:
-            return _attribute.fetch_attribute_definition_aggregations(
+        ) -> Generator[_util.Page[_adef.AttributeDefinitionAggregation], None, None]:
+            return _adef.fetch_attribute_definition_aggregations(
                 client=client,
                 project_identifiers=[project],
                 experiment_identifiers=experiment_identifiers,
@@ -150,9 +148,9 @@ def fetch_experiments_table(
 
         def go_fetch_attribute_values(
             experiment_identifiers: list[_identifiers.ExperimentIdentifier],
-            attribute_definitions: list[_attribute.AttributeDefinition],
-        ) -> Generator[_util.Page[_attribute.AttributeValue], None, None]:
-            return _attribute.fetch_attribute_values(
+            attribute_definitions: list[_adef.AttributeDefinition],
+        ) -> Generator[_util.Page[_aval.AttributeValue], None, None]:
+            return _aval.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
                 experiment_identifiers=experiment_identifiers,
@@ -160,8 +158,8 @@ def fetch_experiments_table(
             )
 
         def filter_definitions(
-            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
-        ) -> list[_attribute.AttributeDefinition]:
+            attribute_definition_aggregation_page: _util.Page[_adef.AttributeDefinitionAggregation],
+        ) -> list[_adef.AttributeDefinition]:
             return [
                 item.attribute_definition
                 for item in attribute_definition_aggregation_page.items
@@ -169,9 +167,9 @@ def fetch_experiments_table(
             ]
 
         def collect_aggregations(
-            attribute_definition_aggregation_page: _util.Page[_attribute.AttributeDefinitionAggregation],
-        ) -> dict[_attribute.AttributeDefinition, set[str]]:
-            aggregations: dict[_attribute.AttributeDefinition, set[str]] = defaultdict(set)
+            attribute_definition_aggregation_page: _util.Page[_adef.AttributeDefinitionAggregation],
+        ) -> dict[_adef.AttributeDefinition, set[str]]:
+            aggregations: dict[_adef.AttributeDefinition, set[str]] = defaultdict(set)
             for item in attribute_definition_aggregation_page.items:
                 if item.aggregation is not None:
                     aggregations[item.attribute_definition].add(item.aggregation)
@@ -210,7 +208,7 @@ def fetch_experiments_table(
             ),
         )
         results: Generator[
-            Union[_util.Page[_attribute.AttributeValue], dict[_attribute.AttributeDefinition, set[str]]], None, None
+            Union[_util.Page[_aval.AttributeValue], dict[_adef.AttributeDefinition, set[str]]], None, None
         ] = _util.gather_results(output)
 
         for result in results:
@@ -236,51 +234,14 @@ def fetch_experiments_table(
 
 
 def _map_keys_preserving_order(
-    result_by_id: dict[_identifiers.SysId, list[_attribute.AttributeValue]],
+    result_by_id: dict[_identifiers.SysId, list[_aval.AttributeValue]],
     experiment_name_mapping: dict[_identifiers.SysId, _identifiers.SysName],
-) -> dict[_identifiers.SysName, list[_attribute.AttributeValue]]:
+) -> dict[_identifiers.SysName, list[_aval.AttributeValue]]:
     result_by_name = {}
     for sys_id, values in result_by_id.items():
         sys_name = experiment_name_mapping[sys_id]
         result_by_name[sys_name] = values
     return result_by_name
-
-
-def list_experiments(
-    experiments: Optional[Union[str, Filter]] = None,
-    context: Optional[Context] = None,
-) -> list[str]:
-    """
-     Returns a list of experiment names in a project.
-
-    `experiments` - a filter specifying which experiments to include
-         - a regex that experiment name must match, or
-         - a Filter object
-    `context` - a Context object to be used; primarily useful for switching projects
-    """
-
-    validated_context = _context.validate_context(context or _context.get_context())
-    client = _api_client.get_client(validated_context)
-    project_identifier = _identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
-
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-
-    with (
-        _util.create_thread_pool_executor() as executor,
-        _util.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        _infer.infer_attribute_types_in_filter(
-            client=client,
-            project_identifier=project_identifier,
-            experiment_filter=experiments,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
-
-        pages = _experiment.fetch_experiment_sys_attrs(client, project_identifier, experiments)
-
-        return list(exp.sys_name for page in pages for exp in page.items)
 
 
 def _validate_limit(limit: Optional[int]) -> None:

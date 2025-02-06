@@ -24,7 +24,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoFloatSeriesAttributeDTO,
 )
 
-from neptune_fetcher.alpha.internal.exception import warn_unsupported_value_type
+from neptune_fetcher.alpha.exception import warn_unsupported_value_type
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set")
 ALL_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
