@@ -18,7 +18,7 @@ from pytest import fixture
 
 import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.exception import (
+from neptune_fetcher.alpha.exceptions import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )

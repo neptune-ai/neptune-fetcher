@@ -29,7 +29,7 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
-from neptune_fetcher.alpha.exception import NeptuneError
+from neptune_fetcher.alpha.exceptions import NeptuneError
 
 T = TypeVar("T")
 R = TypeVar("R")

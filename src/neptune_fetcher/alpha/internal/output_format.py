@@ -19,7 +19,7 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
+from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal.identifiers import SysName
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations

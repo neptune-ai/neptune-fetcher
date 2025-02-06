@@ -24,7 +24,7 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.alpha import filters
-from neptune_fetcher.alpha.exception import AttributeTypeInferenceError
+from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs

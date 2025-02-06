@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
-from neptune_fetcher.alpha.exception import ConflictingAttributeTypes
+from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.output_format import convert_experiment_table_to_dataframe
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
