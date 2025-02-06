@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - dev/1.x
+      - dev/.*
   pull_request: # Don't run e2e tests on PRs that don't modify source code
     paths:
       - 'src/**'
