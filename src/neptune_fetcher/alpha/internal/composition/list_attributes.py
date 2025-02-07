@@ -128,6 +128,7 @@ def _list_attributes(
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             downstream=concurrency.return_value,
+            container_type=container_type,
         )
 
         results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
