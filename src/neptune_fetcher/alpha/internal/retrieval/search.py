@@ -63,8 +63,8 @@ class ContainerType(Enum):
 
 @dataclass(frozen=True)
 class ExperimentSysAttrs:
-    sys_name: identifiers.SysName
     sys_id: identifiers.SysId
+    sys_name: identifiers.SysName
 
     @staticmethod
     def attribute_names() -> list[str]:
@@ -80,18 +80,18 @@ class ExperimentSysAttrs:
 
 @dataclass(frozen=True)
 class RunSysAttrs:
-    sys_name: identifiers.SysName
+    sys_id: identifiers.SysId
     sys_custom_run_id: identifiers.CustomRunId
 
     @staticmethod
     def attribute_names() -> list[str]:
-        return ["sys/name", "sys/custom_run_id"]
+        return ["sys/custom_run_id", "sys/id"]
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "RunSysAttrs":
         return RunSysAttrs(
-            sys_name=identifiers.SysName(data["sys/name"]),
             sys_custom_run_id=identifiers.CustomRunId(data["sys/custom_run_id"]),
+            sys_id=identifiers.SysId(data["sys/id"]),
         )
 
 

@@ -59,8 +59,8 @@ def generate_concurrently(
         return set(), None
 
 
-def fork_concurrently(item: T, executor: Executor, downstreams: Iterable[Callable[[T], OUT]]) -> OUT:
-    futures = {executor.submit(downstream, item) for downstream in downstreams}
+def fork_concurrently(executor: Executor, downstreams: Iterable[Callable[[], OUT]]) -> OUT:
+    futures = {executor.submit(downstream) for downstream in downstreams}
     return futures, None
 
 
