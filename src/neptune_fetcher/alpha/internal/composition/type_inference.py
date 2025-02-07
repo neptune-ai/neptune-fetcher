@@ -128,7 +128,7 @@ def _infer_attribute_types_from_api(
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
-        downstream=lambda sys_ids_split, definitions_page: concurrency.return_value(definitions_page),
+        downstream=concurrency.return_value,
     )
 
     attribute_definition_pages: Generator[

@@ -45,7 +45,7 @@ def fetch_attribute_definitions_split(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
+    downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
     return concurrency.generate_concurrently(
         items=split.split_sys_ids(sys_ids),
@@ -59,7 +59,7 @@ def fetch_attribute_definitions_split(
                 executor=fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=ft.partial(downstream, sys_ids_split),
+            downstream=downstream,
         ),
     )
 
@@ -98,7 +98,7 @@ def fetch_attribute_definitions_complete(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
-    downstream: Callable[[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
+    downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
     if container_type == search.ContainerType.RUN and _filter is None:
         return concurrency.generate_concurrently(
@@ -110,7 +110,7 @@ def fetch_attribute_definitions_complete(
                 executor=fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=concurrency.return_value,
+            downstream=downstream,
         )
     else:
         return concurrency.generate_concurrently(
