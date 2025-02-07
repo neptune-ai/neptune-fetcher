@@ -42,20 +42,20 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
 class AttributeValue:
     attribute_definition: AttributeDefinition
     value: Any
-    experiment_identifier: identifiers.ExperimentIdentifier
+    run_identifier: identifiers.RunIdentifier
 
 
 def fetch_attribute_values(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_definitions: Iterable[AttributeDefinition],
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeValue], None, None]:
     attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
-    experiments = [str(e) for e in experiment_identifiers]
+    experiments = [str(e) for e in run_identifiers]
 
-    if not attribute_definitions_set or not experiment_identifiers:
+    if not attribute_definitions_set or not run_identifiers:
         yield from []
         return
 
@@ -99,7 +99,7 @@ def _process_attribute_values_page(
 ) -> util.Page[AttributeValue]:
     items = []
     for entry in data.entries:
-        experiment_identifier = identifiers.ExperimentIdentifier(
+        run_identifier = identifiers.RunIdentifier(
             project_identifier=project_identifier, sys_id=identifiers.SysId(entry.experimentShortId)
         )
 
@@ -115,7 +115,7 @@ def _process_attribute_values_page(
             attr_value = AttributeValue(
                 attribute_definition=attr_definition,
                 value=item_value,
-                experiment_identifier=experiment_identifier,
+                run_identifier=run_identifier,
             )
             items.append(attr_value)
 

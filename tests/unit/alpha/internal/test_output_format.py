@@ -9,7 +9,7 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import Attri
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
-EXPERIMENT_IDENTIFIER = identifiers.ExperimentIdentifier(
+EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
 )
 

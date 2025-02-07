@@ -10,7 +10,7 @@ import pytest
 
 from neptune_fetcher.alpha.filters import AttributeFilter
 from neptune_fetcher.alpha.internal.identifiers import (
-    ExperimentIdentifier,
+    RunIdentifier,
     SysId,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
@@ -92,7 +92,7 @@ def run_with_attributes(client, project):
 
 
 @pytest.fixture(scope="module")
-def experiment_identifier(client, project, run_with_attributes) -> ExperimentIdentifier:
+def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
     from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
@@ -100,11 +100,11 @@ def experiment_identifier(client, project, run_with_attributes) -> ExperimentIde
 
     experiment_filter = Filter.name_in(EXPERIMENT_NAME)
     experiment_attrs = _extract_pages(
-        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, experiment_filter=experiment_filter)
+        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, _filter=experiment_filter)
     )
     sys_id = experiment_attrs[0].sys_id
 
-    return ExperimentIdentifier(project_identifier, sys_id)
+    return RunIdentifier(project_identifier, sys_id)
 
 
 def test_fetch_attribute_definitions_single_string(client, project, experiment_identifier):
@@ -548,8 +548,6 @@ def _generate_experiment_identifiers(project_identifier, size_bytes: int):
 
     identifiers_count = (size_bytes + per_uuid_size) // per_uuid_size
 
-    experiment_identifiers = [
-        ExperimentIdentifier(project_identifier, SysId(f"TEST-{i}")) for i in range(identifiers_count)
-    ]
+    experiment_identifiers = [RunIdentifier(project_identifier, SysId(f"TEST-{i}")) for i in range(identifiers_count)]
 
     return experiment_identifiers

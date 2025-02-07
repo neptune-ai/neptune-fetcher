@@ -33,6 +33,7 @@ from neptune_fetcher.alpha.internal import (
     identifiers,
     output_format,
 )
+from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import attributes as _attributes
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
@@ -110,7 +111,7 @@ def fetch_experiments_table(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project,
-            experiment_filter=experiments_filter,
+            _filter=experiments_filter,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
@@ -118,7 +119,7 @@ def fetch_experiments_table(
         type_inference.infer_attribute_types_in_sort_by(
             client=client,
             project_identifier=project,
-            experiment_filter=experiments_filter,
+            _filter=experiments_filter,
             sort_by=sort_by_attribute,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -132,7 +133,7 @@ def fetch_experiments_table(
             return search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
-                experiment_filter=experiments_filter,
+                _filter=experiments_filter,
                 sort_by=sort_by_attribute,
                 sort_direction=_sort_direction,
                 limit=limit,
@@ -140,31 +141,20 @@ def fetch_experiments_table(
 
         def process_experiment_page_stateful(
             page: util.Page[search.ExperimentSysAttrs],
-        ) -> list[identifiers.ExperimentIdentifier]:
+        ) -> list[identifiers.SysId]:
             for experiment in page.items:
                 result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
                 experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
-            return [identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in page.items]
-
-        def go_fetch_attribute_definitions(
-            experiment_identifiers: list[identifiers.ExperimentIdentifier],
-        ) -> Generator[util.Page[_attributes.AttributeDefinitionAggregation], None, None]:
-            return _attributes.fetch_attribute_definition_aggregations(
-                client=client,
-                project_identifiers=[project],
-                experiment_identifiers=experiment_identifiers,
-                attribute_filter=attributes_filter,
-                executor=fetch_attribute_definitions_executor,
-            )
+            return [experiment.sys_id for experiment in page.items]
 
         def go_fetch_attribute_values(
-            experiment_identifiers: list[identifiers.ExperimentIdentifier],
+            sys_ids: list[identifiers.SysId],
             attribute_definitions: list[att_defs.AttributeDefinition],
         ) -> Generator[util.Page[att_vals.AttributeValue], None, None]:
             return att_vals.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
-                experiment_identifiers=experiment_identifiers,
+                run_identifiers=[identifiers.RunIdentifier(project, s) for s in sys_ids],
                 attribute_definitions=attribute_definitions,
             )
 
@@ -189,32 +179,32 @@ def fetch_experiments_table(
         output = concurrency.generate_concurrently(
             items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
             executor=executor,
-            downstream=lambda experiment_identifiers: concurrency.generate_concurrently(
-                items=split.split_experiments(experiment_identifiers),
+            downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
+                client=client,
+                project_identifier=project,
+                attribute_filter=attributes_filter,
                 executor=executor,
-                downstream=lambda experiment_identifiers_split: concurrency.generate_concurrently(
-                    items=go_fetch_attribute_definitions(experiment_identifiers_split),
+                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+                sys_ids=sys_ids,
+                downstream=lambda sys_ids_split, definition_aggs_page: concurrency.fork_concurrently(
+                    item=definition_aggs_page,
                     executor=executor,
-                    downstream=lambda definition_aggs_page: concurrency.fork_concurrently(
-                        item=definition_aggs_page,
-                        executor=executor,
-                        downstreams=[
-                            lambda _definition_aggs_page: concurrency.generate_concurrently(
-                                items=split.split_experiments_attributes(
-                                    experiment_identifiers_split, filter_definitions(_definition_aggs_page)
-                                ),
+                    downstreams=[
+                        lambda _definition_aggs_page: concurrency.generate_concurrently(
+                            items=split.split_sys_ids_attributes(
+                                sys_ids_split, filter_definitions(_definition_aggs_page)
+                            ),
+                            executor=executor,
+                            downstream=lambda split_pair: concurrency.generate_concurrently(
+                                items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
                                 executor=executor,
-                                downstream=lambda split_pair: concurrency.generate_concurrently(
-                                    items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
-                                    executor=executor,
-                                    downstream=concurrency.return_value,
-                                ),
+                                downstream=concurrency.return_value,
                             ),
-                            lambda _definition_aggs_page: concurrency.return_value(
-                                collect_aggregations(_definition_aggs_page)
-                            ),
-                        ],
-                    ),
+                        ),
+                        lambda _definition_aggs_page: concurrency.return_value(
+                            collect_aggregations(_definition_aggs_page)
+                        ),
+                    ],
                 ),
             ),
         )
@@ -226,7 +216,7 @@ def fetch_experiments_table(
             if isinstance(result, util.Page):
                 attribute_values_page = result
                 for attribute_value in attribute_values_page.items:
-                    sys_id = attribute_value.experiment_identifier.sys_id
+                    sys_id = attribute_value.run_identifier.sys_id
                     result_by_id[sys_id].append(attribute_value)
             elif isinstance(result, dict):
                 aggregations = result

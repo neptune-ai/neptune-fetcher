@@ -102,7 +102,7 @@ def run_with_attributes(client, project):
             for p in fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=identifiers.ProjectIdentifier(project.project_identifier),
-                experiment_filter=Filter.name_in(*expected_experiments),
+                _filter=Filter.name_in(*expected_experiments),
             )
         ]
     )

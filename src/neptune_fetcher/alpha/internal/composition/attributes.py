@@ -43,13 +43,13 @@ class AttributeDefinitionAggregation:
 def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
+    run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
     pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
+        client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
     )
 
     seen_items: set[att_defs.AttributeDefinition] = set()
@@ -62,7 +62,7 @@ def fetch_attribute_definitions(
 def fetch_attribute_definition_aggregations(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
@@ -74,7 +74,7 @@ def fetch_attribute_definition_aggregations(
     """
 
     pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, experiment_identifiers, attribute_filter, batch_size, executor
+        client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
     )
 
     seen_items: set[AttributeDefinitionAggregation] = set()
@@ -102,7 +102,7 @@ def fetch_attribute_definition_aggregations(
 def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
+    run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
     batch_size: int,
     executor: Executor,
@@ -113,7 +113,7 @@ def _fetch_attribute_definitions(
         return att_defs.fetch_attribute_definitions_single_filter(
             client=client,
             project_identifiers=project_identifiers,
-            experiment_identifiers=experiment_identifiers,
+            run_identifiers=run_identifiers,
             attribute_filter=_filter,
             batch_size=batch_size,
         )

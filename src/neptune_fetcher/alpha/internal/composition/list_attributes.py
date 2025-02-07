@@ -19,7 +19,6 @@ __all__ = (
     "list_run_attributes",
 )
 
-from concurrent.futures import Executor
 from typing import (
     Generator,
     Optional,
@@ -29,12 +28,11 @@ from typing import (
 from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
-    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import attributes as _attributes
+from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
@@ -47,7 +45,6 @@ from neptune_fetcher.alpha.internal.context import (
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
-    split,
     util,
 )
 
@@ -73,11 +70,6 @@ def list_experiment_attributes(
     Returns a list of unique attribute names in experiments matching the filter.
     """
 
-    valid_context = validate_context(context or get_context())
-    client = _client.get_client(valid_context)
-    assert valid_context.project is not None  # mypy TODO: remove at some point
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)
-
     if isinstance(experiments, str):
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
@@ -86,28 +78,7 @@ def list_experiment_attributes(
     elif isinstance(attributes, str):
         attributes = AttributeFilter(name_matches_all=[attributes])
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        type_inference.infer_attribute_types_in_filter(
-            client,
-            project_identifier,
-            experiments,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
-
-        result = _list_attributes(
-            client,
-            project_identifier,
-            experiment_filter=experiments,
-            attribute_filter=attributes,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
-
-        return sorted(set(result))
+    return _list_attributes(experiments, attributes, context, container_type=search.ContainerType.EXPERIMENT)
 
 
 def list_run_attributes(
@@ -115,57 +86,55 @@ def list_run_attributes(
     attributes: Optional[Union[str, AttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
-    return []
+    if isinstance(runs, str):
+        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
+
+    if attributes is None:
+        attributes = AttributeFilter()
+    elif isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=[attributes])
+
+    return _list_attributes(runs, attributes, context, container_type=search.ContainerType.RUN)
 
 
 def _list_attributes(
-    client: _client.AuthenticatedClient,
-    project_id: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[Filter],
-    attribute_filter: BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
-) -> Generator[str, None, None]:
-    if experiment_filter is not None:
-        output = concurrency.generate_concurrently(
-            items=search.fetch_experiment_sys_attrs(
-                client,
-                project_identifier=project_id,
-                experiment_filter=experiment_filter,
-            ),
+    _filter: Optional[Filter],
+    attributes: AttributeFilter,
+    context: Optional[Context],
+    container_type: search.ContainerType,
+) -> list[str]:
+    valid_context = validate_context(context or get_context())
+    client = _client.get_client(valid_context)
+    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+
+    with (
+        concurrency.create_thread_pool_executor() as executor,
+        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        type_inference.infer_attribute_types_in_filter(
+            client,
+            project_identifier,
+            _filter,
             executor=executor,
-            downstream=lambda experiments_page: concurrency.generate_concurrently(
-                items=split.split_experiments(
-                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
-                ),
-                executor=executor,
-                downstream=lambda experiment_identifier_split: concurrency.generate_concurrently(
-                    items=_attributes.fetch_attribute_definitions(
-                        client,
-                        [project_id],
-                        experiment_identifier_split,
-                        attribute_filter,
-                        fetch_attribute_definitions_executor,
-                    ),
-                    executor=executor,
-                    downstream=concurrency.return_value,
-                ),
-            ),
-        )
-    else:
-        output = concurrency.generate_concurrently(
-            items=_attributes.fetch_attribute_definitions(
-                client,
-                [project_id],
-                None,
-                attribute_filter,
-                fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=concurrency.return_value,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
         )
 
-    results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
-    for page in results:
-        for item in page.items:
-            yield item.name
+        output = _components.fetch_attribute_definitions_complete(
+            client=client,
+            project_identifier=project_identifier,
+            _filter=_filter,
+            attribute_filter=attributes,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            downstream=concurrency.return_value,
+            container_type=container_type,
+        )
+
+        results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
+        names = set()
+        for page in results:
+            for item in page.items:
+                names.add(item.name)
+
+        return sorted(names)
