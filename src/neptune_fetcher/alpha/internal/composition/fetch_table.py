@@ -132,7 +132,7 @@ def fetch_experiments_table(
             return search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
-                experiment_filter=experiments_filter,
+                _filter=experiments_filter,
                 sort_by=sort_by_attribute,
                 sort_direction=_sort_direction,
                 limit=limit,

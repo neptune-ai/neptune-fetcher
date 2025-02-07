@@ -131,7 +131,7 @@ def _list_attributes(
             items=search.fetch_experiment_sys_attrs(
                 client,
                 project_identifier=project_id,
-                experiment_filter=experiment_filter,
+                _filter=experiment_filter,
             ),
             executor=executor,
             downstream=lambda experiments_page: concurrency.generate_concurrently(

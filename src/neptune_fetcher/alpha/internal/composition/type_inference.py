@@ -133,7 +133,7 @@ def _infer_attribute_types_from_api(
             items=search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project_identifier,
-                experiment_filter=experiment_filter,
+                _filter=experiment_filter,
             ),
             executor=executor,
             downstream=lambda experiment_page: concurrency.generate_concurrently(
