@@ -59,7 +59,7 @@ def list_runs(
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)  # TODO: custom_run_id?
+        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
 
     return _list_containers(runs, context, search.ContainerType.RUN)
 
