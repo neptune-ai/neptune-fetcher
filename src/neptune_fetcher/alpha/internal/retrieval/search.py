@@ -22,6 +22,7 @@ from typing import (
     Literal,
     Optional,
     Protocol,
+    TypeVar,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -30,7 +31,6 @@ from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoLeaderboardEntriesSearchResultDTO,
 )
-from typing_extensions import TypeVar
 
 from neptune_fetcher.alpha.filters import (
     Attribute,
