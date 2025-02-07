@@ -16,6 +16,7 @@
 import concurrent
 import itertools as it
 from concurrent.futures import Executor
+from dataclasses import dataclass
 from typing import (
     Generator,
     Iterable,
@@ -55,7 +56,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.metrics import (
     AttributePathIndex,
-    AttributePathInExperiment,
+    AttributePathInRun,
     ExperimentNameIndex,
     FloatPointValue,
     StepIndex,
@@ -64,8 +65,9 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
     fetch_multiple_series_values,
 )
 from neptune_fetcher.alpha.internal.retrieval.search import (
-    ExperimentSysAttrs,
+    ContainerType,
     fetch_experiment_sys_attrs,
+    fetch_run_sys_attrs,
 )
 
 __all__ = (
@@ -109,56 +111,23 @@ def fetch_experiment_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    _validate_step_range(step_range)
-    _validate_tail_limit(tail_limit)
-    _validate_include_time(include_time)
+    if isinstance(experiments, str):
+        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
-    valid_context = validate_context(context or get_context())
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
 
-    client = get_client(valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
-
-    experiments = (
-        Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-        if isinstance(experiments, str)
-        else experiments
+    return _fetch_metrics(
+        _filter=experiments,
+        attributes=attributes,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=ContainerType.EXPERIMENT,
     )
-    attributes = (
-        AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-        if isinstance(attributes, str)
-        else attributes
-    )
-
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        type_inference.infer_attribute_types_in_filter(
-            client=client,
-            project_identifier=project_identifier,
-            _filter=experiments,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
-
-        df = _fetch_flat_dataframe_metrics(
-            experiments=experiments,
-            attributes=attributes,
-            client=client,
-            project=project_identifier,
-            step_range=step_range,
-            lineage_to_the_root=lineage_to_the_root,
-            tail_limit=tail_limit,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
-
-    if include_time == "absolute":
-        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
-    # elif include_time == "relative":
-    #     raise NotImplementedError("Relative timestamp is not implemented")
-    else:
-        return _transform_without_timestamp(df, type_suffix_in_column_names)
 
 
 def fetch_run_metrics(
@@ -171,7 +140,76 @@ def fetch_run_metrics(
     type_suffix_in_column_names: bool = False,
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
-    ...
+    if isinstance(runs, str):
+        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
+
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+
+    return _fetch_metrics(
+        _filter=runs,
+        attributes=attributes,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=ContainerType.RUN,
+    )
+
+
+def _fetch_metrics(
+    _filter: Filter,
+    attributes: AttributeFilter,
+    include_time: Optional[Literal["absolute"]],
+    step_range: Tuple[Optional[float], Optional[float]],
+    lineage_to_the_root: bool,
+    tail_limit: Optional[int],
+    type_suffix_in_column_names: bool,
+    context: Optional[Context],
+    container_type: ContainerType,
+) -> pd.DataFrame:
+    _validate_step_range(step_range)
+    _validate_tail_limit(tail_limit)
+    _validate_include_time(include_time)
+
+    valid_context = validate_context(context or get_context())
+    client = get_client(valid_context)
+    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+
+    with (
+        concurrency.create_thread_pool_executor() as executor,
+        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+    ):
+        type_inference.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project_identifier,
+            _filter=_filter,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
+        )
+
+        df = _fetch_flat_dataframe_metrics(
+            _filter=_filter,
+            attributes=attributes,
+            client=client,
+            project=project_identifier,
+            step_range=step_range,
+            lineage_to_the_root=lineage_to_the_root,
+            tail_limit=tail_limit,
+            executor=executor,
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
+        )
+
+    if include_time == "absolute":
+        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
+    # elif include_time == "relative":
+    #     raise NotImplementedError("Relative timestamp is not implemented")
+    else:
+        return _transform_without_timestamp(df, type_suffix_in_column_names)
 
 
 def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
@@ -243,19 +281,26 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
             raise ValueError("include_time must be 'absolute'")
 
 
+@dataclass(frozen=True)
+class SysIdLabel:
+    sys_id: identifiers.SysId
+    label: str
+
+
 def _fetch_flat_dataframe_metrics(
-    experiments: Filter,
+    _filter: Filter,
     attributes: AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
+    step_range: Tuple[Optional[float], Optional[float]],
+    lineage_to_the_root: bool,
+    tail_limit: Optional[int],
+    container_type: ContainerType,
 ) -> pd.DataFrame:
     def fetch_values(
-        exp_paths: list[AttributePathInExperiment],
+        exp_paths: list[AttributePathInRun],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         _series = fetch_multiple_series_values(
             client,
@@ -267,20 +312,20 @@ def _fetch_flat_dataframe_metrics(
         return [], _series
 
     def process_definitions(
-        _experiments: list[ExperimentSysAttrs],
+        _sys_id_labels: list[SysIdLabel],
         _definitions: Generator[util.Page[AttributeDefinition], None, None],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         definitions_page = next(_definitions, None)
         _futures = []
         if definitions_page:
-            _futures.append(executor.submit(process_definitions, _experiments, _definitions))
+            _futures.append(executor.submit(process_definitions, _sys_id_labels, _definitions))
 
             paths = definitions_page.items
 
-            product = it.product(_experiments, paths)
+            product = it.product(_sys_id_labels, paths)
             exp_paths = [
-                AttributePathInExperiment(ExpId(project, _exp.sys_id), _exp.sys_name, _path.name)
-                for _exp, _path in product
+                AttributePathInRun(ExpId(project, _sys_id_label.sys_id), _sys_id_label.label, _path.name)
+                for _sys_id_label, _path in product
                 if _path.type == "float_series"
             ]
 
@@ -289,22 +334,22 @@ def _fetch_flat_dataframe_metrics(
 
         return _futures, []
 
-    def process_experiments(
-        experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
+    def process_sys_ids(
+        sys_ids_generator: Generator[Iterable[SysIdLabel], None, None]
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        _experiments = next(experiment_generator, None)
+        _sys_ids_labels = next(sys_ids_generator, None)
         _futures = []
 
-        if _experiments:
-            _futures.append(executor.submit(process_experiments, experiment_generator))
+        if _sys_ids_labels:
+            _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
 
-        if _experiments and _experiments.items:
-            sys_ids = [exp.sys_id for exp in _experiments.items]
-            sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
+        if _sys_ids_labels:
+            sys_ids = [item.sys_id for item in _sys_ids_labels]
+            sys_id_to_labels = {item.sys_id: item for item in _sys_ids_labels}
 
             for sys_ids_split in split.split_sys_ids(sys_ids):
                 run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
-                sys_attrs_split = [sys_id_to_sys_attrs[sys_id] for sys_id in sys_ids_split]
+                sys_id_labels_split = [sys_id_to_labels[sys_id] for sys_id in sys_ids_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
@@ -312,14 +357,22 @@ def _fetch_flat_dataframe_metrics(
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
                 )
-                _futures.append(executor.submit(process_definitions, sys_attrs_split, definitions_generator))
+                _futures.append(executor.submit(process_definitions, sys_id_labels_split, definitions_generator))
 
         return _futures, []
 
+    def fetch_sys_ids_labels() -> Generator[Iterable[SysIdLabel], None, None]:
+        if container_type == ContainerType.RUN:
+            run_pages = fetch_run_sys_attrs(client, project, _filter)
+            return ([SysIdLabel(run.sys_id, run.sys_custom_run_id) for run in page.items] for page in run_pages)
+        elif container_type == ContainerType.EXPERIMENT:
+            experiment_pages = fetch_experiment_sys_attrs(client, project, _filter)
+            return ([SysIdLabel(exp.sys_id, exp.sys_name) for exp in page.items] for page in experiment_pages)
+        else:
+            raise RuntimeError(f"Unknown container type: {container_type}")
+
     def _start() -> Iterable[FloatPointValue]:
-        futures = {
-            executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
-        }
+        futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}
 
         while futures:
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
@@ -334,7 +387,9 @@ def _fetch_flat_dataframe_metrics(
     return df
 
 
-def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:
+def _create_flat_dataframe(
+    values: Iterable[FloatPointValue],
+) -> pd.DataFrame:
     """
     Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
     by converting strings to categorical codes before DataFrame creation.
@@ -370,7 +425,7 @@ def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:
             yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
 
     types = [
-        ("experiment", "uint32"),
+        ("experiment", "uint32"),  # TODO: the column name should be different for runs
         ("path", "uint32"),
         ("timestamp", "uint64"),
         ("step", "float64"),
