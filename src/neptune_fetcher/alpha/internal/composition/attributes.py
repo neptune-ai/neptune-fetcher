@@ -43,7 +43,7 @@ class AttributeDefinitionAggregation:
 def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
+    experiment_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
@@ -62,7 +62,7 @@ def fetch_attribute_definitions(
 def fetch_attribute_definition_aggregations(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Iterable[identifiers.ExperimentIdentifier],
+    experiment_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
@@ -102,7 +102,7 @@ def fetch_attribute_definition_aggregations(
 def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
+    experiment_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
     batch_size: int,
     executor: Executor,
@@ -113,7 +113,7 @@ def _fetch_attribute_definitions(
         return att_defs.fetch_attribute_definitions_single_filter(
             client=client,
             project_identifiers=project_identifiers,
-            experiment_identifiers=experiment_identifiers,
+            run_identifiers=experiment_identifiers,
             attribute_filter=_filter,
             batch_size=batch_size,
         )

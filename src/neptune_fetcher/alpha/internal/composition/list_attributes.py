@@ -135,8 +135,8 @@ def _list_attributes(
             ),
             executor=executor,
             downstream=lambda experiments_page: concurrency.generate_concurrently(
-                items=split.split_experiments(
-                    [identifiers.ExperimentIdentifier(project_id, e.sys_id) for e in experiments_page.items]
+                items=split.split_runs(
+                    [identifiers.RunIdentifier(project_id, e.sys_id) for e in experiments_page.items]
                 ),
                 executor=executor,
                 downstream=lambda experiment_identifier_split: concurrency.generate_concurrently(

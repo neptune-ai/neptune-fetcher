@@ -137,9 +137,9 @@ def _infer_attribute_types_from_api(
             ),
             executor=executor,
             downstream=lambda experiment_page: concurrency.generate_concurrently(
-                items=split.split_experiments(
+                items=split.split_runs(
                     [
-                        identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
+                        identifiers.RunIdentifier(project_identifier, experiment.sys_id)
                         for experiment in experiment_page.items
                     ]
                 ),

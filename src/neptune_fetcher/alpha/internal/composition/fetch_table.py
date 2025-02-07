@@ -140,14 +140,14 @@ def fetch_experiments_table(
 
         def process_experiment_page_stateful(
             page: util.Page[search.ExperimentSysAttrs],
-        ) -> list[identifiers.ExperimentIdentifier]:
+        ) -> list[identifiers.RunIdentifier]:
             for experiment in page.items:
                 result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
                 experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
-            return [identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in page.items]
+            return [identifiers.RunIdentifier(project, experiment.sys_id) for experiment in page.items]
 
         def go_fetch_attribute_definitions(
-            experiment_identifiers: list[identifiers.ExperimentIdentifier],
+            experiment_identifiers: list[identifiers.RunIdentifier],
         ) -> Generator[util.Page[_attributes.AttributeDefinitionAggregation], None, None]:
             return _attributes.fetch_attribute_definition_aggregations(
                 client=client,
@@ -158,13 +158,13 @@ def fetch_experiments_table(
             )
 
         def go_fetch_attribute_values(
-            experiment_identifiers: list[identifiers.ExperimentIdentifier],
+            experiment_identifiers: list[identifiers.RunIdentifier],
             attribute_definitions: list[att_defs.AttributeDefinition],
         ) -> Generator[util.Page[att_vals.AttributeValue], None, None]:
             return att_vals.fetch_attribute_values(
                 client=client,
                 project_identifier=project,
-                experiment_identifiers=experiment_identifiers,
+                run_identifiers=experiment_identifiers,
                 attribute_definitions=attribute_definitions,
             )
 
@@ -190,7 +190,7 @@ def fetch_experiments_table(
             items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
             executor=executor,
             downstream=lambda experiment_identifiers: concurrency.generate_concurrently(
-                items=split.split_experiments(experiment_identifiers),
+                items=split.split_runs(experiment_identifiers),
                 executor=executor,
                 downstream=lambda experiment_identifiers_split: concurrency.generate_concurrently(
                     items=go_fetch_attribute_definitions(experiment_identifiers_split),
@@ -200,7 +200,7 @@ def fetch_experiments_table(
                         executor=executor,
                         downstreams=[
                             lambda _definition_aggs_page: concurrency.generate_concurrently(
-                                items=split.split_experiments_attributes(
+                                items=split.split_runs_attributes(
                                     experiment_identifiers_split, filter_definitions(_definition_aggs_page)
                                 ),
                                 executor=executor,
@@ -226,7 +226,7 @@ def fetch_experiments_table(
             if isinstance(result, util.Page):
                 attribute_values_page = result
                 for attribute_value in attribute_values_page.items:
-                    sys_id = attribute_value.experiment_identifier.sys_id
+                    sys_id = attribute_value.run_identifier.sys_id
                     result_by_id[sys_id].append(attribute_value)
             elif isinstance(result, dict):
                 aggregations = result

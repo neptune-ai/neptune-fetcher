@@ -11,7 +11,7 @@ import pytest
 
 from neptune_fetcher.alpha.filters import AttributeFilter
 from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier
+from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -83,7 +83,7 @@ def run_with_attributes(client, project):
 
 
 @pytest.fixture(scope="module")
-def experiment_identifier(client, project, run_with_attributes) -> ExperimentIdentifier:
+def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
     from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
@@ -95,7 +95,7 @@ def experiment_identifier(client, project, run_with_attributes) -> ExperimentIde
     )
     sys_id = experiment_attrs[0].sys_id
 
-    return ExperimentIdentifier(project_identifier, sys_id)
+    return RunIdentifier(project_identifier, sys_id)
 
 
 def test_fetch_attribute_definitions_filter_or(client, executor, project, experiment_identifier):

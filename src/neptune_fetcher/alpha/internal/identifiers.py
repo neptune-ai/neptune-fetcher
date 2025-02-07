@@ -21,7 +21,7 @@ SysName = NewType("SysName", str)  # e.g. "pye2e-fetcher-test-internal-attribute
 
 
 @dataclass(frozen=True)
-class ExperimentIdentifier:
+class RunIdentifier:
     project_identifier: ProjectIdentifier
     sys_id: SysId
 

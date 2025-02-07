@@ -70,7 +70,7 @@ def list_experiments(
 
         pages = search.fetch_experiment_sys_attrs(client, project_identifier, experiments)
 
-        return list(exp.sys_name for page in pages for exp in page.items)
+        return list(sorted(exp.sys_name for page in pages for exp in page.items))
 
 
 def list_runs(

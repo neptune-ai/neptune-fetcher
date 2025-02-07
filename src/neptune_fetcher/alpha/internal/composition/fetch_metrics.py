@@ -47,7 +47,7 @@ from neptune_fetcher.alpha.internal.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier as ExpId
+from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.alpha.internal.retrieval import (
     split,
     util,
@@ -300,11 +300,11 @@ def _fetch_flat_dataframe_metrics(
 
         if _experiments and _experiments.items:
             experiment_identifiers = [
-                identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
+                identifiers.RunIdentifier(project, experiment.sys_id) for experiment in _experiments.items
             ]
             sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
 
-            for experiment_identifiers_split in split.split_experiments(experiment_identifiers):
+            for experiment_identifiers_split in split.split_runs(experiment_identifiers):
                 sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,

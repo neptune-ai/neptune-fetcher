@@ -54,7 +54,7 @@ TOTAL_POINT_LIMIT: int = 1_000_000
 
 @dataclass(frozen=True)
 class AttributePathInExperiment:
-    experiment_identifier: identifiers.ExperimentIdentifier
+    run_identifier: identifiers.RunIdentifier
     experiment_name: str
     attribute_path: AttributePath
 
@@ -62,7 +62,7 @@ class AttributePathInExperiment:
 @dataclass(frozen=True)
 class _SeriesRequest:
     path: str
-    experiment_identifier: identifiers.ExperimentIdentifier
+    run_identifier: identifiers.RunIdentifier
     include_inherited: bool
     after_step: Optional[float]
 
@@ -85,7 +85,7 @@ def fetch_multiple_series_values(
         requests = {
             exp_path: _SeriesRequest(
                 path=exp_path.attribute_path,
-                experiment_identifier=exp_path.experiment_identifier,
+                run_identifier=exp_path.run_identifier,
                 include_inherited=include_inherited,
                 after_step=after_step,
             )
@@ -138,7 +138,7 @@ def _fetch_series_values(
                 series=TimeSeries(
                     attribute=exp_path.attribute_path,
                     holder=AttributesHolderIdentifier(
-                        identifier=str(exp_path.experiment_identifier),
+                        identifier=str(exp_path.run_identifier),
                         type="experiment",
                     ),
                     lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,

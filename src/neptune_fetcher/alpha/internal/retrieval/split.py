@@ -30,9 +30,9 @@ def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
     return len(attr.name.encode("utf-8"))
 
 
-def split_experiments(
-    experiment_identifiers: list[identifiers.ExperimentIdentifier],
-) -> Generator[list[identifiers.ExperimentIdentifier]]:
+def split_runs(
+    run_identifiers: list[identifiers.RunIdentifier],
+) -> Generator[list[identifiers.RunIdentifier]]:
     """
     Splits a sequence of experiment identifiers into batches of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
     Use before fetching attribute definitions.
@@ -40,21 +40,21 @@ def split_experiments(
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
     identifier_num_limit = max(query_size_limit // _EXPERIMENT_SIZE, 1)
 
-    identifier_num = len(experiment_identifiers)
+    identifier_num = len(run_identifiers)
     batch_num = _ceil_div(identifier_num, identifier_num_limit)
 
     if batch_num <= 1:
-        yield experiment_identifiers
+        yield run_identifiers
     else:
         batch_size = _ceil_div(identifier_num, batch_num)
         for i in range(0, identifier_num, batch_size):
-            yield experiment_identifiers[i : i + batch_size]
+            yield run_identifiers[i : i + batch_size]
 
 
-def split_experiments_attributes(
-    experiment_identifiers: list[identifiers.ExperimentIdentifier],
+def split_runs_attributes(
+    run_identifiers: list[identifiers.RunIdentifier],
     attribute_definitions: list[adef.AttributeDefinition],
-) -> Generator[tuple[list[identifiers.ExperimentIdentifier], list[adef.AttributeDefinition]]]:
+) -> Generator[tuple[list[identifiers.RunIdentifier], list[adef.AttributeDefinition]]]:
     """
     Splits a pair of experiment identifiers and attribute_definitions into batches that:
     When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
@@ -73,9 +73,9 @@ def split_experiments_attributes(
     )
     max_attribute_batch_len = max(len(batch) for batch in attribute_batches)
 
-    experiments_batch: list[identifiers.ExperimentIdentifier] = []
+    experiments_batch: list[identifiers.RunIdentifier] = []
     total_batch_size = max_attribute_batch_size
-    for experiment in experiment_identifiers:
+    for experiment in run_identifiers:
         if experiments_batch and (
             (len(experiments_batch) + 1) * max_attribute_batch_len > attribute_values_batch_size
             or total_batch_size + _EXPERIMENT_SIZE > query_size_limit

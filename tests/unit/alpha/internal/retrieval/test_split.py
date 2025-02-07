@@ -9,12 +9,12 @@ from neptune_fetcher.alpha.internal.env import (
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.split import (
-    split_experiments,
-    split_experiments_attributes,
+    split_runs,
+    split_runs_attributes,
 )
 
 EXPERIMENT_IDENTIFIERS = [
-    identifiers.ExperimentIdentifier(identifiers.ProjectIdentifier("project/abc"), identifiers.SysId(f"XXX-{n}"))
+    identifiers.RunIdentifier(identifiers.ProjectIdentifier("project/abc"), identifiers.SysId(f"XXX-{n}"))
     for n in range(10)
 ]
 EXPERIMENT_IDENTIFIER = EXPERIMENT_IDENTIFIERS[0]
@@ -39,7 +39,7 @@ EXPERIMENT_SIZE = 50
 )
 def test_split_experiments(experiment_identifiers, expected):
     # when
-    groups = list(split_experiments(experiment_identifiers=experiment_identifiers))
+    groups = list(split_runs(run_identifiers=experiment_identifiers))
 
     # then
     assert groups == expected
@@ -72,7 +72,7 @@ def test_split_experiments_custom_envs(given_num, query_size_limit, expected_num
     os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
 
     # when
-    groups = list(split_experiments(experiment_identifiers=experiment_identifiers))
+    groups = list(split_runs(run_identifiers=experiment_identifiers))
 
     # then
     assert groups == expected
@@ -96,7 +96,7 @@ def test_split_experiments_custom_envs(given_num, query_size_limit, expected_num
 )
 def test_split_experiments_attributes(experiments, attributes, expected):
     # when
-    groups = list(split_experiments_attributes(experiment_identifiers=experiments, attribute_definitions=attributes))
+    groups = list(split_runs_attributes(run_identifiers=experiments, attribute_definitions=attributes))
 
     # then
     assert groups == expected
@@ -136,7 +136,7 @@ def test_split_experiments_attributes_custom_envs(
     os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name] = str(values_batch_size)
 
     # when
-    groups = list(split_experiments_attributes(experiment_identifiers=experiments, attribute_definitions=attributes))
+    groups = list(split_runs_attributes(run_identifiers=experiments, attribute_definitions=attributes))
 
     # then
     assert groups == expected
