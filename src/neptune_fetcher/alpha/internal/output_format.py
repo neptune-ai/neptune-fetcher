@@ -25,12 +25,12 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeries
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
 
-def convert_experiment_table_to_dataframe(
+def convert_table_to_dataframe(
     table_data: dict[str, list[AttributeValue]],
     selected_aggregations: dict[AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
+    index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    index_column_name = "experiment"
 
     if not table_data:
         return pd.DataFrame(index=[index_column_name])
