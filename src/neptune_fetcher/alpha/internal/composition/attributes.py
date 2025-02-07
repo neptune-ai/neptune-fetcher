@@ -37,7 +37,7 @@ from neptune_fetcher.alpha.internal.retrieval import util
 @dataclass(frozen=True)
 class AttributeDefinitionAggregation:
     attribute_definition: att_defs.AttributeDefinition
-    aggregation: Optional[Literal["last", "min", "max", "average", "variance"]]
+    aggregation: Literal["last", "min", "max", "average", "variance"]
 
 
 def fetch_attribute_definitions(
@@ -66,37 +66,39 @@ def fetch_attribute_definition_aggregations(
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeDefinitionAggregation], None, None]:
+) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]], None, None]:
     """
-    Each attribute definition is yielded once with aggregation=None when it's first encountered.
+    Each attribute definition is yielded once when it's first encountered.
     If the attribute definition is of a type that supports aggregations (for now only float_series),
-    it's then yielded again for each aggregation in the filter.
+    it's then yielded once for each aggregation in the filter that returned it.
     """
 
     pages_filters = _fetch_attribute_definitions(
         client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
     )
 
-    seen_items: set[AttributeDefinitionAggregation] = set()
+    seen_definitions: set[att_defs.AttributeDefinition] = set()
+    seen_definition_aggregations: set[AttributeDefinitionAggregation] = set()
 
     for page, _filter in pages_filters:
-        new_items = []
-        for item in page.items:
-            attribute_aggregation = AttributeDefinitionAggregation(attribute_definition=item, aggregation=None)
-            if attribute_aggregation not in seen_items:
-                new_items.append(attribute_aggregation)
-                seen_items.add(attribute_aggregation)
+        new_definitions = []
+        new_definition_aggregations = []
 
-            if item.type == "float_series":
+        for definition in page.items:
+            if definition not in seen_definitions:
+                new_definitions.append(definition)
+                seen_definitions.add(definition)
+
+            if definition.type == "float_series":
                 for aggregation in _filter.aggregations:
-                    attribute_aggregation = AttributeDefinitionAggregation(
-                        attribute_definition=item, aggregation=aggregation
+                    definition_aggregation = AttributeDefinitionAggregation(
+                        attribute_definition=definition, aggregation=aggregation
                     )
-                    if attribute_aggregation not in seen_items:
-                        new_items.append(attribute_aggregation)
-                        seen_items.add(attribute_aggregation)
+                    if definition_aggregation not in seen_definition_aggregations:
+                        new_definition_aggregations.append(definition_aggregation)
+                        seen_definition_aggregations.add(definition_aggregation)
 
-        yield util.Page(items=new_items)
+        yield util.Page(items=new_definitions), util.Page(items=new_definition_aggregations)
 
 
 def _fetch_attribute_definitions(

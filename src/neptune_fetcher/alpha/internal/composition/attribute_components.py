@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools as ft
 from concurrent.futures import Executor
 from typing import (
     Callable,
@@ -31,6 +30,7 @@ from neptune_fetcher.alpha.internal.composition.attributes import (
     fetch_attribute_definitions,
 )
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
+from neptune_fetcher.alpha.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
     split,
@@ -71,7 +71,10 @@ def fetch_attribute_definition_aggregations_split(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[[list[identifiers.SysId], util.Page[AttributeDefinitionAggregation]], concurrency.OUT],
+    downstream: Callable[
+        [list[identifiers.SysId], util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]],
+        concurrency.OUT,
+    ],
 ) -> concurrency.OUT:
     return concurrency.generate_concurrently(
         items=split.split_sys_ids(sys_ids),
@@ -85,7 +88,7 @@ def fetch_attribute_definition_aggregations_split(
                 executor=fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=ft.partial(downstream, sys_ids_split),
+            downstream=lambda page_pair: downstream(sys_ids_split, page_pair[0], page_pair[1]),
         ),
     )
 
@@ -131,3 +134,27 @@ def fetch_attribute_definitions_complete(
                 downstream=downstream,
             ),
         )
+
+
+def fetch_attribute_values_split(
+    client: AuthenticatedClient,
+    project_identifier: identifiers.ProjectIdentifier,
+    executor: Executor,
+    sys_ids: list[identifiers.SysId],
+    attribute_definitions: list[att_defs.AttributeDefinition],
+    downstream: Callable[[util.Page[att_vals.AttributeValue]], concurrency.OUT],
+) -> concurrency.OUT:
+    return concurrency.generate_concurrently(
+        items=split.split_sys_ids_attributes(sys_ids, attribute_definitions),
+        executor=executor,
+        downstream=lambda split_pair: concurrency.generate_concurrently(
+            items=att_vals.fetch_attribute_values(
+                client=client,
+                project_identifier=project_identifier,
+                run_identifiers=[identifiers.RunIdentifier(project_identifier, s) for s in split_pair[0]],
+                attribute_definitions=split_pair[1],
+            ),
+            executor=executor,
+            downstream=downstream,
+        ),
+    )

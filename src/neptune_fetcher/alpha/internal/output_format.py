@@ -20,20 +20,19 @@ from typing import (
 import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
-from neptune_fetcher.alpha.internal.identifiers import SysName
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
 
 def convert_experiment_table_to_dataframe(
-    experiment_data: dict[SysName, list[AttributeValue]],
+    table_data: dict[str, list[AttributeValue]],
     selected_aggregations: dict[AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
 ) -> pd.DataFrame:
     index_column_name = "experiment"
 
-    if not experiment_data:
+    if not table_data:
         return pd.DataFrame(index=[index_column_name])
 
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
@@ -92,9 +91,9 @@ def convert_experiment_table_to_dataframe(
         return df
 
     rows: list[dict[Union[str, tuple[str, str]], Any]] = []
-    for sys_name, values in experiment_data.items():
+    for label, values in table_data.items():
         row: dict[Union[str, tuple[str, str]], Any] = convert_row(values)  # type: ignore
-        row[index_column_name] = sys_name
+        row[index_column_name] = label
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
