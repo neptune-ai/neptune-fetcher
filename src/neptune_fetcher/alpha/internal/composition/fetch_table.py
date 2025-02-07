@@ -205,7 +205,7 @@ def _fetch_table(
                 sys_ids = []
                 for item in page.items:
                     result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.sys_custom_run_id  # TODO: check for duplicate names?
+                    sys_id_label_mapping[item.sys_id] = item.sys_custom_run_id
                     sys_ids.append(item.sys_id)
                 yield sys_ids
 
@@ -213,17 +213,6 @@ def _fetch_table(
             go_fetch_sys_attrs = go_fetch_experiment_sys_attrs
         else:
             go_fetch_sys_attrs = go_fetch_run_sys_attrs
-
-        def go_fetch_attribute_values(
-            sys_ids: list[identifiers.SysId],
-            attribute_definitions: list[att_defs.AttributeDefinition],
-        ) -> Generator[util.Page[att_vals.AttributeValue], None, None]:
-            return att_vals.fetch_attribute_values(
-                client=client,
-                project_identifier=project,
-                run_identifiers=[identifiers.RunIdentifier(project, s) for s in sys_ids],
-                attribute_definitions=attribute_definitions,
-            )
 
         output = concurrency.generate_concurrently(
             items=go_fetch_sys_attrs(),
@@ -269,10 +258,11 @@ def _fetch_table(
                 raise RuntimeError(f"Unexpected result type: {type(result)}")
 
     result_by_name = _map_keys_preserving_order(result_by_id, sys_id_label_mapping)
-    dataframe = output_format.convert_experiment_table_to_dataframe(
+    dataframe = output_format.convert_table_to_dataframe(
         table_data=result_by_name,
         selected_aggregations=selected_aggregations,
         type_suffix_in_column_names=type_suffix_in_column_names,
+        index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
     )
     return dataframe
 
