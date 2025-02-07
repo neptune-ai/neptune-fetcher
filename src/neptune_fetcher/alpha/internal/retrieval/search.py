@@ -14,6 +14,7 @@
 # limitations under the License.
 import functools as ft
 from dataclasses import dataclass
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -53,6 +54,11 @@ def _map_direction(direction: Literal["asc", "desc"]) -> str:
 
 
 T = TypeVar("T")
+
+
+class ContainerType(Enum):
+    RUN = "run"
+    EXPERIMENT = "experiment"
 
 
 @dataclass(frozen=True)
@@ -103,6 +109,7 @@ class FetchSysAttrs(Protocol[T]):
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
+        container_type: ContainerType = ContainerType.EXPERIMENT,
     ) -> Generator[util.Page[T], None, None]:
         ...
 
@@ -110,7 +117,7 @@ class FetchSysAttrs(Protocol[T]):
 def _create_fetch_sys_attrs(
     attribute_names: list[str],
     make_record: Callable[[dict[str, Any]], T],
-    experiment_leader: bool,
+    default_container_type: ContainerType,
 ) -> FetchSysAttrs[T]:
     def fetch_sys_attrs(
         client: AuthenticatedClient,
@@ -120,11 +127,12 @@ def _create_fetch_sys_attrs(
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
+        container_type: ContainerType = default_container_type,
     ) -> Generator[util.Page[T], None, None]:
         params: dict[str, Any] = {
             "attributeFilters": [{"path": attribute_name} for attribute_name in attribute_names],
             "pagination": {"limit": batch_size},
-            "experimentLeader": experiment_leader,
+            "experimentLeader": container_type == ContainerType.EXPERIMENT,
             "sorting": {
                 "dir": _map_direction(sort_direction),
                 "sortBy": {"name": sort_by.name},
@@ -151,27 +159,27 @@ def _create_fetch_sys_attrs(
 fetch_experiment_sys_attrs = _create_fetch_sys_attrs(
     attribute_names=ExperimentSysAttrs.attribute_names(),
     make_record=ExperimentSysAttrs.from_dict,
-    experiment_leader=True,
+    default_container_type=ContainerType.EXPERIMENT,
 )
 
 
 fetch_run_sys_attrs = _create_fetch_sys_attrs(
     attribute_names=RunSysAttrs.attribute_names(),
     make_record=RunSysAttrs.from_dict,
-    experiment_leader=False,
+    default_container_type=ContainerType.RUN,
 )
 
 fetch_experiment_sys_ids = _create_fetch_sys_attrs(
-    attribute_names=["sys/id"],
-    make_record=_sys_id_from_dict,
-    experiment_leader=True,
+    attribute_names=["sys/id"], make_record=_sys_id_from_dict, default_container_type=ContainerType.EXPERIMENT
 )
 
 fetch_run_sys_ids = _create_fetch_sys_attrs(
     attribute_names=["sys/id"],
     make_record=_sys_id_from_dict,
-    experiment_leader=False,
+    default_container_type=ContainerType.RUN,
 )
+
+fetch_sys_ids = fetch_experiment_sys_ids
 
 
 def _fetch_sys_attrs_page(

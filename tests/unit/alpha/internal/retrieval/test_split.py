@@ -9,37 +9,34 @@ from neptune_fetcher.alpha.internal.env import (
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.split import (
-    split_runs,
-    split_runs_attributes,
+    split_sys_ids,
+    split_sys_ids_attributes,
 )
 
-EXPERIMENT_IDENTIFIERS = [
-    identifiers.RunIdentifier(identifiers.ProjectIdentifier("project/abc"), identifiers.SysId(f"XXX-{n}"))
-    for n in range(10)
-]
-EXPERIMENT_IDENTIFIER = EXPERIMENT_IDENTIFIERS[0]
+SYS_IDS = [identifiers.SysId(f"XXX-{n}") for n in range(10)]
+SYS_ID = SYS_IDS[0]
 ATTRIBUTE_DEFINITIONS = [AttributeDefinition(f"config/attribute{n}", "string") for n in range(10)]
 ATTRIBUTE_DEFINITION = ATTRIBUTE_DEFINITIONS[0]
 ATTRIBUTE_DEFINITION_SIZES = [len(attr.name) for attr in ATTRIBUTE_DEFINITIONS]
 ATTRIBUTE_DEFINITION_SIZE = ATTRIBUTE_DEFINITION_SIZES[0]
 
-EXPERIMENT_SIZE = 50
+UUID_SIZE = 50
 
 
 @pytest.mark.parametrize(
-    "experiment_identifiers, expected",
+    "sys_ids, expected",
     [
         ([], [[]]),
-        ([EXPERIMENT_IDENTIFIER], [[EXPERIMENT_IDENTIFIER]]),
+        ([SYS_ID], [[SYS_ID]]),
         (
-            [EXPERIMENT_IDENTIFIERS[0], EXPERIMENT_IDENTIFIERS[1]],
-            [[EXPERIMENT_IDENTIFIERS[0], EXPERIMENT_IDENTIFIERS[1]]],
+            [SYS_IDS[0], SYS_IDS[1]],
+            [[SYS_IDS[0], SYS_IDS[1]]],
         ),
     ],
 )
-def test_split_experiments(experiment_identifiers, expected):
+def test_split_sys_ids(sys_ids, expected):
     # when
-    groups = list(split_runs(run_identifiers=experiment_identifiers))
+    groups = list(split_sys_ids(sys_ids))
 
     # then
     assert groups == expected
@@ -51,59 +48,59 @@ def test_split_experiments(experiment_identifiers, expected):
         (0, 0, [0]),
         (1, 0, [1]),
         (2, 0, [1, 1]),
-        (3, EXPERIMENT_SIZE * 2, [2, 1]),
-        (4, EXPERIMENT_SIZE * 2, [2, 2]),
-        (5, EXPERIMENT_SIZE * 2, [2, 2, 1]),
-        (9, EXPERIMENT_SIZE * 3 - 1, [2, 2, 2, 2, 1]),
-        (9, EXPERIMENT_SIZE * 3, [3, 3, 3]),
-        (9, EXPERIMENT_SIZE * 3 + 1, [3, 3, 3]),
-        (9, EXPERIMENT_SIZE * 4, [3, 3, 3]),  # 4 -> split into 3 batches -> 3, 3, 3 is more balanced than 4, 4, 1
-        (8, EXPERIMENT_SIZE * 4, [4, 4]),
-        (8, EXPERIMENT_SIZE * 3, [3, 3, 2]),
-        (7, EXPERIMENT_SIZE * 3, [3, 3, 1]),
-        (6, EXPERIMENT_SIZE * 3, [3, 3]),
-        (5, EXPERIMENT_SIZE * 3, [3, 2]),
+        (3, UUID_SIZE * 2, [2, 1]),
+        (4, UUID_SIZE * 2, [2, 2]),
+        (5, UUID_SIZE * 2, [2, 2, 1]),
+        (9, UUID_SIZE * 3 - 1, [2, 2, 2, 2, 1]),
+        (9, UUID_SIZE * 3, [3, 3, 3]),
+        (9, UUID_SIZE * 3 + 1, [3, 3, 3]),
+        (9, UUID_SIZE * 4, [3, 3, 3]),  # 4 -> split into 3 batches -> 3, 3, 3 is more balanced than 4, 4, 1
+        (8, UUID_SIZE * 4, [4, 4]),
+        (8, UUID_SIZE * 3, [3, 3, 2]),
+        (7, UUID_SIZE * 3, [3, 3, 1]),
+        (6, UUID_SIZE * 3, [3, 3]),
+        (5, UUID_SIZE * 3, [3, 2]),
     ],
 )
-def test_split_experiments_custom_envs(given_num, query_size_limit, expected_nums):
+def test_split_sys_ids_custom_envs(given_num, query_size_limit, expected_nums):
     # given
-    experiment_identifiers = [EXPERIMENT_IDENTIFIER] * given_num
-    expected = [[EXPERIMENT_IDENTIFIER] * num for num in expected_nums]
+    sys_ids = [SYS_ID] * given_num
+    expected = [[SYS_ID] * num for num in expected_nums]
     os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
 
     # when
-    groups = list(split_runs(run_identifiers=experiment_identifiers))
+    groups = list(split_sys_ids(sys_ids))
 
     # then
     assert groups == expected
 
 
 @pytest.mark.parametrize(
-    "experiments, attributes, expected",
+    "sys_ids, attributes, expected",
     [
         ([], [], []),
-        ([EXPERIMENT_IDENTIFIER], [], []),
+        ([SYS_ID], [], []),
         ([], [ATTRIBUTE_DEFINITION], []),
-        ([EXPERIMENT_IDENTIFIER], [ATTRIBUTE_DEFINITION], [([EXPERIMENT_IDENTIFIER], [ATTRIBUTE_DEFINITION])]),
-        ([EXPERIMENT_IDENTIFIER] * 2, [ATTRIBUTE_DEFINITION], [([EXPERIMENT_IDENTIFIER] * 2, [ATTRIBUTE_DEFINITION])]),
-        ([EXPERIMENT_IDENTIFIER], [ATTRIBUTE_DEFINITION] * 2, [([EXPERIMENT_IDENTIFIER], [ATTRIBUTE_DEFINITION] * 2)]),
+        ([SYS_ID], [ATTRIBUTE_DEFINITION], [([SYS_ID], [ATTRIBUTE_DEFINITION])]),
+        ([SYS_ID] * 2, [ATTRIBUTE_DEFINITION], [([SYS_ID] * 2, [ATTRIBUTE_DEFINITION])]),
+        ([SYS_ID], [ATTRIBUTE_DEFINITION] * 2, [([SYS_ID], [ATTRIBUTE_DEFINITION] * 2)]),
         (
-            [EXPERIMENT_IDENTIFIER] * 2,
+            [SYS_ID] * 2,
             [ATTRIBUTE_DEFINITION] * 2,
-            [([EXPERIMENT_IDENTIFIER] * 2, [ATTRIBUTE_DEFINITION] * 2)],
+            [([SYS_ID] * 2, [ATTRIBUTE_DEFINITION] * 2)],
         ),
     ],
 )
-def test_split_experiments_attributes(experiments, attributes, expected):
+def test_split_sys_ids_attributes(sys_ids, attributes, expected):
     # when
-    groups = list(split_runs_attributes(run_identifiers=experiments, attribute_definitions=attributes))
+    groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
 
     # then
     assert groups == expected
 
 
 @pytest.mark.parametrize(
-    "experiment_num, attribute_num, query_size_limit, values_batch_size, expected_nums",
+    "sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums",
     [
         (1, 1, 500, 500, [(1, 1)]),
         (1, 1, 1, 500, [(1, 1)]),
@@ -119,24 +116,24 @@ def test_split_experiments_attributes(experiments, attributes, expected):
         (2, 3, 500, 5, [(1, 3), (1, 3)]),
         (2, 3, 500, 6, [(2, 3)]),
         (3, 3, 500, 6, [(2, 3), (1, 3)]),
-        (2, 3, EXPERIMENT_SIZE + 2 * ATTRIBUTE_DEFINITION_SIZE, 500, [(1, 2), (1, 1), (1, 2), (1, 1)]),
-        (2, 3, EXPERIMENT_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE - 1, 500, [(1, 2), (1, 1), (1, 2), (1, 1)]),
-        (2, 3, EXPERIMENT_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [(1, 3), (1, 3)]),
-        (2, 3, 2 * EXPERIMENT_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE - 1, 500, [(1, 3), (1, 3)]),
-        (2, 3, 2 * EXPERIMENT_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [(2, 3)]),
+        (2, 3, UUID_SIZE + 2 * ATTRIBUTE_DEFINITION_SIZE, 500, [(1, 2), (1, 1), (1, 2), (1, 1)]),
+        (2, 3, UUID_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE - 1, 500, [(1, 2), (1, 1), (1, 2), (1, 1)]),
+        (2, 3, UUID_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [(1, 3), (1, 3)]),
+        (2, 3, 2 * UUID_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE - 1, 500, [(1, 3), (1, 3)]),
+        (2, 3, 2 * UUID_SIZE + 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [(2, 3)]),
     ],
 )
-def test_split_experiments_attributes_custom_envs(
-    experiment_num, attribute_num, query_size_limit, values_batch_size, expected_nums
+def test_split_sys_ids_attributes_custom_envs(
+    sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums
 ):
-    experiments = [EXPERIMENT_IDENTIFIER] * experiment_num
+    sys_ids = [SYS_ID] * sys_id_num
     attributes = [ATTRIBUTE_DEFINITION] * attribute_num
-    expected = [([EXPERIMENT_IDENTIFIER] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
+    expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
     os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
     os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name] = str(values_batch_size)
 
     # when
-    groups = list(split_runs_attributes(run_identifiers=experiments, attribute_definitions=attributes))
+    groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
 
     # then
     assert groups == expected

@@ -136,7 +136,7 @@ def fetch_experiment_metrics(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
-            experiment_filter=experiments,
+            _filter=experiments,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
@@ -299,17 +299,16 @@ def _fetch_flat_dataframe_metrics(
             _futures.append(executor.submit(process_experiments, experiment_generator))
 
         if _experiments and _experiments.items:
-            experiment_identifiers = [
-                identifiers.RunIdentifier(project, experiment.sys_id) for experiment in _experiments.items
-            ]
+            sys_ids = [exp.sys_id for exp in _experiments.items]
             sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
 
-            for experiment_identifiers_split in split.split_runs(experiment_identifiers):
-                sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
+            for sys_ids_split in split.split_sys_ids(sys_ids):
+                run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
+                sys_attrs_split = [sys_id_to_sys_attrs[sys_id] for sys_id in sys_ids_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
-                    experiment_identifiers=experiment_identifiers_split,
+                    run_identifiers=run_identifiers_split,
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
                 )
