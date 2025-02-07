@@ -111,7 +111,7 @@ def list_experiment_attributes(
 
 
 def list_run_attributes(
-    experiments: Optional[Union[str, Filter]] = None,
+    runs: Optional[Union[str, Filter]] = None,
     attributes: Optional[Union[str, AttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
