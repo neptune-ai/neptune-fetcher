@@ -162,7 +162,7 @@ def fetch_experiment_metrics(
 
 
 def fetch_run_metrics(
-    experiments: Union[str, Filter],
+    runs: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),

@@ -127,7 +127,6 @@ def _list_attributes(
             attribute_filter=attributes,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
             downstream=concurrency.return_value,
         )
 
