@@ -46,7 +46,10 @@ from neptune_fetcher.alpha.internal.retrieval import (
     util,
 )
 
-__all__ = ("fetch_experiments_table",)
+__all__ = (
+    "fetch_experiments_table",
+    "fetch_runs_table",
+)
 
 
 def fetch_experiments_table(
@@ -239,6 +242,18 @@ def fetch_experiments_table(
         type_suffix_in_column_names=type_suffix_in_column_names,
     )
     return dataframe
+
+
+def fetch_runs_table(
+    runs: Optional[Union[str, Filter]] = None,
+    attributes: Union[str, AttributeFilter] = "^sys/name$",
+    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
+    sort_direction: Literal["asc", "desc"] = "desc",
+    limit: Optional[int] = None,
+    type_suffix_in_column_names: bool = False,
+    context: Optional[_context.Context] = None,
+) -> pd.DataFrame:
+    ...
 
 
 def _map_keys_preserving_order(

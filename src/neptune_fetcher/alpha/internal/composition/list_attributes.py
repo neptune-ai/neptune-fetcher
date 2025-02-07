@@ -14,7 +14,10 @@
 # limitations under the License.
 #
 
-__all__ = ("list_attributes",)
+__all__ = (
+    "list_experiment_attributes",
+    "list_run_attributes",
+)
 
 from concurrent.futures import Executor
 from typing import (
@@ -49,7 +52,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
 )
 
 
-def list_attributes(
+def list_experiment_attributes(
     experiments: Optional[Union[str, Filter]] = None,
     attributes: Optional[Union[str, AttributeFilter]] = None,
     context: Optional[Context] = None,
@@ -105,6 +108,14 @@ def list_attributes(
         )
 
         return sorted(set(result))
+
+
+def list_run_attributes(
+    runs: Optional[Union[str, Filter]] = None,
+    attributes: Optional[Union[str, AttributeFilter]] = None,
+    context: Optional[Context] = None,
+) -> list[str]:
+    return []
 
 
 def _list_attributes(
