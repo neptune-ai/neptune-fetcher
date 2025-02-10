@@ -191,7 +191,7 @@ def _fetch_metrics(
             container_type=container_type,
         )
 
-        df = _fetch_flat_dataframe_metrics(
+        values_generator = _fetch_flat_dataframe_metrics(
             _filter=_filter,
             attributes=attributes,
             client=client,
@@ -204,47 +204,20 @@ def _fetch_metrics(
             container_type=container_type,
         )
 
+        index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+
+        df = _create_flat_dataframe(
+            values_generator,
+            index_column_name=index_column_name,
+        )
+
     if include_time == "absolute":
-        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
+        df = _transform_with_absolute_timestamp(df, type_suffix_in_column_names, index_column_name)
     # elif include_time == "relative":
     #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
-        return _transform_without_timestamp(df, type_suffix_in_column_names)
+        df = _transform_without_timestamp(df, type_suffix_in_column_names, index_column_name)
 
-
-def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
-    df = df.rename(columns={"timestamp": "absolute_time"})
-    df = df.pivot(
-        index=["experiment", "step"],
-        columns="path",
-        values=["value", "absolute_time"],
-    )
-
-    df = df.swaplevel(axis=1)
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
-
-    df = df.reset_index()
-    df["experiment"] = df["experiment"].astype(str)
-    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
-    df.columns.names = (None, None)
-    df = df.set_index(["experiment", "step"])
-    df = df.sort_index(axis=1, level=0)
-    return df
-
-
-def _transform_without_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
-    df = df.pivot(index=["experiment", "step"], columns="path", values="value")
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
-
-    df = df.reset_index()
-    df["experiment"] = df["experiment"].astype(str)
-    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
-    df.columns.name = None
-    df = df.set_index(["experiment", "step"])
-    df = df.sort_index(axis=1)
     return df
 
 
@@ -298,7 +271,7 @@ def _fetch_flat_dataframe_metrics(
     lineage_to_the_root: bool,
     tail_limit: Optional[int],
     container_type: ContainerType,
-) -> pd.DataFrame:
+) -> Iterable[FloatPointValue]:  # pd.DataFrame:
     def fetch_values(
         exp_paths: list[AttributePathInRun],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
@@ -383,12 +356,12 @@ def _fetch_flat_dataframe_metrics(
                 if values:
                     yield from values
 
-    df = _create_flat_dataframe(_start())
-    return df
+    return _start()
 
 
 def _create_flat_dataframe(
     values: Iterable[FloatPointValue],
+    index_column_name: str = "experiment",
 ) -> pd.DataFrame:
     """
     Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
@@ -425,7 +398,7 @@ def _create_flat_dataframe(
             yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
 
     types = [
-        ("experiment", "uint32"),  # TODO: the column name should be different for runs
+        (index_column_name, "uint32"),
         ("path", "uint32"),
         ("timestamp", "uint64"),
         ("step", "float64"),
@@ -436,9 +409,49 @@ def _create_flat_dataframe(
         np.fromiter(generate_categorized_rows(values), dtype=types),
     )
     experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
-    df["experiment"] = pd.Categorical.from_codes(df["experiment"], dtype=experiment_dtype)
+    df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
 
     path_dtype = pd.CategoricalDtype(categories=list(path_mapping.keys()))
     df["path"] = pd.Categorical.from_codes(df["path"], dtype=path_dtype)
 
+    return df
+
+
+def _transform_with_absolute_timestamp(
+    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+) -> pd.DataFrame:
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
+    df = df.rename(columns={"timestamp": "absolute_time"})
+    df = df.pivot(
+        index=[index_column_name, "step"],
+        columns="path",
+        values=["value", "absolute_time"],
+    )
+
+    df = df.swaplevel(axis=1)
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
+
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df.columns.names = (None, None)
+    df = df.set_index([index_column_name, "step"])
+    df = df.sort_index(axis=1, level=0)
+    return df
+
+
+def _transform_without_timestamp(
+    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+) -> pd.DataFrame:
+    df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
+
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df.columns.name = None
+    df = df.set_index([index_column_name, "step"])
+    df = df.sort_index(axis=1)
     return df
