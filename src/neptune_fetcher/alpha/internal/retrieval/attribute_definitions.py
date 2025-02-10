@@ -60,7 +60,7 @@ def split_attribute_filters(
 def fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
-    experiment_identifiers: Optional[Iterable[identifiers.ExperimentIdentifier]],
+    run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.AttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
@@ -70,8 +70,8 @@ def fetch_attribute_definitions_single_filter(
         "nextPage": {"limit": batch_size},
     }
 
-    if experiment_identifiers is not None:
-        params["experimentIdsFilter"] = [str(e) for e in experiment_identifiers]
+    if run_identifiers is not None:
+        params["experimentIdsFilter"] = [str(e) for e in run_identifiers]
 
     must_match_regexes = _union_options(
         [

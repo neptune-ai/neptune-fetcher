@@ -26,12 +26,11 @@ from neptune_api.client import AuthenticatedClient
 from neptune_fetcher.alpha import filters
 from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import concurrency
-from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
-    split,
     util,
 )
 
@@ -39,14 +38,15 @@ from neptune_fetcher.alpha.internal.retrieval import (
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
+    container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> None:
-    if experiment_filter is None:
+    if filter_ is None:
         return
 
-    attributes = _filter_untyped(_walk_attributes(experiment_filter))
+    attributes = _filter_untyped(_walk_attributes(filter_))
     if not attributes:
         return
 
@@ -58,10 +58,11 @@ def infer_attribute_types_in_filter(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        experiment_filter=None,
+        filter_=None,
         attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        container_type=container_type,
     )
     attributes = _filter_untyped(attributes)
     if attributes:
@@ -71,10 +72,11 @@ def infer_attribute_types_in_filter(
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     sort_by: filters.Attribute,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
+    container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> None:
     attributes = _filter_untyped([sort_by])
     if not attributes:
@@ -88,10 +90,11 @@ def infer_attribute_types_in_sort_by(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        experiment_filter=experiment_filter,
+        filter_=filter_,
         attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        container_type=container_type,
     )
     attributes = _filter_untyped(attributes)
     if attributes:
@@ -109,54 +112,25 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    experiment_filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     attributes: Iterable[filters.Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
+    container_type: search.ContainerType,
 ) -> None:
     attribute_filter_by_name = filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    if experiment_filter is None:
-        output = concurrency.generate_concurrently(
-            fetch_attribute_definitions(
-                client=client,
-                project_identifiers=[project_identifier],
-                experiment_identifiers=None,
-                attribute_filter=attribute_filter_by_name,
-                executor=fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=concurrency.return_value,
-        )
-    else:
-        output = concurrency.generate_concurrently(
-            items=search.fetch_experiment_sys_attrs(
-                client=client,
-                project_identifier=project_identifier,
-                experiment_filter=experiment_filter,
-            ),
-            executor=executor,
-            downstream=lambda experiment_page: concurrency.generate_concurrently(
-                items=split.split_experiments(
-                    [
-                        identifiers.ExperimentIdentifier(project_identifier, experiment.sys_id)
-                        for experiment in experiment_page.items
-                    ]
-                ),
-                executor=executor,
-                downstream=lambda experiment_identifiers_split: concurrency.generate_concurrently(
-                    fetch_attribute_definitions(
-                        client=client,
-                        project_identifiers=[project_identifier],
-                        experiment_identifiers=experiment_identifiers_split,
-                        attribute_filter=attribute_filter_by_name,
-                        executor=fetch_attribute_definitions_executor,
-                    ),
-                    executor=executor,
-                    downstream=concurrency.return_value,
-                ),
-            ),
-        )
+    output = _components.fetch_attribute_definitions_complete(
+        client=client,
+        project_identifier=project_identifier,
+        filter_=filter_,
+        attribute_filter=attribute_filter_by_name,
+        executor=executor,
+        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+        container_type=container_type,
+        downstream=concurrency.return_value,
+    )
+
     attribute_definition_pages: Generator[
         util.Page[att_defs.AttributeDefinition], None, None
     ] = concurrency.gather_results(output)

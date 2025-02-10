@@ -43,39 +43,39 @@ from neptune_fetcher.alpha.internal.retrieval import util
 logger = logging.getLogger(__name__)
 
 AttributePath = str
-ExperimentName = str
+RunLabel = str
 
 # Tuples are used here to enhance performance
-FloatPointValue = Tuple[ExperimentName, AttributePath, float, float, float]
+FloatPointValue = Tuple[RunLabel, AttributePath, float, float, float]
 ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex = range(5)
 
 TOTAL_POINT_LIMIT: int = 1_000_000
 
 
 @dataclass(frozen=True)
-class AttributePathInExperiment:
-    experiment_identifier: identifiers.ExperimentIdentifier
-    experiment_name: str
+class AttributePathInRun:
+    run_identifier: identifiers.RunIdentifier
+    run_label: RunLabel
     attribute_path: AttributePath
 
 
 @dataclass(frozen=True)
 class _SeriesRequest:
     path: str
-    experiment_identifier: identifiers.ExperimentIdentifier
+    run_identifier: identifiers.RunIdentifier
     include_inherited: bool
     after_step: Optional[float]
 
 
 def fetch_multiple_series_values(
     client: AuthenticatedClient,
-    exp_paths: list[AttributePathInExperiment],
+    exp_paths: list[AttributePathInRun],
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
 ) -> Iterable[FloatPointValue]:
     results = []
-    partial_results: dict[AttributePathInExperiment, list[FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
+    partial_results: dict[AttributePathInRun, list[FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
     attribute_steps = {exp_path: None for exp_path in exp_paths}
 
     while attribute_steps:
@@ -85,7 +85,7 @@ def fetch_multiple_series_values(
         requests = {
             exp_path: _SeriesRequest(
                 path=exp_path.attribute_path,
-                experiment_identifier=exp_path.experiment_identifier,
+                run_identifier=exp_path.run_identifier,
                 include_inherited=include_inherited,
                 after_step=after_step,
             )
@@ -121,11 +121,11 @@ def fetch_multiple_series_values(
 
 def _fetch_series_values(
     client: AuthenticatedClient,
-    requests: dict[AttributePathInExperiment, _SeriesRequest],
+    requests: dict[AttributePathInRun, _SeriesRequest],
     per_series_point_limit: int,
     step_range: Tuple[Union[float, None], Union[float, None]],
     order: Literal["asc", "desc"],
-) -> dict[AttributePathInExperiment, list[FloatPointValue]]:
+) -> dict[AttributePathInRun, list[FloatPointValue]]:
     series_requests_ids = {}
     series_requests = []
 
@@ -138,7 +138,7 @@ def _fetch_series_values(
                 series=TimeSeries(
                     attribute=exp_path.attribute_path,
                     holder=AttributesHolderIdentifier(
-                        identifier=str(exp_path.experiment_identifier),
+                        identifier=str(exp_path.run_identifier),
                         type="experiment",
                     ),
                     lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
@@ -171,7 +171,7 @@ def _fetch_series_values(
     result = {
         series_requests_ids[series.requestId]: [
             (
-                series_requests_ids[series.requestId].experiment_name,
+                series_requests_ids[series.requestId].run_label,
                 series_requests_ids[series.requestId].attribute_path,
                 point.timestamp_millis,
                 point.step,

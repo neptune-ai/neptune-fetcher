@@ -12,19 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass
-from typing import NewType
+#
 
-ProjectIdentifier = NewType("ProjectIdentifier", str)  # e.g. "team/john.doe"
-SysId = NewType("SysId", str)  # e.g. "KEY-1234"
-SysName = NewType("SysName", str)  # e.g. "pye2e-fetcher-test-internal-attribute"
-CustomRunId = NewType("CustomRunId", str)  # an uuid
+__all__ = [
+    "list_runs",
+    "list_attributes",
+    "fetch_runs_table",
+    "fetch_metrics",
+]
 
-
-@dataclass(frozen=True)
-class RunIdentifier:
-    project_identifier: ProjectIdentifier
-    sys_id: SysId
-
-    def __str__(self) -> str:
-        return f"{self.project_identifier}/{self.sys_id}"
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import fetch_run_metrics as fetch_metrics
+from neptune_fetcher.alpha.internal.composition.fetch_table import fetch_runs_table
+from neptune_fetcher.alpha.internal.composition.list_attributes import list_run_attributes as list_attributes
+from neptune_fetcher.alpha.internal.composition.list_containers import list_runs

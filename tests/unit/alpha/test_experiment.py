@@ -1,6 +1,6 @@
 import pytest
 
-from neptune_fetcher.alpha.internal.composition.fetch_experiments_table import (
+from neptune_fetcher.alpha.internal.composition.fetch_table import (
     _validate_limit,
     _validate_sort_direction,
 )

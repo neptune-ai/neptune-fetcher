@@ -47,7 +47,7 @@ from neptune_fetcher.alpha.internal.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.identifiers import ExperimentIdentifier as ExpId
+from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.alpha.internal.retrieval import (
     split,
     util,
@@ -55,7 +55,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.metrics import (
     AttributePathIndex,
-    AttributePathInExperiment,
+    AttributePathInRun,
     ExperimentNameIndex,
     FloatPointValue,
     StepIndex,
@@ -64,14 +64,21 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
     fetch_multiple_series_values,
 )
 from neptune_fetcher.alpha.internal.retrieval.search import (
-    ExperimentSysAttrs,
+    ContainerType,
     fetch_experiment_sys_attrs,
+    fetch_run_sys_attrs,
 )
+
+__all__ = (
+    "fetch_experiment_metrics",
+    "fetch_run_metrics",
+)
+
 
 _PATHS_PER_BATCH: int = 10_000
 
 
-def fetch_metrics(
+def fetch_experiment_metrics(
     experiments: Union[str, Filter],
     attributes: Union[str, AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
@@ -103,25 +110,94 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
+    if isinstance(experiments, str):
+        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
+
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+
+    return _fetch_metrics(
+        filter_=experiments,
+        attributes=attributes,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=ContainerType.EXPERIMENT,
+    )
+
+
+def fetch_run_metrics(
+    runs: Union[str, Filter],
+    attributes: Union[str, AttributeFilter],
+    include_time: Optional[Literal["absolute"]] = None,
+    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
+    lineage_to_the_root: bool = True,
+    tail_limit: Optional[int] = None,
+    type_suffix_in_column_names: bool = False,
+    context: Optional[Context] = None,
+) -> pd.DataFrame:
+    """
+    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
+
+    `runs` - a filter specifying which runs to include
+        - a regex that the run ID must match, or
+        - a Filter object
+    `attributes` - a filter specifying which attributes to include in the table
+        - a regex that the attribute name must match, or
+        - an AttributeFilter object;
+                If `AttributeFilter.aggregations` is set, an exception will be raised as
+                they're not supported in this function.
+    `include_time` - whether to include absolute timestamp
+    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
+    `lineage_to_the_root` - if True (default), includes all points from the complete run history.
+        If False, only includes points from the most recent run in the lineage.
+    `tail_limit` - from the tail end of each series, how many points to include at most.
+    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
+        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+        If False, an exception is raised if there are multiple types under one attribute path.
+
+    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
+    """
+    if isinstance(runs, str):
+        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
+
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+
+    return _fetch_metrics(
+        filter_=runs,
+        attributes=attributes,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=ContainerType.RUN,
+    )
+
+
+def _fetch_metrics(
+    filter_: Filter,
+    attributes: AttributeFilter,
+    include_time: Optional[Literal["absolute"]],
+    step_range: Tuple[Optional[float], Optional[float]],
+    lineage_to_the_root: bool,
+    tail_limit: Optional[int],
+    type_suffix_in_column_names: bool,
+    context: Optional[Context],
+    container_type: ContainerType,
+) -> pd.DataFrame:
     _validate_step_range(step_range)
     _validate_tail_limit(tail_limit)
     _validate_include_time(include_time)
 
     valid_context = validate_context(context or get_context())
-
     client = get_client(valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
-
-    experiments = (
-        Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-        if isinstance(experiments, str)
-        else experiments
-    )
-    attributes = (
-        AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-        if isinstance(attributes, str)
-        else attributes
-    )
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -130,13 +206,14 @@ def fetch_metrics(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
-            experiment_filter=experiments,
+            filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
         )
 
-        df = _fetch_flat_dataframe_metrics(
-            experiments=experiments,
+        values_generator = _fetch_flat_dataframe_metrics(
+            filter_=filter_,
             attributes=attributes,
             client=client,
             project=project_identifier,
@@ -145,49 +222,23 @@ def fetch_metrics(
             tail_limit=tail_limit,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
+        )
+
+        index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+
+        df = _create_flat_dataframe(
+            values_generator,
+            index_column_name=index_column_name,
         )
 
     if include_time == "absolute":
-        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names)
+        df = _transform_with_absolute_timestamp(df, type_suffix_in_column_names, index_column_name)
     # elif include_time == "relative":
     #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
-        return _transform_without_timestamp(df, type_suffix_in_column_names)
+        df = _transform_without_timestamp(df, type_suffix_in_column_names, index_column_name)
 
-
-def _transform_with_absolute_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
-    df = df.rename(columns={"timestamp": "absolute_time"})
-    df = df.pivot(
-        index=["experiment", "step"],
-        columns="path",
-        values=["value", "absolute_time"],
-    )
-
-    df = df.swaplevel(axis=1)
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
-
-    df = df.reset_index()
-    df["experiment"] = df["experiment"].astype(str)
-    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
-    df.columns.names = (None, None)
-    df = df.set_index(["experiment", "step"])
-    df = df.sort_index(axis=1, level=0)
-    return df
-
-
-def _transform_without_timestamp(df: pd.DataFrame, type_suffix_in_column_names: bool) -> pd.DataFrame:
-    df = df.pivot(index=["experiment", "step"], columns="path", values="value")
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
-
-    df = df.reset_index()
-    df["experiment"] = df["experiment"].astype(str)
-    df = df.sort_values(by=["experiment", "step"], ignore_index=True)
-    df.columns.name = None
-    df = df.set_index(["experiment", "step"])
-    df = df.sort_index(axis=1)
     return df
 
 
@@ -225,18 +276,19 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
 
 
 def _fetch_flat_dataframe_metrics(
-    experiments: Filter,
+    filter_: Filter,
     attributes: AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-) -> pd.DataFrame:
+    step_range: Tuple[Optional[float], Optional[float]],
+    lineage_to_the_root: bool,
+    tail_limit: Optional[int],
+    container_type: ContainerType,
+) -> Iterable[FloatPointValue]:  # pd.DataFrame:
     def fetch_values(
-        exp_paths: list[AttributePathInExperiment],
+        exp_paths: list[AttributePathInRun],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         _series = fetch_multiple_series_values(
             client,
@@ -248,20 +300,20 @@ def _fetch_flat_dataframe_metrics(
         return [], _series
 
     def process_definitions(
-        _experiments: list[ExperimentSysAttrs],
+        _sys_id_to_labels: dict[identifiers.SysId, str],
         _definitions: Generator[util.Page[AttributeDefinition], None, None],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         definitions_page = next(_definitions, None)
         _futures = []
         if definitions_page:
-            _futures.append(executor.submit(process_definitions, _experiments, _definitions))
+            _futures.append(executor.submit(process_definitions, _sys_id_to_labels, _definitions))
 
             paths = definitions_page.items
 
-            product = it.product(_experiments, paths)
+            product = it.product(_sys_id_to_labels.items(), paths)
             exp_paths = [
-                AttributePathInExperiment(ExpId(project, _exp.sys_id), _exp.sys_name, _path.name)
-                for _exp, _path in product
+                AttributePathInRun(ExpId(project, sys_id), label, _path.name)
+                for (sys_id, label), _path in product
                 if _path.type == "float_series"
             ]
 
@@ -270,38 +322,43 @@ def _fetch_flat_dataframe_metrics(
 
         return _futures, []
 
-    def process_experiments(
-        experiment_generator: Generator[util.Page[ExperimentSysAttrs], None, None]
+    def process_sys_ids(
+        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        _experiments = next(experiment_generator, None)
+        sys_id_to_labels = next(sys_ids_generator, None)
         _futures = []
 
-        if _experiments:
-            _futures.append(executor.submit(process_experiments, experiment_generator))
+        if sys_id_to_labels:
+            _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
 
-        if _experiments and _experiments.items:
-            experiment_identifiers = [
-                identifiers.ExperimentIdentifier(project, experiment.sys_id) for experiment in _experiments.items
-            ]
-            sys_id_to_sys_attrs = {exp.sys_id: exp for exp in _experiments.items}
+            sys_ids = list(sys_id_to_labels.keys())
 
-            for experiment_identifiers_split in split.split_experiments(experiment_identifiers):
-                sys_attrs_split = [sys_id_to_sys_attrs[exp.sys_id] for exp in experiment_identifiers_split]
+            for sys_ids_split in split.split_sys_ids(sys_ids):
+                run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
+                sys_id_to_labels_split = {sys_id: sys_id_to_labels[sys_id] for sys_id in sys_ids_split}
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
-                    experiment_identifiers=experiment_identifiers_split,
+                    run_identifiers=run_identifiers_split,
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
                 )
-                _futures.append(executor.submit(process_definitions, sys_attrs_split, definitions_generator))
+                _futures.append(executor.submit(process_definitions, sys_id_to_labels_split, definitions_generator))
 
         return _futures, []
 
+    def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
+        if container_type == ContainerType.RUN:
+            run_pages = fetch_run_sys_attrs(client, project, filter_)
+            return ({run.sys_id: run.sys_custom_run_id for run in page.items} for page in run_pages)
+        elif container_type == ContainerType.EXPERIMENT:
+            experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
+            return ({exp.sys_id: exp.sys_name for exp in page.items} for page in experiment_pages)
+        else:
+            raise RuntimeError(f"Unknown container type: {container_type}")
+
     def _start() -> Iterable[FloatPointValue]:
-        futures = {
-            executor.submit(lambda: process_experiments(fetch_experiment_sys_attrs(client, project, experiments)))
-        }
+        futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}
 
         while futures:
             done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
@@ -312,11 +369,13 @@ def _fetch_flat_dataframe_metrics(
                 if values:
                     yield from values
 
-    df = _create_flat_dataframe(_start())
-    return df
+    return _start()
 
 
-def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:
+def _create_flat_dataframe(
+    values: Iterable[FloatPointValue],
+    index_column_name: str = "experiment",
+) -> pd.DataFrame:
     """
     Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
     by converting strings to categorical codes before DataFrame creation.
@@ -352,7 +411,7 @@ def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:
             yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
 
     types = [
-        ("experiment", "uint32"),
+        (index_column_name, "uint32"),
         ("path", "uint32"),
         ("timestamp", "uint64"),
         ("step", "float64"),
@@ -363,9 +422,49 @@ def _create_flat_dataframe(values: Iterable[FloatPointValue]) -> pd.DataFrame:
         np.fromiter(generate_categorized_rows(values), dtype=types),
     )
     experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
-    df["experiment"] = pd.Categorical.from_codes(df["experiment"], dtype=experiment_dtype)
+    df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
 
     path_dtype = pd.CategoricalDtype(categories=list(path_mapping.keys()))
     df["path"] = pd.Categorical.from_codes(df["path"], dtype=path_dtype)
 
+    return df
+
+
+def _transform_with_absolute_timestamp(
+    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+) -> pd.DataFrame:
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
+    df = df.rename(columns={"timestamp": "absolute_time"})
+    df = df.pivot(
+        index=[index_column_name, "step"],
+        columns="path",
+        values=["value", "absolute_time"],
+    )
+
+    df = df.swaplevel(axis=1)
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
+
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df.columns.names = (None, None)
+    df = df.set_index([index_column_name, "step"])
+    df = df.sort_index(axis=1, level=0)
+    return df
+
+
+def _transform_without_timestamp(
+    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+) -> pd.DataFrame:
+    df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
+    if type_suffix_in_column_names:
+        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
+
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df.columns.name = None
+    df = df.set_index([index_column_name, "step"])
+    df = df.sort_index(axis=1)
     return df
