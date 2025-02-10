@@ -4,7 +4,7 @@ from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.output_format import convert_experiment_table_to_dataframe
+from neptune_fetcher.alpha.internal.output_format import convert_table_to_dataframe
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
@@ -19,9 +19,7 @@ def test_convert_experiment_table_to_dataframe_empty():
     experiment_data = {}
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
-        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert dataframe.empty
@@ -36,9 +34,7 @@ def test_convert_experiment_table_to_dataframe_single_string():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
-        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert dataframe.to_dict() == {
@@ -55,9 +51,7 @@ def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
-        experiment_data, selected_aggregations={}, type_suffix_in_column_names=True
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=True)
 
     # then
     assert dataframe.to_dict() == {
@@ -78,7 +72,7 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
+    dataframe = convert_table_to_dataframe(
         experiment_data,
         selected_aggregations={
             AttributeDefinition("attr1", "float_series"): {"last", "min", "variance"},
@@ -106,9 +100,7 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
-        experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     expected_data = pd.DataFrame.from_dict(
@@ -134,15 +126,13 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
     }
 
     # when
-    dataframe = convert_experiment_table_to_dataframe(
-        experiment_data, selected_aggregations={}, type_suffix_in_column_names=True
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=True)
 
     # then
     expected_data = pd.DataFrame.from_dict(
         {
-            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
             ("attr1/a:b:c:float", ""): {"exp1": float("nan"), "exp2": 0.43},
+            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
         }
     )
     expected_data.index.name = "experiment"
@@ -163,9 +153,7 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_without_suffix(
 
     # when
     with pytest.raises(ConflictingAttributeTypes) as exc_info:
-        convert_experiment_table_to_dataframe(
-            experiment_data, selected_aggregations={}, type_suffix_in_column_names=False
-        )
+        convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert "attr1/a:b:c" in str(exc_info.value)

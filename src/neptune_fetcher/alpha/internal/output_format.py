@@ -20,21 +20,23 @@ from typing import (
 import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
-from neptune_fetcher.alpha.internal.identifiers import SysName
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 
 
-def convert_experiment_table_to_dataframe(
-    experiment_data: dict[SysName, list[AttributeValue]],
+def convert_table_to_dataframe(
+    table_data: dict[str, list[AttributeValue]],
     selected_aggregations: dict[AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
+    index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    index_column_name = "experiment"
 
-    if not experiment_data:
-        return pd.DataFrame(index=[index_column_name])
+    if not table_data:
+        return pd.DataFrame(
+            index=pd.Index([], name=index_column_name),
+            columns=pd.MultiIndex.from_tuples([], names=["attribute", "aggregation"]),
+        )
 
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
         row = {}
@@ -92,14 +94,17 @@ def convert_experiment_table_to_dataframe(
         return df
 
     rows: list[dict[Union[str, tuple[str, str]], Any]] = []
-    for sys_name, values in experiment_data.items():
+    for label, values in table_data.items():
         row: dict[Union[str, tuple[str, str]], Any] = convert_row(values)  # type: ignore
-        row[index_column_name] = sys_name
+        row[index_column_name] = label
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
     dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
     dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
+
+    sorted_columns = sorted(dataframe.columns, key=lambda x: (x[0], x[1]))
+    dataframe = dataframe[sorted_columns]
 
     return dataframe

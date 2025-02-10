@@ -34,16 +34,15 @@ from neptune_fetcher.alpha.internal import (
     output_format,
 )
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import attributes as _attributes
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
 )
+from neptune_fetcher.alpha.internal.composition.attributes import AttributeDefinitionAggregation
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
-    split,
     util,
 )
 
@@ -82,26 +81,73 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
+    if isinstance(experiments, str):
+        experiments = Filter.matches_all(Attribute("sys/name", type="string"), experiments)
+
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes)
+
+    if isinstance(sort_by, str):
+        sort_by = Attribute(sort_by)
+
+    return _fetch_table(
+        _filter=experiments,
+        attributes=attributes,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        limit=limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=search.ContainerType.EXPERIMENT,
+    )
+
+
+def fetch_runs_table(
+    runs: Optional[Union[str, Filter]] = None,
+    attributes: Union[str, AttributeFilter] = "^sys/name$",
+    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
+    sort_direction: Literal["asc", "desc"] = "desc",
+    limit: Optional[int] = None,
+    type_suffix_in_column_names: bool = False,
+    context: Optional[_context.Context] = None,
+) -> pd.DataFrame:
+    if isinstance(runs, str):
+        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), runs)
+
+    if isinstance(attributes, str):
+        attributes = AttributeFilter(name_matches_all=attributes)
+
+    if isinstance(sort_by, str):
+        sort_by = Attribute(sort_by)
+
+    return _fetch_table(
+        _filter=runs,
+        attributes=attributes,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        limit=limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=search.ContainerType.RUN,
+    )
+
+
+def _fetch_table(
+    _filter: Optional[Filter],
+    attributes: AttributeFilter,
+    sort_by: Attribute,
+    sort_direction: Literal["asc", "desc"],
+    limit: Optional[int],
+    type_suffix_in_column_names: bool,
+    context: Optional[_context.Context],
+    container_type: search.ContainerType,
+) -> pd.DataFrame:
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
+
     valid_context = _context.validate_context(context or _context.get_context())
     client = _client.get_client(valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
-
-    if isinstance(experiments, str):
-        experiments_filter: Optional[Filter] = Filter.matches_all(Attribute("sys/name", type="string"), experiments)
-    else:
-        experiments_filter = experiments
-
-    if isinstance(attributes, str):
-        attributes_filter = AttributeFilter(name_matches_all=attributes)
-    else:
-        attributes_filter = attributes
-
-    if isinstance(sort_by, str):
-        sort_by_attribute = Attribute(sort_by)
-    else:
-        sort_by_attribute = sort_by
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -111,99 +157,85 @@ def fetch_experiments_table(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project,
-            _filter=experiments_filter,
+            _filter=_filter,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
         )
 
         type_inference.infer_attribute_types_in_sort_by(
             client=client,
             project_identifier=project,
-            _filter=experiments_filter,
-            sort_by=sort_by_attribute,
+            _filter=_filter,
+            sort_by=sort_by,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=container_type,
         )
 
-        experiment_name_mapping: dict[identifiers.SysId, identifiers.SysName] = {}
+        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
         selected_aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
 
-        def go_fetch_experiment_sys_attrs() -> Generator[util.Page[search.ExperimentSysAttrs], None, None]:
-            return search.fetch_experiment_sys_attrs(
+        def go_fetch_experiment_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
-                _filter=experiments_filter,
-                sort_by=sort_by_attribute,
+                _filter=_filter,
+                sort_by=sort_by,
                 sort_direction=_sort_direction,
                 limit=limit,
-            )
+            ):
+                sys_ids = []
+                for item in page.items:
+                    result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
+                    sys_id_label_mapping[item.sys_id] = item.sys_name  # TODO: check for duplicate names?
+                    sys_ids.append(item.sys_id)
+                yield sys_ids
 
-        def process_experiment_page_stateful(
-            page: util.Page[search.ExperimentSysAttrs],
-        ) -> list[identifiers.SysId]:
-            for experiment in page.items:
-                result_by_id[experiment.sys_id] = []  # I assume that dict preserves the order set here
-                experiment_name_mapping[experiment.sys_id] = experiment.sys_name  # TODO: check for duplicate names?
-            return [experiment.sys_id for experiment in page.items]
-
-        def go_fetch_attribute_values(
-            sys_ids: list[identifiers.SysId],
-            attribute_definitions: list[att_defs.AttributeDefinition],
-        ) -> Generator[util.Page[att_vals.AttributeValue], None, None]:
-            return att_vals.fetch_attribute_values(
+        def go_fetch_run_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_run_sys_attrs(
                 client=client,
                 project_identifier=project,
-                run_identifiers=[identifiers.RunIdentifier(project, s) for s in sys_ids],
-                attribute_definitions=attribute_definitions,
-            )
+                _filter=_filter,
+                sort_by=sort_by,
+                sort_direction=_sort_direction,
+                limit=limit,
+            ):
+                sys_ids = []
+                for item in page.items:
+                    result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
+                    sys_id_label_mapping[item.sys_id] = item.sys_custom_run_id
+                    sys_ids.append(item.sys_id)
+                yield sys_ids
 
-        def filter_definitions(
-            attribute_definition_aggregation_page: util.Page[_attributes.AttributeDefinitionAggregation],
-        ) -> list[att_defs.AttributeDefinition]:
-            return [
-                item.attribute_definition
-                for item in attribute_definition_aggregation_page.items
-                if item.aggregation is None
-            ]
-
-        def collect_aggregations(
-            attribute_definition_aggregation_page: util.Page[_attributes.AttributeDefinitionAggregation],
-        ) -> dict[att_defs.AttributeDefinition, set[str]]:
-            aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
-            for item in attribute_definition_aggregation_page.items:
-                if item.aggregation is not None:
-                    aggregations[item.attribute_definition].add(item.aggregation)
-            return aggregations
+        if container_type == search.ContainerType.EXPERIMENT:
+            go_fetch_sys_attrs = go_fetch_experiment_sys_attrs
+        else:
+            go_fetch_sys_attrs = go_fetch_run_sys_attrs
 
         output = concurrency.generate_concurrently(
-            items=(process_experiment_page_stateful(page) for page in go_fetch_experiment_sys_attrs()),
+            items=go_fetch_sys_attrs(),
             executor=executor,
             downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
-                attribute_filter=attributes_filter,
+                attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
-                downstream=lambda sys_ids_split, definition_aggs_page: concurrency.fork_concurrently(
-                    item=definition_aggs_page,
+                downstream=lambda sys_ids_split, definitions_page, aggregations_page: concurrency.fork_concurrently(
                     executor=executor,
                     downstreams=[
-                        lambda _definition_aggs_page: concurrency.generate_concurrently(
-                            items=split.split_sys_ids_attributes(
-                                sys_ids_split, filter_definitions(_definition_aggs_page)
-                            ),
+                        lambda: _components.fetch_attribute_values_split(
+                            client=client,
+                            project_identifier=project,
                             executor=executor,
-                            downstream=lambda split_pair: concurrency.generate_concurrently(
-                                items=go_fetch_attribute_values(split_pair[0], split_pair[1]),
-                                executor=executor,
-                                downstream=concurrency.return_value,
-                            ),
+                            sys_ids=sys_ids_split,
+                            attribute_definitions=definitions_page.items,
+                            downstream=concurrency.return_value,
                         ),
-                        lambda _definition_aggs_page: concurrency.return_value(
-                            collect_aggregations(_definition_aggs_page)
-                        ),
+                        lambda: concurrency.return_value(aggregations_page.items),
                     ],
                 ),
             ),
@@ -218,42 +250,31 @@ def fetch_experiments_table(
                 for attribute_value in attribute_values_page.items:
                     sys_id = attribute_value.run_identifier.sys_id
                     result_by_id[sys_id].append(attribute_value)
-            elif isinstance(result, dict):
-                aggregations = result
-                for attribute_definition, aggregation_set in aggregations.items():
-                    selected_aggregations[attribute_definition].update(aggregation_set)
+            elif isinstance(result, list):
+                aggregations: list[AttributeDefinitionAggregation] = result
+                for aggregation in aggregations:
+                    selected_aggregations[aggregation.attribute_definition].add(aggregation.aggregation)
             else:
                 raise RuntimeError(f"Unexpected result type: {type(result)}")
 
-    result_by_name = _map_keys_preserving_order(result_by_id, experiment_name_mapping)
-    dataframe = output_format.convert_experiment_table_to_dataframe(
-        result_by_name,
+    result_by_name = _map_keys_preserving_order(result_by_id, sys_id_label_mapping)
+    dataframe = output_format.convert_table_to_dataframe(
+        table_data=result_by_name,
         selected_aggregations=selected_aggregations,
         type_suffix_in_column_names=type_suffix_in_column_names,
+        index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
     )
     return dataframe
 
 
-def fetch_runs_table(
-    runs: Optional[Union[str, Filter]] = None,
-    attributes: Union[str, AttributeFilter] = "^sys/name$",
-    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
-    sort_direction: Literal["asc", "desc"] = "desc",
-    limit: Optional[int] = None,
-    type_suffix_in_column_names: bool = False,
-    context: Optional[_context.Context] = None,
-) -> pd.DataFrame:
-    ...
-
-
 def _map_keys_preserving_order(
     result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]],
-    experiment_name_mapping: dict[identifiers.SysId, identifiers.SysName],
-) -> dict[identifiers.SysName, list[att_vals.AttributeValue]]:
+    sys_id_label_mapping: dict[identifiers.SysId, str],
+) -> dict[str, list[att_vals.AttributeValue]]:
     result_by_name = {}
     for sys_id, values in result_by_id.items():
-        sys_name = experiment_name_mapping[sys_id]
-        result_by_name[sys_name] = values
+        label = sys_id_label_mapping[sys_id]
+        result_by_name[label] = values
     return result_by_name
 
 
