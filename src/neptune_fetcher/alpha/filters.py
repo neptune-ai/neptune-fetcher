@@ -138,25 +138,15 @@ class Attribute:
 
     Examples:
 
-    Import the needed classes:
+    Select a metric and pick variance as the aggregation:
 
     ```
     import neptune_fetcher.alpha as npt
     from npt.filters import Attribute, Filter
-    ```
 
-    Select attribute by exact name:
 
-    ```
-    optimizer = Attribute(name="config/optimizer")
-    ```
-
-    Select a metric and pick variance as the aggregation:
-
-    ```
     val_loss_variance = Attribute(
         name="val/loss",
-        type=["float_series"],  # ensures that the attribute is a numerical series
         aggregation="variance",
     )
     ```
