@@ -124,7 +124,7 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 class Attribute:
     """Helper for specifying an attribute and picking a metric aggregation function.
 
-    Use to build filters for fetching experiments or runs.
+    When fetching experiments or runs, use this class to filter and sort the returned entries.
 
     Args:
         name (str): An attribute name to match exactly.
@@ -132,7 +132,9 @@ class Attribute:
             Aggregation function to apply when specifying a metric of type FloatSeries.
             Defaults to `"last"`, i.e. the last logged value.
         type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
-            Allowed attribute type. For a reference, see: https://docs-beta.neptune.ai/attribute_types
+            Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
+            that have the same name but are of a different type.
+            For a reference, see: https://docs-beta.neptune.ai/attribute_types
 
     Examples:
 
