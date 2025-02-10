@@ -101,7 +101,11 @@ def backoff_retry(
 
             # Not a TooManyRequests or InternalServerError code
             if not (code == 429 or 500 <= code < 600):
-                raise NeptuneError(f"Unexpected server response {response.status_code}: {str(response.content)}")
+                raise NeptuneError(
+                    "Unexpected server response {status_code}: {content}",
+                    status_code=response.status_code,
+                    content=str(response.content),
+                )
 
         if tries == max_tries:
             break
@@ -119,4 +123,4 @@ def backoff_retry(
     if not msg:
         raise NeptuneError("Unknown error occurred when requesting data")
 
-    raise NeptuneError(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+    raise NeptuneError("Failed to get response after {tries} retries.\n{details}", tries=tries, details="\n".join(msg))
