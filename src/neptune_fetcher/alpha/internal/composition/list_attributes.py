@@ -87,13 +87,13 @@ def list_run_attributes(
     context: Optional[Context] = None,
 ) -> list[str]:
     """
-    List attributes' names in project.
+    List the names of attributes in a project.
     Optionally filter by runs and attributes.
     `runs` - a filter specifying runs to which the attributes belong
-        - a regex that run id must match, or
+        - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
+        - a regex that the attribute name must match, or
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
             not supported in this function.

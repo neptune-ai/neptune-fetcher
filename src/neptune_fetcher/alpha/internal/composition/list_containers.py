@@ -59,10 +59,10 @@ def list_runs(
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
-     Returns a list of run ids in a project.
+     Returns a list of run IDs in a project.
 
     `runs` - a filter specifying which runs to include
-         - a regex that run id must match, or
+         - a regex that the run ID must match, or
          - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """

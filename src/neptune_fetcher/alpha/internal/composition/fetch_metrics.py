@@ -143,10 +143,10 @@ def fetch_run_metrics(
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
     `runs` - a filter specifying which runs to include
-        - a regex that run id must match, or
+        - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
+        - a regex that the attribute name must match, or
         - an AttributeFilter object;
                 If `AttributeFilter.aggregations` is set, an exception will be raised as
                 they're not supported in this function.
@@ -155,9 +155,9 @@ def fetch_run_metrics(
     `lineage_to_the_root` - if True (default), includes all points from the complete run history.
         If False, only includes points from the most recent run in the lineage.
     `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
+    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
+        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+        If False, an exception is raised if there are multiple types under one attribute path.
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
