@@ -2,6 +2,7 @@ import concurrent.futures
 from dataclasses import dataclass
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
 from typing import (
@@ -11,14 +12,11 @@ from typing import (
 
 from neptune_scale import Run
 
-METRICS_COUNT = 10
-POINTS_PER_METRIC = 1_000
-FORK_POINTS = [400, 800]
-RUN_COUNT = 5
-
 AttributeName = str
 Step = float
 Value = float
+
+FIXED_DATE = datetime(2025, 2, 10, 12, 0, 0, 0, timezone.utc)
 
 
 @dataclass(frozen=True)
@@ -34,6 +32,9 @@ class GeneratedRun:
 
     def attributes(self):
         return set().union(self.configs.keys(), self.metrics.keys())
+
+    def metrics_values(self, name: AttributeName) -> list[tuple[Step, Value]]:
+        return list(self.metrics[name].items())
 
 
 # Tree structure:
@@ -84,9 +85,9 @@ LINEAR_HISTORY_TREE = [
             "datetime-value": datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
         },
         metrics={
-            "foo0": {step: step * 0.4 for step in range(4, 10)},
-            "foo1": {step: step * 0.5 for step in range(4, 10)},
-            "unique2/0": {step: step * 0.6 for step in range(4, 10)},
+            "foo0": {step: step * 0.4 for step in range(5, 10)},
+            "foo1": {step: step * 0.5 for step in range(5, 10)},
+            "unique2/0": {step: step * 0.6 for step in range(5, 10)},
         },
     ),
     GeneratedRun(
@@ -105,9 +106,9 @@ LINEAR_HISTORY_TREE = [
             "datetime-value": datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
         },
         metrics={
-            "foo0": {step: step * 0.7 for step in range(8, 10)},
-            "foo1": {step: step * 0.8 for step in range(8, 10)},
-            "unique3/0": {step: step * 0.9 for step in range(8, 10)},
+            "foo0": {step: step * 0.7 for step in range(9, 20)},
+            "foo1": {step: step * 0.8 for step in range(9, 20)},
+            "unique3/0": {step: step * 0.9 for step in range(9, 20)},
         },
     ),
 ]
@@ -138,9 +139,9 @@ FORKED_HISTORY_TREE = [
             "datetime-value": datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
         },
         metrics={
-            "foo0": {step: step * 0.1 for step in range(1, 4)},
-            "foo1": {step: step * 0.2 for step in range(1, 4)},
-            "unique1/0": {step: step * 0.3 for step in range(1, 4)},
+            "foo0": {step: step * 0.1 for step in range(1, 5)},
+            "foo1": {step: step * 0.2 for step in range(1, 5)},
+            "unique1/0": {step: step * 0.3 for step in range(1, 5)},
         },
     ),
     GeneratedRun(
@@ -158,9 +159,9 @@ FORKED_HISTORY_TREE = [
             "datetime-value": datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
         },
         metrics={
-            "foo0": {step: step * 0.4 for step in range(4, 8)},
-            "foo1": {step: step * 0.5 for step in range(4, 8)},
-            "unique2/0": {step: step * 0.6 for step in range(4, 8)},
+            "foo0": {step: step * 0.4 for step in range(5, 9)},
+            "foo1": {step: step * 0.5 for step in range(5, 9)},
+            "unique2/0": {step: step * 0.6 for step in range(5, 9)},
         },
     ),
     GeneratedRun(
@@ -178,14 +179,19 @@ FORKED_HISTORY_TREE = [
             "datetime-value": datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
         },
         metrics={
-            "foo0": {step: step * 0.7 for step in range(8, 10)},
-            "foo1": {step: step * 0.8 for step in range(8, 10)},
-            "unique3/0": {step: step * 0.9 for step in range(8, 10)},
+            "foo0": {step: step * 0.7 for step in range(9, 20)},
+            "foo1": {step: step * 0.8 for step in range(9, 20)},
+            "unique3/0": {step: step * 0.9 for step in range(9, 20)},
         },
     ),
 ]
 
 ALL_STATIC_RUNS = LINEAR_HISTORY_TREE + FORKED_HISTORY_TREE
+RUN_BY_ID = {run.custom_run_id: run for run in ALL_STATIC_RUNS}
+
+
+def timestamp_for_step(step: int):
+    return FIXED_DATE + timedelta(minutes=step)
 
 
 def log_run(generated: GeneratedRun, e2e_alpha_project: str):
@@ -200,7 +206,7 @@ def log_run(generated: GeneratedRun, e2e_alpha_project: str):
         run.add_tags(generated.tags)
         for metric_name, metric_values in generated.metrics.items():
             for step, value in metric_values.items():
-                run.log_metrics(step=step, data={metric_name: value})
+                run.log_metrics(step=step, data={metric_name: value}, timestamp=timestamp_for_step(step))
 
 
 def log_runs(e2e_alpha_project: str, runs: list[GeneratedRun]):
