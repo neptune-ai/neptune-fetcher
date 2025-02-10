@@ -16,7 +16,6 @@
 import concurrent
 import itertools as it
 from concurrent.futures import Executor
-from dataclasses import dataclass
 from typing import (
     Generator,
     Iterable,
@@ -254,12 +253,6 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
             raise ValueError("include_time must be 'absolute'")
 
 
-@dataclass(frozen=True)
-class SysIdLabel:
-    sys_id: identifiers.SysId
-    label: str
-
-
 def _fetch_flat_dataframe_metrics(
     filter_: Filter,
     attributes: AttributeFilter,
@@ -285,20 +278,20 @@ def _fetch_flat_dataframe_metrics(
         return [], _series
 
     def process_definitions(
-        _sys_id_labels: list[SysIdLabel],
+        _sys_id_to_labels: dict[identifiers.SysId, str],
         _definitions: Generator[util.Page[AttributeDefinition], None, None],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         definitions_page = next(_definitions, None)
         _futures = []
         if definitions_page:
-            _futures.append(executor.submit(process_definitions, _sys_id_labels, _definitions))
+            _futures.append(executor.submit(process_definitions, _sys_id_to_labels, _definitions))
 
             paths = definitions_page.items
 
-            product = it.product(_sys_id_labels, paths)
+            product = it.product(_sys_id_to_labels.items(), paths)
             exp_paths = [
-                AttributePathInRun(ExpId(project, _sys_id_label.sys_id), _sys_id_label.label, _path.name)
-                for _sys_id_label, _path in product
+                AttributePathInRun(ExpId(project, sys_id), label, _path.name)
+                for (sys_id, label), _path in product
                 if _path.type == "float_series"
             ]
 
@@ -308,21 +301,19 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def process_sys_ids(
-        sys_ids_generator: Generator[Iterable[SysIdLabel], None, None]
+        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        _sys_ids_labels = next(sys_ids_generator, None)
+        sys_id_to_labels = next(sys_ids_generator, None)
         _futures = []
 
-        if _sys_ids_labels:
+        if sys_id_to_labels:
             _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
 
-        if _sys_ids_labels:
-            sys_ids = [item.sys_id for item in _sys_ids_labels]
-            sys_id_to_labels = {item.sys_id: item for item in _sys_ids_labels}
+            sys_ids = list(sys_id_to_labels.keys())
 
             for sys_ids_split in split.split_sys_ids(sys_ids):
                 run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
-                sys_id_labels_split = [sys_id_to_labels[sys_id] for sys_id in sys_ids_split]
+                sys_id_to_labels_split = {sys_id: sys_id_to_labels[sys_id] for sys_id in sys_ids_split}
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project],
@@ -330,17 +321,17 @@ def _fetch_flat_dataframe_metrics(
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
                 )
-                _futures.append(executor.submit(process_definitions, sys_id_labels_split, definitions_generator))
+                _futures.append(executor.submit(process_definitions, sys_id_to_labels_split, definitions_generator))
 
         return _futures, []
 
-    def fetch_sys_ids_labels() -> Generator[Iterable[SysIdLabel], None, None]:
+    def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
         if container_type == ContainerType.RUN:
             run_pages = fetch_run_sys_attrs(client, project, filter_)
-            return ([SysIdLabel(run.sys_id, run.sys_custom_run_id) for run in page.items] for page in run_pages)
+            return ({run.sys_id: run.sys_custom_run_id for run in page.items} for page in run_pages)
         elif container_type == ContainerType.EXPERIMENT:
             experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
-            return ([SysIdLabel(exp.sys_id, exp.sys_name) for exp in page.items] for page in experiment_pages)
+            return ({exp.sys_id: exp.sys_name for exp in page.items} for page in experiment_pages)
         else:
             raise RuntimeError(f"Unknown container type: {container_type}")
 
