@@ -131,8 +131,8 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
     # then
     expected_data = pd.DataFrame.from_dict(
         {
-            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
             ("attr1/a:b:c:float", ""): {"exp1": float("nan"), "exp2": 0.43},
+            ("attr1/a:b:c:int", ""): {"exp1": 42.0, "exp2": float("nan")},
         }
     )
     expected_data.index.name = "experiment"

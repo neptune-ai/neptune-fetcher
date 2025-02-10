@@ -33,7 +33,10 @@ def convert_table_to_dataframe(
 ) -> pd.DataFrame:
 
     if not table_data:
-        return pd.DataFrame(index=[index_column_name])
+        return pd.DataFrame(
+            index=pd.Index([], name=index_column_name),
+            columns=pd.MultiIndex.from_tuples([], names=["attribute", "aggregation"]),
+        )
 
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
         row = {}
@@ -100,5 +103,8 @@ def convert_table_to_dataframe(
     dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
     dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
+
+    sorted_columns = sorted(dataframe.columns, key=lambda x: (x[0], x[1]))
+    dataframe = dataframe[sorted_columns]
 
     return dataframe

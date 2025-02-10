@@ -40,14 +40,13 @@ def _build_expected_dataframe(
                 ("datetime-value:datetime", ""): [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
             },
         ),
-        # TODO test empty dataframe
-        # (
-        #     "^non_exist$",
-        #     "^foo0$",
-        #     {
-        #         "run": [],
-        #     },
-        # ),
+        (
+            "^non_exist$",
+            "^foo0$",
+            {
+                "run": [],
+            },
+        ),
         (
             r"^linear_history_root$",
             r"^foo.*$",
@@ -69,26 +68,24 @@ def _build_expected_dataframe(
                 ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
             },
         ),
-        # TODO in dataframe in api the columns are not sorted alphabetically
-        # (
-        #     "^linear_history_root$",
-        #     AttributeFilter(name_matches_all="foo0$",
-        #                     aggregations=["last", "min", "max", "average", "variance"]) | AttributeFilter(
-        #         name_matches_all=".*-value$"),
-        #     {
-        #         "run": ["linear_history_root"],
-        #         ("int-value:int", ""): [1],
-        #         ("float-value:float", ""): [1.0],
-        #         ("str-value:string", ""): ["hello_1"],
-        #         ("bool-value:bool", ""): [False],
-        #         ("datetime-value:datetime", ""): [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
-        #         ("foo0:float_series", "last"): [0.1 * 9],
-        #         ("foo0:float_series", "min"): [0.1 * 0],
-        #         ("foo0:float_series", "max"): [0.1 * 9],
-        #         ("foo0:float_series", "average"): [np.mean([0.1 * i for i in range(10)])],
-        #         ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
-        #     },
-        # ),
+        (
+            "^linear_history_root$",
+            AttributeFilter(name_matches_all="foo0$", aggregations=["last", "min", "max", "average", "variance"])
+            | AttributeFilter(name_matches_all=".*-value$"),
+            {
+                "run": ["linear_history_root"],
+                ("int-value:int", ""): [1],
+                ("float-value:float", ""): [1.0],
+                ("str-value:string", ""): ["hello_1"],
+                ("bool-value:bool", ""): [False],
+                ("datetime-value:datetime", ""): [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
+                ("foo0:float_series", "last"): [0.1 * 9],
+                ("foo0:float_series", "min"): [0.1 * 0],
+                ("foo0:float_series", "max"): [0.1 * 9],
+                ("foo0:float_series", "average"): [np.mean([0.1 * i for i in range(10)])],
+                ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
+            },
+        ),
         (
             r"^linear_history_root$|^linear_history_fork2$",
             AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
@@ -154,13 +151,15 @@ def test_fetch_runs_table(
 
     expected_data = {
         trim_suffix(k, type_suffix_in_column_names): v
-        for k, v in sorted(expected_attributes.items(), key=lambda x: x[0][0])
+        for k, v in sorted(expected_attributes.items(), key=lambda x: (x[0], "") if isinstance(x[0], str) else x[0])
     }
-    expected = pd.DataFrame(expected_data).set_index("run", drop=True)
+    expected = pd.DataFrame(expected_data)
+    expected["run"] = expected["run"].astype(object)
+    expected.set_index("run", drop=True, inplace=True)
 
     expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
 
-    pd.testing.assert_frame_equal(df[expected.columns], expected, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected, check_dtype=False)
 
 
 def trim_suffix(name, type_suffix_in_column_names):
