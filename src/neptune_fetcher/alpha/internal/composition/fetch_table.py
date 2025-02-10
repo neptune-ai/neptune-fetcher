@@ -111,6 +111,26 @@ def fetch_runs_table(
     type_suffix_in_column_names: bool = False,
     context: Optional[_context.Context] = None,
 ) -> pd.DataFrame:
+    """
+    `runs` - a filter specifying which runs to include in the table
+        - a regex that the run ID must match, or
+        - a Filter object
+    `attributes` - a filter specifying which attributes to include in the table
+        - a regex that the attribute name must match, or
+        - an AttributeFilter object
+    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
+    `sort_direction` - 'asc' or 'desc'
+    `limit` - maximum number of runs to return; by default all runs are returned.
+    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
+        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+        If False, an exception is raised if there are multiple types under one attribute path.
+    `context` - a Context object to be used; primarily useful for switching projects
+
+    Returns a DataFrame similar to the runs table in the web app, with an important difference:
+    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
+    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
+    If you don't specify aggregates to return, only the last logged value of each metric is returned.
+    """
     if isinstance(runs, str):
         runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), runs)
 
