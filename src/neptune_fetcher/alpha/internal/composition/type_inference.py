@@ -38,15 +38,15 @@ from neptune_fetcher.alpha.internal.retrieval import (
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    _filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> None:
-    if _filter is None:
+    if filter_ is None:
         return
 
-    attributes = _filter_untyped(_walk_attributes(_filter))
+    attributes = _filter_untyped(_walk_attributes(filter_))
     if not attributes:
         return
 
@@ -58,7 +58,7 @@ def infer_attribute_types_in_filter(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        _filter=None,
+        filter_=None,
         attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -72,7 +72,7 @@ def infer_attribute_types_in_filter(
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    _filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     sort_by: filters.Attribute,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
@@ -90,7 +90,7 @@ def infer_attribute_types_in_sort_by(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        _filter=_filter,
+        filter_=filter_,
         attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -112,7 +112,7 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    _filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     attributes: Iterable[filters.Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
@@ -123,7 +123,7 @@ def _infer_attribute_types_from_api(
     output = _components.fetch_attribute_definitions_complete(
         client=client,
         project_identifier=project_identifier,
-        _filter=_filter,
+        filter_=filter_,
         attribute_filter=attribute_filter_by_name,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,

@@ -104,7 +104,7 @@ class FetchSysAttrs(Protocol[T]):
         self,
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        _filter: Optional[Filter] = None,
+        filter_: Optional[Filter] = None,
         sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
@@ -122,7 +122,7 @@ def _create_fetch_sys_attrs(
     def fetch_sys_attrs(
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        _filter: Optional[Filter] = None,
+        filter_: Optional[Filter] = None,
         sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
@@ -138,8 +138,8 @@ def _create_fetch_sys_attrs(
                 "sortBy": {"name": sort_by.name},
             },
         }
-        if _filter is not None:
-            params["query"] = {"query": str(_filter)}
+        if filter_ is not None:
+            params["query"] = {"query": str(filter_)}
         if sort_by.aggregation is not None:
             params["sorting"]["aggregationMode"] = sort_by.aggregation
         if sort_by.type is not None:

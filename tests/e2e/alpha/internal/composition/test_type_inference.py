@@ -199,7 +199,7 @@ def infer_attribute_types_in_sort_by_single(
     infer_attribute_types_in_sort_by(
         client,
         project_identifier,
-        _filter=None,
+        filter_=None,
         sort_by=attribute_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,
@@ -224,7 +224,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
         infer_attribute_types_in_filter(
             client,
             project_identifier,
-            _filter=filter_before,
+            filter_=filter_before,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
@@ -247,7 +247,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
-            _filter=experiment_filter,
+            filter_=experiment_filter,
             sort_by=attribute,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
@@ -271,7 +271,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
         infer_attribute_types_in_filter(
             client,
             project_identifier,
-            _filter=filter_before,
+            filter_=filter_before,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
@@ -297,7 +297,7 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
         infer_attribute_types_in_filter(
             client,
             project_identifier,
-            _filter=filter_before,
+            filter_=filter_before,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
@@ -324,7 +324,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
-            _filter=experiment_filter,
+            filter_=experiment_filter,
             sort_by=attribute_before,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
@@ -355,7 +355,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
-            _filter=experiment_filter,
+            filter_=experiment_filter,
             sort_by=attribute_before,
             executor=executor,
             fetch_attribute_definitions_executor=executor,
@@ -404,7 +404,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
     infer_attribute_types_in_sort_by(
         client,
         project_identifier,
-        _filter=experiment_filter,
+        filter_=experiment_filter,
         sort_by=attribute_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,

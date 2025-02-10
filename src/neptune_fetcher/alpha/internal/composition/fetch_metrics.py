@@ -118,7 +118,7 @@ def fetch_experiment_metrics(
         attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
 
     return _fetch_metrics(
-        _filter=experiments,
+        filter_=experiments,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -147,7 +147,7 @@ def fetch_run_metrics(
         attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
 
     return _fetch_metrics(
-        _filter=runs,
+        filter_=runs,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -160,7 +160,7 @@ def fetch_run_metrics(
 
 
 def _fetch_metrics(
-    _filter: Filter,
+    filter_: Filter,
     attributes: AttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
@@ -185,14 +185,14 @@ def _fetch_metrics(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
-            _filter=_filter,
+            filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
 
         values_generator = _fetch_flat_dataframe_metrics(
-            _filter=_filter,
+            filter_=filter_,
             attributes=attributes,
             client=client,
             project=project_identifier,
@@ -261,7 +261,7 @@ class SysIdLabel:
 
 
 def _fetch_flat_dataframe_metrics(
-    _filter: Filter,
+    filter_: Filter,
     attributes: AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
@@ -336,10 +336,10 @@ def _fetch_flat_dataframe_metrics(
 
     def fetch_sys_ids_labels() -> Generator[Iterable[SysIdLabel], None, None]:
         if container_type == ContainerType.RUN:
-            run_pages = fetch_run_sys_attrs(client, project, _filter)
+            run_pages = fetch_run_sys_attrs(client, project, filter_)
             return ([SysIdLabel(run.sys_id, run.sys_custom_run_id) for run in page.items] for page in run_pages)
         elif container_type == ContainerType.EXPERIMENT:
-            experiment_pages = fetch_experiment_sys_attrs(client, project, _filter)
+            experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
             return ([SysIdLabel(exp.sys_id, exp.sys_name) for exp in page.items] for page in experiment_pages)
         else:
             raise RuntimeError(f"Unknown container type: {container_type}")

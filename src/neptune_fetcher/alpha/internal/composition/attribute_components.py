@@ -96,14 +96,14 @@ def fetch_attribute_definition_aggregations_split(
 def fetch_attribute_definitions_complete(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    _filter: Optional[filters.Filter],
+    filter_: Optional[filters.Filter],
     attribute_filter: filters.BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
     downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
-    if container_type == search.ContainerType.RUN and _filter is None:
+    if container_type == search.ContainerType.RUN and filter_ is None:
         return concurrency.generate_concurrently(
             fetch_attribute_definitions(
                 client=client,
@@ -120,7 +120,7 @@ def fetch_attribute_definitions_complete(
             items=search.fetch_sys_ids(
                 client=client,
                 project_identifier=project_identifier,
-                _filter=_filter,
+                filter_=filter_,
                 container_type=container_type,
             ),
             executor=executor,

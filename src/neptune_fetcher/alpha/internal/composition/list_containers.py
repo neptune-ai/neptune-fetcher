@@ -65,7 +65,7 @@ def list_runs(
 
 
 def _list_containers(
-    _filter: Optional[Filter],
+    filter_: Optional[Filter],
     context: Optional[_context.Context],
     container_type: search.ContainerType,
 ) -> list[str]:
@@ -80,16 +80,16 @@ def _list_containers(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
-            _filter=_filter,
+            filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
         if container_type == search.ContainerType.EXPERIMENT:
-            exp_sys_pages = search.fetch_experiment_sys_attrs(client, project_identifier, _filter)
+            exp_sys_pages = search.fetch_experiment_sys_attrs(client, project_identifier, filter_)
             return list(sorted(exp.sys_name for page in exp_sys_pages for exp in page.items))
         elif container_type == search.ContainerType.RUN:
-            run_sys_pages = search.fetch_run_sys_attrs(client, project_identifier, _filter)
+            run_sys_pages = search.fetch_run_sys_attrs(client, project_identifier, filter_)
             return list(sorted(run.sys_custom_run_id for page in run_sys_pages for run in page.items))
         else:
             raise RuntimeError(f"Unexpected container type: {container_type}")

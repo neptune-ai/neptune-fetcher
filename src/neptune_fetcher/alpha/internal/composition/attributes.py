@@ -53,7 +53,7 @@ def fetch_attribute_definitions(
     )
 
     seen_items: set[att_defs.AttributeDefinition] = set()
-    for page, _filter in pages_filters:
+    for page, filter_ in pages_filters:
         new_items = [item for item in page.items if item not in seen_items]
         seen_items.update(new_items)
         yield util.Page(items=new_items)
@@ -80,7 +80,7 @@ def fetch_attribute_definition_aggregations(
     seen_definitions: set[att_defs.AttributeDefinition] = set()
     seen_definition_aggregations: set[AttributeDefinitionAggregation] = set()
 
-    for page, _filter in pages_filters:
+    for page, filter_ in pages_filters:
         new_definitions = []
         new_definition_aggregations = []
 
@@ -90,7 +90,7 @@ def fetch_attribute_definition_aggregations(
                 seen_definitions.add(definition)
 
             if definition.type == "float_series":
-                for aggregation in _filter.aggregations:
+                for aggregation in filter_.aggregations:
                     definition_aggregation = AttributeDefinitionAggregation(
                         attribute_definition=definition, aggregation=aggregation
                     )
@@ -110,13 +110,13 @@ def _fetch_attribute_definitions(
     executor: Executor,
 ) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], filters.AttributeFilter], None, None]:
     def go_fetch_single(
-        _filter: filters.AttributeFilter,
+        filter_: filters.AttributeFilter,
     ) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
         return att_defs.fetch_attribute_definitions_single_filter(
             client=client,
             project_identifiers=project_identifiers,
             run_identifiers=run_identifiers,
-            attribute_filter=_filter,
+            attribute_filter=filter_,
             batch_size=batch_size,
         )
 
@@ -128,12 +128,12 @@ def _fetch_attribute_definitions(
             yield page, head
     else:
         output = concurrency.generate_concurrently(
-            items=(_filter for _filter in filters_),
+            items=(filter_ for filter_ in filters_),
             executor=executor,
-            downstream=lambda _filter: concurrency.generate_concurrently(
-                items=go_fetch_single(_filter),
+            downstream=lambda filter_: concurrency.generate_concurrently(
+                items=go_fetch_single(filter_),
                 executor=executor,
-                downstream=lambda _page: concurrency.return_value((_page, _filter)),
+                downstream=lambda _page: concurrency.return_value((_page, filter_)),
             ),
         )
         yield from concurrency.gather_results(output)

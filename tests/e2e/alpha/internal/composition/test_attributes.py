@@ -91,7 +91,7 @@ def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier
 
     experiment_filter = Filter.name_in(EXPERIMENT_NAME)
     experiment_attrs = _extract_pages(
-        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, _filter=experiment_filter)
+        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
     sys_id = experiment_attrs[0].sys_id
 
