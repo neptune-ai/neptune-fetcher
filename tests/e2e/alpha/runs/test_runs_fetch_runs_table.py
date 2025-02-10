@@ -138,13 +138,18 @@ from neptune_fetcher.alpha.filters import (
                 ],
             },
         ),
-
         (
             Filter.exists(Attribute("str-value", type="string")),  # matches runs that have config 'str-value'
             r".*-value$",
             {
-                "run": ["forked_history_fork1", "forked_history_fork2", "forked_history_root", "linear_history_fork1",
-                        "linear_history_fork2", "linear_history_root"],
+                "run": [
+                    "forked_history_fork1",
+                    "forked_history_fork2",
+                    "forked_history_root",
+                    "linear_history_fork1",
+                    "linear_history_fork2",
+                    "linear_history_root",
+                ],
                 ("int-value:int", ""): [2, 3, 1, 2, 3, 1],
                 ("float-value:float", ""): [2.0, 3.0, 1.0, 2.0, 3.0, 1.0],
                 ("str-value:string", ""): ["hello_2", "hello_3", "hello_1", "hello_2", "hello_3", "hello_1"],
