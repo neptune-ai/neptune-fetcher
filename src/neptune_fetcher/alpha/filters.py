@@ -41,6 +41,59 @@ class BaseAttributeFilter(ABC):
 
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
+    """Filter to apply to attributes when fetching runs or experiments.
+
+    Use to select specific metrics or other metadata based on various criteria.
+
+    Args:
+        name_eq (Union[str, list[str], None]): An attribute name or list of names to match exactly.
+            If `None`, this filter is not applied.
+        type_in (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]]):
+            A list of allowed attribute types. Defaults to all available types.
+            For a reference, see: https://docs-beta.neptune.ai/attribute_types
+        name_matches_all (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
+            name must match. If `None`, this filter is not applied.
+        name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
+            names mustn't match. Attributes matching any of the regexes are excluded.
+            If `None`, this filter is not applied.
+        aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of aggregation functions
+            to apply when fetching metrics of type FloatSeries. Defaults to ["last"].
+
+    Examples:
+
+    Import the needed classes:
+
+    ```
+    import neptune_fetcher.alpha as npt
+    from npt.filters import AttributeFilter
+    ```
+
+    Select attribute by exact name:
+
+    ```
+    AttributeFilter(name_eq="config/optimizer")
+    ```
+
+    Select metrics not matching regexes `^test` or `loss$` and pick the "average" and "variance" aggregations:
+
+    ```
+    AttributeFilter(
+        type_in=["float_series"],
+        name_matches_none=[r"^test", r"loss$"],
+        aggregations=["average", "variance"],
+    )
+    ```
+
+    Combine multiple filters with the pipe character:
+
+    ```
+    filter_1 = AttributeFilter(...)
+    filter_2 = AttributeFilter(...)
+    filter_3 = AttributeFilter(...)
+    alternatives = filter_1 | filter_2 | filter_3
+    ```
+    """
+
     name_eq: Union[str, list[str], None] = None
     type_in: list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]] = field(
         default_factory=lambda: list(types.ALL_TYPES)  # type: ignore
@@ -69,6 +122,51 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 
 @dataclass
 class Attribute:
+    """Helper for specifying an attribute and picking a metric aggregation function.
+
+    Use to build filters for fetching experiments or runs.
+
+    Args:
+        name (str): An attribute name to match exactly.
+        aggregation (Literal["last", "min", "max", "average", "variance"], optional):
+            Aggregation function to apply when specifying a metric of type FloatSeries.
+            Defaults to `"last"`, i.e. the last logged value.
+        type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
+            Allowed attribute type. For a reference, see: https://docs-beta.neptune.ai/attribute_types
+
+    Examples:
+
+    Import the needed classes:
+
+    ```
+    import neptune_fetcher.alpha as npt
+    from npt.filters import Attribute, Filter
+    ```
+
+    Select attribute by exact name:
+
+    ```
+    optimizer = Attribute(name="config/optimizer")
+    ```
+
+    Select a metric and pick variance as the aggregation:
+
+    ```
+    val_loss_variance = Attribute(
+        name="val/loss",
+        type=["float_series"],  # ensures that the attribute is a numerical series
+        aggregation="variance",
+    )
+    ```
+
+    Construct a filter around the attribute, then pass it to a fetching or listing method:
+
+    ```
+    tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
+    npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
+    ```
+    """
+
     name: str
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]] = None
     type: Optional[Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set"]] = None
@@ -94,6 +192,84 @@ class Attribute:
 
 
 class Filter(ABC):
+    """Filter used to specify criteria when fetching experiments or runs.
+
+    Examples of filters:
+        - Name or attribute must match regular expression.
+        - Attribute value must pass a condition, like "greater than 0.9".
+
+    You can negate a filter or join multiple filters with logical operators.
+
+    Methods available for attribute values:
+    - `eq()`: Equals
+    - `ne()`: Doesn't equal
+    - `gt()`: Greater than
+    - `ge()`: Greater than or equal to
+    - `lt()`: Less than
+    - `le()`: Less than or equal to
+    - `matches_all()`: Matches regex or all in list of regexes
+    - `matches_none()`: Doesn't match regex or any of list of regexes
+    - `contains_all()`: Tagset contains all tags, or string contains substrings
+    - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
+    - `exists()`: Attribute exists
+
+    Examples:
+
+    Import the needed classes:
+
+    ```
+    import neptune_fetcher.alpha as npt
+    from npt.filters import Attribute, Filter
+    ```
+
+    Constructing filters:
+
+    A) Regex that the experiment or run name must match:
+
+    ```
+    name_filter = Filter.matches_all("sys/name", r"kittiwake$")
+    ```
+
+    B) Don't allow the tags "test" or "val":
+
+    ```
+    no_test_or_val = Filter.contains_none("sys/tags", ["test", "val"])
+    ```
+
+    C) Set a condition for the last logged value of a metric:
+
+    ```
+    loss_filter = Filter.lt("validation/loss", 0.1)
+    ```
+
+    For more control over the selected metric, use the `Attribute()` helper class.
+
+    D) Negate a filter: Call `negate()` or prepend with `~`:
+
+    ```
+    not_loss_filter = ~loss_filter
+    # equivalent to
+    not_loss_filter = Filter.negate(loss_filter)
+    ```
+
+    C) Combining filters:
+
+    - To join with AND: Use `&` or pass the filters to the `all()` method.
+    - To join with OR: Use `|` or pass the filters to the `any()` method.
+
+    ```
+    name_and_loss_filter = name_filter & loss_filter
+    # equivalent to
+    name_and_loss_filter = Filter.all(name_filter, loss_filter)
+    ```
+
+    To use a filter in a query, pass it as the argument to a fetching or listing method:
+
+    ```
+    npt.fetch_experiments_table(experiments=name_and_loss_filter)
+    ```
+    """
+
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
