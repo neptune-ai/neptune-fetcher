@@ -128,7 +128,7 @@ def fetch_runs_table(
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=context,
-        container_type=search.ContainerType.EXPERIMENT,
+        container_type=search.ContainerType.RUN,
     )
 
 
