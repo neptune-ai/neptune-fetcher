@@ -16,15 +16,6 @@ from neptune_fetcher.alpha.filters import (
 )
 
 
-def _build_expected_dataframe(
-    expected_data: dict,
-) -> pd.DataFrame:
-    expected_df = pd.DataFrame(expected_data)
-
-    expected_df = expected_df.set_index("run")
-    return expected_df
-
-
 @pytest.mark.parametrize(
     "runs_filter, attributes_filter, expected_attributes",
     [
@@ -130,6 +121,44 @@ def _build_expected_dataframe(
                 ],
             },
         ),
+        (
+            Filter.eq("sys/name", "exp_with_linear_history"),
+            # matches runs with experiment_name 'exp_with_linear_history'
+            r".*-value$",
+            {
+                "run": ["linear_history_fork1", "linear_history_fork2", "linear_history_root"],
+                ("int-value:int", ""): [2, 3, 1],
+                ("float-value:float", ""): [2.0, 3.0, 1.0],
+                ("str-value:string", ""): ["hello_2", "hello_3", "hello_1"],
+                ("bool-value:bool", ""): [True, False, False],
+                ("datetime-value:datetime", ""): [
+                    datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
+                ],
+            },
+        ),
+
+        (
+            Filter.exists(Attribute("str-value", type="string")),  # matches runs that have config 'str-value'
+            r".*-value$",
+            {
+                "run": ["forked_history_fork1", "forked_history_fork2", "forked_history_root", "linear_history_fork1",
+                        "linear_history_fork2", "linear_history_root"],
+                ("int-value:int", ""): [2, 3, 1, 2, 3, 1],
+                ("float-value:float", ""): [2.0, 3.0, 1.0, 2.0, 3.0, 1.0],
+                ("str-value:string", ""): ["hello_2", "hello_3", "hello_1", "hello_2", "hello_3", "hello_1"],
+                ("bool-value:bool", ""): [True, False, False, True, False, False],
+                ("datetime-value:datetime", ""): [
+                    datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
+                    datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
+                ],
+            },
+        ),
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -153,7 +182,7 @@ def test_fetch_runs_table(
         trim_suffix(k, type_suffix_in_column_names): v
         for k, v in sorted(expected_attributes.items(), key=lambda x: (x[0], "") if isinstance(x[0], str) else x[0])
     }
-    expected = pd.DataFrame(expected_data)
+    expected = pd.DataFrame(expected_data).sort_values("run", ascending=False)
     expected["run"] = expected["run"].astype(object)
     expected.set_index("run", drop=True, inplace=True)
 
