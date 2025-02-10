@@ -83,7 +83,7 @@ def test_find_experiments_no_filter(client, project, run_with_attributes):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, _filter=None))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, filter_=None))
 
     # then
     assert len(experiment_names) > 0
@@ -512,7 +512,7 @@ def test_find_experiments_sort_by_name_desc(client, project, run_with_attributes
         fetch_experiment_sys_attrs(
             client,
             project_identifier,
-            _filter=None,
+            filter_=None,
             sort_by=Attribute("sys/name", type="string"),
             sort_direction="desc",
         )
@@ -532,7 +532,7 @@ def test_find_experiments_sort_by_name_asc(client, project, run_with_attributes)
         fetch_experiment_sys_attrs(
             client,
             project_identifier,
-            _filter=None,
+            filter_=None,
             sort_by=Attribute("sys/name", type="string"),
             sort_direction="asc",
         )
@@ -552,7 +552,7 @@ def test_find_experiments_sort_by_aggregate(client, project, run_with_attributes
         fetch_experiment_sys_attrs(
             client,
             project_identifier,
-            _filter=None,
+            filter_=None,
             sort_by=Attribute(f"{PATH}/float-series-value", type="float_series"),
         )
     )
@@ -567,7 +567,7 @@ def test_find_experiments_limit(client, project, run_with_attributes):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, _filter=None, limit=1))
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, filter_=None, limit=1))
 
     # then
     assert len(experiment_names) == 1

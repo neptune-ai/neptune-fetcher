@@ -98,7 +98,7 @@ def list_run_attributes(
 
 
 def _list_attributes(
-    _filter: Optional[Filter],
+    filter_: Optional[Filter],
     attributes: AttributeFilter,
     context: Optional[Context],
     container_type: search.ContainerType,
@@ -114,7 +114,7 @@ def _list_attributes(
         type_inference.infer_attribute_types_in_filter(
             client,
             project_identifier,
-            _filter,
+            filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
@@ -123,7 +123,7 @@ def _list_attributes(
         output = _components.fetch_attribute_definitions_complete(
             client=client,
             project_identifier=project_identifier,
-            _filter=_filter,
+            filter_=filter_,
             attribute_filter=attributes,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,

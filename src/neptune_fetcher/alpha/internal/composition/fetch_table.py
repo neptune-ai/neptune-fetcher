@@ -91,7 +91,7 @@ def fetch_experiments_table(
         sort_by = Attribute(sort_by)
 
     return _fetch_table(
-        _filter=experiments,
+        filter_=experiments,
         attributes=attributes,
         sort_by=sort_by,
         sort_direction=sort_direction,
@@ -121,7 +121,7 @@ def fetch_runs_table(
         sort_by = Attribute(sort_by)
 
     return _fetch_table(
-        _filter=runs,
+        filter_=runs,
         attributes=attributes,
         sort_by=sort_by,
         sort_direction=sort_direction,
@@ -133,7 +133,7 @@ def fetch_runs_table(
 
 
 def _fetch_table(
-    _filter: Optional[Filter],
+    filter_: Optional[Filter],
     attributes: AttributeFilter,
     sort_by: Attribute,
     sort_direction: Literal["asc", "desc"],
@@ -157,7 +157,7 @@ def _fetch_table(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project,
-            _filter=_filter,
+            filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
@@ -166,7 +166,7 @@ def _fetch_table(
         type_inference.infer_attribute_types_in_sort_by(
             client=client,
             project_identifier=project,
-            _filter=_filter,
+            filter_=filter_,
             sort_by=sort_by,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -181,7 +181,7 @@ def _fetch_table(
             for page in search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
-                _filter=_filter,
+                filter_=filter_,
                 sort_by=sort_by,
                 sort_direction=_sort_direction,
                 limit=limit,
@@ -197,7 +197,7 @@ def _fetch_table(
             for page in search.fetch_run_sys_attrs(
                 client=client,
                 project_identifier=project,
-                _filter=_filter,
+                filter_=filter_,
                 sort_by=sort_by,
                 sort_direction=_sort_direction,
                 limit=limit,

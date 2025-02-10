@@ -82,11 +82,11 @@ from neptune_fetcher.alpha.filters import (
             AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
-                ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 9],
+                ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
                 ("foo0:float_series", "variance"): [
                     np.var([0.1 * i for i in range(10)]),
                     np.var(
-                        [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 10)]
+                        [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 20)]
                     ),
                 ],
             },
@@ -193,7 +193,7 @@ def test_fetch_runs_table(
 
     expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
 
-    pd.testing.assert_frame_equal(df, expected, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected)
 
 
 def trim_suffix(name, type_suffix_in_column_names):

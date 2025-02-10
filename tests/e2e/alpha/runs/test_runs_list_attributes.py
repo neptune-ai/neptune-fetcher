@@ -14,7 +14,7 @@ from tests.e2e.alpha.generator import (
 
 
 @pytest.mark.parametrize(
-    "_filter, expected",
+    "filter_, expected",
     [
         (".*", ALL_STATIC_RUNS),
         (None, ALL_STATIC_RUNS),
@@ -25,8 +25,8 @@ from tests.e2e.alpha.generator import (
         (Filter.eq(Attribute(name="linear-history", type="bool"), True), LINEAR_HISTORY_TREE),
     ],
 )
-def test_list_attributes(new_project_context: Context, _filter, expected):
-    attributes = runs.list_attributes(_filter, None, context=new_project_context)
+def test_list_attributes(new_project_context: Context, filter_, expected):
+    attributes = runs.list_attributes(filter_, None, context=new_project_context)
     expected = set.union(*[r.attributes() for r in expected])
 
     assert _filter_out_sys(attributes) == expected
