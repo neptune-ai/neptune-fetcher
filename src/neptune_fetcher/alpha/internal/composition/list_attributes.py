@@ -86,6 +86,21 @@ def list_run_attributes(
     attributes: Optional[Union[str, AttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
+    """
+    List attributes' names in project.
+    Optionally filter by runs and attributes.
+    `runs` - a filter specifying runs to which the attributes belong
+        - a regex that run id must match, or
+        - a Filter object
+    `attributes` - a filter specifying which attributes to include in the table
+        - a regex that attribute name must match, or
+        - an AttributeFilter object;
+            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
+            not supported in this function.
+    `context` - a Context object to be used; primarily useful for switching projects
+
+    Returns a list of unique attribute names in runs matching the filter.
+    """
     if isinstance(runs, str):
         runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
 

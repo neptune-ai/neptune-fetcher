@@ -58,6 +58,14 @@ def list_runs(
     runs: Optional[Union[str, Filter]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
+    """
+     Returns a list of run ids in a project.
+
+    `runs` - a filter specifying which runs to include
+         - a regex that run id must match, or
+         - a Filter object
+    `context` - a Context object to be used; primarily useful for switching projects
+    """
     if isinstance(runs, str):
         runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
 
