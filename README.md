@@ -15,27 +15,383 @@ makes data fetching more efficient and improves performance.
 pip install neptune-fetcher
 ```
 
-## Usage
+Set your Neptune API token and project name as environment variables:
 
-1. Set your Neptune API token and project name as environment variables:
+```bash
+export NEPTUNE_API_TOKEN="h0dHBzOi8aHR0cHM.4kl0jvYh3Kb8...ifQ=="
+```
 
-    ```bash
-    export NEPTUNE_API_TOKEN="h0dHBzOi8aHR0cHM.4kl0jvYh3Kb8...ifQ=="
-    ```
+```bash
+export NEPTUNE_PROJECT="workspace-name/project-name"
+```
 
-    ```bash
-    export NEPTUNE_PROJECT="workspace-name/project-name"
-    ```
+For help, see https://docs-beta.neptune.ai/setup.
 
-    For help, see https://docs-beta.neptune.ai/setup.
+> **Note:** To change the token or project, you can [set the context](#working-with-multiple-projects) directly in the code. This way, you can work with multiple projects at the same time.
 
-1. In your Python code, create a [`ReadOnlyProject`](#readonlyproject) instance:
+## Usage: Alpha version
+
+To try the next major version of the Fetcher API, use the `alpha` module.
+
+```python
+import neptune_fetcher.alpha as npt
+```
+
+### Listing experiments
+
+Filter experiments by name that match a regex:
+
+```python
+npt.list_experiments(r"exp_.*")
+```
+
+```pycon
+['exp_xjjrq', 'exp_ymgun', 'exp_nmjbt', 'exp_ixgwm', 'exp_rdmuw']
+```
+
+### Listing unique attributes
+
+Filter attributes by name and by experiment that they belong to:
+
+```python
+npt.list_attributes(
+    experiments=r"exp.*",
+    attributes=r"metrics.*|config/.*",
+)
+```
+
+```pycon
+['config/batch_size',
+ 'config/epochs',
+ 'config/last_event_time',
+ 'config/learning_rate',
+ 'config/optimizer',
+ 'config/use_bias',
+ 'metrics/accuracy',
+ 'metrics/loss',
+ 'metrics/val_accuracy',
+ 'metrics/val_loss']
+```
+
+### Fetching metadata table
+
+To fetch experiment metadata from your project, use the `fetch_experiments_table()` function.
+
+- To filter experiments to return, use the `experiments` parameter.
+- To specify attributes to include as columns, use the `attributes` parameter.
+
+For both arguments, you can specify a simple string to match experiment or attribute names against, or you can use the Filter classes to [construct more complex filters](#constructing-filters).
+
+> Fetching metrics this way returns an aggregation value for each attribute. The default aggregation is the last logged value.
+>
+> To fetch actual metric values at each step, see [`fetch_experiment_metrics()`](#fetching-metric-values).
+
+```python
+npt.fetch_experiments_table(
+    experiments=r"exp.*",
+    attributes=r".*metric.*/val_.+",
+)
+```
+
+```pycon
+           metrics/val_accuracy metrics/val_loss
+                           last             last
+experiment
+exp_ergwq              0.278149         0.336344
+exp_qgguv              0.160260         0.790268
+exp_cnuwh              0.702490         0.366390
+exp_kokxd              0.301545         0.917683
+exp_gyvpp              0.999489         0.069839
+```
+
+### Fetching metric values
+
+To fetch individual values from one or more float series attributes, use the `fetch_experiment_metrics()` function:
+
+```python
+npt.fetch_experiment_metrics(
+    experiments=r"exp.*",
+    attributes=r"metrics/.*",
+)
+```
+
+```pycon
+  experiment  step  metrics/accuracy  metrics/loss  metrics/val_accuracy  metrics/val_loss
+0  exp_dczjz     0          0.819754      0.588655              0.432187          0.823375
+1  exp_dczjz     1          0.347907      0.297161              0.649685          0.971732
+2  exp_dczjz     2          0.858863      0.988583              0.760142          0.154741
+3  exp_dczjz     3          0.217097          None              0.719508          0.504652
+4  exp_dczjz     4          0.089981      0.463146              0.180321          0.503800
+5  exp_hgctc     0          0.318828      0.386347              0.012390          0.171790
+6  exp_hgctc     1          0.035026      0.087053              0.392041          0.768675
+7  exp_hgctc     2          0.004711      0.061848                  None          0.847072
+8  exp_hgctc     3          0.359770      0.130022              0.479945          0.323537
+9  exp_hgctc     4          0.007815      0.746344              0.102646          0.055511
+```
+
+### Working with multiple projects
+
+To work with multiple projects simultaneously, you can use contexts. This way, you can set the scope for individual fetching calls or globally for your session.
+
+- To set a new project or API token globally, use `set_project()` or `set_api_token()`:
 
     ```python
-    from neptune_fetcher import ReadOnlyProject
-
-    my_project = ReadOnlyProject()
+    npt.set_project('some-workspace/another-project')
     ```
+
+- To create a context object that you can pass to the `context` argument of a fetching method:
+
+    ```python
+    another_project_context = npt.get_context().with_project('some-workspace/another-project')
+    npt.list_experiments(r"exp_.*", context=another_project_context)
+    ```
+
+Example flow:
+
+1. `NEPTUNE_PROJECT` environment variable is read on module initialization:
+
+    ```python
+    import neptune_fetcher.alpha as npt
+    ```
+
+1. Work on the default project inferred from the environment variables:
+
+    ```python
+    npt.list_experiments(r"exp_.*")
+    ```
+
+    ```pycon
+    ['exp_dhxxz', 'exp_saazg', 'exp_sxlrq', 'exp_vlqfe', 'exp_fpogj']
+    ```
+
+1. Work on another project without changing the global context:
+
+    ```python
+    another_project_ctx = npt.get_context().with_project('some-workspace/another-project')
+    npt.list_experiments(r"exp_.*", context=another_project_ctx)
+    ```
+
+    ```pycon
+    ['exp_oecez', 'exp_ytbda', 'exp_khfym']
+    ```
+
+1. Change the project globally:
+
+    ```python
+    npt.set_project('some-workspace/another-project')
+    ```
+
+1. Do some more work on another project:
+
+    ```python
+    npt.list_experiments(r"exp_.*")
+    ```
+
+    ```pycon
+    ['exp_oecez', 'exp_ytbda', 'exp_khfym']
+    ```
+
+### Constructing filters
+
+#### Filtering experiments
+
+Use the Filter class to specify criteria when fetching experiments or runs.
+
+> Examples of filters:
+>
+> - Name or attribute must match regular expression.
+> - Attribute value must pass a condition, like "greater than 0.9".
+
+You can negate a filter or join multiple filters with logical operators.
+
+Methods available for attribute values:
+- `eq()`: Equals
+- `ne()`: Doesn't equal
+- `gt()`: Greater than
+- `ge()`: Greater than or equal to
+- `lt()`: Less than
+- `le()`: Less than or equal to
+- `matches_all()`: Matches regex or all in list of regexes
+- `matches_none()`: Doesn't match regex or any of list of regexes
+- `contains_all()`: Tagset contains all tags, or string contains substrings
+- `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
+- `exists()`: Attribute exists
+
+##### Examples
+
+Import the needed classes:
+
+```python
+import neptune_fetcher.alpha as npt
+from npt.filters import Attribute, Filter
+```
+
+Constructing filters:
+
+A) Regex that the experiment or run name must match:
+
+```python
+name_filter = Filter.matches_all("sys/name", r"kittiwake$")
+```
+
+B) Don't allow the tags "test" or "val":
+
+```python
+no_test_or_val = Filter.contains_none("sys/tags", ["test", "val"])
+```
+
+C) Set a condition for the last logged value of a metric:
+
+```python
+loss_filter = Filter.lt("validation/loss", 0.1)
+```
+
+For more control over the selected metric, use the `Attribute()` helper class.
+
+D) Negate a filter: Call `negate()` or prepend with `~`:
+
+```python
+not_loss_filter = ~loss_filter
+# equivalent to
+not_loss_filter = Filter.negate(loss_filter)
+```
+
+E) Combining filters:
+
+- To join with AND: Use `&` or pass the filters to the `all()` method.
+- To join with OR: Use `|` or pass the filters to the `any()` method.
+
+```python
+name_and_loss_filter = name_filter & loss_filter
+# equivalent to
+name_and_loss_filter = Filter.all(name_filter, loss_filter)
+```
+
+To use a filter in a query, pass it as the argument to a fetching or listing method:
+
+```python
+npt.fetch_experiments_table(experiments=name_and_loss_filter)
+```
+
+#### Filtering attributes
+
+When fetching metadata with the `fetch_experiments_table()` function, in the returned table, each column represents an attribute.
+
+To select specific metrics or other attributes based on various criteria, use the `AttributeFilter` class.
+
+##### Examples
+
+Select attribute by exact name:
+
+```python
+AttributeFilter(name_eq="config/optimizer")
+```
+
+Select metrics that don't match regexes `^test` or `loss$` and pick the "average" and "variance" aggregations:
+
+```python
+AttributeFilter(
+    type_in=["float_series"],
+    name_matches_none=[r"^test", r"loss$"],
+    aggregations=["average", "variance"],
+)
+```
+
+In this case, the returned table includes "average" and "variance" columns for each metric:
+
+```pycon
+attribute              train/accuracy             validation/accuracy
+aggregation                   average  variance               average  variance
+experiment
+exp-1738662528               0.000000  0.000273                   0.0  0.000269
+exp-1738325381               0.000000  0.594614                   0.0  0.595119
+...
+```
+
+> For the types reference, see: https://docs-beta.neptune.ai/attribute_types
+
+Combine multiple filters with the pipe character:
+
+```python
+filter_1 = AttributeFilter(...)
+filter_2 = AttributeFilter(...)
+filter_3 = AttributeFilter(...)
+alternatives = filter_1 | filter_2 | filter_3
+```
+
+To use a filter, pass it to the `attributes` argument of the `fetch_experiments_table()` function:
+
+```python
+npt.fetch_experiments_table(
+    experiments=...,
+    attributes=AttributeFilter(...),
+)
+```
+
+#### `Attribute` helper class
+
+Used for specifying a single attribute and picking a metric aggregation function.
+
+When fetching experiments or runs, use this class to filter and sort the returned entries.
+
+##### Examples
+
+Select a metric and pick variance as the aggregation:
+
+```python
+import neptune_fetcher.alpha as npt
+from npt.filters import Attribute, Filter
+
+
+val_loss_variance = Attribute(
+    name="val/loss",
+    aggregation="variance",
+)
+```
+
+Construct a filter around the attribute, then pass it to a fetching or listing method:
+
+```python
+tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
+npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
+```
+
+### Working with runs
+
+Experiments consist of runs. By default, the Fetcher API returns metadata only from experiment head runs, not all individual runs.
+
+To work with runs, you can use the corresponding run methods:
+
+```python
+from neptune_fetcher.alpha.runs import (
+    fetch_run_metrics,
+    fetch_runs_table,
+    list_run_attributes,
+    list_runs,
+)
+```
+
+Note the difference in specifying runs versus experiments:
+
+- Experiments are characterized by name (`sys/name`). This is the string passed to the `name` argument at creation.
+- Runs are characterized by ID (`sys/custom_run_id`). This is the string passed to the `run_id` argument at creation.
+
+---
+
+## Usage: Fetcher `0.x`
+
+> [!NOTE]
+> We're redesigning the Fetcher API.
+>
+> To try the new version, see [Usage: Alpha version](#usage-alpha-version).
+
+In your Python code, create a [`ReadOnlyProject`](#readonlyproject) instance:
+
+```python
+from neptune_fetcher import ReadOnlyProject
+
+my_project = ReadOnlyProject()
+```
 
 Now you have a Neptune project to operate on.
 
@@ -78,9 +434,10 @@ For details, see the Neptune documentation:
 - [Fetch metadata from a run or experiment](https://docs-beta.neptune.ai/fetch_run_data)
 - [Neptune Query Language (NQL)](https://docs-beta.neptune.ai/nql)
 
-## Examples
 
-### Listing runs of a project
+### Examples
+
+#### Listing runs of a project
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -91,7 +448,7 @@ for run in project.list_runs():
     print(run)  # dicts with identifiers
 ```
 
-### Listing experiments of a project
+#### Listing experiments of a project
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -102,7 +459,7 @@ for experiment in project.list_experiments():
     print(experiment)  # dicts with identifiers
 ```
 
-### Fetching runs data frame with specific columns
+#### Fetching runs data frame with specific columns
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -115,7 +472,7 @@ runs_df = project.fetch_runs_df(
 )
 ```
 
-### Fetching data from specified runs
+#### Fetching data from specified runs
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -129,7 +486,7 @@ for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
     print(run["parameters/init_lr"].fetch())
 ```
 
-### Fetching data from a single run
+#### Fetching data from a single run
 
 ```python
 from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
@@ -146,18 +503,18 @@ print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_values())
 ```
 
-## API reference
+### API reference
 
-### Supported regular expressions
+#### Supported regular expressions
 
 Neptune uses the [RE2](https://github.com/google/re2) regular expression library. For supported regex features and limitations, see the official [syntax guide](https://github.com/google/re2/wiki/syntax).
 
 
-### `ReadOnlyProject`
+#### `ReadOnlyProject`
 
 Representation of a Neptune project in a limited read-only mode.
 
-#### Initialization
+##### Initialization
 
 Initialize with the ReadOnlyProject class constructor:
 
@@ -178,7 +535,7 @@ __Parameters:__
 
 ---
 
-#### `list_runs()`
+##### `list_runs()`
 
 Lists all runs of a project.
 
@@ -197,7 +554,7 @@ for run in project.list_runs():
 
 ---
 
-#### `list_experiments()`
+##### `list_experiments()`
 
 Lists all experiments of a project.
 
@@ -218,7 +575,7 @@ __Returns:__ `Iterator` of dictionaries with Neptune experiment identifiers, cus
 
 ---
 
-#### `fetch_runs()`
+##### `fetch_runs()`
 
 Fetches a table containing Neptune IDs, custom run IDs and names of runs in the project.
 
@@ -234,7 +591,7 @@ df = project.fetch_runs()
 
 ---
 
-#### `fetch_experiments()`
+##### `fetch_experiments()`
 
 Fetches a table containing Neptune IDs, custom IDs and names of experiments in the project.
 
@@ -249,7 +606,7 @@ __Returns__:
 
 ---
 
-#### `fetch_runs_df()`
+##### `fetch_runs_df()`
 
 Fetches the runs' metadata and returns them as a pandas DataFrame.
 
@@ -329,7 +686,7 @@ runs_df = my_project.fetch_runs_df(
 
 ---
 
-#### `fetch_experiments_df()`
+##### `fetch_experiments_df()`
 
 Fetches the experiments' metadata and returns them as a pandas DataFrame.
 
@@ -411,7 +768,7 @@ experiments_df = my_project.fetch_experiments_df(
 
 ---
 
-#### `fetch_read_only_runs()`
+##### `fetch_read_only_runs()`
 
 List runs of the project in the form of ReadOnlyRun.
 
@@ -435,7 +792,7 @@ for run in project.fetch_read_only_runs(custom_ids=["nostalgic_shockley", "high_
 
 ---
 
-#### `fetch_read_only_experiments()`
+##### `fetch_read_only_experiments()`
 
 Lists experiments of the project in the form of ReadOnlyRun.
 
@@ -458,11 +815,11 @@ for run in project.fetch_read_only_experiments(names=["yolo-v2", "yolo-v3"]):
 
 ---
 
-### `ReadOnlyRun`
+#### `ReadOnlyRun`
 
 Representation of a Neptune run in a limited read-only mode.
 
-#### Initialization
+##### Initialization
 
 Can be created
 
@@ -502,7 +859,7 @@ run = ReadOnlyRun(project, custom_id="high_albattani")
 
 ---
 
-#### `.field_names`
+##### `.field_names`
 
 List of run field names.
 
@@ -519,7 +876,7 @@ for run in project.fetch_read_only_runs(custom_ids=["nostalgic_shockley", ...]):
 
 ---
 
-#### Field lookup: `run[field_name]`
+##### Field lookup: `run[field_name]`
 
 Used to access a specific field of a run. See [Available types](#available-types).
 
@@ -534,7 +891,7 @@ custom_id = run["sys/custom_run_id"].fetch()
 
 ---
 
-#### `prefetch()`
+##### `prefetch()`
 
 Pre-fetches a batch of fields to the internal cache.
 
@@ -567,7 +924,7 @@ print(run["parameters/optimizer"].fetch())
 print(run["parameter/init_lr"].fetch())
 ```
 
-### `prefetch_series_values()`
+#### `prefetch_series_values()`
 
 Prefetches a batch of series to the internal cache. This method skips the non-existing attributes.
 
@@ -598,15 +955,15 @@ print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_values())
 ```
 
-## Available types
+### Available types
 
 This section lists the available field types and data retrieval operations.
 
 ---
 
-### `Boolean`
+#### `Boolean`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves a `bool` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -618,9 +975,9 @@ status = run["sys/failed"].fetch()
 
 ---
 
-### `Datetime`
+#### `Datetime`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves a `datetime.datetime` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -632,9 +989,9 @@ created_at = run["sys/creation_time"].fetch()
 
 ---
 
-### `Float`
+#### `Float`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves a `float` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -646,9 +1003,9 @@ f1 = run["scores/f1"].fetch()
 
 ---
 
-### `FloatSeries`
+#### `FloatSeries`
 
-#### `fetch()` or `fetch_last()`
+##### `fetch()` or `fetch_last()`
 
 Retrieves the last value of a series, either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -660,7 +1017,7 @@ __Example:__
 loss = run["loss"].fetch_last()
 ```
 
-#### `fetch_values()`
+##### `fetch_values()`
 
 Retrieves all series values either from the internal cache (see [`prefetch_series_values()`](#prefetch_series_values))
 or from the API.
@@ -684,9 +1041,9 @@ values = run["loss"].fetch_values()
 
 ---
 
-### `Integer`
+#### `Integer`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves an `int` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -698,9 +1055,9 @@ batch_size = run["batch_size"].fetch()
 
 ---
 
-### `ObjectState`
+#### `ObjectState`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves the state of a run either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -719,9 +1076,9 @@ state = run["sys/state"].fetch()
 
 ---
 
-### `String`
+#### `String`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves a `str` value either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -733,9 +1090,9 @@ token = run["token"].fetch()
 
 ---
 
-### `StringSet`
+#### `StringSet`
 
-#### `fetch()`
+##### `fetch()`
 
 Retrieves a `dict` of `str` values either from the internal cache (see [`prefetch()`](#prefetch)) or from the API.
 
@@ -744,6 +1101,8 @@ __Example:__
 ```python
 groups = run["sys/group_tags"].fetch()
 ```
+
+---
 
 ## License
 
