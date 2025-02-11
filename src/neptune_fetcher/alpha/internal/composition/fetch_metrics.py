@@ -43,8 +43,7 @@ from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribut
 from neptune_fetcher.alpha.internal.composition.util import batched
 from neptune_fetcher.alpha.internal.context import (
     Context,
-    get_context,
-    validate_context,
+    get_valid_context,
 )
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.alpha.internal.output_format import create_dataframe
@@ -201,9 +200,9 @@ def _fetch_metrics(
     _validate_tail_limit(tail_limit)
     _validate_include_time(include_time)
 
-    valid_context = validate_context(context or get_context())
-    client = get_client(valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = get_valid_context(context)
+    client = get_client(valid_context.api_token)
+    project_identifier = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,

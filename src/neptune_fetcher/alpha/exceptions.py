@@ -66,6 +66,15 @@ Ensure that:
 """
         )
 
+class NeptuneProjectInvalidName(NeptuneUserError):
+    def __init__(self, project: str) -> None:
+        super().__init__(
+            """
+{h1}NeptuneProjectInvalidName: Project name {project} is invalid.{end}
+""",
+            project=project,
+        )
+
 
 class NeptuneApiTokenNotProvided(NeptuneUserError):
     def __init__(self) -> None:
