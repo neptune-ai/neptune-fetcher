@@ -30,8 +30,7 @@ from neptune_fetcher.internal.composition import (
 )
 from neptune_fetcher.internal.context import (
     Context,
-    get_context,
-    validate_context,
+    get_valid_context,
 )
 from neptune_fetcher.internal.filters import (
     _AttributeFilter,
@@ -62,9 +61,9 @@ def fetch_series(
     _validate_tail_limit(tail_limit)
     _validate_include_time(include_time)
 
-    valid_context = validate_context(context or get_context())
-    client = get_client(valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = get_valid_context(context)
+    client = get_client(valid_context.api_token)
+    project_identifier = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,

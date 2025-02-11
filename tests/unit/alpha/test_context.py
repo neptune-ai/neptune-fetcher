@@ -20,12 +20,17 @@ import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.exceptions import (
     NeptuneApiTokenNotProvided,
+    NeptuneProjectInvalidName,
     NeptuneProjectNotProvided,
 )
-from neptune_fetcher.internal import env
+from neptune_fetcher.internal import (
+    env,
+    identifiers,
+)
 from neptune_fetcher.internal.context import (
+    ValidContext,
     get_context,
-    validate_context,
+    get_valid_context,
 )
 
 
@@ -127,12 +132,32 @@ def test_context_from_envs(monkeypatch):
     assert ctx.api_token == "another_token"
 
 
-def test_validate_context():
+def test_validate_context_provided():
     with pytest.raises(NeptuneProjectNotProvided):
-        validate_context(Context())
+        get_valid_context(Context())
 
     with pytest.raises(NeptuneApiTokenNotProvided):
-        validate_context(Context(project="foo"))
+        get_valid_context(Context(project="foo"))
 
     with pytest.raises(NeptuneProjectNotProvided):
-        validate_context(Context(api_token="bar"))
+        get_valid_context(Context(api_token="bar"))
+
+
+@pytest.mark.parametrize("project", ["", "foo", "_/bar" "bar/_"])
+def test_validate_context_invalid_name(project):
+    with pytest.raises(NeptuneProjectInvalidName):
+        get_valid_context(Context(project=project, api_token="bar"))
+
+
+@pytest.mark.parametrize(
+    "project",
+    [
+        "foo/bar",
+        "FOO/BAR",
+    ],
+)
+def test_validate_context_valid_name(project):
+    assert get_valid_context(Context(project=project, api_token="bar")) == ValidContext(
+        project_identifier=identifiers.ProjectIdentifier(project),
+        api_token="bar",
+    )

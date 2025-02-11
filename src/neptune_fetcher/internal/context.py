@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-
+import re
 import threading
 from dataclasses import dataclass
 from typing import Optional
 
+from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.env import (
     NEPTUNE_API_TOKEN,
     NEPTUNE_PROJECT,
@@ -30,11 +30,12 @@ __all__ = (
     "set_context",
     "set_project",
     "set_api_token",
-    "validate_context",
+    "get_valid_context",
 )
 
 from neptune_fetcher.exceptions import (
     NeptuneApiTokenNotProvided,
+    NeptuneProjectInvalidName,
     NeptuneProjectNotProvided,
 )
 
@@ -59,6 +60,12 @@ class Context:
         if not api_token:
             raise ValueError("API token must be provided")
         return Context(project=self.project, api_token=api_token)
+
+
+@dataclass(frozen=True)
+class ValidContext:
+    project_identifier: identifiers.ProjectIdentifier
+    api_token: str
 
 
 def set_project(project: str) -> Context:
@@ -110,15 +117,24 @@ def set_context(context: Optional[Context] = None) -> Context:
         return _context
 
 
-def validate_context(context: Optional[Context] = None) -> Context:
+def get_valid_context(context: Optional[Context] = None) -> ValidContext:
+    return _validate_context(context or get_context())
+
+
+_PROJECT_PATH_PATTERN = re.compile(r"^([A-Za-z0-9-._]+)/([^/\\#?%]+)$")
+
+
+def _validate_context(context: Optional[Context]) -> ValidContext:
     assert context is not None, "Context should have been set on import"
 
     if context.project is None:
         raise NeptuneProjectNotProvided()
     if context.api_token is None:
         raise NeptuneApiTokenNotProvided()
+    if not _PROJECT_PATH_PATTERN.match(context.project):
+        raise NeptuneProjectInvalidName(context.project)
 
-    return context
+    return ValidContext(project_identifier=identifiers.ProjectIdentifier(context.project), api_token=context.api_token)
 
 
 def _context_from_env() -> Context:
