@@ -129,39 +129,50 @@ npt.fetch_metrics(
 
 ### Working with multiple projects
 
+To work with multiple projects simultaneously, use the `get_context()` and `set_context()` functions.
+
 Example flow:
 
 1. `NEPTUNE_PROJECT` environment variable is read on module initialization:
 
-    ```pycon
+    ```python
     import neptune_fetcher.alpha as npt
     ```
 
 1. Work on the default project inferred from the environment variables:
 
-    ```pycon
+    ```python
     npt.list_experiments(r"exp_.*")
+    ```
+
+    ```pycon
     ['exp_dhxxz', 'exp_saazg', 'exp_sxlrq', 'exp_vlqfe', 'exp_fpogj']
     ```
 
 1. Work on another project without changing the global context:
 
-    ```pycon
+    ```python
     another_project_ctx = npt.get_context().with_project('some-workspace/another-project')
     npt.list_experiments(r"exp_.*", context=another_project_ctx)
+    ```
+
+    ```pycon
     ['exp_oecez', 'exp_ytbda', 'exp_khfym']
     ```
 
 1. Change the project globally:
 
-    ```pycon
+    ```python
     npt.set_project('some-workspace/another-project')
     ```
 
 1. Do some more work on another project:
 
-    ```pycon
+    ```python
     npt.list_experiments(r"exp_.*")
+    ```
+
+    ```pycon
     ['exp_oecez', 'exp_ytbda', 'exp_khfym']
     ```
 
