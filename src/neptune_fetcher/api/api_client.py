@@ -22,7 +22,6 @@ __all__ = (
 )
 
 import logging
-import os
 import re
 import time
 from dataclasses import dataclass
@@ -34,7 +33,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Final,
     Iterator,
     List,
     Optional,
@@ -87,15 +85,12 @@ from neptune_fetcher.util import (
     get_config_and_token_urls,
 )
 
-API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
-
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 class ApiClient:
-    def __init__(self, api_token: Optional[str] = None, proxies: Optional[Dict[str, str]] = None) -> None:
-        api_token = api_token if api_token else os.getenv(API_TOKEN_ENV_NAME)
+    def __init__(self, api_token: str, proxies: Optional[Dict[str, str]] = None) -> None:
         credentials = Credentials.from_api_key(api_key=api_token)
         config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
         self._backend = create_auth_api_client(

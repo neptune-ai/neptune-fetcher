@@ -78,7 +78,7 @@ CREATION_TIME = 1737648980
 
 
 def make_proto_attributes_dto(
-    unsupported_attrs: Optional[Iterable[tuple[str, str]]] = DEFAULT_UNSUPPORTED_ATTRS
+    unsupported_attrs: Optional[Iterable[tuple[str, str]]] = DEFAULT_UNSUPPORTED_ATTRS,
 ) -> ProtoAttributesDTO:
     """Return a list valid attributes for a run. Optionally add the provided unsupported attributes to the result,
     which default to DEFAULT_UNSUPPORTED_ATTRS."""
@@ -266,7 +266,7 @@ def backend_cls():
 
 @fixture
 def project(backend_cls):
-    return ReadOnlyProject("workspace/project")
+    return ReadOnlyProject("workspace/project", "token")
 
 
 @contextmanager

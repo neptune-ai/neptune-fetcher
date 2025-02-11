@@ -1,3 +1,4 @@
+import os
 import sys
 
 from neptune_fetcher.api.api_client import ApiClient
@@ -27,7 +28,11 @@ def delete_project(backend, organization, name):
 
 
 if __name__ == "__main__":
-    backend = ApiClient()
+    api_token = os.getenv("NEPTUNE_API_TOKEN")
+    if api_token is None:
+        raise ValueError("NEPTUNE_API_TOKEN not set")
+
+    backend = ApiClient(api_token=api_token)
 
     cmd = sys.argv[1]
     if cmd == "create_project":
