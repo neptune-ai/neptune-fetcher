@@ -275,6 +275,8 @@ npt.fetch_experiments_table(experiments=name_and_loss_filter)
 
 #### Filtering attributes
 
+When fetching metadata with the `fetch_experiments_table()` function, in the returned table, each column represents an attribute.
+
 To select specific metrics or other attributes based on various criteria, use the `AttributeFilter` class.
 
 ##### Examples
@@ -285,7 +287,7 @@ Select attribute by exact name:
 AttributeFilter(name_eq="config/optimizer")
 ```
 
-Select metrics not matching regexes `^test` or `loss$` and pick the "average" and "variance" aggregations:
+Select metrics that don't match regexes `^test` or `loss$` and pick the "average" and "variance" aggregations:
 
 ```python
 AttributeFilter(
@@ -293,6 +295,17 @@ AttributeFilter(
     name_matches_none=[r"^test", r"loss$"],
     aggregations=["average", "variance"],
 )
+```
+
+In this case, the returned table includes "average" and "variance" columns for each metric:
+
+```pycon
+attribute              train/accuracy             validation/accuracy
+aggregation                   average  variance               average  variance
+experiment
+exp-1738662528               0.000000  0.000273                   0.0  0.000269
+exp-1738325381               0.000000  0.594614                   0.0  0.595119
+...
 ```
 
 > For the types reference, see: https://docs-beta.neptune.ai/attribute_types
@@ -304,6 +317,15 @@ filter_1 = AttributeFilter(...)
 filter_2 = AttributeFilter(...)
 filter_3 = AttributeFilter(...)
 alternatives = filter_1 | filter_2 | filter_3
+```
+
+To use a filter, pass it to the `attributes` argument of the `fetch_experiments_table()` function:
+
+```python
+npt.fetch_experiments_table(
+    experiments=...,
+    attributes=AttributeFilter(...),
+)
 ```
 
 #### `Attribute` helper class
