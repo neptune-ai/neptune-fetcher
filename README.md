@@ -27,6 +27,8 @@ export NEPTUNE_PROJECT="workspace-name/project-name"
 
 For help, see https://docs-beta.neptune.ai/setup.
 
+> **Note:** To change the token or project, you can [set the context](#working-with-multiple-projects) directly in the code. This way, you can work with multiple projects at the same time.
+
 ## Usage: Alpha version
 
 To try the next major version of the Fetcher API, use the `alpha` module.
@@ -129,7 +131,20 @@ npt.fetch_experiment_metrics(
 
 ### Working with multiple projects
 
-To work with multiple projects simultaneously, use the `get_context()` and `set_context()` functions.
+To work with multiple projects simultaneously, you can use contexts. This way, you can set the scope for individual fetching calls or globally for your session.
+
+- To set a new project or API token globally, use `set_project()` or `set_api_token()`:
+
+    ```python
+    npt.set_project('some-workspace/another-project')
+    ```
+
+- To create a context object that you can pass to the `context` argument of a fetching method:
+
+    ```python
+    another_project_context = npt.get_context().with_project('some-workspace/another-project')
+    npt.list_experiments(r"exp_.*", context=another_project_context)
+    ```
 
 Example flow:
 
