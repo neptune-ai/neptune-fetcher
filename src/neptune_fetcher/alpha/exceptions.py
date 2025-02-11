@@ -119,6 +119,7 @@ class NeptuneUnexpectedResponseError(NeptuneError):
         super().__init__(
             """
 {h1}NeptuneUnexpectedResponseError: The Neptune server returned an unexpected response.{end}
+
 Response status: {status_code}
 Response content: {content}
 """,
@@ -135,6 +136,7 @@ class NeptuneRetryError(NeptuneError):
         super().__init__(
             """
 {h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries.{end}
+
 {status_code_line}
 {content_line}
 """,
