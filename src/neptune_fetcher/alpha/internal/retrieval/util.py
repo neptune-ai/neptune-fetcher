@@ -29,7 +29,7 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
-from neptune_fetcher.alpha.exceptions import NeptuneError
+from neptune_fetcher.alpha import exceptions
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -78,7 +78,7 @@ def backoff_retry(
     """
 
     if max_tries < 1:
-        raise ValueError("max_tries must be greater than or equal to 1")
+        raise RuntimeError("max_tries must be greater than or equal to 1")
 
     tries = 0
     last_exc = None
@@ -101,7 +101,10 @@ def backoff_retry(
 
             # Not a TooManyRequests or InternalServerError code
             if not (code == 429 or 500 <= code < 600):
-                raise NeptuneError(f"Unexpected server response {response.status_code}: {str(response.content)}")
+                raise exceptions.NeptuneUnexpectedResponseError(
+                    status_code=response.status_code,
+                    content=response.content,
+                )
 
         if tries == max_tries:
             break
@@ -111,12 +114,11 @@ def backoff_retry(
         time.sleep(backoff_time)
 
     # No more retries left
-    msg = []
-    if last_exc:
-        msg.append(f"Last exception: {str(last_exc)}")
     if last_response:
-        msg.append(f"Last response: {last_response.status_code}: {str(last_response.content)}")
-    if not msg:
-        raise NeptuneError("Unknown error occurred when requesting data")
-
-    raise NeptuneError(f"Failed to get response after {tries} retries. " + "\n".join(msg))
+        error = exceptions.NeptuneRetryError(tries, last_response.status_code.value, last_response.content)
+    else:
+        error = exceptions.NeptuneRetryError(tries)
+    if last_exc:
+        raise error from last_exc
+    else:
+        raise error

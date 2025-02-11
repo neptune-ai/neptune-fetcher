@@ -20,6 +20,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    Optional,
 )
 
 import neptune_fetcher.alpha.internal.env as env
@@ -111,6 +112,45 @@ Alternatively, specify the attribute type explicitly using {python}AttributeFilt
 """,
             attribute_names=", ".join(attribute_names),
         )
+
+
+class NeptuneUnexpectedResponseError(NeptuneError):
+    def __init__(self, status_code: int, content: bytes) -> None:
+        super().__init__(
+            """
+{h1}NeptuneUnexpectedResponseError: The Neptune server returned an unexpected response.{end}
+
+Response status: {status_code}
+Response content: {content}
+""",
+            status_code=status_code,
+            content=_decode_content(content),
+        )
+
+
+class NeptuneRetryError(NeptuneError):
+    def __init__(
+        self, retries: int, last_status_code: Optional[int] = None, last_content: Optional[bytes] = None
+    ) -> None:
+        content_str = _decode_content(last_content) if last_content else ""
+        super().__init__(
+            """
+{h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries.{end}
+
+{status_code_line}
+{content_line}
+""",
+            retries=retries,
+            status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
+            content_line=f"Last response content: {content_str}" if last_content is not None else "",
+        )
+
+
+def _decode_content(content: bytes, content_max_length: int = 1000) -> str:
+    try:
+        return content.decode("utf-8")[:content_max_length]
+    except UnicodeDecodeError:
+        return repr(content)[:content_max_length]
 
 
 EMPTY_STYLES = {
