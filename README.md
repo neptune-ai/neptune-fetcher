@@ -380,6 +380,11 @@ Note the difference in specifying runs versus experiments:
 
 ## Usage: Fetcher `0.x`
 
+> [!NOTE]
+> We're redesigning the Fetcher API.
+>
+> To try the new version, see [Usage: Alpha version](#usage-alpha-version).
+
 In your Python code, create a [`ReadOnlyProject`](#readonlyproject) instance:
 
 ```python
