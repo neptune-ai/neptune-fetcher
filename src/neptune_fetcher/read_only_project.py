@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
+    Final,
     Generator,
     Iterable,
     Iterator,
@@ -68,6 +69,7 @@ from neptune_fetcher.util import (
 logger = logging.getLogger(__name__)
 
 PROJECT_ENV_NAME = "NEPTUNE_PROJECT"
+API_TOKEN_ENV_NAME: Final[str] = "NEPTUNE_API_TOKEN"
 SYS_ID = "sys/id"
 SYS_COLUMNS = [SYS_ID, "sys/name", "sys/custom_run_id"]
 
@@ -115,7 +117,11 @@ class ReadOnlyProject:
         """
         self._project: Optional[str] = project if project else os.getenv(PROJECT_ENV_NAME)
         if self._project is None:
-            raise ValueError("Could not find project name in environment. Make sure NEPTUNE_PROJECT is set.")
+            raise ValueError("Project name not found in the environment. Ensure that NEPTUNE_PROJECT is set.")
+
+        api_token = api_token if api_token else os.getenv(API_TOKEN_ENV_NAME)
+        if api_token is None:
+            raise ValueError("API token not found in the environment. Ensure that NEPTUNE_API_TOKEN is set.")
 
         self._backend = ApiClient(api_token=api_token, proxies=proxies)
 
