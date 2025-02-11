@@ -82,7 +82,7 @@ For both arguments, you can specify a simple string to match experiment or attri
 
 > Fetching metrics this way returns an aggregation value for each attribute. The default aggregation is the last logged value.
 >
-> To fetch actual metric values at each step, see [`fetch_metrics()`](#fetching-metric-values).
+> To fetch actual metric values at each step, see [`fetch_experiment_metrics()`](#fetching-metric-values).
 
 ```python
 npt.fetch_experiments_table(
@@ -104,10 +104,10 @@ exp_gyvpp              0.999489         0.069839
 
 ### Fetching metric values
 
-To fetch individual values from one or more float series attributes, use the `fetch_metrics()` function:
+To fetch individual values from one or more float series attributes, use the `fetch_experiment_metrics()` function:
 
 ```python
-npt.fetch_metrics(
+npt.fetch_experiment_metrics(
     experiments=r"exp.*",
     attributes=r"metrics/.*",
 )
