@@ -78,9 +78,11 @@ To fetch experiment metadata from your project, use the `fetch_experiments_table
 - To filter experiments to return, use the `experiments` parameter.
 - To specify attributes to include as columns, use the `attributes` parameter.
 
-For both arguments, you can specify a simple string to match experiment or attribute names against, or you can use the Filter classes to construct more complex filters.
+For both arguments, you can specify a simple string to match experiment or attribute names against, or you can use the Filter classes to [construct more complex filters](#constructing-filters).
 
-> Fetching metrics this way returns an aggregation value for each attribute (by default, the last logged value). To fetch actual metric values at each step, see [`fetch_metrics()`](#fetching-metric-values).
+> Fetching metrics this way returns an aggregation value for each attribute. The default aggregation is the last logged value.
+>
+> To fetch actual metric values at each step, see [`fetch_metrics()`](#fetching-metric-values).
 
 ```python
 npt.fetch_experiments_table(
@@ -169,10 +171,10 @@ Example flow:
 
 Use the Filter class to specify criteria when fetching experiments or runs.
 
-Examples of filters:
-
-- Name or attribute must match regular expression.
-- Attribute value must pass a condition, like "greater than 0.9".
+> Examples of filters:
+>
+> - Name or attribute must match regular expression.
+> - Attribute value must pass a condition, like "greater than 0.9".
 
 You can negate a filter or join multiple filters with logical operators.
 
@@ -228,7 +230,7 @@ not_loss_filter = ~loss_filter
 not_loss_filter = Filter.negate(loss_filter)
 ```
 
-C) Combining filters:
+E) Combining filters:
 
 - To join with AND: Use `&` or pass the filters to the `all()` method.
 - To join with OR: Use `|` or pass the filters to the `any()` method.
