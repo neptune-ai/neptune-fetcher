@@ -1,6 +1,6 @@
 import pytest
 
-import neptune_fetcher.alpha.runs as runs
+import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.alpha.filters import (
     Attribute,
@@ -8,31 +8,33 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from tests.e2e.alpha.generator import (
-    ALL_STATIC_RUNS,
+    ALL_STATIC_EXPERIMENTS,
+    EXPERIMENTS_BY_NAME,
+    FORKED_TREE_EXP_NAME,
     LINEAR_HISTORY_TREE,
-    RUNS_BY_ID,
+    LINEAR_TREE_EXP_NAME,
 )
 
 
 @pytest.mark.parametrize(
     "filter_, expected",
     [
-        (".*", ALL_STATIC_RUNS),
-        (None, ALL_STATIC_RUNS),
+        (".*", ALL_STATIC_EXPERIMENTS),
+        (None, ALL_STATIC_EXPERIMENTS),
         (Filter.eq(Attribute(name="sys/custom_run_id", type="string"), "non-existent"), []),
-        (Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]), ALL_STATIC_RUNS),
-        ("linear.*", LINEAR_HISTORY_TREE),
-        (Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]), LINEAR_HISTORY_TREE),
-        (Filter.eq("linear-history", True), LINEAR_HISTORY_TREE),
-        (Filter.eq(Attribute(name="linear-history", type="bool"), True), LINEAR_HISTORY_TREE),
+        (Filter.name_in(*[run.experiment_name for run in ALL_STATIC_EXPERIMENTS]), ALL_STATIC_EXPERIMENTS),
+        ("linear.*", [EXPERIMENTS_BY_NAME[LINEAR_TREE_EXP_NAME]]),
         (
-            Filter.eq(Attribute(name="sys/custom_run_id", type="string"), "linear_history_fork2"),
-            [RUNS_BY_ID["linear_history_fork2"]],
+            Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]),
+            [EXPERIMENTS_BY_NAME[LINEAR_TREE_EXP_NAME]],
         ),
+        (Filter.name_in(LINEAR_TREE_EXP_NAME), [EXPERIMENTS_BY_NAME[LINEAR_TREE_EXP_NAME]]),
+        (Filter.eq("linear-history", True), [EXPERIMENTS_BY_NAME[LINEAR_TREE_EXP_NAME]]),
+        (Filter.eq(Attribute(name="linear-history", type="bool"), True), [EXPERIMENTS_BY_NAME[LINEAR_TREE_EXP_NAME]]),
     ],
 )
 def test_list_attributes(new_project_context: Context, filter_, expected):
-    attributes = runs.list_attributes(filter_, None, context=new_project_context)
+    attributes = npt.list_attributes(filter_, None, context=new_project_context)
     expected = set().union(*[r.attributes() for r in expected])
 
     assert _filter_out_sys(attributes) == expected
@@ -57,7 +59,7 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
         # Multiple types
         (AttributeFilter(type_in=["float", "int"]), {"float-value", "int-value"}),
         # Name patterns
-        (AttributeFilter(name_matches_all="unique.*"), {"unique1/0", "unique2/0"}),
+        (AttributeFilter(name_matches_all="unique.*"), {"unique1/0", "unique3/0"}),
         (AttributeFilter(name_matches_all="foo.*"), {"foo0", "foo1"}),
         # Combined filters
         (AttributeFilter(name_matches_all=".*value.*", type_in=["float"]), {"float-value"}),
@@ -70,9 +72,7 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
     ],
 )
 def test_list_attributes_with_attribute_filter(new_project_context: Context, _attr_filter, expected):
-    attributes = runs.list_attributes(
-        "^forked_history_root$|^forked_history_fork1$", _attr_filter, context=new_project_context
-    )
+    attributes = npt.list_attributes(f"^{FORKED_TREE_EXP_NAME}$", _attr_filter, context=new_project_context)
 
     assert _filter_out_sys(attributes) == expected
 

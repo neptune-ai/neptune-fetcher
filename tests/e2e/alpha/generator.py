@@ -31,7 +31,12 @@ class GeneratedRun:
     tags: list[str]
 
     def attributes(self):
-        return set().union(self.configs.keys(), self.metrics.keys())
+        return set().union(self.configs.keys(), self.metrics_attributes())
+
+    def metrics_attributes(self):
+        if self.fork_run_id:
+            return set().union(self.metrics.keys(), RUNS_BY_ID[self.fork_run_id].metrics_attributes())
+        return set(self.metrics.keys())
 
     def metrics_values(self, name: AttributeName) -> list[tuple[Step, Value]]:
         return list(self.metrics[name].items())
@@ -187,7 +192,10 @@ FORKED_HISTORY_TREE = [
 ]
 
 ALL_STATIC_RUNS = LINEAR_HISTORY_TREE + FORKED_HISTORY_TREE
-RUN_BY_ID = {run.custom_run_id: run for run in ALL_STATIC_RUNS}
+RUNS_BY_ID = {run.custom_run_id: run for run in ALL_STATIC_RUNS}
+
+ALL_STATIC_EXPERIMENTS = [RUNS_BY_ID["forked_history_fork2"], RUNS_BY_ID["linear_history_fork2"]]
+EXPERIMENTS_BY_NAME = {exp.experiment_name: exp for exp in ALL_STATIC_EXPERIMENTS}
 
 
 def timestamp_for_step(step: int):
