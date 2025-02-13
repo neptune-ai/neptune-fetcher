@@ -25,6 +25,7 @@ __all__ = [
     "fetch_experiments_table",
     "fetch_metrics",
     "fetch_series",
+    "download_files",
 ]
 
 from typing import (
@@ -37,6 +38,7 @@ from typing import (
 import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
+from neptune_fetcher.alpha.internal.composition import download_files as _download_files
 from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.alpha.internal.composition import fetch_series as _fetch_series
 from neptune_fetcher.alpha.internal.composition import fetch_table as _fetch_table
@@ -235,4 +237,69 @@ def fetch_series(
         tail_limit=tail_limit,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
+    )
+
+
+def download_files(
+    experiments: Optional[Union[str, _filters.Filter]] = None,
+    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    *,
+    destination: Optional[str] = None,
+    context: Optional[Context] = None,
+) -> None:
+    """
+    Downloads files associated with selected experiments and attributes.
+
+    Args:
+      experiments: Specifies the experiment(s) to filter files by.
+          - A string representing the experiment name or a `Filter` object for more complex filtering.
+          - If `None`, all experiments are considered.
+
+      attributes: Specifies the attribute(s) to filter files by within the selected experiments.
+          - A string representing the attribute path or an `AttributeFilter` object.
+          - If `None`, all attributes are considered.
+
+      destination: The directory where files will be downloaded.
+          - If `None`, the current working directory (CWD) is used as the default.
+          - The path can be relative or absolute.
+
+      context: Provides additional contextual information for the download (optional).
+          - A `Context` object, which may include things like credentials or other metadata.
+
+    Download Path Construction:
+      - Files are downloaded to the following directory structure:
+          <destination>/<experiment_name>/<attribute_path>/<file_name>
+      - If `<experiment_name>` or `<attribute_path>` contains '/', corresponding subdirectories will be created.
+      - The `<file_name>` is the final part of the file's path on object storage after splitting it by '/'.
+
+    Example:
+      Given an experiment named "some/experiment" and an attribute "some/attribute" with an uploaded file path
+      of "/my/path/on/object/storage/file.txt":
+
+          download_files(experiments="some/experiment", attributes="some/attribute", destination="/my/destination")
+
+      The file will be downloaded to:
+
+          /my/destination/some/experiment/some/attribute/file.txt
+
+    Notes:
+      - If the experiment or attribute paths include slashes ('/'), they will be treated as subdirectory structures,
+        and those directories will be created during the download process.
+      - Ensure that the `destination` directory has write permissions for successful file downloads.
+      - If the specified destination or any subdirectories do not exist, they will be automatically created.
+    """
+    pass
+    if isinstance(experiments, str):
+        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
+
+    if isinstance(attributes, str):
+        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file_ref"])
+    elif attributes is None:
+        attributes = _filters.AttributeFilter(type_in=["file_ref"])
+
+    return _download_files.download_files(
+        experiments=experiments,
+        attributes=attributes,
+        destination=destination,
+        context=context,
     )
