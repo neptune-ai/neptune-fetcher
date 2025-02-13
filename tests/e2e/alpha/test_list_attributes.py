@@ -69,12 +69,33 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
             | AttributeFilter(name_matches_all=".*value.*", type_in=["int"]),
             {"float-value", "int-value"},
         ),
+        (AttributeFilter(name_matches_none=".*value.*"), {'foo1', 'foo0', 'unique3/0', 'unique1/0'}),
+        (AttributeFilter(name_matches_all=".*value.*", name_matches_none=".*value.*"), set()),
     ],
 )
 def test_list_attributes_with_attribute_filter(new_project_context: Context, _attr_filter, expected):
     attributes = npt.list_attributes(f"^{FORKED_TREE_EXP_NAME}$", _attr_filter, context=new_project_context)
 
     assert _filter_out_sys(attributes) == expected
+
+
+@pytest.mark.parametrize(
+    "attribute_filter, expected",
+    [
+        (
+            r"sys/(name|id)",
+            {"sys/name", "sys/id"},
+        ),
+        (r"sys/.*id$", {"sys/custom_run_id", "sys/id"}),
+        (AttributeFilter(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
+    ],
+)
+def test_list_attributes_sys_attrs(new_project_context: Context, attribute_filter, expected):
+    """A separate test for sys attributes, as we ignore them in tests above for simplicity."""
+
+    attributes = npt.list_attributes(attributes=attribute_filter, context=new_project_context)
+    assert set(attributes) == expected
+    assert len(attributes) == len(expected)
 
 
 def _filter_out_sys(attributes):
