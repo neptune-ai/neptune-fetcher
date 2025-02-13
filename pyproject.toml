@@ -17,6 +17,7 @@ neptune-api = {git = "https://github.com/neptune-ai/neptune-api", rev="dev/file-
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
 pandas = { version = ">=1.4.0" }
+azure-storage-blob = { version = ">=12,<13" }
 
 
 [tool.poetry]
