@@ -26,12 +26,13 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 
 from neptune_fetcher.alpha.exceptions import warn_unsupported_value_type
 
-ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set")
+ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "file_ref")
 ALL_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
 
 _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
     "string_set": "stringSet",
+    "file_ref": "fileRef",
 }
 
 _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.items()}
@@ -69,6 +70,8 @@ def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
         return datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
     elif attr.type == "stringSet":
         return set(attr.string_set_properties.value)
+    elif attr.type == "fileRef":
+        return attr.file_ref_properties.path  # there is also sizeBytes and mimeType when needed
     elif attr.type == "experimentState":
         return None
     else:

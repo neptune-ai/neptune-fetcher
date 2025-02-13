@@ -24,8 +24,10 @@ __all__ = [
     "list_attributes",
     "fetch_experiments_table",
     "fetch_metrics",
+    "download_files",
 ]
 
+from neptune_fetcher.alpha.internal.composition.download_files import download_files
 from neptune_fetcher.alpha.internal.composition.fetch_metrics import fetch_experiment_metrics as fetch_metrics
 from neptune_fetcher.alpha.internal.composition.fetch_table import fetch_experiments_table
 from neptune_fetcher.alpha.internal.composition.list_attributes import list_experiment_attributes as list_attributes
