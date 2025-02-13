@@ -69,7 +69,11 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
             | AttributeFilter(name_matches_all=".*value.*", type_in=["int"]),
             {"float-value", "int-value"},
         ),
-        (AttributeFilter(name_matches_none=".*value.*"), {'foo1', 'foo0', 'unique3/0', 'unique1/0'}),
+        (
+            AttributeFilter(name_matches_all=".*value.*", type_in=["float", "int"]),
+            {"float-value", "int-value"},
+        ),
+        (AttributeFilter(name_matches_none=".*value.*"), {"foo1", "foo0", "unique3/0", "unique1/0"}),
         (AttributeFilter(name_matches_all=".*value.*", name_matches_none=".*value.*"), set()),
     ],
 )

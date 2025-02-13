@@ -36,8 +36,7 @@ def test_list_all_runs(new_project_context: Context, all_filter):
             Filter.eq(Attribute(name="foo0", type="float_series"), 0.7 * 19),
             [LINEAR_TREE_EXP_NAME, FORKED_TREE_EXP_NAME],
         ),
-        # TODO string set filter
-        # Filter.eq(Attribute(name="sys/tags", type="string_set"), ["linear"]),
+        (Filter.contains_all(Attribute(name="sys/tags", type="string_set"), ["linear"]), [LINEAR_TREE_EXP_NAME]),
     ],
 )
 def test_list_linear_history_runs(new_project_context: Context, linear_history_filter, expected):

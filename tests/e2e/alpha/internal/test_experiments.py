@@ -19,7 +19,6 @@ from neptune_scale import Run
 from neptune_fetcher.alpha import (
     Context,
     fetch_experiments_table,
-    list_experiments,
 )
 from neptune_fetcher.alpha.filters import (
     Attribute,
@@ -332,9 +331,3 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
 
 def _context(project):
     return Context(project=project.project_identifier, api_token=env.NEPTUNE_API_TOKEN.get())
-
-
-
-
-
-

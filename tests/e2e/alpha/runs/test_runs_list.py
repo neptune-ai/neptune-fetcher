@@ -30,8 +30,7 @@ def test_list_all_runs(new_project_context: Context, all_filter):
         Filter.eq("linear-history", True),
         Filter.eq(Attribute(name="linear-history", type="bool"), True),
         Filter.eq(Attribute(name="linear-history"), True),
-        # TODO string set filter
-        # Filter.eq(Attribute(name="sys/tags", type="string_set"), ["linear"]),
+        Filter.eq(Attribute(name="sys/tags", type="string_set"), "linear"),
     ],
 )
 def test_list_linear_history_runs(new_project_context: Context, linear_history_filter):
