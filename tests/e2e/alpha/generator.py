@@ -24,7 +24,6 @@ class GeneratedRun:
     custom_run_id: str
     experiment_name: str
     fork_run_id: Union[str, None]
-    fork_level: Optional[int]
     fork_point: Optional[int]
     configs: dict[AttributeName, Union[float, bool, int, str, datetime, list, set, tuple]]
     metrics: dict[AttributeName, dict[Step, Value]]
@@ -56,7 +55,6 @@ LINEAR_HISTORY_TREE = [
     GeneratedRun(
         custom_run_id="linear_history_root",
         experiment_name=LINEAR_TREE_EXP_NAME,
-        fork_level=None,
         fork_point=None,
         fork_run_id=None,
         tags=["linear_root", "linear"],
@@ -78,7 +76,6 @@ LINEAR_HISTORY_TREE = [
         custom_run_id="linear_history_fork1",
         fork_run_id="linear_history_root",
         experiment_name=LINEAR_TREE_EXP_NAME,
-        fork_level=1,
         fork_point=4,
         tags=["linear_fork1", "linear"],
         configs={
@@ -99,7 +96,6 @@ LINEAR_HISTORY_TREE = [
         custom_run_id="linear_history_fork2",
         fork_run_id="linear_history_fork1",
         experiment_name=LINEAR_TREE_EXP_NAME,
-        fork_level=2,
         fork_point=8,
         tags=["linear_fork2", "linear"],
         configs={
@@ -132,7 +128,6 @@ FORKED_HISTORY_TREE = [
     GeneratedRun(
         custom_run_id="forked_history_root",
         experiment_name=FORKED_TREE_EXP_NAME,
-        fork_level=None,
         fork_point=None,
         fork_run_id=None,
         tags=["forked_history_root", "forked_history"],
@@ -152,7 +147,6 @@ FORKED_HISTORY_TREE = [
     GeneratedRun(
         custom_run_id="forked_history_fork1",
         experiment_name=FORKED_TREE_EXP_NAME,
-        fork_level=1,
         fork_point=4,
         fork_run_id="forked_history_root",  # References root
         tags=["forked_history_fork1", "forked_history"],
@@ -172,7 +166,6 @@ FORKED_HISTORY_TREE = [
     GeneratedRun(
         custom_run_id="forked_history_fork2",
         experiment_name=FORKED_TREE_EXP_NAME,
-        fork_level=1,
         fork_point=8,
         fork_run_id="forked_history_root",  # References root
         tags=["forked_history_fork2", "forked_history"],
@@ -197,6 +190,13 @@ RUNS_BY_ID = {run.custom_run_id: run for run in ALL_STATIC_RUNS}
 ALL_STATIC_EXPERIMENTS = [RUNS_BY_ID["forked_history_fork2"], RUNS_BY_ID["linear_history_fork2"]]
 EXPERIMENTS_BY_NAME = {exp.experiment_name: exp for exp in ALL_STATIC_EXPERIMENTS}
 
+# For linear history tree we want to log runs that linear_history_fork2 will be last logged (experiment head)
+TOPO_SORTED_RUN_IDS = [
+    ["linear_history_root", "forked_history_root"],
+    ["linear_history_fork1", "forked_history_fork1"],
+    ["linear_history_fork2", "forked_history_fork2"],
+]
+
 
 def timestamp_for_step(step: int):
     return FIXED_DATE + timedelta(minutes=step)
@@ -218,14 +218,11 @@ def log_run(generated: GeneratedRun, e2e_alpha_project: str):
 
 
 def log_runs(e2e_alpha_project: str, runs: list[GeneratedRun]):
-    max_level = max(run.fork_level or 0 for run in runs)
     with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
-
-        for level in range(max_level + 1):
-            runs_to_log = [run for run in runs if (run.fork_level or 0) == level]
+        for runs_to_log in TOPO_SORTED_RUN_IDS:
             futures = []
             for run in runs_to_log:
-                futures.append(executor.submit(log_run, run, e2e_alpha_project))
+                futures.append(executor.submit(log_run, RUNS_BY_ID[run], e2e_alpha_project))
 
             for f in futures:
                 f.result()
