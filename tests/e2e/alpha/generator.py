@@ -190,7 +190,7 @@ RUNS_BY_ID = {run.custom_run_id: run for run in ALL_STATIC_RUNS}
 ALL_STATIC_EXPERIMENTS = [RUNS_BY_ID["forked_history_fork2"], RUNS_BY_ID["linear_history_fork2"]]
 EXPERIMENTS_BY_NAME = {exp.experiment_name: exp for exp in ALL_STATIC_EXPERIMENTS}
 
-# For linear history tree we want to log runs that linear_history_fork2 will be last logged (experiment head)
+# For forked history tree we want to log runs that forked_history_fork2 will be last logged (experiment head)
 TOPO_SORTED_RUN_IDS = [
     ["linear_history_root", "forked_history_root"],
     ["linear_history_fork1", "forked_history_fork1"],
