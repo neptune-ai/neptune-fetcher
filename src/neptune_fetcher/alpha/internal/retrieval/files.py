@@ -12,9 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pathlib
 from dataclasses import dataclass
 from typing import Literal
 
+import httpx
 from neptune_api.client import AuthenticatedClient
 from neptune_storage_api.api.storagebridge import signed_url
 from neptune_storage_api.models import (
@@ -52,3 +54,20 @@ def fetch_signed_urls(
     data: CreateSignedUrlsResponse = response.parsed
 
     return [SignedFile(url=file_.url, path=file_.path) for file_ in data.files]
+
+
+def download_file(
+    client: httpx.Client,
+    project_identifier: identifiers.ProjectIdentifier,
+    signed_file: SignedFile,
+    destination: pathlib.Path,
+    chunk_size: int = 1024 * 1024,
+) -> None:
+    response = client.get(signed_file.url)
+    response.raise_for_status()
+
+    path = destination / signed_file.path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as file:
+        for chunk in response.iter_bytes(chunk_size=chunk_size):
+            file.write(chunk)

@@ -20,6 +20,8 @@ from typing import (
     Union,
 )
 
+import httpx
+
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
@@ -57,6 +59,7 @@ def download_files(
     with (
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
+        httpx.Client() as httpx_client,
     ):
         # TODO: type inference. special case for file_ref?
 
@@ -90,11 +93,18 @@ def download_files(
                             )
                         ),
                         executor=executor,
-                        downstream=concurrency.return_value,
+                        downstream=lambda signed_file: concurrency.return_value(
+                            files.download_file(
+                                client=httpx_client,
+                                project_identifier=project,
+                                signed_file=signed_file,
+                                destination=destination_path,
+                            )  # type: ignore
+                        ),
                     ),
                 ),
             ),
         )
 
-        results: Generator[files.SignedFile, None, None] = concurrency.gather_results(output)
-        print(list(results))  # TODO ofc
+        results: Generator[None, None, None] = concurrency.gather_results(output)
+        list(results)
