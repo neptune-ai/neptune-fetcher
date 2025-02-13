@@ -12,15 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 import pathlib
 from typing import (
     Generator,
     Optional,
-    Union,
 )
-
-import httpx
 
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
@@ -29,82 +26,120 @@ from neptune_fetcher.alpha.filters import (
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import concurrency
+from neptune_fetcher.alpha.internal.composition import (
+    concurrency,
+    type_inference,
+)
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
     validate_context,
 )
 from neptune_fetcher.alpha.internal.retrieval import (
+    attribute_definitions,
     files,
     search,
+    util,
 )
+from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
 
 def download_files(
     experiments: Optional[Filter],
     attributes: AttributeFilter,
-    destination: Optional[str],
+    destination: Optional[pathlib.Path],
     context: Optional[Context],
 ) -> None:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
-    destination_path = pathlib.Path(destination or ".").resolve()
-    print(destination_path)
-    # destination_path.mkdir(parents=True, exist_ok=True)
-    # TODO: check write permission before starting download
+    _ensure_write_access(destination)
 
     with (
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-        httpx.Client() as httpx_client,
     ):
-        # TODO: type inference. special case for file_ref?
-
-        output = concurrency.generate_concurrently(
-            items=search.fetch_experiment_sys_ids(
-                client=client,
-                project_identifier=project,
-                filter_=experiments,
-            ),
+        type_inference.infer_attribute_types_in_filter(
+            client=client,
+            project_identifier=project,
+            filter_=experiments,
             executor=executor,
-            downstream=lambda sys_ids_page: _components.fetch_attribute_definition_aggregations_split(
+            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+            container_type=ContainerType.EXPERIMENT,
+        )
+
+        def process_sys_attrs_page(sys_attrs_page: util.Page[search.ExperimentSysAttrs]) -> concurrency.OUT:
+            sys_id_to_label = {sys_attrs.sys_id: sys_attrs.sys_name for sys_attrs in sys_attrs_page.items}
+            return _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                sys_ids=sys_ids_page.items,
+                sys_ids=[sys_attrs.sys_id for sys_attrs in sys_attrs_page.items],
                 downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
                     client=client,
                     project_identifier=project,
                     executor=executor,
                     sys_ids=sys_ids_split,
-                    attribute_definitions=definitions_page.items,
+                    attribute_definitions=_filter_file_refs(definitions_page.items),
                     downstream=lambda values_page: concurrency.generate_concurrently(
                         items=(
-                            f
-                            for f in files.fetch_signed_urls(
-                                client=client,
-                                project_identifier=project,
-                                file_paths=[value.value for value in values_page.items],
+                            (value.run_identifier, file_)
+                            for value, file_ in zip(
+                                values_page.items,
+                                files.fetch_signed_urls(
+                                    client=client,
+                                    project_identifier=project,
+                                    file_paths=[value.value for value in values_page.items],
+                                ),
                             )
                         ),
                         executor=executor,
-                        downstream=lambda signed_file: concurrency.return_value(
+                        downstream=lambda run_file_tuple: concurrency.return_value(
                             files.download_file(
-                                client=httpx_client,
-                                project_identifier=project,
-                                signed_file=signed_file,
-                                destination=destination_path,
-                            )  # type: ignore
+                                signed_url=run_file_tuple[1].url,
+                                target_path=_create_target_path(
+                                    destination=destination,
+                                    experiment_name=sys_id_to_label[run_file_tuple[0].sys_id],
+                                    attribute_path=run_file_tuple[1].path,
+                                ),  # type: ignore
+                            )
                         ),
                     ),
                 ),
+            )
+
+        output = concurrency.generate_concurrently(
+            items=search.fetch_experiment_sys_attrs(
+                client=client,
+                project_identifier=project,
+                filter_=experiments,
             ),
+            executor=executor,
+            downstream=process_sys_attrs_page,
         )
 
         results: Generator[None, None, None] = concurrency.gather_results(output)
         list(results)
+
+
+def _ensure_write_access(destination: pathlib.Path) -> None:
+    if not destination.exists():
+        destination.mkdir(parents=True, exist_ok=True)
+
+    if not os.access(destination, os.W_OK):
+        raise PermissionError(f"No write access to the directory: {destination}")
+
+
+def _filter_file_refs(
+    definitions: list[attribute_definitions.AttributeDefinition],
+) -> list[attribute_definitions.AttributeDefinition]:
+    return [attribute for attribute in definitions if attribute.type == "file_ref"]
+
+
+def _create_target_path(
+    destination: pathlib.Path, experiment_name: identifiers.SysName, attribute_path: str
+) -> pathlib.Path:
+    return destination / experiment_name / attribute_path

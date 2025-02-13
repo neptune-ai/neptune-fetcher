@@ -17,6 +17,7 @@ neptune-api = "^0.15.0"
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
 pandas = { version = ">=1.4.0" }
+azure-storage-blob = { version = ">=12,<13" }
 
 
 [tool.poetry]

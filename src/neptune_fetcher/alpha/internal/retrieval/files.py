@@ -14,9 +14,12 @@
 # limitations under the License.
 import pathlib
 from dataclasses import dataclass
-from typing import Literal
+from typing import (
+    Literal,
+    Optional,
+)
 
-import httpx
+from azure.storage.blob import BlobClient
 from neptune_api.client import AuthenticatedClient
 from neptune_storage_api.api.storagebridge import signed_url
 from neptune_storage_api.models import (
@@ -26,7 +29,10 @@ from neptune_storage_api.models import (
     Permission,
 )
 
-from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal import (
+    env,
+    identifiers,
+)
 from neptune_fetcher.alpha.internal.retrieval import util
 
 
@@ -57,17 +63,14 @@ def fetch_signed_urls(
 
 
 def download_file(
-    client: httpx.Client,
-    project_identifier: identifiers.ProjectIdentifier,
-    signed_file: SignedFile,
-    destination: pathlib.Path,
-    chunk_size: int = 1024 * 1024,
+    signed_url: str,
+    target_path: pathlib.Path,
+    max_concurrency: int = env.NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY.get(),
+    timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
 ) -> None:
-    response = client.get(signed_file.url)
-    response.raise_for_status()
-
-    path = destination / signed_file.path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "wb") as file:
-        for chunk in response.iter_bytes(chunk_size=chunk_size):
-            file.write(chunk)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(target_path, mode="wb") as opened:
+        blob_client = BlobClient.from_blob_url(signed_url)
+        download_stream = blob_client.download_blob(max_concurrency=max_concurrency, timeout=timeout)
+        for chunk in download_stream.chunks():
+            opened.write(chunk)

@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 
+import pathlib as _pathlib
 import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
@@ -297,9 +298,14 @@ def download_files(
     elif attributes is None:
         attributes = _filters.AttributeFilter(type_in=["file_ref"])
 
+    if destination is None:
+        destination_path = _pathlib.Path.cwd()
+    else:
+        destination_path = _pathlib.Path(destination).resolve()
+
     return _download_files.download_files(
         experiments=experiments,
         attributes=attributes,
-        destination=destination,
+        destination=destination_path,
         context=context,
     )
