@@ -30,6 +30,7 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )
+from neptune_retrieval_api.types import UNSET
 
 import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.internal import (
@@ -108,6 +109,7 @@ def _fetch_attribute_definitions_page(
     params: dict[str, Any],
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
+    body.attribute_name_filter.must_match_any = UNSET
 
     response = util.backoff_retry(
         query_attribute_definitions_within_project.sync_detailed,

@@ -72,7 +72,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
-from neptune_retrieval_api.types import Response
+from neptune_retrieval_api.types import Response, UNSET
 
 from neptune_fetcher.fields import (
     FieldDefinition,
@@ -260,6 +260,7 @@ class ApiClient:
                 "projectIdentifiers": [project_id],
             }
         )
+        body.attribute_name_filter.must_match_any = UNSET
 
         response = backoff_retry(
             lambda: query_attribute_definitions_within_project.sync_detailed(client=self._backend, body=body)
