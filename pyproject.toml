@@ -12,11 +12,12 @@ pattern = "default-unprefixed"
 python = "^3.9"
 
 # Base neptune package
-neptune-api = "^0.10.0"
+neptune-api = {git = "https://github.com/neptune-ai/neptune-api", rev="dev/file-atoms-2"}
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
 pandas = { version = ">=1.4.0" }
+azure-storage-blob = { version = ">=12,<13" }
 
 
 [tool.poetry]
