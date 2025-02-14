@@ -163,6 +163,32 @@ def test__default_columns(project):
     assert set(df.columns) == {"sys/custom_run_id", "sys/name", "sys/creation_time"}
 
 
+@pytest.mark.parametrize("use_prefetch", [True, False], ids=["with_prefetch", "without_prefetch"])
+def test__metrics_preview(project, all_run_ids, use_prefetch):
+    run = ReadOnlyRun(project, custom_id=all_run_ids[0])
+    if use_prefetch:
+        run.prefetch_series_values(paths=["metrics/foo1"])
+
+    with_preview_values = run["metrics/foo1"].fetch_values(include_preview=True)
+    values = run["metrics/foo1"].fetch_values(include_preview=False)
+
+    assert len(with_preview_values) == 13
+    assert len(values) == 10
+
+    assert with_preview_values["step"].tolist() == [float(i) for i in range(13)]
+    assert values["step"].tolist() == [float(i) for i in range(10)]
+
+    assert with_preview_values["preview"].tolist() == [False for _ in range(10)] + [True for _ in range(3)]
+    assert with_preview_values["completion_ratio"].tolist() == [1.0] * 10 + [
+        pytest.approx(0.10, 0.01),
+        pytest.approx(0.11, 0.01),
+        pytest.approx(0.12, 0.01),
+    ]
+
+    assert with_preview_values.columns.tolist() == ["step", "value", "timestamp", "preview", "completion_ratio"]
+    assert values.columns.tolist() == ["step", "value", "timestamp"]
+
+
 def _validate_sys_attr(row, index, column, value):
     if column == "sys/name":
         if isinstance(value, str):

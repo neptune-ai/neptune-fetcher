@@ -83,6 +83,8 @@ class FloatPointValue:
     timestamp: datetime
     value: float
     step: float
+    preview: bool
+    completion_ratio: float
 
 
 @dataclass
@@ -102,18 +104,27 @@ class FloatSeries:
         include_inherited: bool = True,
         progress_bar: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+        include_preview: bool = False,
     ) -> "DataFrame":
         import pandas as pd
 
         if self.prefetched_data is None or self.include_inherited != include_inherited or self.step_range != step_range:
             data = backend.fetch_series_values(
-                path=path, container_id=container_id, include_inherited=include_inherited, step_range=step_range
+                path=path,
+                container_id=container_id,
+                include_inherited=include_inherited,
+                step_range=step_range,
+                include_preview=include_preview,
             )
 
         else:
             data = self.prefetched_data
 
-        rows = dict((n, make_row(entry=entry, include_timestamp=include_timestamp)) for (n, entry) in enumerate(data))
+        filtered_data = (entry for entry in data if include_preview or not entry.preview)
+        rows = dict(
+            (n, make_row(entry=entry, include_timestamp=include_timestamp, include_preview=include_preview))
+            for (n, entry) in enumerate(filtered_data)
+        )
         return pd.DataFrame.from_dict(data=rows, orient="index")
 
     def fetch_last(self) -> Optional[T]:
@@ -162,7 +173,9 @@ class Unsupported(Field[None]):
         return None
 
 
-def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str, Union[str, float, datetime]]:
+def make_row(
+    entry: FloatPointValue, include_timestamp: bool = True, include_preview: bool = False
+) -> Dict[str, Union[str, float, datetime]]:
     row: Dict[str, Union[str, float, datetime]] = {
         "step": entry.step,
         "value": entry.value,
@@ -170,5 +183,9 @@ def make_row(entry: FloatPointValue, include_timestamp: bool = True) -> Dict[str
 
     if include_timestamp:
         row["timestamp"] = entry.timestamp
+
+    if include_preview:
+        row["preview"] = entry.preview
+        row["completion_ratio"] = entry.completion_ratio
 
     return row

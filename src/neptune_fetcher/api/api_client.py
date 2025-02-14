@@ -108,6 +108,7 @@ class ApiClient:
         path: str,
         include_inherited: bool,
         container_id: str,
+        include_preview: bool,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[FloatPointValue]:
         step_size: int = 10_000
@@ -120,6 +121,7 @@ class ApiClient:
                 container_id=container_id,
                 include_inherited=include_inherited,
                 after_step=last_step_value,
+                include_preview=include_preview,
             )
 
             batch = self._fetch_series_values(
@@ -138,8 +140,9 @@ class ApiClient:
         paths: List[str],
         include_inherited: bool,
         container_id: str,
+        include_preview: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    ) -> Iterator[(str, List[FloatPointValue])]:
+    ) -> Iterator[Tuple[str, List[FloatPointValue]]]:
         total_step_limit: int = 1_000_000
 
         paths_len = len(paths)
@@ -157,6 +160,7 @@ class ApiClient:
                     container_id=container_id,
                     include_inherited=include_inherited,
                     after_step=after_step,
+                    include_preview=include_preview,
                 )
                 for path, after_step in attribute_steps.items()
             ]
@@ -196,6 +200,7 @@ class ApiClient:
                             type="experiment",
                         ),
                         lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
+                        include_preview=request.include_preview,
                     ),
                     after_step=request.after_step,
                 )
@@ -220,6 +225,8 @@ class ApiClient:
                     timestamp=datetime.fromtimestamp(point.timestamp_millis / 1000.0, tz=timezone.utc),
                     value=point.value,
                     step=point.step,
+                    preview=point.is_preview,
+                    completion_ratio=point.completion_ratio,
                 )
                 for point in series.series.values
             ]
@@ -294,6 +301,7 @@ class _SeriesRequest:
     container_id: str
     include_inherited: bool
     after_step: Optional[float]
+    include_preview: bool = False
 
 
 def backoff_retry(

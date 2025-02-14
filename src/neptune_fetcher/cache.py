@@ -119,6 +119,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
                     include_inherited=include_inherited,
                     container_id=self._container_id,
                     step_range=step_range,
+                    include_preview=True,
                 )
 
                 for path, points in result:
