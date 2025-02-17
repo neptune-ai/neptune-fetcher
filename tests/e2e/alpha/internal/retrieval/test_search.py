@@ -9,10 +9,12 @@ from typing import Generator
 import pytest
 import pytz
 
+from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
+from neptune_fetcher.alpha.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.alpha.internal.retrieval import util
 from neptune_fetcher.alpha.internal.retrieval.search import (
     ExperimentSysAttrs,
@@ -76,6 +78,21 @@ def run_with_attributes(client, project):
     run.close()
 
     return run
+
+
+def test_find_experiments_project_does_not_exist(client, project):
+    workspace, project = project.project_identifier.split("/")
+    project_identifier = ProjectIdentifier(f"{workspace}/does-not-exist")
+
+    with pytest.raises(NeptuneProjectInaccessible):
+        _extract_names(fetch_experiment_sys_attrs(client, project_identifier, filter_=None))
+
+
+def test_find_experiments_workspace_does_not_exist(client, project):
+    project_identifier = ProjectIdentifier("this-workspace/does-not-exist")
+
+    with pytest.raises(NeptuneProjectInaccessible):
+        _extract_names(fetch_experiment_sys_attrs(client, project_identifier, filter_=None))
 
 
 def test_find_experiments_no_filter(client, project, run_with_attributes):
