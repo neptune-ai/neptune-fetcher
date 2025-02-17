@@ -199,13 +199,13 @@ all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2
 
 [[package]]
 name = "neptune-api"
-version = "0.10.0"
+version = "0.11.0"
 description = "A client library for accessing Neptune API"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "neptune_api-0.10.0-py3-none-any.whl", hash = "sha256:275ac87b98aba02dd2c02a9c637d8d570d2627b07b57f073c1b0f76b225e7bb5"},
-    {file = "neptune_api-0.10.0.tar.gz", hash = "sha256:5f1058b7e9f71a116194a32b5d1cdd4b767c5ee32ffcd035a5e0bf59ce7bf6f6"},
+    {file = "neptune_api-0.11.0-py3-none-any.whl", hash = "sha256:fb098d478ff181235029589c01e3e165ae549cbd6e5d0aa77ceb127de0de3391"},
+    {file = "neptune_api-0.11.0.tar.gz", hash = "sha256:161d1c6667275fd1bf063d00fc5a299fe1163dc9d6d53d48f0d70fa5d309823b"},
 ]
 
 [package.dependencies]
@@ -514,4 +514,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6e32dd08d2cd2d2b8dc24531292bea0537db79575de601f3e8dead2b34589655"
+content-hash = "b65e21c1f85625d88cd3d0cd28f4af1a17c5b47b42d7eee302b3f02f4a4d0ebd"
