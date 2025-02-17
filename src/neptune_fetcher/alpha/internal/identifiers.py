@@ -21,7 +21,7 @@ SysName = NewType("SysName", str)  # e.g. "pye2e-fetcher-test-internal-attribute
 CustomRunId = NewType("CustomRunId", str)  # an uuid
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RunIdentifier:
     project_identifier: ProjectIdentifier
     sys_id: SysId

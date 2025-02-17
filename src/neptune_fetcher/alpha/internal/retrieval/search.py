@@ -61,7 +61,7 @@ class ContainerType(Enum):
     EXPERIMENT = "experiment"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ExperimentSysAttrs:
     sys_id: identifiers.SysId
     sys_name: identifiers.SysName
@@ -78,7 +78,7 @@ class ExperimentSysAttrs:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RunSysAttrs:
     sys_id: identifiers.SysId
     sys_custom_run_id: identifiers.CustomRunId

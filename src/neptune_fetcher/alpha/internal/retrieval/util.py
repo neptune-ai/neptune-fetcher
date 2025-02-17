@@ -36,7 +36,7 @@ R = TypeVar("R")
 _Params = dict[str, Any]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Page(Generic[T]):
     items: list[T]
 

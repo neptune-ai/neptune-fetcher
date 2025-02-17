@@ -38,7 +38,7 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AttributeValue:
     attribute_definition: AttributeDefinition
     value: Any

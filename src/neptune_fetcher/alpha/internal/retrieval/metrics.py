@@ -52,14 +52,14 @@ ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex =
 TOTAL_POINT_LIMIT: int = 1_000_000
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AttributePathInRun:
     run_identifier: identifiers.RunIdentifier
     run_label: RunLabel
     attribute_path: AttributePath
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class _SeriesRequest:
     path: str
     run_identifier: identifiers.RunIdentifier

@@ -39,7 +39,7 @@ from neptune_fetcher.alpha.exceptions import (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Context:
     project: Optional[str] = None
     api_token: Optional[str] = None
