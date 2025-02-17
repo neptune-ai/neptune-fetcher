@@ -54,6 +54,17 @@ or with the `NEPTUNE_PROJECT` environment variable.
         )
 
 
+class NeptuneProjectInaccessible(NeptuneError):
+    def __init__(self) -> None:
+        super().__init__(
+            """
+{h1}NeptuneProjectInaccessible: The project is not accessible or does not exist.{end}
+
+Ensure the project name is correct and that you have the necessary access permissions.
+"""
+        )
+
+
 class NeptuneApiTokenNotProvided(NeptuneUserError):
     def __init__(self) -> None:
         super().__init__(
