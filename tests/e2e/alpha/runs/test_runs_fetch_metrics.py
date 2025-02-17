@@ -223,6 +223,10 @@ def create_expected_data(expected_metrics, include_time: str, type_suffix_in_col
     df["value"] = df["value"].astype(float)
 
     if include_time == "absolute":
-        return _transform_with_absolute_timestamp(df, type_suffix_in_column_names, index_column_name="run")
+        return _transform_with_absolute_timestamp(
+            df, type_suffix_in_column_names, include_point_previews=False, index_column_name="run"
+        )
     else:
-        return _transform_without_timestamp(df, type_suffix_in_column_names, index_column_name="run")
+        return _transform_without_timestamp(
+            df, type_suffix_in_column_names, include_point_previews=False, index_column_name="run"
+        )

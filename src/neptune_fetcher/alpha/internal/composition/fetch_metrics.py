@@ -58,6 +58,8 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
     AttributePathInRun,
     ExperimentNameIndex,
     FloatPointValue,
+    IsPreviewIndex,
+    PreviewCompletionIndex,
     StepIndex,
     TimestampIndex,
     ValueIndex,
@@ -86,6 +88,7 @@ def fetch_experiment_metrics(
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
+    include_point_previews: bool = False,
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
@@ -107,6 +110,9 @@ def fetch_experiment_metrics(
     `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
+    `include_point_previews` - False by default. If False the returned results will only contain committed
+        points. If True the results will also include preview points and the returned DataFrame will
+        have additional sub-columns with preview status (is_preview and preview_completion).
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
@@ -124,6 +130,7 @@ def fetch_experiment_metrics(
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
+        include_point_previews=include_point_previews,
         context=context,
         container_type=ContainerType.EXPERIMENT,
     )
@@ -137,6 +144,7 @@ def fetch_run_metrics(
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
+    include_point_previews: bool = False,
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
     """
@@ -158,6 +166,9 @@ def fetch_run_metrics(
     `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
         are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
         If False, an exception is raised if there are multiple types under one attribute path.
+    `include_point_previews` - False by default. If False the returned results will only contain committed
+        points. If True the results will also include preview points and the returned DataFrame will
+        have additional sub-columns with preview status (is_preview and preview_completion).
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
@@ -175,6 +186,7 @@ def fetch_run_metrics(
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
+        include_point_previews=include_point_previews,
         context=context,
         container_type=ContainerType.RUN,
     )
@@ -188,6 +200,7 @@ def _fetch_metrics(
     lineage_to_the_root: bool,
     tail_limit: Optional[int],
     type_suffix_in_column_names: bool,
+    include_point_previews: bool,
     context: Optional[Context],
     container_type: ContainerType,
 ) -> pd.DataFrame:
@@ -219,6 +232,7 @@ def _fetch_metrics(
             project=project_identifier,
             step_range=step_range,
             lineage_to_the_root=lineage_to_the_root,
+            include_point_previews=include_point_previews,
             tail_limit=tail_limit,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -230,14 +244,17 @@ def _fetch_metrics(
         df = _create_flat_dataframe(
             values_generator,
             index_column_name=index_column_name,
+            include_point_previews=include_point_previews,
         )
 
     if include_time == "absolute":
-        df = _transform_with_absolute_timestamp(df, type_suffix_in_column_names, index_column_name)
+        df = _transform_with_absolute_timestamp(
+            df, type_suffix_in_column_names, include_point_previews, index_column_name
+        )
     # elif include_time == "relative":
     #     raise NotImplementedError("Relative timestamp is not implemented")
     else:
-        df = _transform_without_timestamp(df, type_suffix_in_column_names, index_column_name)
+        df = _transform_without_timestamp(df, type_suffix_in_column_names, include_point_previews, index_column_name)
 
     return df
 
@@ -284,6 +301,7 @@ def _fetch_flat_dataframe_metrics(
     fetch_attribute_definitions_executor: Executor,
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
+    include_point_previews: bool,
     tail_limit: Optional[int],
     container_type: ContainerType,
 ) -> Iterable[FloatPointValue]:  # pd.DataFrame:
@@ -294,6 +312,7 @@ def _fetch_flat_dataframe_metrics(
             client,
             exp_paths=exp_paths,
             include_inherited=lineage_to_the_root,
+            include_preview=include_point_previews,
             step_range=step_range,
             tail_limit=tail_limit,
         )
@@ -374,6 +393,7 @@ def _fetch_flat_dataframe_metrics(
 
 def _create_flat_dataframe(
     values: Iterable[FloatPointValue],
+    include_point_previews: bool,
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
     """
@@ -408,7 +428,18 @@ def _create_flat_dataframe(
                 path_category = len(path_mapping)
                 path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
                 last_path_name, last_path_category = point[AttributePathIndex], path_category
-            yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
+            if include_point_previews:
+                yield (
+                    exp_category,
+                    path_category,
+                    point[TimestampIndex],
+                    point[StepIndex],
+                    point[ValueIndex],
+                    point[IsPreviewIndex],
+                    point[PreviewCompletionIndex],
+                )
+            else:
+                yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
 
     types = [
         (index_column_name, "uint32"),
@@ -417,6 +448,9 @@ def _create_flat_dataframe(
         ("step", "float64"),
         ("value", "float64"),
     ]
+    if include_point_previews:
+        types.append(("is_preview", "bool"))
+        types.append(("preview_completion", "float64"))
 
     df = pd.DataFrame(
         np.fromiter(generate_categorized_rows(values), dtype=types),
@@ -431,14 +465,20 @@ def _create_flat_dataframe(
 
 
 def _transform_with_absolute_timestamp(
-    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+    df: pd.DataFrame,
+    type_suffix_in_column_names: bool,
+    include_point_previews: bool,
+    index_column_name: str = "experiment",
 ) -> pd.DataFrame:
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
     df = df.rename(columns={"timestamp": "absolute_time"})
+    values = ["value", "absolute_time"]
+    if include_point_previews:
+        values.extend(["is_preview", "preview_completion"])
     df = df.pivot(
         index=[index_column_name, "step"],
         columns="path",
-        values=["value", "absolute_time"],
+        values=values,
     )
 
     df = df.swaplevel(axis=1)
@@ -455,11 +495,17 @@ def _transform_with_absolute_timestamp(
 
 
 def _transform_without_timestamp(
-    df: pd.DataFrame, type_suffix_in_column_names: bool, index_column_name: str = "experiment"
+    df: pd.DataFrame,
+    type_suffix_in_column_names: bool,
+    include_point_previews: bool,
+    index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
+    values = ["value", "is_preview", "preview_completion"] if include_point_previews else "value"
+    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
     if type_suffix_in_column_names:
         df = df.rename(columns=lambda x: x + ":float_series", copy=False)
+    if include_point_previews:
+        df = df.swaplevel(axis=1)
 
     df = df.reset_index()
     df[index_column_name] = df[index_column_name].astype(str)
