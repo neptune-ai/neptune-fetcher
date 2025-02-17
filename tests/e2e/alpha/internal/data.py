@@ -25,6 +25,7 @@ class ExperimentData:
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
     string_series: dict[str, list[str]]
+    files: dict[str, bytes]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     @property
@@ -74,6 +75,8 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
+                files = {f"{PATH}/files/file-value.txt/v.txt": b"Hello world!"}
+
                 self.experiments.append(
                     ExperimentData(
                         name=experiment_name,
@@ -82,6 +85,7 @@ class TestData:
                         float_series=float_series,
                         string_series=string_series,
                         unique_series={},
+                        files=files,
                     )
                 )
 
