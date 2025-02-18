@@ -178,12 +178,16 @@ def create_expected_data(
     if include_time == "absolute":
         absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
         return (
-            _transform_with_absolute_timestamp(df, type_suffix_in_column_names),
+            _transform_with_absolute_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
             list(chain.from_iterable(absolute_columns)),
             filtered_exps,
         )
     else:
-        return _transform_without_timestamp(df, type_suffix_in_column_names), sorted_columns, filtered_exps
+        return (
+            _transform_without_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
+            sorted_columns,
+            filtered_exps,
+        )
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])

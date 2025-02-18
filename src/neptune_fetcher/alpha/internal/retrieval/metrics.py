@@ -46,8 +46,16 @@ AttributePath = str
 RunLabel = str
 
 # Tuples are used here to enhance performance
-FloatPointValue = Tuple[RunLabel, AttributePath, float, float, float]
-ExperimentNameIndex, AttributePathIndex, TimestampIndex, StepIndex, ValueIndex = range(5)
+FloatPointValue = Tuple[RunLabel, AttributePath, float, float, float, bool, float]
+(
+    ExperimentNameIndex,
+    AttributePathIndex,
+    TimestampIndex,
+    StepIndex,
+    ValueIndex,
+    IsPreviewIndex,
+    PreviewCompletionIndex,
+) = range(7)
 
 TOTAL_POINT_LIMIT: int = 1_000_000
 
@@ -64,6 +72,7 @@ class _SeriesRequest:
     path: str
     run_identifier: identifiers.RunIdentifier
     include_inherited: bool
+    include_preview: bool
     after_step: Optional[float]
 
 
@@ -71,6 +80,7 @@ def fetch_multiple_series_values(
     client: AuthenticatedClient,
     exp_paths: list[AttributePathInRun],
     include_inherited: bool,
+    include_preview: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
 ) -> Iterable[FloatPointValue]:
@@ -87,6 +97,7 @@ def fetch_multiple_series_values(
                 path=exp_path.attribute_path,
                 run_identifier=exp_path.run_identifier,
                 include_inherited=include_inherited,
+                include_preview=include_preview,
                 after_step=after_step,
             )
             for exp_path, after_step in attribute_steps.items()
@@ -142,6 +153,7 @@ def _fetch_series_values(
                         type="experiment",
                     ),
                     lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
+                    include_preview=request.include_preview,
                 ),
                 after_step=request.after_step,
             )
@@ -176,6 +188,8 @@ def _fetch_series_values(
                 point.timestamp_millis,
                 point.step,
                 point.value,
+                point.is_preview,
+                point.completion_ratio,
             )
             for point in series.series.values
         ]
