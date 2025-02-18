@@ -40,7 +40,7 @@ def test_create_flat_dataframe(include_preview):
     float_point_values = list(generate_float_point_values(EXPERIMENTS, PATHS, STEPS, include_preview))
 
     """Test the creation of a flat DataFrame from float point values."""
-    df = _create_flat_dataframe(float_point_values, include_point_previews=include_preview)
+    df, path_mapping = _create_flat_dataframe(float_point_values, include_point_previews=include_preview)
 
     # Check if the DataFrame is not empty
     assert not df.empty, "DataFrame should not be empty"
@@ -55,9 +55,15 @@ def test_create_flat_dataframe(include_preview):
         expected_columns.extend(["is_preview", "preview_completion"])
     assert list(df.columns) == expected_columns, f"DataFrame should have columns {expected_columns}"
 
-    # Check if the 'experiment' and 'path' columns are categorical
+    # Check if the 'experiment' column is categorical
     assert pd.api.types.is_categorical_dtype(df["experiment"]), "'experiment' column should be categorical"
-    assert pd.api.types.is_categorical_dtype(df["path"]), "'path' column should be categorical"
+
+    # The number of unique paths must match the returned path mapping
+    assert len(path_mapping) == PATHS, "The number of unique paths must match the returned column list"
+    assert df["path"].nunique() == PATHS, "The number of unique paths must match the returned column list"
+
+    all_paths = set(fp[1] for fp in float_point_values)
+    assert all_paths == set(path_mapping.keys()), "All paths in input data must be present in the path mapping"
 
     # Convert DataFrame to list of tuples
     tuples_list = list(df.to_records(index=False))

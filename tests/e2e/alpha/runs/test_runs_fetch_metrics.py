@@ -211,22 +211,31 @@ def test_fetch_run_metrics(
 
 def create_expected_data(expected_metrics, include_time: str, type_suffix_in_column_names):
     rows = []
+    path_mapping = {}
     for (run, metric_name), values in expected_metrics.items():
+        path_index = path_mapping.setdefault(metric_name, len(path_mapping))
         for step, value in values:
-            rows.append((run, metric_name, int(timestamp_for_step(step).timestamp() * 1000), step, value))
+            rows.append((run, path_index, int(timestamp_for_step(step).timestamp() * 1000), step, value))
 
     df = pd.DataFrame(rows, columns=["run", "path", "timestamp", "step", "value"])
     df["run"] = df["run"].astype(str)
-    df["path"] = df["path"].astype(str)
     df["timestamp"] = df["timestamp"].astype(int)
     df["step"] = df["step"].astype(float)
     df["value"] = df["value"].astype(float)
 
     if include_time == "absolute":
         return _transform_with_absolute_timestamp(
-            df, type_suffix_in_column_names, include_point_previews=False, index_column_name="run"
+            df,
+            type_suffix_in_column_names,
+            include_point_previews=False,
+            path_mapping=path_mapping,
+            index_column_name="run",
         )
     else:
         return _transform_without_timestamp(
-            df, type_suffix_in_column_names, include_point_previews=False, index_column_name="run"
+            df,
+            type_suffix_in_column_names,
+            include_point_previews=False,
+            path_mapping=path_mapping,
+            index_column_name="run",
         )

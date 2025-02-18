@@ -142,6 +142,7 @@ def create_expected_data(
     columns = set()
     filtered_exps = set()
 
+    path_mapping = {}
     step_filter = (
         step_range[0] if step_range[0] is not None else -np.inf,
         step_range[1] if step_range[1] is not None else np.inf,
@@ -153,12 +154,13 @@ def create_expected_data(
             filtered = []
             for step in steps:
                 if step >= step_filter[0] and step <= step_filter[1]:
+                    path_index = path_mapping.setdefault(path, len(path_mapping))
                     columns.add(f"{path}:float_series" if type_suffix_in_column_names else path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
                         (
                             experiment.name,
-                            path,
+                            path_index,
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                             step,
                             series[int(step)],
@@ -169,7 +171,6 @@ def create_expected_data(
 
     df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
     df["experiment"] = df["experiment"].astype(str)
-    df["path"] = df["path"].astype(str)
     df["timestamp"] = df["timestamp"].astype(int)
     df["step"] = df["step"].astype(float)
     df["value"] = df["value"].astype(float)
@@ -178,13 +179,17 @@ def create_expected_data(
     if include_time == "absolute":
         absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
         return (
-            _transform_with_absolute_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
+            _transform_with_absolute_timestamp(
+                df, type_suffix_in_column_names, include_point_previews=False, path_mapping=path_mapping
+            ),
             list(chain.from_iterable(absolute_columns)),
             filtered_exps,
         )
     else:
         return (
-            _transform_without_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
+            _transform_without_timestamp(
+                df, type_suffix_in_column_names, include_point_previews=False, path_mapping=path_mapping
+            ),
             sorted_columns,
             filtered_exps,
         )
