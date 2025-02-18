@@ -120,8 +120,6 @@ def test_transform_without_timestamp(type_suffix_in_column_names: bool, include_
 
     expected_df = pd.DataFrame(expected).set_index(["experiment", "step"])
 
-    print(f"comp: \n{transformed_df} \n {expected_df}\n\n\n\n")
-
     pd.testing.assert_frame_equal(transformed_df, expected_df, check_dtype=False)
 
 
