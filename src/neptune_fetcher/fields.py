@@ -104,7 +104,7 @@ class FloatSeries:
         include_inherited: bool = True,
         progress_bar: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-        include_preview: bool = False,
+        include_point_previews: bool = False,
     ) -> "DataFrame":
         import pandas as pd
 
@@ -114,15 +114,23 @@ class FloatSeries:
                 container_id=container_id,
                 include_inherited=include_inherited,
                 step_range=step_range,
-                include_preview=include_preview,
+                include_point_previews=include_point_previews,
             )
 
         else:
             data = self.prefetched_data
 
-        filtered_data = (entry for entry in data if include_preview or not entry.preview)
+        # The motivation for this is to filter-out preview points downloaded during prefetching
+        # in case the user does not request them.
+        filtered_data = (entry for entry in data if include_point_previews or not entry.preview)
+
         rows = dict(
-            (n, make_row(entry=entry, include_timestamp=include_timestamp, include_preview=include_preview))
+            (
+                n,
+                make_row(
+                    entry=entry, include_timestamp=include_timestamp, include_point_previews=include_point_previews
+                ),
+            )
             for (n, entry) in enumerate(filtered_data)
         )
         return pd.DataFrame.from_dict(data=rows, orient="index")
@@ -174,7 +182,7 @@ class Unsupported(Field[None]):
 
 
 def make_row(
-    entry: FloatPointValue, include_timestamp: bool = True, include_preview: bool = False
+    entry: FloatPointValue, include_timestamp: bool = True, include_point_previews: bool = False
 ) -> Dict[str, Union[str, float, datetime]]:
     row: Dict[str, Union[str, float, datetime]] = {
         "step": entry.step,
@@ -184,7 +192,7 @@ def make_row(
     if include_timestamp:
         row["timestamp"] = entry.timestamp
 
-    if include_preview:
+    if include_point_previews:
         row["preview"] = entry.preview
         row["completion_ratio"] = entry.completion_ratio
 

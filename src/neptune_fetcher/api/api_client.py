@@ -108,7 +108,7 @@ class ApiClient:
         path: str,
         include_inherited: bool,
         container_id: str,
-        include_preview: bool,
+        include_point_previews: bool,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[FloatPointValue]:
         step_size: int = 10_000
@@ -121,7 +121,7 @@ class ApiClient:
                 container_id=container_id,
                 include_inherited=include_inherited,
                 after_step=last_step_value,
-                include_preview=include_preview,
+                include_point_previews=include_point_previews,
             )
 
             batch = self._fetch_series_values(
@@ -140,7 +140,7 @@ class ApiClient:
         paths: List[str],
         include_inherited: bool,
         container_id: str,
-        include_preview: bool = True,
+        include_point_previews: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> Iterator[Tuple[str, List[FloatPointValue]]]:
         total_step_limit: int = 1_000_000
@@ -160,7 +160,7 @@ class ApiClient:
                     container_id=container_id,
                     include_inherited=include_inherited,
                     after_step=after_step,
-                    include_preview=include_preview,
+                    include_point_previews=include_point_previews,
                 )
                 for path, after_step in attribute_steps.items()
             ]
@@ -200,7 +200,7 @@ class ApiClient:
                             type="experiment",
                         ),
                         lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
-                        include_preview=request.include_preview,
+                        include_preview=request.include_point_previews,
                     ),
                     after_step=request.after_step,
                 )
@@ -301,7 +301,7 @@ class _SeriesRequest:
     container_id: str
     include_inherited: bool
     after_step: Optional[float]
-    include_preview: bool = False
+    include_point_previews: bool = False
 
 
 def backoff_retry(

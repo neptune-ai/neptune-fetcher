@@ -169,8 +169,8 @@ def test__metrics_preview(project, all_run_ids, use_prefetch):
     if use_prefetch:
         run.prefetch_series_values(paths=["metrics/foo1"])
 
-    with_preview_values = run["metrics/foo1"].fetch_values(include_preview=True)
-    values = run["metrics/foo1"].fetch_values(include_preview=False)
+    with_preview_values = run["metrics/foo1"].fetch_values(include_point_previews=True)
+    values = run["metrics/foo1"].fetch_values(include_point_previews=False)
 
     assert len(with_preview_values) == 13
     assert len(values) == 10
