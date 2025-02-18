@@ -58,9 +58,11 @@ class NeptuneProjectInaccessible(NeptuneError):
     def __init__(self) -> None:
         super().__init__(
             """
-{h1}NeptuneProjectInaccessible: The project is not accessible or does not exist.{end}
+{h1}NeptuneProjectInaccessible: You don't have access to the project or it doesn't exist.{end}
 
-Ensure the project name is correct and that you have the necessary access permissions.
+Ensure that:
+- the workspace and project names are correct
+- the account you're using has at least Viewer access to the project
 """
         )
 
