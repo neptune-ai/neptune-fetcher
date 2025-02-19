@@ -8,8 +8,10 @@ from datetime import (
 
 import pytest
 
+from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.alpha.filters import AttributeFilter
 from neptune_fetcher.alpha.internal.identifiers import (
+    ProjectIdentifier,
     RunIdentifier,
     SysId,
 )
@@ -105,6 +107,37 @@ def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier
     sys_id = experiment_attrs[0].sys_id
 
     return RunIdentifier(project_identifier, sys_id)
+
+
+def test_fetch_attribute_definitions_project_does_not_exist(client, project):
+    workspace, project = project.project_identifier.split("/")
+    project_identifier = ProjectIdentifier(f"{workspace}/does-not-exist")
+
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    with pytest.raises(NeptuneProjectInaccessible):
+        _extract_pages(
+            fetch_attribute_definitions_single_filter(
+                client,
+                [project_identifier],
+                attribute_filter=attribute_filter,
+                run_identifiers=None,
+            )
+        )
+
+
+def test_fetch_attribute_definitions_workspace_does_not_exist(client, project):
+    project_identifier = ProjectIdentifier("this-workspace/does-not-exist")
+
+    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    with pytest.raises(NeptuneProjectInaccessible):
+        _extract_pages(
+            fetch_attribute_definitions_single_filter(
+                client,
+                [project_identifier],
+                attribute_filter=attribute_filter,
+                run_identifiers=None,
+            )
+        )
 
 
 def test_fetch_attribute_definitions_single_string(client, project, experiment_identifier):
