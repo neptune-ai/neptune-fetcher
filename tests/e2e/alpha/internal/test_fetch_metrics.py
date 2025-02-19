@@ -32,10 +32,7 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition.fetch_metrics import (
-    _transform_with_absolute_timestamp,
-    _transform_without_timestamp,
-)
+from neptune_fetcher.alpha.internal.composition.fetch_metrics import _create_dataframe
 from neptune_fetcher.alpha.internal.context import get_context
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
@@ -142,7 +139,6 @@ def create_expected_data(
     columns = set()
     filtered_exps = set()
 
-    path_mapping = {}
     step_filter = (
         step_range[0] if step_range[0] is not None else -np.inf,
         step_range[1] if step_range[1] is not None else np.inf,
@@ -154,45 +150,35 @@ def create_expected_data(
             filtered = []
             for step in steps:
                 if step >= step_filter[0] and step <= step_filter[1]:
-                    path_index = path_mapping.setdefault(path, len(path_mapping))
                     columns.add(f"{path}:float_series" if type_suffix_in_column_names else path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
                         (
                             experiment.name,
-                            path_index,
+                            path,
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                             step,
                             series[int(step)],
+                            False,
+                            1.0,
                         )
                     )
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
             rows.extend(limited)
 
-    df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
-    df["experiment"] = df["experiment"].astype(str)
-    df["timestamp"] = df["timestamp"].astype(int)
-    df["step"] = df["step"].astype(float)
-    df["value"] = df["value"].astype(float)
+    df = _create_dataframe(
+        rows,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        include_point_previews=False,
+        timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+    )
 
     sorted_columns = list(sorted(columns))
     if include_time == "absolute":
         absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
-        return (
-            _transform_with_absolute_timestamp(
-                df, type_suffix_in_column_names, include_point_previews=False, path_mapping=path_mapping
-            ),
-            list(chain.from_iterable(absolute_columns)),
-            filtered_exps,
-        )
+        return df, list(chain.from_iterable(absolute_columns)), filtered_exps
     else:
-        return (
-            _transform_without_timestamp(
-                df, type_suffix_in_column_names, include_point_previews=False, path_mapping=path_mapping
-            ),
-            sorted_columns,
-            filtered_exps,
-        )
+        return df, sorted_columns, filtered_exps
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
