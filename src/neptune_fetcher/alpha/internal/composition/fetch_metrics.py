@@ -241,21 +241,12 @@ def _fetch_metrics(
 
         index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
 
-        df, path_mapping = _create_flat_dataframe(
+        df = _create_dataframe(
             values_generator,
             index_column_name=index_column_name,
+            timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             include_point_previews=include_point_previews,
-        )
-
-    if include_time == "absolute":
-        df = _transform_with_absolute_timestamp(
-            df, type_suffix_in_column_names, include_point_previews, path_mapping, index_column_name
-        )
-    # elif include_time == "relative":
-    #     raise NotImplementedError("Relative timestamp is not implemented")
-    else:
-        df = _transform_without_timestamp(
-            df, type_suffix_in_column_names, include_point_previews, path_mapping, index_column_name
+            type_suffix_in_column_names=type_suffix_in_column_names,
         )
 
     return df
@@ -393,33 +384,42 @@ def _fetch_flat_dataframe_metrics(
     return _start()
 
 
-def _create_flat_dataframe(
-    values: Iterable[FloatPointValue],
+def _create_dataframe(
+    data_points: Iterable[FloatPointValue],
+    *,
+    type_suffix_in_column_names: bool,
     include_point_previews: bool,
     index_column_name: str = "experiment",
-) -> Tuple[pd.DataFrame, dict[str, int]]:
+    timestamp_column_name: Optional[str] = None,
+) -> pd.DataFrame:
     """
-    Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
+    Creates a memory-efficient DataFrame directly from FloatPointValue tuples
     by converting strings to categorical codes before DataFrame creation.
 
-    Returns an intermediate DataFrame with column names, that represent paths, replaced with categorical codes. The
-    mapping of names to codes is returned as the second value. Example:
+    Note that `data_points` must be sorted by (experiment name, path) to ensure correct
+    categorical codes.
 
-    Assuming there are 2 user columns called "foo" and "bar", 2 steps each. The returned DF will have the shape:
+    There is an intermediate processing step where we represent paths as categorical codes.
+    Example:
 
-            experiment  path      timestamp   step  value
-        0     exp-name     0  1739879639988    1.0    0.0
-        1     exp-name     0  1739879639989    2.0    0.5
-        1     exp-name     1  1739879639989    1.0    1.5
-        1     exp-name     1  1739879639989    2.0    2.5
+    Assuming there are 2 user columns called "foo" and "bar", 2 steps each. The intermediate
+    DF will have this shape:
 
-    And the dict of codes used in the "path" column be: {"foo": 0, "bar": 1}
+            experiment  path   step  value
+        0     exp-name     0    1.0    0.0
+        1     exp-name     0    2.0    0.5
+        1     exp-name     1    1.0    1.5
+        1     exp-name     1    2.0    2.5
 
-    The column names must be replaced as a during further DataFrame processing, but only after rebuilding its index.
-    That approach avoids any conflicts between our column names and users' column names. See _restore_column_names()
+    `path_mapping` would contain {"foo": 0, "bar": 1}. The column names will be restored before returning the
+    DF, which then can be sorted based on its columns.
 
-    Eg logging a metric called "step" would conflict with our "step" column during df.reset_index(), and we would crash.
+    The reason for the intermediate representation is that logging a metric called eg. "step" would conflict
+    with our "step" column during df.reset_index(), and we would crash.
     Operating on integer codes is safe, as they can never appear as valid metric names.
+
+    If `timestamp_column_name` is provided, timestamp will be included in the DataFrame under the
+    specified column.
     """
 
     path_mapping: dict[str, int] = {}
@@ -465,28 +465,70 @@ def _create_flat_dataframe(
     types = [
         (index_column_name, "uint32"),
         ("path", "uint32"),
-        ("timestamp", "uint64"),
+        (timestamp_column_name or "timestamp", "uint64"),
         ("step", "float64"),
         ("value", "float64"),
     ]
+
     if include_point_previews:
         types.append(("is_preview", "bool"))
         types.append(("preview_completion", "float64"))
 
     df = pd.DataFrame(
-        np.fromiter(generate_categorized_rows(values), dtype=types),
+        np.fromiter(generate_categorized_rows(data_points), dtype=types),
     )
+
     experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
     df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
 
-    return df, path_mapping
+    df = _pivot_and_reindex_df(df, include_point_previews, index_column_name, timestamp_column_name)
+    df = _restore_path_column_names(df, path_mapping, type_suffix_in_column_names)
+
+    # MultiIndex DFs need to have column index order swapped: value/metric_name -> metric_name/value.
+    # We also sort columns, but only after the original names have been restored.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns.names = (None, None)
+        df = df.swaplevel(axis=1)
+        df = df.sort_index(axis=1, level=0)
+    else:
+        df.columns.name = None
+        df = df.sort_index(axis=1)
+
+    return df
+
+
+def _pivot_and_reindex_df(
+    df: pd.DataFrame,
+    include_point_previews: bool,
+    index_column_name: str = "experiment",
+    timestamp_column_name: Optional[str] = None,
+) -> pd.DataFrame:
+    values: Union[str, list[str]] = "value"
+
+    # Create column multi-index if necessary, otherwise we stick to a flat "value" column
+    if include_point_previews or timestamp_column_name:
+        values = ["value"]
+        if timestamp_column_name:
+            df[timestamp_column_name] = pd.to_datetime(df[timestamp_column_name], unit="ms", origin="unix", utc=True)
+            values.append(timestamp_column_name)
+        if include_point_previews:
+            values.append("is_preview")
+            values.append("preview_completion")
+
+    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df = df.set_index([index_column_name, "step"])
+
+    return df
 
 
 def _restore_path_column_names(
     df: pd.DataFrame, path_mapping: dict[str, int], type_suffix_in_column_names: bool
 ) -> pd.DataFrame:
     """
-    Accepts an DF in an intermediate format, as returned by _create_flat_dataframe, and the mapping of column names.
+    Accepts an DF in an intermediate format in _create_dataframe, and the mapping of column names.
     Restores colum names in the DF based on the mapping.
     """
 
@@ -496,56 +538,3 @@ def _restore_path_column_names(
     else:
         reverse_mapping = {index: path for path, index in path_mapping.items()}
     return df.rename(columns=reverse_mapping)
-
-
-def _transform_with_absolute_timestamp(
-    df: pd.DataFrame,
-    type_suffix_in_column_names: bool,
-    include_point_previews: bool,
-    path_mapping: dict[str, int],
-    index_column_name: str = "experiment",
-) -> pd.DataFrame:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
-    df = df.rename(columns={"timestamp": "absolute_time"})
-    values = ["value", "absolute_time"]
-    if include_point_previews:
-        values.extend(["is_preview", "preview_completion"])
-    df = df.pivot(
-        index=[index_column_name, "step"],
-        columns="path",
-        values=values,
-    )
-
-    df = df.swaplevel(axis=1)
-    df = df.reset_index()
-    df = _restore_path_column_names(df, path_mapping, type_suffix_in_column_names)
-
-    df[index_column_name] = df[index_column_name].astype(str)
-    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
-    df.columns.names = (None, None)
-    df = df.set_index([index_column_name, "step"])
-    df = df.sort_index(axis=1, level=0)
-    return df
-
-
-def _transform_without_timestamp(
-    df: pd.DataFrame,
-    type_suffix_in_column_names: bool,
-    include_point_previews: bool,
-    path_mapping: dict[str, int],
-    index_column_name: str = "experiment",
-) -> pd.DataFrame:
-    values = ["value", "is_preview", "preview_completion"] if include_point_previews else "value"
-    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
-    if include_point_previews:
-        df = df.swaplevel(axis=1)
-
-    df = df.reset_index()
-    df = _restore_path_column_names(df, path_mapping, type_suffix_in_column_names)
-
-    df[index_column_name] = df[index_column_name].astype(str)
-    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
-    df.columns.name = None
-    df = df.set_index([index_column_name, "step"])
-    df = df.sort_index(axis=1)
-    return df
