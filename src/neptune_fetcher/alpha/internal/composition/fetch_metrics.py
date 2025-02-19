@@ -240,11 +240,9 @@ def _fetch_metrics(
             container_type=container_type,
         )
 
-        index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
-
         df = _create_dataframe(
             values_generator,
-            index_column_name=index_column_name,
+            index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             include_point_previews=include_point_previews,
             type_suffix_in_column_names=type_suffix_in_column_names,
@@ -390,7 +388,7 @@ def _create_dataframe(
     *,
     type_suffix_in_column_names: bool,
     include_point_previews: bool,
-    index_column_name: str = "experiment",
+    index_column_name: str,
     timestamp_column_name: Optional[str] = None,
 ) -> pd.DataFrame:
     """

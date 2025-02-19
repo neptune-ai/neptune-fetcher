@@ -171,6 +171,7 @@ def create_expected_data(
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+        index_column_name="experiment",
     )
 
     sorted_columns = list(sorted(columns))
