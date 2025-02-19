@@ -17,6 +17,7 @@ import concurrent
 import itertools as it
 from concurrent.futures import Executor
 from typing import (
+    Any,
     Generator,
     Iterable,
     Literal,
@@ -425,7 +426,7 @@ def _create_dataframe(
     path_mapping: dict[str, int] = {}
     experiment_mapping: dict[str, int] = {}
 
-    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> pd.DataFrame:
+    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> Generator[Tuple]:
         last_experiment_name, last_experiment_category = None, None
         last_path_name, last_path_category = None, None
 
@@ -449,26 +450,35 @@ def _create_dataframe(
                 path_category = len(path_mapping)
                 path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
                 last_path_name, last_path_category = point[AttributePathIndex], path_category
-            if include_point_previews:
-                yield (
-                    exp_category,
-                    path_category,
-                    point[TimestampIndex],
-                    point[StepIndex],
-                    point[ValueIndex],
-                    point[IsPreviewIndex],
-                    point[PreviewCompletionIndex],
-                )
+
+            # Only include columns that we know we need. Note that the order of must match the
+            # the `types` list below.
+            head = (
+                exp_category,
+                path_category,
+                point[StepIndex],
+                point[ValueIndex],
+            )
+            if include_point_previews and timestamp_column_name:
+                tail: Tuple[Any, ...] = (point[TimestampIndex], point[IsPreviewIndex], point[PreviewCompletionIndex])
+            elif timestamp_column_name:
+                tail = (point[TimestampIndex],)
+            elif include_point_previews:
+                tail = (point[IsPreviewIndex], point[PreviewCompletionIndex])
             else:
-                yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
+                tail = ()
+
+            yield head + tail
 
     types = [
         (index_column_name, "uint32"),
         ("path", "uint32"),
-        (timestamp_column_name or "timestamp", "uint64"),
         ("step", "float64"),
         ("value", "float64"),
     ]
+
+    if timestamp_column_name:
+        types.append((timestamp_column_name, "uint64"))
 
     if include_point_previews:
         types.append(("is_preview", "bool"))
