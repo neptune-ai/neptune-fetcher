@@ -7,6 +7,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2025-02-19
+
+### Changes
+- Add support for point previews when fetching metric values ([#226](https://github.com/neptune-ai/neptune-fetcher/pull/226)). **Note:** This change introduces the `include_point_previews` parameter to the `fetch_experiment_metrics()` and `fetch_run_metrics()` functions. The new parameter is in the middle of the list. If you've used the arguments of these functions positionally, ensure that the order is valid or use keywords.
+
+## [0.13.0] - 2025-02-11
+
+### Changes
+- Publish alpha version of new Fetcher API ([#202](https://github.com/neptune-ai/neptune-fetcher/pull/202), [#217](https://github.com/neptune-ai/neptune-fetcher/pull/217))
+- Neptune doesn't crash on unknown types returned by the backend ([#155](https://github.com/neptune-ai/neptune-fetcher/pull/155))
+
+## [0.12.0] - 2025-01-21
+
+### Changes
+- Use batching in `fetch_read_only_experiments()` ([#151](https://github.com/neptune-ai/neptune-fetcher/pull/151))
+
+## [0.11.0] - 2025-01-09
+
+### Changes
+- Expand the set of allowed characters in project names ([#147](https://github.com/neptune-ai/neptune-fetcher/pull/147))
+
 ## [0.9.5] - 2024-11-27
 
 ### Changes

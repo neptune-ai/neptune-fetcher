@@ -129,6 +129,24 @@ npt.fetch_experiment_metrics(
 9  exp_hgctc     4          0.007815      0.746344              0.102646          0.055511
 ```
 
+#### Fetch metric previews
+
+To fetch point previews, set the `include_point_previews` argument to `True`:
+
+```python
+npt.fetch_experiment_metrics(
+    experiments=r"exp.*",
+    attributes=r"metrics/.*",
+    include_point_previews=True,
+)
+```
+
+When previews are included, the returned data frame includes additional sub-columns with preview information (`is_preview` and `preview_completion`).
+
+If `False`, only regular, committed points are fetched.
+
+> For details, see [Metric previews][docs-metric-previews] in the documentation.
+
 ### Working with multiple projects
 
 To work with multiple projects simultaneously, you can use contexts. This way, you can set the scope for individual fetching calls or globally for your session.
@@ -1030,6 +1048,7 @@ __Parameters:__
 | `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                             |
 | `progress_bar`      | `bool`                | `True`       | Set to False to disable the download progress bar.                                                                                                                        |
 | `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (inclusive). If None, it\'s open on the left. <br> - right: right boundary of the range (inclusive). If None, it\'s open on the right. |
+| `include_point_previews` | `bool` | `False` | To include [metric previews][docs-metric-previews], set to `True`. When previews are included, the returned data frame includes additional sub-columns with preview information (`is_preview` and `preview_completion`). If `False`, only regular, committed points are fetched. |
 
 __Returns:__ `pandas.DataFrame`
 
@@ -1108,3 +1127,6 @@ groups = run["sys/group_tags"].fetch()
 
 This project is licensed under the Apache License Version 2.0. For more details,
 see [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+
+
+[docs-metric-previews]: https://docs-beta.neptune.ai/metric_previews
