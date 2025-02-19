@@ -3,7 +3,7 @@ import pytest
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.internal.composition.fetch_metrics import _create_dataframe
+from neptune_fetcher.alpha.internal.output_format import create_dataframe
 from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,
@@ -212,7 +212,7 @@ def create_expected_data(expected_metrics, include_time: str, type_suffix_in_col
         for step, value in values:
             rows.append((run, metric_name, int(timestamp_for_step(step).timestamp() * 1000), step, value, False, 1.0))
 
-    return _create_dataframe(
+    return create_dataframe(
         rows,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,

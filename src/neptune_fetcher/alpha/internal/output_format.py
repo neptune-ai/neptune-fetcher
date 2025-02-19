@@ -12,17 +12,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import (
     Any,
+    Generator,
+    Iterable,
+    Optional,
+    Tuple,
     Union,
 )
 
+import numpy as np
 import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
+from neptune_fetcher.alpha.internal.retrieval.metrics import (
+    AttributePathIndex,
+    ExperimentNameIndex,
+    FloatPointValue,
+    IsPreviewIndex,
+    PreviewCompletionIndex,
+    StepIndex,
+    TimestampIndex,
+    ValueIndex,
+)
+
+__all__ = (
+    "convert_table_to_dataframe",
+    "create_dataframe",
+)
 
 
 def convert_table_to_dataframe(
@@ -108,3 +129,167 @@ def convert_table_to_dataframe(
     dataframe = dataframe[sorted_columns]
 
     return dataframe
+
+
+def create_dataframe(
+    data_points: Iterable[FloatPointValue],
+    *,
+    type_suffix_in_column_names: bool,
+    include_point_previews: bool,
+    index_column_name: str,
+    timestamp_column_name: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Creates a memory-efficient DataFrame directly from FloatPointValue tuples.
+
+    Note that `data_points` must be sorted by (experiment name, path) to ensure correct
+    categorical codes.
+
+    There is an intermediate processing step where we represent paths as categorical codes
+    Example:
+
+    Assuming there are 2 user columns called "foo" and "bar", 2 steps each. The intermediate
+    DF will have this shape:
+
+            experiment  path   step  value
+        0     exp-name     0    1.0    0.0
+        1     exp-name     0    2.0    0.5
+        1     exp-name     1    1.0    1.5
+        1     exp-name     1    2.0    2.5
+
+    `path_mapping` would contain {"foo": 0, "bar": 1}. The column names will be restored before returning the
+    DF, which then can be sorted based on its columns.
+
+    The reason for the intermediate representation is that logging a metric called eg. "step" would conflict
+    with our "step" column during df.reset_index(), and we would crash.
+    Operating on integer codes is safe, as they can never appear as valid metric names.
+
+    If `timestamp_column_name` is provided, timestamp will be included in the DataFrame under the
+    specified column.
+    """
+
+    path_mapping: dict[str, int] = {}
+    experiment_mapping: dict[str, int] = {}
+
+    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> Generator[Tuple]:
+        last_experiment_name, last_experiment_category = None, None
+        last_path_name, last_path_category = None, None
+
+        for point in float_point_values:
+            exp_category = (
+                last_experiment_category
+                if last_experiment_name == point[ExperimentNameIndex]
+                else experiment_mapping.get(point[ExperimentNameIndex], None)  # type: ignore
+            )
+            path_category = (
+                last_path_category
+                if last_path_name == point[AttributePathIndex]
+                else path_mapping.get(point[AttributePathIndex], None)  # type: ignore
+            )
+
+            if exp_category is None:
+                exp_category = len(experiment_mapping)
+                experiment_mapping[point[ExperimentNameIndex]] = exp_category  # type: ignore
+                last_experiment_name, last_experiment_category = point[ExperimentNameIndex], exp_category
+            if path_category is None:
+                path_category = len(path_mapping)
+                path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
+                last_path_name, last_path_category = point[AttributePathIndex], path_category
+
+            # Only include columns that we know we need. Note that the order of must match the
+            # the `types` list below.
+            head = (
+                exp_category,
+                path_category,
+                point[StepIndex],
+                point[ValueIndex],
+            )
+            if include_point_previews and timestamp_column_name:
+                tail: Tuple[Any, ...] = (point[TimestampIndex], point[IsPreviewIndex], point[PreviewCompletionIndex])
+            elif timestamp_column_name:
+                tail = (point[TimestampIndex],)
+            elif include_point_previews:
+                tail = (point[IsPreviewIndex], point[PreviewCompletionIndex])
+            else:
+                tail = ()
+
+            yield head + tail
+
+    types = [
+        (index_column_name, "uint32"),
+        ("path", "uint32"),
+        ("step", "float64"),
+        ("value", "float64"),
+    ]
+
+    if timestamp_column_name:
+        types.append((timestamp_column_name, "uint64"))
+
+    if include_point_previews:
+        types.append(("is_preview", "bool"))
+        types.append(("preview_completion", "float64"))
+
+    df = pd.DataFrame(
+        np.fromiter(generate_categorized_rows(data_points), dtype=types),
+    )
+
+    experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
+    df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
+
+    df = _pivot_and_reindex_df(df, include_point_previews, index_column_name, timestamp_column_name)
+    df = _restore_path_column_names(df, path_mapping, type_suffix_in_column_names)
+
+    # MultiIndex DFs need to have column index order swapped: value/metric_name -> metric_name/value.
+    # We also sort columns, but only after the original names have been restored.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns.names = (None, None)
+        df = df.swaplevel(axis=1)
+        df = df.sort_index(axis=1, level=0)
+    else:
+        df.columns.name = None
+        df = df.sort_index(axis=1)
+
+    return df
+
+
+def _pivot_and_reindex_df(
+    df: pd.DataFrame,
+    include_point_previews: bool,
+    index_column_name: str = "experiment",
+    timestamp_column_name: Optional[str] = None,
+) -> pd.DataFrame:
+    values: Union[str, list[str]] = "value"
+
+    # Create column multi-index if necessary, otherwise we stick to a flat "value" column
+    if include_point_previews or timestamp_column_name:
+        values = ["value"]
+        if timestamp_column_name:
+            df[timestamp_column_name] = pd.to_datetime(df[timestamp_column_name], unit="ms", origin="unix", utc=True)
+            values.append(timestamp_column_name)
+        if include_point_previews:
+            values.append("is_preview")
+            values.append("preview_completion")
+
+    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
+    df = df.reset_index()
+    df[index_column_name] = df[index_column_name].astype(str)
+    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    df = df.set_index([index_column_name, "step"])
+
+    return df
+
+
+def _restore_path_column_names(
+    df: pd.DataFrame, path_mapping: dict[str, int], type_suffix_in_column_names: bool
+) -> pd.DataFrame:
+    """
+    Accepts an DF in an intermediate format in _create_dataframe, and the mapping of column names.
+    Restores colum names in the DF based on the mapping.
+    """
+
+    # We need to reverse the mapping to index -> column name
+    if type_suffix_in_column_names:
+        reverse_mapping = {index: path + ":float_series" for path, index in path_mapping.items()}
+    else:
+        reverse_mapping = {index: path for path, index in path_mapping.items()}
+    return df.rename(columns=reverse_mapping)
