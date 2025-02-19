@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.11.0] - 2025-01-09
 
 ### Changes
-- Allow more characters in project names ([#147](https://github.com/neptune-ai/neptune-fetcher/pull/147))
+- Expand the set of allowed characters in project names ([#147](https://github.com/neptune-ai/neptune-fetcher/pull/147))
 
 ## [0.9.5] - 2024-11-27
 
