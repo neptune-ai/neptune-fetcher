@@ -14,13 +14,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Python
-        uses: actions/setup-python@v5
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.10"
 
       - name: Install build dependencies
-        run: pip install poetry poetry-dynamic-versioning
+        run: uv pip install poetry poetry-dynamic-versioning
 
       - name: Build package
         run: poetry build
@@ -40,10 +40,10 @@ jobs:
           path: dist
 
       - name: Install neptune-fetcher package
-        run: pip install --force-reinstall --pre -f ./dist neptune-fetcher
+        run: uv pip install --force-reinstall --pre -f ./dist neptune-fetcher
 
       - name: List dependencies
-        run: pip list
+        run: uv pip list
 
       - name: Test imports
         run: python -c "from neptune_fetcher import *"
