@@ -31,7 +31,6 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
-from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
@@ -39,8 +38,7 @@ from neptune_fetcher.alpha.internal.composition import (
 )
 from neptune_fetcher.alpha.internal.context import (
     Context,
-    get_context,
-    validate_context,
+    get_valid_context,
 )
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import (
@@ -118,9 +116,9 @@ def _list_attributes(
     context: Optional[Context],
     container_type: search.ContainerType,
 ) -> list[str]:
-    valid_context = validate_context(context or get_context())
-    client = _client.get_client(valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = get_valid_context(context)
+    client = _client.get_client(valid_context.api_token)
+    project_identifier = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,
