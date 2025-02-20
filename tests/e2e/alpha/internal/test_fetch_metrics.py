@@ -32,11 +32,8 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition.fetch_metrics import (
-    _transform_with_absolute_timestamp,
-    _transform_without_timestamp,
-)
 from neptune_fetcher.alpha.internal.context import get_context
+from neptune_fetcher.alpha.internal.output_format import create_dataframe
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
 
@@ -162,32 +159,27 @@ def create_expected_data(
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                             step,
                             series[int(step)],
+                            False,
+                            1.0,
                         )
                     )
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
             rows.extend(limited)
 
-    df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
-    df["experiment"] = df["experiment"].astype(str)
-    df["path"] = df["path"].astype(str)
-    df["timestamp"] = df["timestamp"].astype(int)
-    df["step"] = df["step"].astype(float)
-    df["value"] = df["value"].astype(float)
+    df = create_dataframe(
+        rows,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        include_point_previews=False,
+        timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+        index_column_name="experiment",
+    )
 
     sorted_columns = list(sorted(columns))
     if include_time == "absolute":
         absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
-        return (
-            _transform_with_absolute_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
-            list(chain.from_iterable(absolute_columns)),
-            filtered_exps,
-        )
+        return df, list(chain.from_iterable(absolute_columns)), filtered_exps
     else:
-        return (
-            _transform_without_timestamp(df, type_suffix_in_column_names, include_point_previews=False),
-            sorted_columns,
-            filtered_exps,
-        )
+        return df, sorted_columns, filtered_exps
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
