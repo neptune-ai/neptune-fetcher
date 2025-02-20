@@ -171,7 +171,7 @@ def create_dataframe(
     path_mapping: dict[str, int] = {}
     experiment_mapping: dict[str, int] = {}
 
-    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> Generator[Tuple]:
+    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> Generator[Tuple, None, None]:
         last_experiment_name, last_experiment_category = None, None
         last_path_name, last_path_category = None, None
 
