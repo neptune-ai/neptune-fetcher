@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.14.1]
 
 ### Fixes
-- Corrected `fetch_metrics()` documentation ([#236](https://github.com/neptune-ai/neptune-fetcher/pull/236))
+- Correct documentation on `fetch_metrics()` and `list_attributes()` ([#236](https://github.com/neptune-ai/neptune-fetcher/pull/236))
 
 ## [0.14.0] - 2025-02-19
 
