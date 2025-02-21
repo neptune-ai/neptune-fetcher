@@ -384,7 +384,7 @@ To work with runs, you can use the corresponding run methods:
 from neptune_fetcher.alpha.runs import (
     fetch_metrics,
     fetch_runs_table,
-    list_run_attributes,
+    list_attributes,
     list_runs,
 )
 ```
