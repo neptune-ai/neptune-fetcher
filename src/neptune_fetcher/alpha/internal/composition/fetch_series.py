@@ -228,7 +228,7 @@ def _fetch_flat_dataframe_metrics(
     container_type: ContainerType,
 ) -> Iterable[FloatPointValue]:
     def fetch_values(
-            exp_paths: list[AttributePathInRun],
+        exp_paths: list[AttributePathInRun],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         _series = fetch_multiple_series_values(
             client,
@@ -240,8 +240,8 @@ def _fetch_flat_dataframe_metrics(
         return [], _series
 
     def process_definitions(
-            _sys_id_to_labels: dict[identifiers.SysId, str],
-            _definitions: Generator[util.Page[AttributeDefinition], None, None],
+        _sys_id_to_labels: dict[identifiers.SysId, str],
+        _definitions: Generator[util.Page[AttributeDefinition], None, None],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         definitions_page = next(_definitions, None)
         _futures = []
@@ -263,7 +263,7 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def process_sys_ids(
-            sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
+        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         sys_id_to_labels = next(sys_ids_generator, None)
         _futures = []
@@ -312,8 +312,5 @@ def _fetch_flat_dataframe_metrics(
     return _start()
 
 
-def _create_flat_dataframe(
-    values: Iterable[FloatPointValue],
-    index_column_name: str
-) -> pd.DataFrame:
+def _create_flat_dataframe(values: Iterable[FloatPointValue], index_column_name: str) -> pd.DataFrame:
     return pd.DataFrame()
