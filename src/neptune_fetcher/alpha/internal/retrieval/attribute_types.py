@@ -45,7 +45,7 @@ def map_attribute_type_backend_to_python(_type: str) -> str:
     return _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP.get(_type, _type)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FloatSeriesAggregations:
     last: float
     min: float

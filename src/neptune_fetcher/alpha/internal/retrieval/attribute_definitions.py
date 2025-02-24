@@ -40,7 +40,7 @@ from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
 from neptune_fetcher.alpha.internal.retrieval import util
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AttributeDefinition:
     name: str
     type: str
