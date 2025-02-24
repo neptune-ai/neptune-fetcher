@@ -19,6 +19,7 @@ on:
 jobs:
   test:
     runs-on: arc-runner-set
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
