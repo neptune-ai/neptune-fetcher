@@ -12,7 +12,7 @@ makes data fetching more efficient and improves performance.
 ## Installation
 
 ```bash
-pip install neptune-fetcher
+pip install -U neptune-fetcher
 ```
 
 Set your Neptune API token and project name as environment variables:
@@ -84,7 +84,7 @@ For both arguments, you can specify a simple string to match experiment or attri
 
 > Fetching metrics this way returns an aggregation value for each attribute. The default aggregation is the last logged value.
 >
-> To fetch actual metric values at each step, see [`fetch_experiment_metrics()`](#fetching-metric-values).
+> To fetch actual metric values at each step, see [`fetch_metrics()`](#fetching-metric-values).
 
 ```python
 npt.fetch_experiments_table(
@@ -106,10 +106,10 @@ exp_gyvpp              0.999489         0.069839
 
 ### Fetching metric values
 
-To fetch individual values from one or more float series attributes, use the `fetch_experiment_metrics()` function:
+To fetch individual values from one or more float series attributes, use the `fetch_metrics()` function:
 
 ```python
-npt.fetch_experiment_metrics(
+npt.fetch_metrics(
     experiments=r"exp.*",
     attributes=r"metrics/.*",
 )
@@ -134,7 +134,7 @@ npt.fetch_experiment_metrics(
 To fetch point previews, set the `include_point_previews` argument to `True`:
 
 ```python
-npt.fetch_experiment_metrics(
+npt.fetch_metrics(
     experiments=r"exp.*",
     attributes=r"metrics/.*",
     include_point_previews=True,
@@ -382,17 +382,30 @@ To work with runs, you can use the corresponding run methods:
 
 ```python
 from neptune_fetcher.alpha.runs import (
-    fetch_run_metrics,
+    fetch_metrics,
     fetch_runs_table,
-    list_run_attributes,
+    list_attributes,
     list_runs,
 )
 ```
 
-Note the difference in specifying runs versus experiments:
+The usage is the same, except for the first parameter: For the run method calls, replace the `experiments` parameter with `runs`.
+
+Note the difference in identifying runs versus experiments:
 
 - Experiments are characterized by name (`sys/name`). This is the string passed to the `name` argument at creation.
 - Runs are characterized by ID (`sys/custom_run_id`). This is the string passed to the `run_id` argument at creation.
+
+Example:
+
+```py
+import neptune_fetcher.alpha as npt
+
+npt.runs.fetch_metrics(
+    runs=r"^speedy-seagull.*_02",  # run ID
+    attributes=r"losses/.*",
+)
+```
 
 ---
 
