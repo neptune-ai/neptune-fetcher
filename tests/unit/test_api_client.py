@@ -46,6 +46,8 @@ def values_model(steps_values: List[Tuple[float, float]]) -> List[FloatPointValu
             timestamp=datetime.fromtimestamp(i / 1000.0, tz=timezone.utc),
             step=step,
             value=value,
+            preview=False,
+            completion_ratio=1.0,
         )
         for i, (step, value) in enumerate(steps_values)
     ]
@@ -57,6 +59,8 @@ def values_dto(steps_values: List[Tuple[float, float]]) -> [ProtoFloatPointValue
             timestamp_millis=i,
             step=step,
             value=value,
+            is_preview=False,
+            completion_ratio=1.0,
         )
         for i, (step, value) in enumerate(steps_values)
     ]

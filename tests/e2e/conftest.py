@@ -97,6 +97,26 @@ class SyncRun(Run):
         self.wait_for_processing()
         return result
 
+    def log_configs(self, *args, **kwargs):
+        result = super().log_configs(*args, **kwargs)
+        self.wait_for_processing()
+        return result
+
+    def log_metrics(self, *args, **kwargs):
+        result = super().log_metrics(*args, **kwargs)
+        self.wait_for_processing()
+        return result
+
+    def add_tags(self, *args, **kwargs):
+        result = super().add_tags(*args, **kwargs)
+        self.wait_for_processing()
+        return result
+
+    def remove_tags(self, *args, **kwargs):
+        result = super().remove_tags(*args, **kwargs)
+        self.wait_for_processing()
+        return result
+
 
 @fixture(scope="module")
 def run_init_kwargs(project):

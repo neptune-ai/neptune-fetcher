@@ -50,6 +50,7 @@ def test_atoms(sync_run, ro_run):
     }
 
     sync_run.log_configs(data)
+    sync_run.wait_for_processing()
 
     for key, value in data.items():
         assert ro_run[key].fetch() == value, f"Value for {key} does not match"
@@ -65,6 +66,7 @@ def test_atoms(sync_run, ro_run):
     }
 
     sync_run.log_configs(updated_data)
+    sync_run.wait_for_processing()
 
     # The data should stay the same, as we haven't purged the cache yet
     for key, value in data.items():

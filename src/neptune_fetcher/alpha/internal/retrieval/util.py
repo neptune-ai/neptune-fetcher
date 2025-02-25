@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass
 from typing import (
@@ -30,6 +31,7 @@ from neptune_api import AuthenticatedClient
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.alpha import exceptions
+from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -101,10 +103,7 @@ def backoff_retry(
 
             # Not a TooManyRequests or InternalServerError code
             if not (code == 429 or 500 <= code < 600):
-                raise exceptions.NeptuneUnexpectedResponseError(
-                    status_code=response.status_code,
-                    content=response.content,
-                )
+                _raise_for_response(response.status_code, response.content)
 
         if tries == max_tries:
             break
@@ -122,3 +121,30 @@ def backoff_retry(
         raise error from last_exc
     else:
         raise error
+
+
+def _raise_for_response(status_code: int, content: bytes) -> Exception:
+    """
+    Raise an exception for the given response status code and content.
+
+    The content is assumed to be valid JSON and contain the "errorType" key.
+    If it is not the case, or the response does not match any known exceptions,
+    `NeptuneUnexpectedResponseError` is raised.
+    """
+    try:
+        if content is not None:
+            json_content = json.loads(content.decode("utf-8"))
+
+            error_type = json_content.get("errorType")
+            if error_type == "ACCESS_DENIED":
+                raise NeptuneProjectInaccessible()
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise exceptions.NeptuneUnexpectedResponseError(
+            status_code=status_code,
+            content=content,
+        )
+
+    raise exceptions.NeptuneUnexpectedResponseError(
+        status_code=status_code,
+        content=content,
+    )

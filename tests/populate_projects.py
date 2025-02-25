@@ -30,6 +30,7 @@ from neptune_scale import Run
 #       - config/foo{number}-unique-{custom_run_id}, from 1 to 100, value is `number`
 #       - metrics/bar{number}-unique-{custom_run_id}, from 1 to 100, value is `number`
 #       - each metric has 10 steps
+#       - each metric has 3 preview steps
 #
 # Each run thus has:
 # - 30 config fields, 10 of which are unique to the run
@@ -62,8 +63,14 @@ def populate_run(run, run_id, tags=None):
     data = {f"metrics/foo{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
     data |= {f"metrics/bar{x + 1}-unique-{run_id}": x + 1 for x in range(10)}
     data |= {f"metrics/bar{x + 1}": x + 1 for x in range(MM_NUM_FIELD_KIND)}
-
     run.log_metrics(step=step, data=data)
+
+    for preview_step in range(MM_NUM_STEPS, MM_NUM_STEPS + 3):
+        value = math.sin((preview_step + random.random() - 0.5) * 0.1)
+        data = {f"metrics/foo{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
+        data |= {f"metrics/bar{x + 1}-unique-{run_id}": value for x in range(10)}
+        data |= {f"metrics/bar{x + 1}": value for x in range(MM_NUM_FIELD_KIND)}
+        run.log_metrics(step=preview_step, data=data, preview=True, preview_completion=preview_step / 100)
 
 
 def populate_many_metrics(project):
@@ -77,12 +84,12 @@ def populate_many_metrics(project):
 
         for x in range(MM_NUM_RUNS // 2):
             futures.append(
-                executor.submit(create_runs, project, x + 1, tags=["head", "tag2"], experiment_name=f"exp{x+1}")
+                executor.submit(create_runs, project, x + 1, tags=["head", "tag2"], experiment_name=f"exp{x + 1}")
             )
 
         for x in range(MM_NUM_RUNS // 2, MM_NUM_RUNS):
             futures.append(
-                executor.submit(create_runs, project, x + 1, tags=["tail", "tag2"], experiment_name=f"exp{x+1}")
+                executor.submit(create_runs, project, x + 1, tags=["tail", "tag2"], experiment_name=f"exp{x + 1}")
             )
 
         done, _ = concurrent.futures.wait(futures)

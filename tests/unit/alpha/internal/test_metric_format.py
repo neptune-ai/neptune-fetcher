@@ -3,14 +3,13 @@ from datetime import (
     timedelta,
     timezone,
 )
-from typing import (
-    Generator,
-    Tuple,
-)
+from typing import Generator
 
 import pandas as pd
+import pytest
 
 from neptune_fetcher.alpha.internal.composition.fetch_metrics import _create_flat_dataframe
+from neptune_fetcher.alpha.internal.retrieval.metrics import FloatPointValue
 
 # Constants for the test
 EXPERIMENTS = 5
@@ -19,20 +18,29 @@ STEPS = 10
 
 
 def generate_float_point_values(
-    experiments: int, paths: int, steps: int
-) -> Generator[Tuple[str, str, float, int, float], None, None]:
+    experiments: int, paths: int, steps: int, preview: bool
+) -> Generator[FloatPointValue, None, None]:
     for experiment in range(experiments):
         for path in range(paths):
             for step in range(steps):
                 timestamp = datetime(2023, 1, 1, 0, 0, 0, 0, timezone.utc) + timedelta(seconds=step)
-                yield f"exp{experiment}", f"path{path}", timestamp.timestamp(), float(step), float(step) * 100
+                yield (
+                    f"exp{experiment}",
+                    f"path{path}",
+                    timestamp.timestamp(),
+                    float(step),
+                    float(step) * 100,
+                    preview,
+                    1.0 - (float(step) / 1000.0),
+                )
 
 
-def test_create_flat_dataframe():
-    float_point_values = list(generate_float_point_values(EXPERIMENTS, PATHS, STEPS))
+@pytest.mark.parametrize("include_preview", [False, True])
+def test_create_flat_dataframe(include_preview):
+    float_point_values = list(generate_float_point_values(EXPERIMENTS, PATHS, STEPS, include_preview))
 
     """Test the creation of a flat DataFrame from float point values."""
-    df = _create_flat_dataframe(float_point_values)
+    df = _create_flat_dataframe(float_point_values, include_point_previews=include_preview)
 
     # Check if the DataFrame is not empty
     assert not df.empty, "DataFrame should not be empty"
@@ -43,6 +51,8 @@ def test_create_flat_dataframe():
 
     # Check the columns of the DataFrame
     expected_columns = ["experiment", "path", "timestamp", "step", "value"]
+    if include_preview:
+        expected_columns.extend(["is_preview", "preview_completion"])
     assert list(df.columns) == expected_columns, f"DataFrame should have columns {expected_columns}"
 
     # Check if the 'experiment' and 'path' columns are categorical

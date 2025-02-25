@@ -121,6 +121,7 @@ class FetchableSeries(Fetchable):
         include_inherited: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
         progress_bar: bool = False,
+        include_point_previews: bool = False,
     ) -> "DataFrame":
         """
         Retrieves all series values either from the internal cache (see `prefetch_series_values()`) or from the API.
@@ -133,6 +134,9 @@ class FetchableSeries(Fetchable):
                 - `right`: (currently not supported) The right boundary of the range (inclusive).
                             If `None`, the range is open on the right.
             progress_bar: Set to `False `to disable the download progress bar.
+            include_point_previews - False by default. If False the returned results will only contain committed
+                points. If True the results will also include preview points and the returned DataFrame will
+                have additional sub-columns with preview status (is_preview and preview_completion).
         """
         return self._cache[self._field.path].fetch_values(
             backend=self._backend,
@@ -142,6 +146,7 @@ class FetchableSeries(Fetchable):
             include_inherited=include_inherited,
             progress_bar=progress_bar,
             step_range=step_range,
+            include_point_previews=include_point_previews,
         )
 
 
