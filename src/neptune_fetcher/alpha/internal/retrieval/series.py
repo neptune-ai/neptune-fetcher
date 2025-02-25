@@ -48,7 +48,7 @@ def fetch_series_values(
     run_attribute_definitions: Iterable[RunAttributeDefinition],
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    tail_limit: Optional[int] = None,
+    tail_limit: Optional[int] = None,  # TODO: actually implement tail_limit
 ) -> Generator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None, None]:
     if not run_attribute_definitions:
         yield from []
