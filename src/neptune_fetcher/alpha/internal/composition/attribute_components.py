@@ -45,7 +45,7 @@ def fetch_attribute_definitions_split(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
+    downstream: Callable[[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
     return concurrency.generate_concurrently(
         items=split.split_sys_ids(sys_ids),
@@ -59,7 +59,7 @@ def fetch_attribute_definitions_split(
                 executor=fetch_attribute_definitions_executor,
             ),
             executor=executor,
-            downstream=downstream,
+            downstream=lambda definitions: downstream(sys_ids_split, definitions),
         ),
     )
 
@@ -131,7 +131,7 @@ def fetch_attribute_definitions_complete(
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids_page.items,
-                downstream=downstream,
+                downstream=lambda _, definitions: downstream(definitions),
             ),
         )
 

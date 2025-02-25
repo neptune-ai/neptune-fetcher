@@ -48,11 +48,5 @@ def list_containers(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-        if container_type == search.ContainerType.EXPERIMENT:
-            exp_sys_pages = search.fetch_experiment_sys_attrs(client, project_identifier, filter_)
-            return list(sorted(exp.sys_name for page in exp_sys_pages for exp in page.items))
-        elif container_type == search.ContainerType.RUN:
-            run_sys_pages = search.fetch_run_sys_attrs(client, project_identifier, filter_)
-            return list(sorted(run.sys_custom_run_id for page in run_sys_pages for run in page.items))
-        else:
-            raise RuntimeError(f"Unexpected container type: {container_type}")
+        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
+        return list(sorted(attrs.label for page in sys_attr_pages for attrs in page.items))

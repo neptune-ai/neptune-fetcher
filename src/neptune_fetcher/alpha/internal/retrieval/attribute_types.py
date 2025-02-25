@@ -55,7 +55,7 @@ class FloatSeriesAggregations:
     variance: float
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class StringSeriesAggregations:
     last: str
 

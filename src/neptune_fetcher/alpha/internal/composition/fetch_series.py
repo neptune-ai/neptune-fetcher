@@ -12,13 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import concurrent
-import itertools as it
-from concurrent.futures import Executor
 from typing import (
     Generator,
-    Iterable,
     Literal,
     Optional,
     Tuple,
@@ -26,7 +21,6 @@ from typing import (
 )
 
 import pandas as pd
-from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.alpha.filters import (
     Attribute,
@@ -35,33 +29,23 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.client import get_client
+from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.alpha.internal.composition.util import batched
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.alpha.internal.retrieval import (
-    split,
+    attribute_definitions,
+    search,
+    series,
     util,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.metrics import (
-    AttributePathInRun,
-    FloatPointValue,
-    fetch_multiple_series_values,
-)
-from neptune_fetcher.alpha.internal.retrieval.search import (
-    ContainerType,
-    fetch_experiment_sys_attrs,
-    fetch_run_sys_attrs,
-)
+from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
 __all__ = (
     "fetch_experiment_series",
@@ -81,7 +65,6 @@ def fetch_experiment_series(
     tail_limit: Optional[int] = None,
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
-    ...
     if isinstance(experiments, str):
         experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
 
@@ -158,27 +141,65 @@ def _fetch_series(
             container_type=container_type,
         )
 
-        values_generator = _fetch_flat_dataframe_metrics(
-            filter_=filter_,
-            attributes=attributes,
-            client=client,
-            project=project_identifier,
-            step_range=step_range,
-            lineage_to_the_root=lineage_to_the_root,
-            tail_limit=tail_limit,
+        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
+
+        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_sys_id_labels(container_type)(
+                client=client,
+                project_identifier=project_identifier,
+                filter_=filter_,
+            ):
+                sys_ids = []
+                for item in page.items:
+                    sys_id_label_mapping[item.sys_id] = item.label
+                    sys_ids.append(item.sys_id)
+                yield sys_ids
+
+        output = concurrency.generate_concurrently(
+            items=go_fetch_sys_attrs(),
             executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
+            downstream=lambda sys_ids: _components.fetch_attribute_definitions_split(
+                client=client,
+                project_identifier=project_identifier,
+                attribute_filter=attributes,
+                executor=executor,
+                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+                sys_ids=sys_ids,
+                downstream=lambda sys_ids_split, definitions_page: concurrency.generate_concurrently(
+                    items=series.fetch_series_values(
+                        client=client,
+                        run_attribute_definitions=[
+                            series.RunAttributeDefinition(
+                                run_identifier=identifiers.RunIdentifier(project_identifier, sys_id),
+                                attribute_definition=definition,
+                            )
+                            for sys_id in sys_ids_split
+                            for definition in _filter_series(definitions_page.items)
+                        ],
+                        include_inherited=lineage_to_the_root,
+                        step_range=step_range,
+                        tail_limit=tail_limit,
+                    ),
+                    executor=executor,
+                    downstream=concurrency.return_value,
+                ),
+            ),
         )
+        results: Generator[
+            util.Page[tuple[series.RunAttributeDefinition, list[series.StringSeriesValue]]], None, None
+        ] = concurrency.gather_results(output)
 
-        index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+        series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
+        for result in results:
+            for run_attribute_definition, series_values in result.items:
+                series_data.setdefault(run_attribute_definition, []).extend(series_values)
 
-        df = _create_flat_dataframe(
-            values_generator,
-            index_column_name=index_column_name,
-        )
+        # TODO
+        # index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+        print(series_data)
+        print(sys_id_label_mapping)
 
-    return df
+    return pd.DataFrame()
 
 
 # TODO: common validation and output of series+metrics
@@ -215,102 +236,7 @@ def _validate_tail_limit(tail_limit: Optional[int]) -> None:
             raise ValueError("tail_limit must be greater than 0")
 
 
-def _fetch_flat_dataframe_metrics(
-    filter_: Filter,
-    attributes: AttributeFilter,
-    client: AuthenticatedClient,
-    project: identifiers.ProjectIdentifier,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
-    step_range: Tuple[Optional[float], Optional[float]],
-    lineage_to_the_root: bool,
-    tail_limit: Optional[int],
-    container_type: ContainerType,
-) -> Iterable[FloatPointValue]:
-    def fetch_values(
-        exp_paths: list[AttributePathInRun],
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        _series = fetch_multiple_series_values(
-            client,
-            exp_paths=exp_paths,
-            include_inherited=lineage_to_the_root,
-            step_range=step_range,
-            tail_limit=tail_limit,
-        )
-        return [], _series
-
-    def process_definitions(
-        _sys_id_to_labels: dict[identifiers.SysId, str],
-        _definitions: Generator[util.Page[AttributeDefinition], None, None],
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        definitions_page = next(_definitions, None)
-        _futures = []
-        if definitions_page:
-            _futures.append(executor.submit(process_definitions, _sys_id_to_labels, _definitions))
-
-            paths = definitions_page.items
-
-            product = it.product(_sys_id_to_labels.items(), paths)
-            exp_paths = [
-                AttributePathInRun(ExpId(project, sys_id), label, _path.name)
-                for (sys_id, label), _path in product
-                if _path.type == "float_series"
-            ]
-
-            for batch in batched(exp_paths, _PATHS_PER_BATCH):
-                _futures.append(executor.submit(fetch_values, batch))
-
-        return _futures, []
-
-    def process_sys_ids(
-        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        sys_id_to_labels = next(sys_ids_generator, None)
-        _futures = []
-
-        if sys_id_to_labels:
-            _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
-
-            sys_ids = list(sys_id_to_labels.keys())
-
-            for sys_ids_split in split.split_sys_ids(sys_ids):
-                run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
-                sys_id_to_labels_split = {sys_id: sys_id_to_labels[sys_id] for sys_id in sys_ids_split}
-                definitions_generator = fetch_attribute_definitions(
-                    client=client,
-                    project_identifiers=[project],
-                    run_identifiers=run_identifiers_split,
-                    attribute_filter=attributes,
-                    executor=fetch_attribute_definitions_executor,
-                )
-                _futures.append(executor.submit(process_definitions, sys_id_to_labels_split, definitions_generator))
-
-        return _futures, []
-
-    def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
-        if container_type == ContainerType.RUN:
-            run_pages = fetch_run_sys_attrs(client, project, filter_)
-            return ({run.sys_id: run.sys_custom_run_id for run in page.items} for page in run_pages)
-        elif container_type == ContainerType.EXPERIMENT:
-            experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
-            return ({exp.sys_id: exp.sys_name for exp in page.items} for page in experiment_pages)
-        else:
-            raise RuntimeError(f"Unknown container type: {container_type}")
-
-    def _start() -> Iterable[FloatPointValue]:
-        futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}
-
-        while futures:
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            futures = not_done
-            for future in done:
-                new_futures, values = future.result()
-                futures.update(new_futures)
-                if values:
-                    yield from values
-
-    return _start()
-
-
-def _create_flat_dataframe(values: Iterable[FloatPointValue], index_column_name: str) -> pd.DataFrame:
-    return pd.DataFrame()
+def _filter_series(
+    definitions: list[attribute_definitions.AttributeDefinition],
+) -> list[attribute_definitions.AttributeDefinition]:
+    return [attribute for attribute in definitions if attribute.type == "string_series"]
