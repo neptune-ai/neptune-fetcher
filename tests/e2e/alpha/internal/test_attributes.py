@@ -32,6 +32,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "v4"
 PATH = f"test/test-attribute-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
+STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 
 
 @dataclass
@@ -41,6 +42,7 @@ class ExperimentData:
     string_sets: dict[str, list[str]]
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
+    string_series: dict[str, list[str]]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     @property
@@ -82,12 +84,16 @@ class TestData:
                 }
 
                 float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(10)]
+
+                string_series = {path: [f"string-{i}-{j}" for j in range(10)] for path in STRING_SERIES_PATHS}
+
                 self.experiments.append(
                     ExperimentData(
                         name=experiment_name,
                         config=config,
                         string_sets=string_sets,
                         float_series=float_series,
+                        string_series=string_series,
                         unique_series={},
                     )
                 )
@@ -141,6 +147,9 @@ def run_with_attributes(project, client):
             metrics_data[f"{PATH}/metrics/step"] = step
             run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
+            series_data = {path: values[step] for path, values in experiment.string_series.items()}
+            run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+
         runs[experiment.name] = run
     for run in runs.values():
         run.close()
@@ -171,7 +180,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
     [
         (PATH, TEST_DATA.all_attribute_names),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
-        (rf"{PATH}/metrics/.*", FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"]),
+        (rf"{PATH}/metrics/.*", FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"] + STRING_SERIES_PATHS),
         (
             rf"{PATH}/.*-value$",
             {
