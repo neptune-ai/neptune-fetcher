@@ -25,7 +25,6 @@ from typing import (
     Union,
 )
 
-import numpy as np
 import pandas as pd
 from neptune_api.client import AuthenticatedClient
 
@@ -48,21 +47,15 @@ from neptune_fetcher.alpha.internal.context import (
     validate_context,
 )
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
+from neptune_fetcher.alpha.internal.output_format import create_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
     split,
     util,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.metrics import (
-    AttributePathIndex,
     AttributePathInRun,
-    ExperimentNameIndex,
     FloatPointValue,
-    IsPreviewIndex,
-    PreviewCompletionIndex,
-    StepIndex,
-    TimestampIndex,
-    ValueIndex,
     fetch_multiple_series_values,
 )
 from neptune_fetcher.alpha.internal.retrieval.search import (
@@ -239,22 +232,13 @@ def _fetch_metrics(
             container_type=container_type,
         )
 
-        index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
-
-        df = _create_flat_dataframe(
+        df = create_dataframe(
             values_generator,
-            index_column_name=index_column_name,
+            index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
+            timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             include_point_previews=include_point_previews,
+            type_suffix_in_column_names=type_suffix_in_column_names,
         )
-
-    if include_time == "absolute":
-        df = _transform_with_absolute_timestamp(
-            df, type_suffix_in_column_names, include_point_previews, index_column_name
-        )
-    # elif include_time == "relative":
-    #     raise NotImplementedError("Relative timestamp is not implemented")
-    else:
-        df = _transform_without_timestamp(df, type_suffix_in_column_names, include_point_previews, index_column_name)
 
     return df
 
@@ -342,7 +326,7 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def process_sys_ids(
-        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None]
+        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None],
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         sys_id_to_labels = next(sys_ids_generator, None)
         _futures = []
@@ -389,128 +373,3 @@ def _fetch_flat_dataframe_metrics(
                     yield from values
 
     return _start()
-
-
-def _create_flat_dataframe(
-    values: Iterable[FloatPointValue],
-    include_point_previews: bool,
-    index_column_name: str = "experiment",
-) -> pd.DataFrame:
-    """
-    Creates a memory-efficient DataFrame directly from _FloatPointValue tuples
-    by converting strings to categorical codes before DataFrame creation.
-    """
-
-    path_mapping: dict[str, int] = {}
-    experiment_mapping: dict[str, int] = {}
-
-    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> pd.DataFrame:
-        last_experiment_name, last_experiment_category = None, None
-        last_path_name, last_path_category = None, None
-
-        for point in float_point_values:
-            exp_category = (
-                last_experiment_category
-                if last_experiment_name == point[ExperimentNameIndex]
-                else experiment_mapping.get(point[ExperimentNameIndex], None)  # type: ignore
-            )
-            path_category = (
-                last_path_category
-                if last_path_name == point[AttributePathIndex]
-                else path_mapping.get(point[AttributePathIndex], None)  # type: ignore
-            )
-
-            if exp_category is None:
-                exp_category = len(experiment_mapping)
-                experiment_mapping[point[ExperimentNameIndex]] = exp_category  # type: ignore
-                last_experiment_name, last_experiment_category = point[ExperimentNameIndex], exp_category
-            if path_category is None:
-                path_category = len(path_mapping)
-                path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
-                last_path_name, last_path_category = point[AttributePathIndex], path_category
-            if include_point_previews:
-                yield (
-                    exp_category,
-                    path_category,
-                    point[TimestampIndex],
-                    point[StepIndex],
-                    point[ValueIndex],
-                    point[IsPreviewIndex],
-                    point[PreviewCompletionIndex],
-                )
-            else:
-                yield exp_category, path_category, point[TimestampIndex], point[StepIndex], point[ValueIndex]
-
-    types = [
-        (index_column_name, "uint32"),
-        ("path", "uint32"),
-        ("timestamp", "uint64"),
-        ("step", "float64"),
-        ("value", "float64"),
-    ]
-    if include_point_previews:
-        types.append(("is_preview", "bool"))
-        types.append(("preview_completion", "float64"))
-
-    df = pd.DataFrame(
-        np.fromiter(generate_categorized_rows(values), dtype=types),
-    )
-    experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
-    df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
-
-    path_dtype = pd.CategoricalDtype(categories=list(path_mapping.keys()))
-    df["path"] = pd.Categorical.from_codes(df["path"], dtype=path_dtype)
-
-    return df
-
-
-def _transform_with_absolute_timestamp(
-    df: pd.DataFrame,
-    type_suffix_in_column_names: bool,
-    include_point_previews: bool,
-    index_column_name: str = "experiment",
-) -> pd.DataFrame:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", origin="unix", utc=True)
-    df = df.rename(columns={"timestamp": "absolute_time"})
-    values = ["value", "absolute_time"]
-    if include_point_previews:
-        values.extend(["is_preview", "preview_completion"])
-    df = df.pivot(
-        index=[index_column_name, "step"],
-        columns="path",
-        values=values,
-    )
-
-    df = df.swaplevel(axis=1)
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", level=0, copy=False)
-
-    df = df.reset_index()
-    df[index_column_name] = df[index_column_name].astype(str)
-    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
-    df.columns.names = (None, None)
-    df = df.set_index([index_column_name, "step"])
-    df = df.sort_index(axis=1, level=0)
-    return df
-
-
-def _transform_without_timestamp(
-    df: pd.DataFrame,
-    type_suffix_in_column_names: bool,
-    include_point_previews: bool,
-    index_column_name: str = "experiment",
-) -> pd.DataFrame:
-    values = ["value", "is_preview", "preview_completion"] if include_point_previews else "value"
-    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
-    if type_suffix_in_column_names:
-        df = df.rename(columns=lambda x: x + ":float_series", copy=False)
-    if include_point_previews:
-        df = df.swaplevel(axis=1)
-
-    df = df.reset_index()
-    df[index_column_name] = df[index_column_name].astype(str)
-    df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
-    df.columns.name = None
-    df = df.set_index([index_column_name, "step"])
-    df = df.sort_index(axis=1)
-    return df
