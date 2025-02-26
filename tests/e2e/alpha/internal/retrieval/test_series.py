@@ -92,7 +92,6 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
     assert series == []
 
 
-@pytest.mark.skip(reason="The backend is not implemented yet")
 def test_fetch_series_values_single_series(client, project, experiment_identifier):
     # given
     run_definition = RunAttributeDefinition(

@@ -45,6 +45,7 @@ class ExperimentData:
     string_sets: dict[str, list[str]]
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
+    string_series: dict[str, list[str]]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -79,6 +80,11 @@ class TestData:
                 }
 
                 float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(10)]
+
+                string_series = {
+                    f"{PATH}/metrics/string-series-{i}": [f"string-{i}-{j}" for j in range(10)] for i in range(2)
+                }
+
                 self.experiments.append(
                     ExperimentData(
                         name=experiment_name,
@@ -86,6 +92,7 @@ class TestData:
                         string_sets=string_sets,
                         float_series=float_series,
                         unique_series=unique_series,
+                        string_series=string_series,
                     )
                 )
 
@@ -127,6 +134,10 @@ def run_with_attributes(project, client):
             metrics_data = {path: values[step] for path, values in experiment.float_series.items()}
             metrics_data[f"{PATH}/metrics/step"] = step
             run.log_metrics(data=metrics_data, step=step, timestamp=datetime(2025, 1, 31, 0, 0, int(step)))
+
+        for step in range(len(experiment.float_series[f"{PATH}/metrics/step"])):
+            series_data = {path: values[step] for path, values in experiment.string_series.items()}
+            run.log_string_series(data=series_data, step=step, timestamp=datetime(2025, 1, 31, 0, 0, int(step)))
 
         runs[experiment.name] = run
     for run in runs.values():
@@ -276,6 +287,44 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
             ],
             (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
                 TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert df.shape == (3, 8)
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        AttributeFilter(f"{PATH}/metrics/string-series-0", type_in=["string_series"], aggregations=["last"])
+        | AttributeFilter(f"{PATH}/metrics/string-series-1", type_in=["string_series"])
+    ],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_series(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        context=_context(project),
+    )
+
+    suffix = ":string_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
+            (FLOAT_SERIES_PATHS[0] + suffix, "last"): [
+                TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-0"][-1] for i in range(3)
+            ],
+            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
+                TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-1"][-1] for i in range(3)
             ],
         }
     ).set_index("experiment", drop=True)
