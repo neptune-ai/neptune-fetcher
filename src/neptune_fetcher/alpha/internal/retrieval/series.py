@@ -40,7 +40,7 @@ class RunAttributeDefinition:
     attribute_definition: AttributeDefinition
 
 
-StringSeriesValue = NamedTuple("StringSeriesValue", [("step", float), ("value", str), ("timestamp_millis", int)])
+StringSeriesValue = NamedTuple("StringSeriesValue", [("step", float), ("value", str), ("timestamp_millis", float)])
 
 
 def fetch_series_values(
@@ -48,7 +48,7 @@ def fetch_series_values(
     run_attribute_definitions: Iterable[RunAttributeDefinition],
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
-    tail_limit: Optional[int] = None,  # TODO: actually implement tail_limit
+    tail_limit: Optional[int] = None,
 ) -> Generator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None, None]:
     if not run_attribute_definitions:
         yield from []
@@ -77,6 +77,8 @@ def fetch_series_values(
         "order": "ascending" if tail_limit is None else "descending",
         "nextPage": {},
     }
+    if tail_limit is not None:
+        params["perSeriesPointsLimit"] = tail_limit
 
     yield from util.fetch_pages(
         client=client,

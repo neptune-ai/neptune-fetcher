@@ -26,6 +26,8 @@ import numpy as np
 import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
+from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.retrieval import series
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
@@ -42,7 +44,7 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
 
 __all__ = (
     "convert_table_to_dataframe",
-    "create_dataframe",
+    "create_metrics_dataframe",
 )
 
 
@@ -131,7 +133,7 @@ def convert_table_to_dataframe(
     return dataframe
 
 
-def create_dataframe(
+def create_metrics_dataframe(
     data_points: Iterable[FloatPointValue],
     *,
     type_suffix_in_column_names: bool,
@@ -171,11 +173,11 @@ def create_dataframe(
     path_mapping: dict[str, int] = {}
     experiment_mapping: dict[str, int] = {}
 
-    def generate_categorized_rows(float_point_values: Iterable[FloatPointValue]) -> Generator[Tuple, None, None]:
+    def generate_categorized_rows() -> Generator[Tuple, None, None]:
         last_experiment_name, last_experiment_category = None, None
         last_path_name, last_path_category = None, None
 
-        for point in float_point_values:
+        for point in data_points:
             exp_category = (
                 last_experiment_category
                 if last_experiment_name == point[ExperimentNameIndex]
@@ -230,24 +232,68 @@ def create_dataframe(
         types.append(("preview_completion", "float64"))
 
     df = pd.DataFrame(
-        np.fromiter(generate_categorized_rows(data_points), dtype=types),
+        np.fromiter(generate_categorized_rows(), dtype=types),
     )
 
     experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
     df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
 
     df = _pivot_and_reindex_df(df, include_point_previews, index_column_name, timestamp_column_name)
-    df = _restore_path_column_names(df, path_mapping, type_suffix_in_column_names)
+    df = _restore_path_column_names(df, path_mapping, "float_series" if type_suffix_in_column_names else None)
+    df = _sort_indices(df)
 
-    # MultiIndex DFs need to have column index order swapped: value/metric_name -> metric_name/value.
-    # We also sort columns, but only after the original names have been restored.
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns.names = (None, None)
-        df = df.swaplevel(axis=1)
-        df = df.sort_index(axis=1, level=0)
-    else:
-        df.columns.name = None
-        df = df.sort_index(axis=1)
+    return df
+
+
+def create_series_dataframe(
+    series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]],
+    sys_id_label_mapping: dict[identifiers.SysId, str],
+    index_column_name: str,
+    timestamp_column_name: Optional[str],
+) -> pd.DataFrame:
+    experiment_mapping: dict[identifiers.SysId, int] = {}
+    path_mapping: dict[str, int] = {}
+    label_mapping: list[str] = []
+
+    for run_definition in series_data.keys():
+        if run_definition.run_identifier.sys_id not in experiment_mapping:
+            experiment_mapping[run_definition.run_identifier.sys_id] = len(experiment_mapping)
+            label_mapping.append(sys_id_label_mapping[run_definition.run_identifier.sys_id])
+
+        if run_definition.attribute_definition.name not in path_mapping:
+            path_mapping[run_definition.attribute_definition.name] = len(path_mapping)
+
+    def generate_categorized_rows() -> Generator[Tuple, None, None]:
+        for attribute, values in series_data.items():
+            exp_category = experiment_mapping[attribute.run_identifier.sys_id]
+            path_category = path_mapping[attribute.attribute_definition.name]
+
+            if timestamp_column_name:
+                for point in values:
+                    yield exp_category, path_category, point.step, point.value, point.timestamp_millis
+            else:
+                for point in values:
+                    yield exp_category, path_category, point.step, point.value
+
+    types = [
+        (index_column_name, "uint32"),
+        ("path", "uint32"),
+        ("step", "float64"),
+        ("value", "object"),
+    ]
+    if timestamp_column_name:
+        types.append((timestamp_column_name, "uint64"))
+
+    df = pd.DataFrame(
+        np.fromiter(generate_categorized_rows(), dtype=types),
+    )
+
+    experiment_dtype = pd.CategoricalDtype(categories=label_mapping)
+    df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
+
+    df = _pivot_and_reindex_df(df, False, index_column_name, timestamp_column_name)
+    df = _restore_path_column_names(df, path_mapping, None)
+    df = _sort_indices(df)
 
     return df
 
@@ -255,8 +301,8 @@ def create_dataframe(
 def _pivot_and_reindex_df(
     df: pd.DataFrame,
     include_point_previews: bool,
-    index_column_name: str = "experiment",
-    timestamp_column_name: Optional[str] = None,
+    index_column_name: str,
+    timestamp_column_name: Optional[str],
 ) -> pd.DataFrame:
     values: Union[str, list[str]] = "value"
 
@@ -280,7 +326,7 @@ def _pivot_and_reindex_df(
 
 
 def _restore_path_column_names(
-    df: pd.DataFrame, path_mapping: dict[str, int], type_suffix_in_column_names: bool
+    df: pd.DataFrame, path_mapping: dict[str, int], type_suffix: Optional[str]
 ) -> pd.DataFrame:
     """
     Accepts an DF in an intermediate format in _create_dataframe, and the mapping of column names.
@@ -288,8 +334,20 @@ def _restore_path_column_names(
     """
 
     # We need to reverse the mapping to index -> column name
-    if type_suffix_in_column_names:
-        reverse_mapping = {index: path + ":float_series" for path, index in path_mapping.items()}
+    if type_suffix:
+        reverse_mapping = {index: f"{path}:{type_suffix}" for path, index in path_mapping.items()}
     else:
         reverse_mapping = {index: path for path, index in path_mapping.items()}
     return df.rename(columns=reverse_mapping)
+
+
+def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
+    # MultiIndex DFs need to have column index order swapped: value/metric_name -> metric_name/value.
+    # We also sort columns, but only after the original names have been restored.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns.names = (None, None)
+        df = df.swaplevel(axis=1)
+        return df.sort_index(axis=1, level=0)
+    else:
+        df.columns.name = None
+        return df.sort_index(axis=1)

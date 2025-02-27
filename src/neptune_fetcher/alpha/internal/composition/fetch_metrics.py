@@ -45,7 +45,7 @@ from neptune_fetcher.alpha.internal.context import (
     validate_context,
 )
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
-from neptune_fetcher.alpha.internal.output_format import create_dataframe
+from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
     split,
@@ -112,7 +112,7 @@ def fetch_metrics(
             container_type=container_type,
         )
 
-        df = create_dataframe(
+        df = create_metrics_dataframe(
             values_generator,
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,

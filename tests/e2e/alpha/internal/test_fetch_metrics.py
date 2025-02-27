@@ -33,7 +33,7 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.context import get_context
-from neptune_fetcher.alpha.internal.output_format import create_dataframe
+from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
 
@@ -166,7 +166,7 @@ def create_expected_data(
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
             rows.extend(limited)
 
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         rows,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
