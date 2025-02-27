@@ -72,7 +72,7 @@ class SysIdLabel(Protocol):
 
 
 @dataclass(frozen=True)
-class ExperimentSysAttrs(SysIdLabel):
+class ExperimentSysAttrs:
     sys_id: identifiers.SysId
     sys_name: identifiers.SysName
 
@@ -93,7 +93,7 @@ class ExperimentSysAttrs(SysIdLabel):
 
 
 @dataclass(frozen=True)
-class RunSysAttrs(SysIdLabel):
+class RunSysAttrs:
     sys_id: identifiers.SysId
     sys_custom_run_id: identifiers.CustomRunId
 
