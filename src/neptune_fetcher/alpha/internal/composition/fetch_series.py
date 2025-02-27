@@ -39,6 +39,7 @@ from neptune_fetcher.alpha.internal.context import (
     get_context,
     validate_context,
 )
+from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
     attribute_definitions,
     search,
@@ -194,12 +195,12 @@ def _fetch_series(
             for run_attribute_definition, series_values in result.items:
                 series_data.setdefault(run_attribute_definition, []).extend(series_values)
 
-        # TODO
-        # index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
-        print(series_data)
-        print(sys_id_label_mapping)
-
-    return pd.DataFrame()
+        return create_series_dataframe(
+            series_data,
+            sys_id_label_mapping,
+            index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
+            timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+        )
 
 
 # TODO: common validation and output of series+metrics
