@@ -12,11 +12,14 @@ from datetime import (
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-04-29"
+TEST_DATA_VERSION = "2025-05-05"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
-FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
+LONG_FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" + "A" * 512 for j in range(20)]
+FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)] + LONG_FLOAT_SERIES_PATHS
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 NUMBER_OF_STEPS = 10
+
+LONG_INT_CONFIGS_PATHS = [f"{PATH}/configs/long-int-value_{j}" + "A" * 512 for j in range(5)]
 
 
 @dataclass
@@ -65,6 +68,8 @@ class TestData:
                     f"{PATH}/datetime-value": datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc),
                     f"{PATH}/unique-value-{i}": f"unique_{i}",
                 }
+
+                config |= {path: i for i, path in enumerate(LONG_INT_CONFIGS_PATHS)}
 
                 string_sets = {f"{PATH}/string_set-value": [f"string-{i}-{j}" for j in range(5)]}
                 float_series = {
