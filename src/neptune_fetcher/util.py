@@ -141,3 +141,31 @@ def create_auth_api_client(
         verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
     )
+
+
+def batched_paths(paths: list[str], batch_size: int, query_size_limit: int) -> list[list[str]]:
+    """
+    Split the provided list of attribute paths into batches such that:
+     * the number of items in a batch does not exceed `batch_size`
+     * the sum of lengths of paths in a batch does not exceed `query_size_limit`
+    """
+
+    batches = []
+    current_batch: list[str] = []
+    current_batch_size = 0
+
+    for path in paths:
+        path_size = len(path.encode("utf8"))
+
+        if current_batch and (len(current_batch) >= batch_size or current_batch_size + path_size > query_size_limit):
+            batches.append(current_batch)
+            current_batch = []
+            current_batch_size = 0
+
+        current_batch.append(path)
+        current_batch_size += path_size
+
+    if current_batch:
+        batches.append(current_batch)
+
+    return batches

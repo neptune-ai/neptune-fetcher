@@ -35,7 +35,10 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 from tqdm import tqdm
 
-from neptune_fetcher.api.api_client import ApiClient
+from neptune_fetcher.api.api_client import (
+    ApiClient,
+    backoff_retry,
+)
 from neptune_fetcher.fields import (
     Bool,
     DateTime,
@@ -50,12 +53,15 @@ from neptune_fetcher.fields import (
     Unsupported,
 )
 from neptune_fetcher.util import (
+    batched_paths,
     getenv_int,
     warn_unsupported_value_type,
 )
 
 # Maximum number of paths to fetch in a single request for fields definitions.
 MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
+# Maximum sum of lengths of all the paths sent in a single request for fields definition
+MAX_PATHS_SIZE_QUERY_LIMIT = getenv_int("NEPTUNE_MAX_PATH_SIZE_QUERY_LIMIT", 100_000)
 
 logger = logging.getLogger(__name__)
 
@@ -75,15 +81,14 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         missed_paths = list(set(missed_paths))
 
         # Split paths into chunks to avoid hitting the server limit in a single request
-        for start in range(0, len(missed_paths), MAX_PATHS_PER_REQUEST):
-            end = start + MAX_PATHS_PER_REQUEST
-            chunk = missed_paths[start:end]
-
-            response = get_attributes_with_paths_filter_proto.sync_detailed(
-                client=self._backend._backend,
-                body=AttributeQueryDTO.from_dict({"attributePathsFilter": chunk}),
-                holder_type="experiment",
-                holder_identifier=self._container_id,
+        for batch in batched_paths(missed_paths, MAX_PATHS_PER_REQUEST, MAX_PATHS_SIZE_QUERY_LIMIT):
+            response = backoff_retry(
+                lambda: get_attributes_with_paths_filter_proto.sync_detailed(
+                    client=self._backend._backend,
+                    body=AttributeQueryDTO.from_dict({"attributePathsFilter": batch}),
+                    holder_type="experiment",
+                    holder_identifier=self._container_id,
+                )
             )
             data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
 
