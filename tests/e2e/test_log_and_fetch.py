@@ -7,6 +7,8 @@ from datetime import (
     timezone,
 )
 
+import pytest
+
 from neptune_fetcher import ReadOnlyRun
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -171,3 +173,42 @@ def test_series_step_range(run, ro_run):
     df = ro_run[path].fetch_values(step_range=(steps[5], steps[15]))
     assert df["step"].tolist() == steps[5:16]
     assert df["value"].tolist() == values[5:16]
+
+
+# Test various combinations of metric lengths and counts, to see if the prefetching mechanism handles
+# them properly and does not bump into server limits.
+@pytest.mark.parametrize(
+    "add_path_len, count",
+    (
+        (0, 30_000),
+        (10, 26_000),
+        (128, 3_000),
+        (512, 750),
+    ),
+)
+def test_prefetch_long_existing_attribute_names(run, project, add_path_len, count):
+    path = unique_path("test-long")
+
+    configs = [f"{path}/ć{i}" + "A" * add_path_len for i in range(count)]
+    metrics = [f"{path}/ų{i}" + "A" * add_path_len for i in range(count)]
+
+    run.log_configs({config: i for i, config in enumerate(configs)})
+    run.log_metrics({metric: i for i, metric in enumerate(metrics)}, step=1)
+
+    run.wait_for_processing()
+
+    # prefetch()
+    ro_run = ReadOnlyRun(read_only_project=project, custom_id=run._run_id)
+    ro_run.prefetch(configs + metrics)
+    for i, config in enumerate(configs):
+        assert ro_run[config].fetch() == i
+
+    for i, metric in enumerate(metrics):
+        assert ro_run[metric].fetch_last() == i
+
+    # prefetch_series_values()
+    ro_run = ReadOnlyRun(read_only_project=project, custom_id=run._run_id)
+    ro_run.prefetch_series_values(metrics)
+
+    for i, metric in enumerate(metrics):
+        assert ro_run[metric].fetch_last() == i
