@@ -13,14 +13,24 @@ from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.identifiers import (
+    ProjectIdentifier,
+    RunIdentifier,
+    SysId,
+)
 from neptune_fetcher.alpha.internal.output_format import (
     convert_table_to_dataframe,
-    create_dataframe,
+    create_metrics_dataframe,
+    create_series_dataframe,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.retrieval.metrics import FloatPointValue
+from neptune_fetcher.alpha.internal.retrieval.series import (
+    RunAttributeDefinition,
+    StringSeriesValue,
+)
 
 EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -204,11 +214,11 @@ def _make_timestamp(year: int, month: int, day: int) -> float:
 
 
 @pytest.mark.parametrize("include_preview", [False, True])
-def test_create_dataframe_shape(include_preview):
+def test_create_metrics_dataframe_shape(include_preview):
     float_point_values = list(_generate_float_point_values(EXPERIMENTS, PATHS, STEPS, include_preview))
 
     """Test the creation of a flat DataFrame from float point values."""
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         float_point_values,
         include_point_previews=include_preview,
         type_suffix_in_column_names=False,
@@ -243,7 +253,7 @@ def test_create_dataframe_shape(include_preview):
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_preview", [True, False])
-def test_create_dataframe_with_absolute_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
+def test_create_metrics_dataframe_with_absolute_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
     data = [
         ("exp1", "path1", _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
@@ -251,7 +261,7 @@ def test_create_dataframe_with_absolute_timestamp(type_suffix_in_column_names: b
         ("exp2", "path1", _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
     ]
 
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         data,
         timestamp_column_name="absolute_time",
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -292,9 +302,56 @@ def test_create_dataframe_with_absolute_timestamp(type_suffix_in_column_names: b
     pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
 
 
+def _run_definition(run_id: str, attribute_path: str, attribute_type: str = "string_series") -> RunAttributeDefinition:
+    return RunAttributeDefinition(
+        RunIdentifier(ProjectIdentifier("foo/bar"), SysId(run_id)), AttributeDefinition(attribute_path, attribute_type)
+    )
+
+
+def test_create_series_dataframe_with_absolute_timestamp():
+    # Given
+    series_data = {
+        _run_definition("expid1", "path1"): [StringSeriesValue(1, "aaa", _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2"): [StringSeriesValue(2, "bbb", _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1"): [StringSeriesValue(1, "ccc", _make_timestamp(2023, 1, 2))],
+    }
+    sys_id_label_mapping = {
+        SysId("expid1"): "exp1",
+        SysId("expid2"): "exp2",
+    }
+
+    df = create_series_dataframe(
+        series_data=series_data,
+        sys_id_label_mapping=sys_id_label_mapping,
+        index_column_name="experiment",
+        timestamp_column_name="absolute_time",
+    )
+
+    # Then
+    expected = {
+        ("path1", "absolute_time"): [
+            datetime(2023, 1, 1, tzinfo=timezone.utc),
+            np.nan,
+            datetime(2023, 1, 2, tzinfo=timezone.utc),
+        ],
+        ("path1", "value"): ["aaa", np.nan, "ccc"],
+        ("path2", "absolute_time"): [
+            np.nan,
+            datetime(2023, 1, 3, tzinfo=timezone.utc),
+            np.nan,
+        ],
+        ("path2", "value"): [np.nan, "bbb", np.nan],
+    }
+    expected_df = pd.DataFrame(
+        dict(sorted(expected.items())),
+        index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
+    )
+    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+
+
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_preview", [True, False])
-def test_create_dataframe_without_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
+def test_create_metrics_dataframe_without_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
     data = [
         ("exp1", "path1", _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
@@ -302,7 +359,7 @@ def test_create_dataframe_without_timestamp(type_suffix_in_column_names: bool, i
         ("exp2", "path1", _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
     ]
 
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         data,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
@@ -338,11 +395,13 @@ def test_create_dataframe_without_timestamp(type_suffix_in_column_names: bool, i
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_preview", [True, False])
 @pytest.mark.parametrize("timestamp_column_name", [None, "absolute"])
-def test_create_empty_dataframe(type_suffix_in_column_names: bool, include_preview: bool, timestamp_column_name: str):
+def test_create_empty_metrics_dataframe(
+    type_suffix_in_column_names: bool, include_preview: bool, timestamp_column_name: str
+):
     # Given empty dataframe
 
     # When
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         [],
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
@@ -368,13 +427,43 @@ def test_create_empty_dataframe(type_suffix_in_column_names: bool, include_previ
     pd.testing.assert_frame_equal(df, expected_df, check_index_type=False)
 
 
+@pytest.mark.parametrize("timestamp_column_name", [None, "absolute"])
+def test_create_empty_series_dataframe(timestamp_column_name: str):
+    # Given empty dataframe
+
+    # When
+    df = create_series_dataframe(
+        series_data={},
+        sys_id_label_mapping={},
+        index_column_name="experiment",
+        timestamp_column_name=timestamp_column_name,
+    )
+
+    # Then
+    if timestamp_column_name:
+        expected_df = pd.DataFrame(
+            index=pd.MultiIndex.from_tuples([], names=["experiment", "step"]),
+            columns=pd.MultiIndex.from_tuples([], names=["path", "metric"]),  # Create empty MultiIndex for columns
+        )
+        expected_df.columns.names = None, None
+    else:
+        expected_df = pd.DataFrame(
+            {
+                "experiment": [],
+                "step": [],
+            }
+        ).set_index(["experiment", "step"])
+
+    pd.testing.assert_frame_equal(df, expected_df, check_index_type=False)
+
+
 @pytest.mark.parametrize(
     "path", ["value", "step", "experiment", "value", "timestamp", "is_preview", "preview_completion"]
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_preview", [True, False])
 @pytest.mark.parametrize("timestamp_column_name", ["absolute_time"])
-def test_create_dataframe_with_reserved_paths_with_multiindex(
+def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
     path: str, type_suffix_in_column_names: bool, include_preview: bool, timestamp_column_name: str
 ):
     # Given
@@ -384,7 +473,7 @@ def test_create_dataframe_with_reserved_paths_with_multiindex(
         ("exp2", path, _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
     ]
 
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         data,
         timestamp_column_name=timestamp_column_name,
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -433,7 +522,7 @@ def test_create_dataframe_with_reserved_paths_with_multiindex(
     "path", ["value", "step", "experiment", "value", "timestamp", "is_preview", "preview_completion"]
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-def test_create_dataframe_with_reserved_paths_with_flat_index(path: str, type_suffix_in_column_names: bool):
+def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str, type_suffix_in_column_names: bool):
     # Given
     data = [
         ("exp1", path, _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
@@ -441,7 +530,7 @@ def test_create_dataframe_with_reserved_paths_with_flat_index(path: str, type_su
         ("exp2", path, _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
     ]
 
-    df = create_dataframe(
+    df = create_metrics_dataframe(
         data,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
