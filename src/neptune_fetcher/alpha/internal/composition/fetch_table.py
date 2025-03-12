@@ -165,9 +165,9 @@ def _fetch_table(
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
 
-    valid_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(valid_context)
-    project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = _context.get_valid_context(context)
+    client = _client.get_client(valid_context.api_token)
+    project_identifier = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -176,7 +176,7 @@ def _fetch_table(
 
         type_inference.infer_attribute_types_in_filter(
             client=client,
-            project_identifier=project,
+            project_identifier=project_identifier,
             filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -185,7 +185,7 @@ def _fetch_table(
 
         type_inference.infer_attribute_types_in_sort_by(
             client=client,
-            project_identifier=project,
+            project_identifier=project_identifier,
             filter_=filter_,
             sort_by=sort_by,
             executor=executor,
@@ -200,7 +200,7 @@ def _fetch_table(
         def go_fetch_experiment_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
             for page in search.fetch_experiment_sys_attrs(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 filter_=filter_,
                 sort_by=sort_by,
                 sort_direction=_sort_direction,
@@ -216,7 +216,7 @@ def _fetch_table(
         def go_fetch_run_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
             for page in search.fetch_run_sys_attrs(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 filter_=filter_,
                 sort_by=sort_by,
                 sort_direction=_sort_direction,
@@ -239,7 +239,7 @@ def _fetch_table(
             executor=executor,
             downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -249,7 +249,7 @@ def _fetch_table(
                     downstreams=[
                         lambda: _components.fetch_attribute_values_split(
                             client=client,
-                            project_identifier=project,
+                            project_identifier=project_identifier,
                             executor=executor,
                             sys_ids=sys_ids_split,
                             attribute_definitions=definitions_page.items,
