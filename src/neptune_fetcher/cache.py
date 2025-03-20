@@ -33,6 +33,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoAttributeDTO,
     ProtoAttributesDTO,
 )
+from google.protobuf.message import DecodeError
 from tqdm import tqdm
 
 from neptune_fetcher.api.api_client import (
@@ -90,7 +91,10 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
                     holder_identifier=self._container_id,
                 )
             )
-            data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
+            try:
+                data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
+            except DecodeError as e:
+                raise DecodeError(response.content)
 
             fetched = {attr.name: _extract_value(attr) for attr in data.attributes}
             self.update(fetched)
