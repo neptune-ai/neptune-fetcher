@@ -94,7 +94,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             try:
                 data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
             except DecodeError as e:
-                raise DecodeError(response.content)
+                raise DecodeError(response.content) from e
 
             fetched = {attr.name: _extract_value(attr) for attr in data.attributes}
             self.update(fetched)
