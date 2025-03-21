@@ -71,11 +71,14 @@ class ExperimentSysAttrs:
         return ["sys/name", "sys/id"]
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "ExperimentSysAttrs":
-        return ExperimentSysAttrs(
-            sys_name=identifiers.SysName(data["sys/name"]),
-            sys_id=identifiers.SysId(data["sys/id"]),
-        )
+    def from_dict(data: dict[str, Any]) -> Optional["ExperimentSysAttrs"]:
+        try:
+            return ExperimentSysAttrs(
+                sys_name=identifiers.SysName(data["sys/name"]),
+                sys_id=identifiers.SysId(data["sys/id"]),
+            )
+        except KeyError:
+            return None
 
 
 @dataclass(frozen=True)
@@ -88,15 +91,21 @@ class RunSysAttrs:
         return ["sys/custom_run_id", "sys/id"]
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "RunSysAttrs":
-        return RunSysAttrs(
-            sys_custom_run_id=identifiers.CustomRunId(data["sys/custom_run_id"]),
-            sys_id=identifiers.SysId(data["sys/id"]),
-        )
+    def from_dict(data: dict[str, Any]) -> Optional["RunSysAttrs"]:
+        try:
+            return RunSysAttrs(
+                sys_custom_run_id=identifiers.CustomRunId(data["sys/custom_run_id"]),
+                sys_id=identifiers.SysId(data["sys/id"]),
+            )
+        except KeyError:
+            return None
 
 
-def _sys_id_from_dict(data: dict[str, Any]) -> identifiers.SysId:
-    return identifiers.SysId(data["sys/id"])
+def _sys_id_from_dict(data: dict[str, Any]) -> Optional[identifiers.SysId]:
+    try:
+        return identifiers.SysId(data["sys/id"])
+    except KeyError:
+        return None
 
 
 class FetchSysAttrs(Protocol[T]):
@@ -116,7 +125,7 @@ class FetchSysAttrs(Protocol[T]):
 
 def _create_fetch_sys_attrs(
     attribute_names: list[str],
-    make_record: Callable[[dict[str, Any]], T],
+    make_record: Callable[[dict[str, Any]], Optional[T]],
     default_container_type: ContainerType,
 ) -> FetchSysAttrs[T]:
     def fetch_sys_attrs(
@@ -202,13 +211,14 @@ def _fetch_sys_attrs_page(
 
 def _process_sys_attrs_page(
     data: ProtoLeaderboardEntriesSearchResultDTO,
-    make_record: Callable[[dict[str, Any]], T],
+    make_record: Callable[[dict[str, Any]], Optional[T]],
 ) -> util.Page[T]:
     items = []
     for entry in data.entries:
         attributes = {attr.name: attr.string_properties.value for attr in entry.attributes}
         item = make_record(attributes)
-        items.append(item)
+        if item is not None:
+            items.append(item)
     return util.Page(items=items)
 
 
