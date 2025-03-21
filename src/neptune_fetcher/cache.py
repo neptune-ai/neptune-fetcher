@@ -59,9 +59,9 @@ from neptune_fetcher.util import (
 )
 
 # Maximum number of paths to fetch in a single request for fields definitions.
-MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 8000)
+MAX_PATHS_PER_REQUEST = getenv_int("NEPTUNE_MAX_PATHS_PER_REQUEST", 4096)
 # Maximum sum of lengths of all the paths sent in a single request for fields definition
-MAX_PATHS_SIZE_QUERY_LIMIT = getenv_int("NEPTUNE_MAX_PATH_SIZE_QUERY_LIMIT", 100_000)
+MAX_PATHS_SIZE_QUERY_LIMIT = getenv_int("NEPTUNE_MAX_PATH_SIZE_QUERY_LIMIT", 65536)
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         self._backend: ApiClient = backend
         self._container_id: str = container_id
 
-    def cache_miss(self, paths: List[str]) -> None:
+    def _fetch_missing_paths(self, paths: List[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
 
         if not missed_paths:
@@ -96,7 +96,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             self.update(fetched)
 
     def prefetch(self, paths: List[str]) -> None:
-        self.cache_miss(paths)
+        self._fetch_missing_paths(paths)
 
     def prefetch_series_values(
         self,
@@ -106,7 +106,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         include_inherited: bool = True,
         step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     ) -> None:
-        self.cache_miss(paths)
+        self._fetch_missing_paths(paths)
 
         float_series_paths = [path for path in paths if path in self and isinstance(self[path], FloatSeries)]
 
@@ -141,7 +141,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             list(futures)
 
     def __getitem__(self, path: str) -> Union[Field, FloatSeries]:
-        self.cache_miss(
+        self._fetch_missing_paths(
             paths=[
                 path,
             ]
