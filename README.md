@@ -9,6 +9,12 @@
 Neptune Fetcher is designed to separate data retrieval capabilities from the logging API. This separation
 makes data fetching more efficient and improves performance.
 
+## Documentation
+
+- [Fetching how-to guides][fetcher-guide]
+- [Fetcher API reference][fetcher-api-ref]
+- [Update your code from old Fetcher to Alpha][fetcher-migration]
+
 ## Installation
 
 ```bash
@@ -113,6 +119,7 @@ see [Apache License Version 2.0][license].
 
 [construct-filters]: https://docs-beta.neptune.ai/construct_fetching_filters
 [fetch-data]: https://docs-beta.neptune.ai/fetch_metadata
+[fetcher-api-ref]: https://docs-beta.neptune.ai/fetcher/attribute
 [fetcher-guide]: https://docs-beta.neptune.ai/query_metadata
 [fetcher-migration]: https://docs-beta.neptune.ai/fetcher_migration
 [project-explo]: https://docs-beta.neptune.ai/list_project_contents
