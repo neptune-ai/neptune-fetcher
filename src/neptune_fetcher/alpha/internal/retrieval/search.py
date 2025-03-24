@@ -61,10 +61,24 @@ class ContainerType(Enum):
     EXPERIMENT = "experiment"
 
 
+class SysIdLabel(Protocol):
+    @property
+    def sys_id(self) -> identifiers.SysId:
+        ...
+
+    @property
+    def label(self) -> str:
+        ...
+
+
 @dataclass(frozen=True)
 class ExperimentSysAttrs:
     sys_id: identifiers.SysId
     sys_name: identifiers.SysName
+
+    @property
+    def label(self) -> str:
+        return self.sys_name
 
     @staticmethod
     def attribute_names() -> list[str]:
@@ -82,6 +96,10 @@ class ExperimentSysAttrs:
 class RunSysAttrs:
     sys_id: identifiers.SysId
     sys_custom_run_id: identifiers.CustomRunId
+
+    @property
+    def label(self) -> str:
+        return self.sys_custom_run_id
 
     @staticmethod
     def attribute_names() -> list[str]:
@@ -168,6 +186,16 @@ fetch_run_sys_attrs = _create_fetch_sys_attrs(
     make_record=RunSysAttrs.from_dict,
     default_container_type=ContainerType.RUN,
 )
+
+
+def fetch_sys_id_labels(container_type: ContainerType) -> FetchSysAttrs[SysIdLabel]:
+    if container_type == ContainerType.EXPERIMENT:
+        return fetch_experiment_sys_attrs  # type: ignore
+    elif container_type == ContainerType.RUN:
+        return fetch_run_sys_attrs  # type: ignore
+    else:
+        raise RuntimeError(f"Unexpected container type: {container_type}")
+
 
 fetch_experiment_sys_ids = _create_fetch_sys_attrs(
     attribute_names=["sys/id"], make_record=_sys_id_from_dict, default_container_type=ContainerType.EXPERIMENT
