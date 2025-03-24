@@ -8,3 +8,4 @@ pytest-retry
 pytest-timeout
 icecream
 git+https://github.com/neptune-ai/neptune-client-scale.git@main
+protobuf==4.21.1
