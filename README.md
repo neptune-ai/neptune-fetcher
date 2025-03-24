@@ -1,13 +1,17 @@
 # Neptune Fetcher
 
 > [!NOTE]
-> This package is experimental and only works with Neptune Scale, which is in beta.
+> This package is experimental and only works with Neptune Scale (`scale.neptune.ai`), which is in beta.
 >
-> You can't use this package with `neptune<2.0` or the currently available Neptune app version. For the corresponding
-> Python API, see [neptune-client](https://github.com/neptune-ai/neptune-client).
+> For the Python API corresponding to `app.neptune.ai`, see [neptune-client][neptune-client].
 
-Neptune Fetcher is designed to separate data retrieval capabilities from the logging API. This separation
-makes data fetching more efficient and improves performance.
+Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Scale client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
+
+With the Fetcher API, you can:
+
+- List experiments, runs, and attributes of a project.
+- Fetch experiment or run metadata as a data frame.
+- Define filters to fetch experiments, runs, and attributes that meet certain criteria.
 
 ## Documentation
 
@@ -113,8 +117,7 @@ To update your code to the new version, see [Migrate to Fetcher Alpha][fetcher-m
 
 ## License
 
-This project is licensed under the Apache License Version 2.0. For more details,
-see [Apache License Version 2.0][license].
+This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
 
 
 [construct-filters]: https://docs-beta.neptune.ai/construct_fetching_filters
@@ -126,5 +129,8 @@ see [Apache License Version 2.0][license].
 [runs-api]: https://docs-beta.neptune.ai/fetcher_runs_api
 [set-context]: https://docs-beta.neptune.ai/set_fetching_context
 [setup]: https://docs-beta.neptune.ai/setup
+
+[neptune-client]: https://github.com/neptune-ai/neptune-client
+[neptune-client-scale]: https://github.com/neptune-ai/neptune-client-scale
 
 [license]: http://www.apache.org/licenses/LICENSE-2.0
