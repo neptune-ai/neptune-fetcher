@@ -102,7 +102,7 @@ For instructions, see the [how-to guides][fetcher-guide] in the Neptune document
 
 ## Old Fetcher API
 
-For documentation related to the previous version of the Fetcher API, see:
+For documentation related to the previous version of the Fetcher API, see the `docs/old/` directory:
 
 - [docs/old/usage.md](docs/old/usage.md)
 - [docs/old/api_reference.md](docs/old/api_reference.md)
