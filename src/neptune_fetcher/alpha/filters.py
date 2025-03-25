@@ -59,38 +59,20 @@ class AttributeFilter(BaseAttributeFilter):
         aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of aggregation functions
             to apply when fetching metrics of type FloatSeries. Defaults to ["last"].
 
-    Examples:
-
-    Import the needed classes:
+    Example:
 
     ```
     import neptune_fetcher.alpha as npt
-    from npt.filters import AttributeFilter
-    ```
+    from neptune_fetcher.alpha.filters import AttributeFilter
 
-    Select attribute by exact name:
 
-    ```
-    AttributeFilter(name_eq="config/optimizer")
-    ```
-
-    Select metrics not matching regexes `^test` or `loss$` and pick the "average" and "variance" aggregations:
-
-    ```
-    AttributeFilter(
+    loss_avg_and_var = AttributeFilter(
         type_in=["float_series"],
-        name_matches_none=[r"^test", r"loss$"],
+        name_matches_all=[r"loss$"],
         aggregations=["average", "variance"],
     )
-    ```
 
-    Combine multiple filters with the pipe character:
-
-    ```
-    filter_1 = AttributeFilter(...)
-    filter_2 = AttributeFilter(...)
-    filter_3 = AttributeFilter(...)
-    alternatives = filter_1 | filter_2 | filter_3
+    npt.fetch_experiments_table(attributes=loss_avg_and_var)
     ```
     """
 
@@ -136,24 +118,20 @@ class Attribute:
             that have the same name but are of a different type.
             For a reference, see: https://docs-beta.neptune.ai/attribute_types
 
-    Examples:
+    Example:
 
     Select a metric and pick variance as the aggregation:
 
     ```
     import neptune_fetcher.alpha as npt
-    from npt.filters import Attribute, Filter
+    from neptune_fetcher.alpha.filters import Attribute, Filter
 
 
     val_loss_variance = Attribute(
         name="val/loss",
         aggregation="variance",
     )
-    ```
-
-    Construct a filter around the attribute, then pass it to a fetching or listing method:
-
-    ```
+    # Construct a filter and pass it to a fetching or listing method
     tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
     npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
     ```
@@ -193,72 +171,38 @@ class Filter(ABC):
     You can negate a filter or join multiple filters with logical operators.
 
     Methods available for attribute values:
-    - `eq()`: Equals
-    - `ne()`: Doesn't equal
-    - `gt()`: Greater than
-    - `ge()`: Greater than or equal to
-    - `lt()`: Less than
-    - `le()`: Less than or equal to
-    - `matches_all()`: Matches regex or all in list of regexes
-    - `matches_none()`: Doesn't match regex or any of list of regexes
+    - `name_eq()`: Run or experiment name equals
+    - `name_in()`: Run or experiment name equals any in list of names
+    - `eq()`: Value equals
+    - `ne()`: Value doesn't equal
+    - `gt()`: Value is greater than
+    - `ge()`: Value is greater than or equal to
+    - `lt()`: Value is less than
+    - `le()`: Value is less than or equal to
+    - `matches_all()`: Value matches regex or all in list of regexes
+    - `matches_none()`: Value doesn't match regex or any of list of regexes
     - `contains_all()`: Tagset contains all tags, or string contains substrings
     - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
     - `exists()`: Attribute exists
 
     Examples:
 
-    Import the needed classes:
-
     ```
     import neptune_fetcher.alpha as npt
-    from npt.filters import Attribute, Filter
-    ```
+    from neptune_fetcher.alpha.filters import Filter
 
-    Constructing filters:
+    # Fetch metadata from specific experiments
+    specific_experiments = name_in(["flying-123", "swimming-77"])
+    npt.fetch_experiments_table(experiments=specific_experiments)
 
-    A) Regex that the experiment or run name must match:
-
-    ```
-    name_filter = Filter.matches_all("sys/name", r"kittiwake$")
-    ```
-
-    B) Don't allow the tags "test" or "val":
-
-    ```
-    no_test_or_val = Filter.contains_none("sys/tags", ["test", "val"])
-    ```
-
-    C) Set a condition for the last logged value of a metric:
-
-    ```
+    # Define various criteria
+    owned_by_me = Filter.eq("sys/owner", "vidar")
     loss_filter = Filter.lt("validation/loss", 0.1)
-    ```
+    tag_filter = Filter.contains_none("sys/tags", ["test", "buggy"])
+    dataset_check = Filter.exists("dataset_version")
 
-    For more control over the selected metric, use the `Attribute()` helper class.
-
-    D) Negate a filter: Call `negate()` or prepend with `~`:
-
-    ```
-    not_loss_filter = ~loss_filter
-    # equivalent to
-    not_loss_filter = Filter.negate(loss_filter)
-    ```
-
-    C) Combining filters:
-
-    - To join with AND: Use `&` or pass the filters to the `all()` method.
-    - To join with OR: Use `|` or pass the filters to the `any()` method.
-
-    ```
-    name_and_loss_filter = name_filter & loss_filter
-    # equivalent to
-    name_and_loss_filter = Filter.all(name_filter, loss_filter)
-    ```
-
-    To use a filter in a query, pass it as the argument to a fetching or listing method:
-
-    ```
-    npt.fetch_experiments_table(experiments=name_and_loss_filter)
+    my_interesting_experiments = owned_by_me & loss_filter & tag_filter & dataset_check
+    npt.fetch_experiments_table(experiments=my_interesting_experiments)
     ```
     """
 
