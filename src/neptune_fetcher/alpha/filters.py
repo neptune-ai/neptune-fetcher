@@ -192,7 +192,7 @@ class Filter(ABC):
     from neptune_fetcher.alpha.filters import Filter
 
     # Fetch metadata from specific experiments
-    specific_experiments = name_in("flying-123", "swimming-77")
+    specific_experiments = Filter.name_in("flying-123", "swimming-77")
     npt.fetch_experiments_table(experiments=specific_experiments)
 
     # Define various criteria
