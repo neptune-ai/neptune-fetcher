@@ -172,7 +172,7 @@ class Filter(ABC):
 
     Methods available for attribute values:
     - `name_eq()`: Run or experiment name equals
-    - `name_in()`: Run or experiment name equals any in list of names
+    - `name_in()`: Run or experiment name equals any of the provided names
     - `eq()`: Value equals
     - `ne()`: Value doesn't equal
     - `gt()`: Value is greater than
@@ -192,7 +192,7 @@ class Filter(ABC):
     from neptune_fetcher.alpha.filters import Filter
 
     # Fetch metadata from specific experiments
-    specific_experiments = name_in(["flying-123", "swimming-77"])
+    specific_experiments = Filter.name_in("flying-123", "swimming-77")
     npt.fetch_experiments_table(experiments=specific_experiments)
 
     # Define various criteria
