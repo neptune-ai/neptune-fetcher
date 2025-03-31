@@ -52,6 +52,7 @@ from neptune_fetcher.alpha.internal.retrieval import search as _search
 
 def list_experiments(
     experiments: Optional[Union[str, _filters.Filter]] = None,
+    *,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -71,6 +72,7 @@ def list_experiments(
 def list_attributes(
     experiments: Optional[Union[str, _filters.Filter]] = None,
     attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    *,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -105,6 +107,7 @@ def list_attributes(
 def fetch_metrics(
     experiments: Union[str, _filters.Filter],
     attributes: Union[str, _filters.AttributeFilter],
+    *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -161,6 +164,7 @@ def fetch_metrics(
 def fetch_experiments_table(
     experiments: Optional[Union[str, _filters.Filter]] = None,
     attributes: Union[str, _filters.AttributeFilter] = "^sys/name$",
+    *,
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
