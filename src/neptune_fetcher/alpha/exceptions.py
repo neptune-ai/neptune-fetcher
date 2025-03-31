@@ -80,6 +80,19 @@ or with the `NEPTUNE_API_TOKEN` environment variable.
         )
 
 
+class NeptuneInvalidCredentialsError(NeptuneUserError):
+    def __init__(self) -> None:
+        super().__init__(
+            """
+{h1}NeptuneInvalidCredentialsError: Your Neptune API token was rejected by the server.{end}
+
+Make sure to specify a valid API token with `set_api_token()` function,
+by providing the `context` argument with `project` and `api_token` set to the function call,
+or with the `NEPTUNE_API_TOKEN` environment variable.
+"""
+        )
+
+
 class AttributeTypeInferenceError(NeptuneError):
     def __init__(self, attribute_names: Iterable[str]) -> None:
         super().__init__(

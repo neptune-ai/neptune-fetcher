@@ -28,10 +28,14 @@ from typing import (
 )
 
 from neptune_api import AuthenticatedClient
+from neptune_api.errors import ApiKeyRejectedError
 from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.alpha import exceptions
-from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
+from neptune_fetcher.alpha.exceptions import (
+    NeptuneInvalidCredentialsError,
+    NeptuneProjectInaccessible,
+)
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -90,6 +94,9 @@ def backoff_retry(
         tries += 1
         try:
             response = func(*args, **kwargs)
+        except ApiKeyRejectedError as e:
+            # The API token is explicitly rejected by the backend -- don't retry anymore.
+            raise NeptuneInvalidCredentialsError from e
         except Exception as e:
             response = None
             last_exc = e
