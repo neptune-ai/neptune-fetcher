@@ -17,7 +17,7 @@ from tests.e2e.alpha.generator import (
     [
         ".*",
         None,
-        [run.experiment_name for run in ALL_STATIC_RUNS],
+        [run.custom_run_id for run in ALL_STATIC_RUNS],
         Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]),
     ],
 )
@@ -31,7 +31,7 @@ def test_list_all_runs(new_project_context: Context, all_filter):
     "linear_history_filter",
     [
         "linear.*",
-        [run.experiment_name for run in LINEAR_HISTORY_TREE],
+        [run.custom_run_id for run in LINEAR_HISTORY_TREE],
         Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]),
         Filter.eq("linear-history", True),
         Filter.eq(Attribute(name="linear-history", type="bool"), True),
