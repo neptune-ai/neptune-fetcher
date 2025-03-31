@@ -143,7 +143,9 @@ def test_validate_context_provided():
         get_valid_context(Context(api_token="bar"))
 
 
-@pytest.mark.parametrize("project", ["", "foo", "?/bar", "bar/?", "一个/bar", "Приве́т/bar"])
+@pytest.mark.parametrize(
+    "project", ["", "foo", "a/ab", "?/bar", "bar/?", "一个/bar", "Приве́т/bar", "a/abc\U00010000", "a/abc\U0010FFFF"]
+)
 def test_validate_context_invalid_name(project):
     with pytest.raises(NeptuneProjectInvalidName):
         get_valid_context(Context(project=project, api_token="bar"))
@@ -154,9 +156,10 @@ def test_validate_context_invalid_name(project):
     [
         "foo/bar",
         "FOO/BAR",
-        "foo/汉字",
+        "foo/a汉字",
         "_/bar",
         "foo/Приве́т",
+        "a/abc\U00009999",
     ],
 )
 def test_validate_context_valid_name(project):

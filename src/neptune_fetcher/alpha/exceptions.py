@@ -66,6 +66,7 @@ Ensure that:
 """
         )
 
+
 class NeptuneProjectInvalidName(NeptuneUserError):
     def __init__(self, project: str) -> None:
         super().__init__(
