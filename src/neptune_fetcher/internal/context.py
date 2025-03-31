@@ -26,6 +26,7 @@ from neptune_fetcher.internal.env import (
 
 __all__ = (
     "Context",
+    "ValidContext",
     "get_context",
     "set_context",
     "set_project",
@@ -121,7 +122,7 @@ def get_valid_context(context: Optional[Context] = None) -> ValidContext:
     return _validate_context(context or get_context())
 
 
-_PROJECT_PATH_PATTERN = re.compile(r"^([A-Za-z0-9-._]+)/([^/\\#?%]+)$")
+_PROJECT_PATH_PATTERN = re.compile(r"^([a-zA-Z0-9_.-]{1,30})/([^/\\\\#?%:\U00010000-\U0010FFFF]{3,128})$")
 
 
 def _validate_context(context: Optional[Context]) -> ValidContext:
