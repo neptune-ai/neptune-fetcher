@@ -160,6 +160,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
 @pytest.mark.parametrize(
     "experiment_filter",
     (
+        TEST_DATA.experiment_names,
         EXPERIMENTS_IN_THIS_TEST,
         rf"test_alpha_attribute_[0-9]+_{TEST_DATA_VERSION}",
         ".*",
@@ -183,6 +184,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
                 f"{PATH}/string_set-value",
             },
         ),
+        ([f"{PATH}/int-value", f"{PATH}/float-value"], {f"{PATH}/int-value", f"{PATH}/float-value"}),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
         (AttributeFilter(name_matches_all=PATH), TEST_DATA.all_attribute_names),
         (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),

@@ -40,7 +40,7 @@ from neptune_fetcher.alpha.internal.retrieval import search as _search
 
 
 def list_runs(
-    runs: Optional[Union[str, _filters.Filter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
@@ -53,13 +53,17 @@ def list_runs(
     """
     if isinstance(runs, str):
         runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    elif isinstance(runs, list):
+        runs = _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
 
     return _list_containers.list_containers(runs, context, _search.ContainerType.RUN)
 
 
 def list_attributes(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
@@ -79,18 +83,24 @@ def list_attributes(
     """
     if isinstance(runs, str):
         runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    elif isinstance(runs, list):
+        runs = _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
 
     if attributes is None:
         attributes = _filters.AttributeFilter()
     elif isinstance(attributes, str):
         attributes = _filters.AttributeFilter(name_matches_all=[attributes])
+    elif isinstance(attributes, list):
+        attributes = _filters.AttributeFilter(name_eq=attributes)
 
     return _list_attributes.list_attributes(runs, attributes, context, container_type=_search.ContainerType.RUN)
 
 
 def fetch_metrics(
-    runs: Union[str, _filters.Filter],
-    attributes: Union[str, _filters.AttributeFilter],
+    runs: Union[str, list[str], _filters.Filter],
+    attributes: Union[str, list[str], _filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -126,9 +136,15 @@ def fetch_metrics(
     """
     if isinstance(runs, str):
         runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    elif isinstance(runs, list):
+        runs = _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
 
     if isinstance(attributes, str):
         attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+    elif isinstance(attributes, list):
+        attributes = _filters.AttributeFilter(name_eq=attributes, type_in=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
         filter_=runs,
@@ -145,8 +161,8 @@ def fetch_metrics(
 
 
 def fetch_runs_table(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Union[str, _filters.AttributeFilter] = "^sys/name$",
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
@@ -175,9 +191,15 @@ def fetch_runs_table(
     """
     if isinstance(runs, str):
         runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), runs)
+    elif isinstance(runs, list):
+        runs = _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
 
     if isinstance(attributes, str):
         attributes = _filters.AttributeFilter(name_matches_all=attributes)
+    elif isinstance(attributes, list):
+        attributes = _filters.AttributeFilter(name_eq=attributes)
 
     if isinstance(sort_by, str):
         sort_by = _filters.Attribute(sort_by)
