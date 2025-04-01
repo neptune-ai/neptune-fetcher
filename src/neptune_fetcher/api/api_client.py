@@ -41,6 +41,7 @@ from typing import (
     Union,
 )
 
+import httpx
 from neptune_api.api.backend import get_project
 from neptune_api.credentials import Credentials
 from neptune_api.models import ProjectDTO
@@ -330,6 +331,14 @@ def backoff_retry(
         tries += 1
         try:
             response = func(*args, **kwargs)
+        except httpx.TimeoutException as e:
+            response = None
+            last_exc = e
+            logging.warning(
+                "Neptune API request timed out. Retrying...\n"
+                "Check your network connection or increase the timeout by setting the "
+                "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable (default: 60 seconds)."
+            )
         except Exception as e:
             response = None
             last_exc = e
