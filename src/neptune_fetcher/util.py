@@ -24,6 +24,7 @@ from typing import (
     Optional,
 )
 
+import httpx
 from neptune_api import (
     AuthenticatedClient,
     Client,
@@ -37,6 +38,9 @@ from neptune_api.models import (
 )
 
 NEPTUNE_VERIFY_SSL: Final[bool] = os.environ.get("NEPTUNE_VERIFY_SSL", "1").lower() in {"1", "true"}
+# This timeout is applied to each networking call individually: connect, write, and read. Thus, it is
+# not a timeout for an entire API call.
+NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS: Final[float] = float(os.environ.get("NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS", "60"))
 
 
 def getenv_int(name: str, default: int, *, positive=True) -> int:
@@ -116,7 +120,10 @@ class TokenRefreshingURLs:
 def get_config_and_token_urls(
     *, credentials: Credentials, proxies: Optional[Dict[str, str]]
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
-    with Client(base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=NEPTUNE_VERIFY_SSL) as client:
+    timeout = httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS)
+    with Client(
+        base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=NEPTUNE_VERIFY_SSL, timeout=timeout
+    ) as client:
         config = get_client_config.sync(client=client)
         if config is None or isinstance(config, Error):
             raise RuntimeError(f"Failed to get client config: {config}")
@@ -140,6 +147,7 @@ def create_auth_api_client(
         api_key_exchange_callback=exchange_api_key,
         verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
+        timeout=httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS),
     )
 
 
