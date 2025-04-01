@@ -5,9 +5,11 @@ from unittest.mock import (
 )
 
 import pytest
+from neptune_api.errors import ApiKeyRejectedError
 from pytest import fixture
 
 from neptune_fetcher.alpha.exceptions import (
+    NeptuneInvalidCredentialsError,
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
 )
@@ -92,6 +94,18 @@ def test_retry_limit_hit_on_response_error_pattern(sleep):
     exc.match("after 5 retries")
     exc.match("Last response status: 500")
     exc.match("""Last response content: Error 500 {"header":{}, "content": ""}""")
+
+
+def test_dont_retry_on_api_token_rejected(sleep):
+    """Should abort immediately on API token rejection with NeptuneInvalidCredentialsError"""
+
+    func = Mock(side_effect=ApiKeyRejectedError)
+    with pytest.raises(NeptuneInvalidCredentialsError) as exc:
+        backoff_retry(func, max_tries=10)
+
+    exc.match("API token was rejected")
+    func.assert_called_once()
+    sleep.assert_not_called()
 
 
 def test_no_error(response_200, sleep):

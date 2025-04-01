@@ -43,6 +43,7 @@ from typing import (
 
 from neptune_api.api.backend import get_project
 from neptune_api.credentials import Credentials
+from neptune_api.errors import ApiKeyRejectedError
 from neptune_api.models import ProjectDTO
 from neptune_retrieval_api.api.default import (
     get_multiple_float_series_values_proto,
@@ -330,6 +331,11 @@ def backoff_retry(
         tries += 1
         try:
             response = func(*args, **kwargs)
+        except ApiKeyRejectedError as e:
+            # The API token is explicitly rejected by the backend -- don't retry anymore.
+            raise NeptuneException(
+                "Your API token was rejected by the Neptune backend because it is either unknown or expired."
+            ) from e
         except Exception as e:
             response = None
             last_exc = e

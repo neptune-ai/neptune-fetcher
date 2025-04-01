@@ -5,6 +5,7 @@ from unittest.mock import (
 )
 
 import pytest
+from neptune_api.errors import ApiKeyRejectedError
 from pytest import fixture
 
 from neptune_fetcher.api.api_client import backoff_retry
@@ -73,6 +74,18 @@ def test_retry_limit_hit_on_exception_and_response_error(response_500, sleep):
 
     exc.match("Last exception: foo")
     exc.match("Last response:.*500")
+
+
+def test_dont_retry_on_api_token_rejected(sleep):
+    """Should abort immediately on API token rejection"""
+
+    func = Mock(side_effect=ApiKeyRejectedError)
+    with pytest.raises(NeptuneException) as exc:
+        backoff_retry(func, max_tries=10)
+
+    exc.match("API token was rejected")
+    func.assert_called_once()
+    sleep.assert_not_called()
 
 
 def test_no_error(response_200, sleep):
