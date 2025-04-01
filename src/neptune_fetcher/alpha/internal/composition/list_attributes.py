@@ -14,19 +14,14 @@
 # limitations under the License.
 #
 
-__all__ = (
-    "list_experiment_attributes",
-    "list_run_attributes",
-)
+__all__ = ("list_attributes",)
 
 from typing import (
     Generator,
     Optional,
-    Union,
 )
 
 from neptune_fetcher.alpha.filters import (
-    Attribute,
     AttributeFilter,
     Filter,
 )
@@ -49,70 +44,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
 )
 
 
-def list_experiment_attributes(
-    experiments: Optional[Union[str, Filter]] = None,
-    attributes: Optional[Union[str, AttributeFilter]] = None,
-    context: Optional[Context] = None,
-) -> list[str]:
-    """
-    List attributes' names in project.
-    Optionally filter by experiments and attributes.
-    `experiments` - a filter specifying experiments to which the attributes belong
-        - a regex that experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a list of unique attribute names in experiments matching the filter.
-    """
-
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-
-    if attributes is None:
-        attributes = AttributeFilter()
-    elif isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=[attributes])
-
-    return _list_attributes(experiments, attributes, context, container_type=search.ContainerType.EXPERIMENT)
-
-
-def list_run_attributes(
-    runs: Optional[Union[str, Filter]] = None,
-    attributes: Optional[Union[str, AttributeFilter]] = None,
-    context: Optional[Context] = None,
-) -> list[str]:
-    """
-    List the names of attributes in a project.
-    Optionally filter by runs and attributes.
-    `runs` - a filter specifying runs to which the attributes belong
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a list of unique attribute names in runs matching the filter.
-    """
-    if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if attributes is None:
-        attributes = AttributeFilter()
-    elif isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=[attributes])
-
-    return _list_attributes(runs, attributes, context, container_type=search.ContainerType.RUN)
-
-
-def _list_attributes(
+def list_attributes(
     filter_: Optional[Filter],
     attributes: AttributeFilter,
     context: Optional[Context],

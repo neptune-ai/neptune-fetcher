@@ -12,15 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import (
-    Optional,
-    Union,
-)
+from typing import Optional
 
-from neptune_fetcher.alpha.filters import (
-    Attribute,
-    Filter,
-)
+from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import context as _context
 from neptune_fetcher.alpha.internal import identifiers
@@ -30,49 +24,10 @@ from neptune_fetcher.alpha.internal.composition import (
 )
 from neptune_fetcher.alpha.internal.retrieval import search
 
-__all__ = (
-    "list_experiments",
-    "list_runs",
-)
+__all__ = ("list_containers",)
 
 
-def list_experiments(
-    experiments: Optional[Union[str, Filter]] = None,
-    context: Optional[_context.Context] = None,
-) -> list[str]:
-    """
-     Returns a list of experiment names in a project.
-
-    `experiments` - a filter specifying which experiments to include
-         - a regex that experiment name must match, or
-         - a Filter object
-    `context` - a Context object to be used; primarily useful for switching projects
-    """
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-
-    return _list_containers(experiments, context, search.ContainerType.EXPERIMENT)
-
-
-def list_runs(
-    runs: Optional[Union[str, Filter]] = None,
-    context: Optional[_context.Context] = None,
-) -> list[str]:
-    """
-     Returns a list of run IDs in a project.
-
-    `runs` - a filter specifying which runs to include
-         - a regex that the run ID must match, or
-         - a Filter object
-    `context` - a Context object to be used; primarily useful for switching projects
-    """
-    if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    return _list_containers(runs, context, search.ContainerType.RUN)
-
-
-def _list_containers(
+def list_containers(
     filter_: Optional[Filter],
     context: Optional[_context.Context],
     container_type: search.ContainerType,
