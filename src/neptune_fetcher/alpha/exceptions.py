@@ -86,9 +86,13 @@ class NeptuneInvalidCredentialsError(NeptuneUserError):
             """
 {h1}NeptuneInvalidCredentialsError: Your Neptune API token was rejected by the server.{end}
 
-Make sure to specify a valid API token with `set_api_token()` function,
-by providing the `context` argument with `project` and `api_token` set to the function call,
-or with the `NEPTUNE_API_TOKEN` environment variable.
+Make sure to specify a valid token in one of the following ways:
+
+- Call the `set_api_token()` function
+- Create a Context with the API token and pass it to the `context` argument of the fetching method
+- Set the `NEPTUNE_API_TOKEN` environment variable
+
+For details, see https://docs-beta.neptune.ai/fetcher_setup
 """
         )
 
