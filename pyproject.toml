@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.9"
 
 # Base neptune package
-neptune-api = "^0.13.0"
+neptune-api = ">=0.13,<0.13"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
