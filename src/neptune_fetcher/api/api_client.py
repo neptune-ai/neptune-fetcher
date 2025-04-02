@@ -87,6 +87,7 @@ from neptune_fetcher.util import (
     get_config_and_token_urls,
 )
 
+logger = logging.getLogger(__name__)
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)
 
@@ -340,7 +341,7 @@ def backoff_retry(
         except httpx.TimeoutException as e:
             response = None
             last_exc = e
-            logging.warning(
+            logger.warning(
                 "Neptune API request timed out. Retrying...\n"
                 "Check your network connection or increase the timeout by setting the "
                 "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable (default: 60 seconds)."
