@@ -40,7 +40,7 @@ from neptune_fetcher.alpha.internal.retrieval import search as _search
 
 
 def list_runs(
-    runs: Optional[Union[str, _filters.Filter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     *,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
@@ -58,8 +58,8 @@ def list_runs(
 
 
 def list_attributes(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
     *,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
@@ -85,8 +85,8 @@ def list_attributes(
 
 
 def fetch_metrics(
-    runs: Union[str, _filters.Filter],
-    attributes: Union[str, _filters.AttributeFilter],
+    runs: Union[str, list[str], _filters.Filter],
+    attributes: Union[str, list[str], _filters.AttributeFilter],
     *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -140,8 +140,8 @@ def fetch_metrics(
 
 
 def fetch_runs_table(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Union[str, _filters.AttributeFilter] = "^sys/name$",
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
     *,
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
@@ -185,17 +185,25 @@ def fetch_runs_table(
     )
 
 
-def _resolve_runs_filter(runs: Optional[Union[str, _filters.Filter]]) -> Optional[_filters.Filter]:
+def _resolve_runs_filter(runs: Optional[Union[str, list[str], _filters.Filter]]) -> Optional[_filters.Filter]:
     if isinstance(runs, str):
         return _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    if isinstance(runs, list):
+        return _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
     return runs
 
 
-def _resolve_attributes_filter(attributes: Optional[Union[str, _filters.AttributeFilter]]) -> _filters.AttributeFilter:
+def _resolve_attributes_filter(
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]]
+) -> _filters.AttributeFilter:
     if attributes is None:
         return _filters.AttributeFilter()
     if isinstance(attributes, str):
         return _filters.AttributeFilter(name_matches_all=[attributes])
+    if isinstance(attributes, list):
+        return _filters.AttributeFilter(name_eq=attributes)
     return attributes
 
 

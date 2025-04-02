@@ -189,6 +189,7 @@ def create_expected_data(
 @pytest.mark.parametrize(
     "exp_filter",
     [
+        lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
         lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
     ],
