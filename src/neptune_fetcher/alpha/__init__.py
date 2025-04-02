@@ -63,8 +63,7 @@ def list_experiments(
          - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
-    if isinstance(experiments, str):
-        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), regex=experiments)
+    experiments = _resolve_experiments_filter(experiments)
 
     return _list_containers.list_containers(experiments, context, _search.ContainerType.EXPERIMENT)
 
@@ -90,14 +89,8 @@ def list_attributes(
 
     Returns a list of unique attribute names in experiments matching the filter.
     """
-
-    if isinstance(experiments, str):
-        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), regex=experiments)
-
-    if attributes is None:
-        attributes = _filters.AttributeFilter()
-    elif isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=[attributes])
+    experiments = _resolve_experiments_filter(experiments)
+    attributes = _resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
         experiments, attributes, context, container_type=_search.ContainerType.EXPERIMENT
@@ -141,14 +134,12 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    if isinstance(experiments, str):
-        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), regex=experiments)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+    experiments_ = _resolve_experiments_filter(experiments)
+    assert experiments_ is not None
+    attributes = _resolve_attributes_filter(attributes)
 
     return _fetch_metrics.fetch_metrics(
-        filter_=experiments,
+        filter_=experiments_,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -191,14 +182,9 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
-    if isinstance(experiments, str):
-        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes)
-
-    if isinstance(sort_by, str):
-        sort_by = _filters.Attribute(sort_by)
+    experiments = _resolve_experiments_filter(experiments)
+    attributes = _resolve_attributes_filter(attributes)
+    sort_by = _resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
         filter_=experiments,
@@ -210,3 +196,23 @@ def fetch_experiments_table(
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
     )
+
+
+def _resolve_experiments_filter(experiments: Optional[Union[str, _filters.Filter]]) -> Optional[_filters.Filter]:
+    if isinstance(experiments, str):
+        return _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
+    return experiments
+
+
+def _resolve_attributes_filter(attributes: Optional[Union[str, _filters.AttributeFilter]]) -> _filters.AttributeFilter:
+    if attributes is None:
+        return _filters.AttributeFilter()
+    if isinstance(attributes, str):
+        return _filters.AttributeFilter(name_matches_all=attributes)
+    return attributes
+
+
+def _resolve_sort_by(sort_by: Union[str, _filters.Attribute]) -> _filters.Attribute:
+    if isinstance(sort_by, str):
+        return _filters.Attribute(sort_by)
+    return sort_by
