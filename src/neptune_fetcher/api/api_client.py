@@ -21,17 +21,13 @@ __all__ = (
     "get_config_and_token_urls",
 )
 
-import logging
 import re
-import time
 from dataclasses import dataclass
 from datetime import (
     datetime,
     timezone,
 )
 from typing import (
-    Any,
-    Callable,
     Dict,
     Iterator,
     List,
@@ -41,10 +37,8 @@ from typing import (
     Union,
 )
 
-import httpx
 from neptune_api.api.backend import get_project
 from neptune_api.credentials import Credentials
-from neptune_api.errors import ApiKeyRejectedError
 from neptune_api.models import ProjectDTO
 from neptune_retrieval_api.api.default import (
     get_multiple_float_series_values_proto,
@@ -74,7 +68,6 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
-from neptune_retrieval_api.types import Response
 
 from neptune_fetcher.fields import (
     FieldDefinition,
@@ -83,13 +76,10 @@ from neptune_fetcher.fields import (
 )
 from neptune_fetcher.util import (
     NeptuneException,
+    backoff_retry,
     create_auth_api_client,
     get_config_and_token_urls,
 )
-
-logger = logging.getLogger(__name__)
-# Disable httpx logging, httpx logs requests at INFO level
-logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 class ApiClient:
@@ -305,76 +295,3 @@ class _SeriesRequest:
     include_inherited: bool
     after_step: Optional[float]
     include_point_previews: bool = False
-
-
-def backoff_retry(
-    func: Callable, *args, max_tries: int = 5, backoff_factor: float = 0.5, max_backoff: float = 30.0, **kwargs
-) -> Response[Any]:
-    """
-    Retries a function with exponential backoff. The function will be called at most `max_tries` times.
-
-    :param func: The function to retry.
-    :param max_tries: Maximum number of times `func` will be called, including retries.
-    :param backoff_factor: Factor by which the backoff time increases.
-    :param max_backoff: Maximum backoff time.
-    :param args: Positional arguments to pass to the function.
-    :param kwargs: Keyword arguments to pass to the function.
-    :return: The result of the function call.
-    """
-
-    if max_tries < 1:
-        raise ValueError("max_tries must be greater than or equal to 1")
-
-    tries = 0
-    last_exc = None
-    last_response = None
-
-    while True:
-        tries += 1
-        try:
-            response = func(*args, **kwargs)
-        except ApiKeyRejectedError as e:
-            # The API token is explicitly rejected by the backend -- don't retry anymore.
-            raise NeptuneException(
-                "Your API token was rejected by the Neptune backend because it is either unknown or expired."
-            ) from e
-        except httpx.TimeoutException as e:
-            response = None
-            last_exc = e
-            logger.warning(
-                "Neptune API request timed out. Retrying...\n"
-                "Check your network connection or increase the timeout by setting the "
-                "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable (default: 60 seconds)."
-            )
-        except Exception as e:
-            response = None
-            last_exc = e
-
-        if response is not None:
-            last_response = response
-
-            code = response.status_code.value
-            if 0 <= code < 300:
-                return response
-
-            # Not a TooManyRequests or InternalServerError code
-            if not (code == 429 or 500 <= code < 600):
-                raise NeptuneException(f"Unexpected server response {response.status_code}: {str(response.content)}")
-
-        if tries == max_tries:
-            break
-
-        # A retryable error occurred, back off and try again
-        backoff_time = min(backoff_factor * (2**tries), max_backoff)
-        time.sleep(backoff_time)
-
-    # No more retries left
-    msg = []
-    if last_exc:
-        msg.append(f"Last exception: {str(last_exc)}")
-    if last_response:
-        msg.append(f"Last response: {last_response.status_code}: {str(last_response.content)}")
-    if not msg:
-        raise NeptuneException("Unknown error occurred when requesting data")
-
-    raise NeptuneException(f"Failed to get response after {tries} retries. " + "\n".join(msg))
