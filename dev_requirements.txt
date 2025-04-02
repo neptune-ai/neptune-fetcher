@@ -7,4 +7,4 @@ pytest-mock
 pytest-retry
 pytest-timeout
 icecream
-git+https://github.com/neptune-ai/neptune-client-scale.git@kg/handle-api-key-rejected-error
+git+https://github.com/neptune-ai/neptune-client-scale.git@main
