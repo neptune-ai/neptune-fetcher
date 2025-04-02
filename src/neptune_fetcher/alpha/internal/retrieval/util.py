@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass
 from typing import (
@@ -27,6 +28,7 @@ from typing import (
     TypeVar,
 )
 
+import httpx
 from neptune_api import AuthenticatedClient
 from neptune_api.errors import ApiKeyRejectedError
 from neptune_retrieval_api.types import Response
@@ -36,6 +38,8 @@ from neptune_fetcher.alpha.exceptions import (
     NeptuneInvalidCredentialsError,
     NeptuneProjectInaccessible,
 )
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -97,6 +101,14 @@ def backoff_retry(
         except ApiKeyRejectedError as e:
             # The API token is explicitly rejected by the backend -- don't retry anymore.
             raise NeptuneInvalidCredentialsError from e
+        except httpx.TimeoutException as e:
+            response = None
+            last_exc = e
+            logger.warning(
+                "Neptune API request timed out. Retrying...\n"
+                "Check your network connection or increase the timeout by setting the "
+                "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable (default: 60 seconds)."
+            )
         except Exception as e:
             response = None
             last_exc = e
