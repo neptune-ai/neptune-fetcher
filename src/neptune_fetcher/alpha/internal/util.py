@@ -21,23 +21,35 @@ from typing import (
 from neptune_fetcher.alpha import filters as _filters
 
 
-def resolve_runs_filter(runs: Optional[Union[str, _filters.Filter]]) -> Optional[_filters.Filter]:
+def resolve_runs_filter(runs: Optional[Union[str, list[str], _filters.Filter]]) -> Optional[_filters.Filter]:
     if isinstance(runs, str):
         return _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    if isinstance(runs, list):
+        return _filters.Filter.any(
+            *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )
     return runs
 
 
-def resolve_experiments_filter(experiments: Optional[Union[str, _filters.Filter]]) -> Optional[_filters.Filter]:
+def resolve_experiments_filter(
+    experiments: Optional[Union[str, list[str], _filters.Filter]]
+) -> Optional[_filters.Filter]:
     if isinstance(experiments, str):
         return _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
+    if isinstance(experiments, list):
+        return _filters.Filter.name_in(*experiments)
     return experiments
 
 
-def resolve_attributes_filter(attributes: Optional[Union[str, _filters.AttributeFilter]]) -> _filters.AttributeFilter:
+def resolve_attributes_filter(
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]]
+) -> _filters.AttributeFilter:
     if attributes is None:
         return _filters.AttributeFilter()
     if isinstance(attributes, str):
         return _filters.AttributeFilter(name_matches_all=attributes)
+    if isinstance(attributes, list):
+        return _filters.AttributeFilter(name_eq=attributes)
     return attributes
 
 
