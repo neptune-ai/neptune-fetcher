@@ -48,6 +48,7 @@ from neptune_fetcher import (
     ReadOnlyProject,
     ReadOnlyRun,
 )
+from neptune_fetcher.internal import warnings as neptune_warnings
 from neptune_fetcher.legacy.api.api_client import ApiClient
 from neptune_fetcher.legacy.fetchable import SUPPORTED_TYPES
 from neptune_fetcher.legacy.util import (
@@ -266,7 +267,9 @@ def backend_cls():
 
 @fixture
 def project(backend_cls):
-    return ReadOnlyProject("workspace/project", "token")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=neptune_warnings.NeptuneWarning)
+        return ReadOnlyProject("workspace/project", "token")
 
 
 @contextmanager
@@ -281,13 +284,18 @@ def warns_and_forgets_types(*args, **kwargs):
 
     neptune_fetcher.legacy.util._warned_types.clear()
 
-    with pytest.warns(NeptuneWarning, *args, **kwargs) as record:
+    with pytest.warns((NeptuneWarning, neptune_warnings.NeptuneWarning), *args, **kwargs) as record:
         yield record
 
     neptune_fetcher.legacy.util._warned_types.clear()
 
 
-def _assert_warning(record, *attr_types):
+def _assert_deprecated_warning(record):
+    for rec in record:
+        assert "deprecated" in rec.message.args[0]
+
+
+def _assert_unsupported_type_warning(record, *attr_types):
     """Assert that a warning about unsupported types, for a given type, was issued exactly once."""
 
     if not attr_types:
@@ -314,7 +322,7 @@ def test_warn_unsupported_value_type():
     with pytest.warns(NeptuneWarning) as record:
         warn_unsupported_value_type("test")
 
-    _assert_warning(record, "test")
+    _assert_unsupported_type_warning(record, "test")
 
     # No warning should be issued.
     # This will trigger an error if a warning is issued, because of the warning_are_errors() fixture
@@ -326,13 +334,13 @@ def test_warn_and_forget_type():
         warn_unsupported_value_type("test")
         warn_unsupported_value_type("test")
 
-    _assert_warning(record, "test")
+    _assert_unsupported_type_warning(record, "test")
 
     with warns_and_forgets_types() as record:
         warn_unsupported_value_type("test")
         warn_unsupported_value_type("test")
 
-    _assert_warning(record, "test")
+    _assert_unsupported_type_warning(record, "test")
 
 
 # ReadOnlyRun tests
@@ -348,13 +356,14 @@ def test_run_no_warning_when_attribute_type_is_known(
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
     get_attributes_with_paths_filter_proto.return_value = proto_response(attrs)
 
-    run = ReadOnlyRun(project, RUN_ID)
-    for a in attrs.attributes:
-        run[a.name].fetch()
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"):
+        run = ReadOnlyRun(project, RUN_ID)
+        for a in attrs.attributes:
+            run[a.name].fetch()
 
-    run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
-    for a in attrs.attributes:
-        run[a.name].fetch()
+        run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
+        for a in attrs.attributes:
+            run[a.name].fetch()
 
 
 def test_field_names(project, query_attribute_definitions_proto):
@@ -367,11 +376,13 @@ def test_field_names(project, query_attribute_definitions_proto):
         assert "badAttr" in field_names
         assert "anotherAttr" in field_names
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
-    run = ReadOnlyRun(project, RUN_ID)
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"):
+        run = ReadOnlyRun(project, RUN_ID)
     field_names = set(run.field_names)
 
     assert "badAttr" not in field_names
@@ -394,7 +405,8 @@ def test_run_eager_load_attributes(project):
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
 
 def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_proto):
@@ -413,7 +425,8 @@ def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
 
 def test_run_fetch_missing_attribute(
@@ -425,7 +438,7 @@ def test_run_fetch_missing_attribute(
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
     # Attr does not exist yet
-    with pytest.raises(KeyError):
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"), pytest.raises(KeyError):
         run = ReadOnlyRun(project, RUN_ID)
         run["badAttr"].fetch()
         run["anotherAttr"].fetch()
@@ -439,7 +452,7 @@ def test_run_fetch_missing_attribute(
         assert run["badAttr"].fetch() is None
         assert run["anotherAttr"].fetch() is None
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
 
 def test_prefetch(project, get_attributes_with_paths_filter_proto):
@@ -451,7 +464,8 @@ def test_prefetch(project, get_attributes_with_paths_filter_proto):
         assert run["anotherAttr"].fetch() is None
         assert run["sys/id"].fetch() == RUN_ID
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
     get_attributes_with_paths_filter_proto.return_value = proto_response(make_proto_attributes_dto(None))
     run.prefetch(["badAttr", "anotherAttr", "sys/id"])
@@ -471,7 +485,8 @@ def test_series_no_prefetch(project):
 
         assert run["series"].fetch_last() == 42
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
 
 def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto, query_attribute_definitions_proto):
@@ -489,12 +504,13 @@ def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto,
 
         assert run["series"].fetch_last() == 42
 
-    _assert_warning(record)
+    _assert_deprecated_warning(record[0:1])
+    _assert_unsupported_type_warning(record[1:])
 
     get_attributes_with_paths_filter_proto.return_value = proto_response(make_proto_attributes_dto(None))
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
-    with pytest.raises(KeyError):
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"), pytest.raises(KeyError):
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch_series_values(["badAttr", "anotherAttr", "series"])
 
@@ -515,7 +531,7 @@ def test_fetch_runs_df(project, query_attributes_within_project_proto):
         assert row["badAttr"] is None
         assert row["anotherAttr"] is None
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attributes_within_project_proto.return_value = query_attributes_within_project_proto.SUPPORTED_TYPES_RESPONSE
 
@@ -546,7 +562,7 @@ def test_fetch_runs_df_sorting_with_bad_column(
     message = record.pop(NeptuneWarning).message
     assert "Could not find sorting column type for field 'badAttr'" in str(message)
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     # Make sure we defaulted to a known type once we couldn't find the sorting column
     query_attribute_definitions_within_project.assert_called_once()
@@ -564,7 +580,7 @@ def test_fetch_experiments_df(project, query_attributes_within_project_proto):
         assert row["badAttr"] is None
         assert row["anotherAttr"] is None
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attributes_within_project_proto.return_value = query_attributes_within_project_proto.SUPPORTED_TYPES_RESPONSE
 
@@ -595,7 +611,7 @@ def test_fetch_experiments_df_sorting_with_bad_column(
     message = record.pop(NeptuneWarning).message
     assert "Could not find sorting column type for field 'badAttr'" in str(message)
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     # Make sure we defaulted to a known type once we couldn't find the sorting column
     query_attribute_definitions_within_project.assert_called_once()
@@ -608,7 +624,7 @@ def test_fetch_runs(project, query_attributes_within_project_proto):
         warnings.simplefilter("once")
         df = project.fetch_runs()
         assert df.shape[0] == 1, "Only one run should be returned"
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attributes_within_project_proto.return_value = query_attributes_within_project_proto.SUPPORTED_TYPES_RESPONSE
 
@@ -622,7 +638,7 @@ def test_fetch_experiments(project, query_attributes_within_project_proto):
         warnings.simplefilter("once")
         df = project.fetch_experiments()
         assert df.shape[0] == 1, "Only one run should be returned"
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attributes_within_project_proto.return_value = query_attributes_within_project_proto.SUPPORTED_TYPES_RESPONSE
 
@@ -636,7 +652,7 @@ def test_fetch_read_only_runs(project, query_attribute_definitions_proto, search
         warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_runs(custom_ids=[RUN_ID]))) == 1
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
     search_leaderboard_entries_proto.return_value = search_leaderboard_entries_proto.SUPPORTED_TYPES_RESPONSE
@@ -650,7 +666,7 @@ def test_fetch_read_only_experiments(project, query_attribute_definitions_proto,
         warnings.simplefilter("once")
         assert len(list(project.fetch_read_only_experiments(names=["does-not-matter"]))) == 1
 
-    _assert_warning(record)
+    _assert_unsupported_type_warning(record)
 
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
     search_leaderboard_entries_proto.return_value = search_leaderboard_entries_proto.SUPPORTED_TYPES_RESPONSE

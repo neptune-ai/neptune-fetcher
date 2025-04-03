@@ -47,6 +47,7 @@ from neptune_retrieval_api.models import (
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoAttributeDTO
 from pandas import DataFrame
 
+from neptune_fetcher.internal import warnings as _warnings
 from neptune_fetcher.legacy.api.api_client import ApiClient
 from neptune_fetcher.legacy.nql import (
     NQLAggregator,
@@ -115,6 +116,10 @@ class ReadOnlyProject:
                 If left empty, the value of the NEPTUNE_API_TOKEN environment variable is used (recommended).
             proxies: A dictionary of proxy settings if needed.
         """
+        _warnings.warn_deprecated(
+            "ReadOnlyProject is deprecated. Use the new neptune-fetcher package instead.", stacklevel=3
+        )
+
         self._project: Optional[str] = project if project else os.getenv(PROJECT_ENV_NAME)
         if self._project is None:
             raise ValueError("Project name not found in the environment. Ensure that NEPTUNE_PROJECT is set.")

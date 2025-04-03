@@ -37,3 +37,9 @@ from neptune_fetcher import (
     set_context,
     set_project,
 )
+from neptune_fetcher.internal import warnings as _warnings
+
+_warnings.warn_deprecated(
+    "The `neptune_fetcher.alpha` package is deprecated and will be removed in future versions. "
+    "Please use the `neptune_fetcher` package instead.",
+)

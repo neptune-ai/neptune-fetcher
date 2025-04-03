@@ -16,7 +16,6 @@
 
 __all__ = [
     "NeptuneError",
-    "NeptuneWarning",
     "NeptuneUserError",
     "NeptuneProjectNotProvided",
     "NeptuneProjectInaccessible",
@@ -26,7 +25,6 @@ __all__ = [
     "ConflictingAttributeTypes",
     "NeptuneUnexpectedResponseError",
     "NeptuneRetryError",
-    "warn_unsupported_value_type",
 ]
 
 from neptune_fetcher.exceptions import (
@@ -40,6 +38,4 @@ from neptune_fetcher.exceptions import (
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
     NeptuneUserError,
-    NeptuneWarning,
-    warn_unsupported_value_type,
 )
