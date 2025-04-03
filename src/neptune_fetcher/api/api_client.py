@@ -87,7 +87,7 @@ class ApiClient:
         credentials = Credentials.from_api_key(api_key=api_token)
         config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
         self._backend = create_auth_api_client(
-            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies
+            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies, api_version="v0"
         )
 
     def cleanup(self) -> None:
