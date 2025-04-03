@@ -5,7 +5,7 @@ import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.alpha.internal.output_format import create_dataframe
 from tests.e2e.alpha.generator import (
-    RUN_BY_ID,
+    RUNS_BY_ID,
     timestamp_for_step,
 )
 
@@ -33,7 +33,7 @@ from tests.e2e.alpha.generator import (
             r"^linear_history_root$",
             r"^foo0$",
             {
-                ("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0"),
+                ("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0"),
             },
             None,
             (None, None),
@@ -42,7 +42,7 @@ from tests.e2e.alpha.generator import (
         (
             r"^linear_history_root$",
             r"^foo0$",
-            {("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[-3:]},
+            {("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[-3:]},
             3,
             (None, None),
             True,
@@ -50,7 +50,7 @@ from tests.e2e.alpha.generator import (
         (
             r"^linear_history_root$",
             r"^foo0$",
-            {("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[0:7]},
+            {("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[0:7]},
             None,
             (0, 6),
             True,
@@ -58,7 +58,7 @@ from tests.e2e.alpha.generator import (
         (
             r"^linear_history_root$",
             r"^foo0$",
-            {("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[4:7]},
+            {("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[4:7]},
             3,
             (0, 6),
             True,
@@ -67,10 +67,10 @@ from tests.e2e.alpha.generator import (
             r"^linear_history_(root|fork1)$",
             r"foo.*",
             {
-                ("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
-                ("linear_history_root", "foo1"): RUN_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
-                ("linear_history_fork1", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
-                ("linear_history_fork1", "foo1"): RUN_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
+                ("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
+                ("linear_history_root", "foo1"): RUNS_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
+                ("linear_history_fork1", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
+                ("linear_history_fork1", "foo1"): RUNS_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
             },
             3,
             (0, 4),
@@ -80,10 +80,10 @@ from tests.e2e.alpha.generator import (
             r"^linear_history_(root|fork1)$",
             r"foo.*",
             {
-                ("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
-                ("linear_history_root", "foo1"): RUN_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
-                ("linear_history_fork1", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
-                ("linear_history_fork1", "foo1"): RUN_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
+                ("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
+                ("linear_history_root", "foo1"): RUNS_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
+                ("linear_history_fork1", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
+                ("linear_history_fork1", "foo1"): RUNS_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
             },
             3,
             (None, 4),
@@ -93,8 +93,8 @@ from tests.e2e.alpha.generator import (
             r"^linear_history_(root|fork1)$",
             r"foo.*",
             {
-                ("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
-                ("linear_history_root", "foo1"): RUN_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
+                ("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[2:5],
+                ("linear_history_root", "foo1"): RUNS_BY_ID["linear_history_root"].metrics_values("foo1")[2:5],
             },
             3,
             (0, 4),
@@ -104,8 +104,8 @@ from tests.e2e.alpha.generator import (
             r"^linear_history_(root|fork1)$",
             r"unique.*",
             {
-                ("linear_history_root", "unique1/0"): RUN_BY_ID["linear_history_root"].metrics_values("unique1/0"),
-                ("linear_history_fork1", "unique2/0"): RUN_BY_ID["linear_history_fork1"].metrics_values("unique2/0"),
+                ("linear_history_root", "unique1/0"): RUNS_BY_ID["linear_history_root"].metrics_values("unique1/0"),
+                ("linear_history_fork1", "unique2/0"): RUNS_BY_ID["linear_history_fork1"].metrics_values("unique2/0"),
             },
             None,
             (None, None),
@@ -115,8 +115,8 @@ from tests.e2e.alpha.generator import (
             r"^forked_history_fork1$",
             r"foo.*",
             {
-                ("forked_history_fork1", "foo0"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo0")[1:4],
-                ("forked_history_fork1", "foo1"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo1")[1:4],
+                ("forked_history_fork1", "foo0"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo0")[1:4],
+                ("forked_history_fork1", "foo1"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo1")[1:4],
             },
             3,
             (5, 10),
@@ -126,8 +126,8 @@ from tests.e2e.alpha.generator import (
             r"^forked_history_fork1$",
             r"foo.*",
             {
-                ("forked_history_fork1", "foo0"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo0")[0:4],
-                ("forked_history_fork1", "foo1"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo1")[0:4],
+                ("forked_history_fork1", "foo0"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo0")[0:4],
+                ("forked_history_fork1", "foo1"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo1")[0:4],
             },
             10,
             (None, None),
@@ -136,7 +136,7 @@ from tests.e2e.alpha.generator import (
         (
             r"^linear_history_root$",
             r"^foo0$",
-            {("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")[5:6]},
+            {("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")[5:6]},
             None,
             (5, 5),
             True,
@@ -152,7 +152,7 @@ from tests.e2e.alpha.generator import (
         (
             r"^linear_history_root$",
             r"^foo0$",
-            {("linear_history_root", "foo0"): RUN_BY_ID["linear_history_root"].metrics_values("foo0")},
+            {("linear_history_root", "foo0"): RUNS_BY_ID["linear_history_root"].metrics_values("foo0")},
             None,
             (0, 20),
             True,
@@ -162,12 +162,12 @@ from tests.e2e.alpha.generator import (
             r"^forked_history_.*$",
             r"foo.*",
             {
-                ("forked_history_root", "foo0"): RUN_BY_ID["forked_history_root"].metrics_values("foo0")[-1:],
-                ("forked_history_root", "foo1"): RUN_BY_ID["forked_history_root"].metrics_values("foo1")[-1:],
-                ("forked_history_fork1", "foo0"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo0")[-1:],
-                ("forked_history_fork1", "foo1"): RUN_BY_ID["forked_history_fork1"].metrics_values("foo1")[-1:],
-                ("forked_history_fork2", "foo0"): RUN_BY_ID["forked_history_fork2"].metrics_values("foo0")[-1:],
-                ("forked_history_fork2", "foo1"): RUN_BY_ID["forked_history_fork2"].metrics_values("foo1")[-1:],
+                ("forked_history_root", "foo0"): RUNS_BY_ID["forked_history_root"].metrics_values("foo0")[-1:],
+                ("forked_history_root", "foo1"): RUNS_BY_ID["forked_history_root"].metrics_values("foo1")[-1:],
+                ("forked_history_fork1", "foo0"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo0")[-1:],
+                ("forked_history_fork1", "foo1"): RUNS_BY_ID["forked_history_fork1"].metrics_values("foo1")[-1:],
+                ("forked_history_fork2", "foo0"): RUNS_BY_ID["forked_history_fork2"].metrics_values("foo0")[-1:],
+                ("forked_history_fork2", "foo1"): RUNS_BY_ID["forked_history_fork2"].metrics_values("foo1")[-1:],
             },
             1,
             (None, None),
