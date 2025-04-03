@@ -85,7 +85,8 @@ extend-ignore = "E203"
 
 [tool.mypy]
 mypy_path = "src/"
-packages = "neptune_fetcher.alpha"
+packages = ["neptune_fetcher.internal", "neptune_fetcher.alpha"]
+modules = ["neptune_fetcher", "neptune_fetcher.exceptions", "neptune_fetcher.filters", "neptune_fetcher.runs"]
 follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"
