@@ -35,7 +35,7 @@ def client() -> AuthenticatedClient:
     credentials = Credentials.from_api_key(api_key=api_token)
     config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=None)
     client = create_auth_api_client(
-        credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=None
+        credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=None, api_version="test"
     )
 
     return client
