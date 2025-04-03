@@ -184,17 +184,30 @@ def _generate_user_agent(api_version: str) -> str:
     from importlib.metadata import version
 
     fetcher_name = "neptune-fetcher"
-    fetcher_version = version(fetcher_name)
-    neptune_api_version = version("neptune-api")
-
-    python_ver = platform.python_version()
-    os_name = platform.system()
+    fetcher_version = "unknown"
     additional_metadata = {
-        "neptune-api": neptune_api_version,
-        "python": python_ver,
-        "os": os_name,
         "py-api": api_version,
+        "neptune-api": "unknown",
+        "python": "unknown",
+        "os": "unknown",
     }
+
+    try:
+        fetcher_version = version(fetcher_name)
+    except Exception:
+        pass
+    try:
+        additional_metadata["neptune-api"] = version("neptune-api")
+    except Exception:
+        pass
+    try:
+        additional_metadata["python"] = platform.python_version()
+    except Exception:
+        pass
+    try:
+        additional_metadata["os"] = platform.platform()
+    except Exception:
+        pass
 
     additional_metadata_str = "; ".join(f"{k}={v}" for k, v in additional_metadata.items())
     return f"{fetcher_name}/{fetcher_version} ({additional_metadata_str})"
