@@ -31,6 +31,7 @@ from neptune_fetcher.fetchable import (
     which_fetchable,
 )
 from neptune_fetcher.fields import FieldDefinition
+from neptune_fetcher.internal import warnings as _warnings
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
@@ -45,6 +46,9 @@ class ReadOnlyRun:
         experiment_name: Optional[str] = None,
         eager_load_fields: bool = True,
     ) -> None:
+        _warnings.warn_deprecated(
+            "ReadOnlyRun is deprecated. Use the new neptune-fetcher package instead.", stacklevel=3
+        )
         sys_id = ReadOnlyRun._select_and_validate_id(
             read_only_project, sys_id=with_id, custom_id=custom_id, experiment_name=experiment_name
         )

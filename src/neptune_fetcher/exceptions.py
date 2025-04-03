@@ -15,7 +15,6 @@
 # src/neptune_fetcher/alpha/internal/exception.py
 
 import platform
-import warnings
 from typing import (
     Any,
     Dict,
@@ -27,7 +26,6 @@ import neptune_fetcher.internal.env as env
 
 __all__ = [
     "NeptuneError",
-    "NeptuneWarning",
     "NeptuneUserError",
     "NeptuneProjectNotProvided",
     "NeptuneProjectInaccessible",
@@ -37,16 +35,10 @@ __all__ = [
     "ConflictingAttributeTypes",
     "NeptuneUnexpectedResponseError",
     "NeptuneRetryError",
-    "warn_unsupported_value_type",
 ]
 
 
 class NeptuneError(Exception):
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        super().__init__(message.format(**kwargs, **_styles))
-
-
-class NeptuneWarning(Warning):
     def __init__(self, message: str, **kwargs: Any) -> None:
         super().__init__(message.format(**kwargs, **_styles))
 
@@ -238,26 +230,3 @@ def _get_styles() -> Dict[str, str]:  # TODO: unused?
     if env.NEPTUNE_ENABLE_COLORS.get():
         return _styles
     return EMPTY_STYLES
-
-
-warnings.simplefilter("once", category=NeptuneWarning)
-
-# We keep a set of types we've warned the user about to make sure we warn about a type only once.
-# This is necessary because of a bug in pandas, that causes duplicate warnings to be issued everytime after an
-# DataFrame() is created (presumably only empty DF).
-# The bug basically makes `warnings.simplefilter("once", NeptuneWarning)` not work as expected, and would flood
-# the user with warnings in some cases.
-_warned_types = set()
-
-
-def warn_unsupported_value_type(type_: str) -> None:
-    if type_ in _warned_types:
-        return
-
-    _warned_types.add(type_)
-    warnings.warn(
-        f"A value of type `{type_}` was returned by your query. This type is not supported by your installed version "
-        "of neptune-fetcher. Values will evaluate to `None` and empty DataFrames. "
-        "Upgrade neptune-fetcher to access this data.",
-        NeptuneWarning,
-    )

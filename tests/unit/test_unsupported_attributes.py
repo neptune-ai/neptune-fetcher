@@ -50,6 +50,7 @@ from neptune_fetcher import (
 )
 from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fetchable import SUPPORTED_TYPES
+from neptune_fetcher.internal import warnings as neptune_warnings
 from neptune_fetcher.util import (
     NeptuneWarning,
     warn_unsupported_value_type,
@@ -266,7 +267,9 @@ def backend_cls():
 
 @fixture
 def project(backend_cls):
-    return ReadOnlyProject("workspace/project", "token")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=neptune_warnings.NeptuneWarning)
+        return ReadOnlyProject("workspace/project", "token")
 
 
 @contextmanager
@@ -281,7 +284,7 @@ def warns_and_forgets_types(*args, **kwargs):
 
     neptune_fetcher.util._warned_types.clear()
 
-    with pytest.warns(NeptuneWarning, *args, **kwargs) as record:
+    with pytest.warns((NeptuneWarning, neptune_warnings.NeptuneWarning), *args, **kwargs) as record:
         yield record
 
     neptune_fetcher.util._warned_types.clear()
@@ -348,13 +351,14 @@ def test_run_no_warning_when_attribute_type_is_known(
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
     get_attributes_with_paths_filter_proto.return_value = proto_response(attrs)
 
-    run = ReadOnlyRun(project, RUN_ID)
-    for a in attrs.attributes:
-        run[a.name].fetch()
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"):
+        run = ReadOnlyRun(project, RUN_ID)
+        for a in attrs.attributes:
+            run[a.name].fetch()
 
-    run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
-    for a in attrs.attributes:
-        run[a.name].fetch()
+        run = ReadOnlyRun(project, RUN_ID, eager_load_fields=False)
+        for a in attrs.attributes:
+            run[a.name].fetch()
 
 
 def test_field_names(project, query_attribute_definitions_proto):
@@ -367,11 +371,12 @@ def test_field_names(project, query_attribute_definitions_proto):
         assert "badAttr" in field_names
         assert "anotherAttr" in field_names
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
-    run = ReadOnlyRun(project, RUN_ID)
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"):
+        run = ReadOnlyRun(project, RUN_ID)
     field_names = set(run.field_names)
 
     assert "badAttr" not in field_names
@@ -394,7 +399,7 @@ def test_run_eager_load_attributes(project):
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
 
 def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_proto):
@@ -413,7 +418,7 @@ def test_run_no_eager_load_attributes(project, get_attributes_with_paths_filter_
         assert run["anotherAttr"].fetch_last() is None
         assert run["anotherAttr"].fetch_values().empty
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
 
 def test_run_fetch_missing_attribute(
@@ -425,7 +430,7 @@ def test_run_fetch_missing_attribute(
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
     # Attr does not exist yet
-    with pytest.raises(KeyError):
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"), pytest.raises(KeyError):
         run = ReadOnlyRun(project, RUN_ID)
         run["badAttr"].fetch()
         run["anotherAttr"].fetch()
@@ -451,7 +456,7 @@ def test_prefetch(project, get_attributes_with_paths_filter_proto):
         assert run["anotherAttr"].fetch() is None
         assert run["sys/id"].fetch() == RUN_ID
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
     get_attributes_with_paths_filter_proto.return_value = proto_response(make_proto_attributes_dto(None))
     run.prefetch(["badAttr", "anotherAttr", "sys/id"])
@@ -471,7 +476,7 @@ def test_series_no_prefetch(project):
 
         assert run["series"].fetch_last() == 42
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
 
 def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto, query_attribute_definitions_proto):
@@ -489,12 +494,12 @@ def test_prefetch_series_values(project, get_attributes_with_paths_filter_proto,
 
         assert run["series"].fetch_last() == 42
 
-    _assert_warning(record)
+    _assert_warning(record[1:])
 
     get_attributes_with_paths_filter_proto.return_value = proto_response(make_proto_attributes_dto(None))
     query_attribute_definitions_proto.return_value = query_attribute_definitions_proto.SUPPORTED_TYPES_RESPONSE
 
-    with pytest.raises(KeyError):
+    with pytest.warns(neptune_warnings.NeptuneWarning, match="deprecated"), pytest.raises(KeyError):
         run = ReadOnlyRun(project, RUN_ID)
         run.prefetch_series_values(["badAttr", "anotherAttr", "series"])
 
