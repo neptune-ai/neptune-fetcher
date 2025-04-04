@@ -92,6 +92,20 @@ from neptune_fetcher.alpha.filters import (
             },
         ),
         (
+            ["linear_history_root", "linear_history_fork2"],
+            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
+            {
+                "run": ["linear_history_root", "linear_history_fork2"],
+                ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
+                ("foo0:float_series", "variance"): [
+                    np.var([0.1 * i for i in range(10)]),
+                    np.var(
+                        [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 20)]
+                    ),
+                ],
+            },
+        ),
+        (
             r"forked_history_root|forked_history_fork1",
             r".*-value$",
             {
