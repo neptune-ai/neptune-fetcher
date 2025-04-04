@@ -32,6 +32,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
 from neptune_fetcher.alpha.internal import context as _context
+from neptune_fetcher.alpha.internal import util as _util
 from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.alpha.internal.composition import fetch_table as _fetch_table
 from neptune_fetcher.alpha.internal.composition import list_attributes as _list_attributes
@@ -52,7 +53,7 @@ def list_runs(
          - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
-    runs = _resolve_runs_filter(runs)
+    runs = _util.resolve_runs_filter(runs)
 
     return _list_containers.list_containers(runs, context, _search.ContainerType.RUN)
 
@@ -78,8 +79,8 @@ def list_attributes(
 
     Returns a list of unique attribute names in runs matching the filter.
     """
-    runs = _resolve_runs_filter(runs)
-    attributes = _resolve_attributes_filter(attributes)
+    runs = _util.resolve_runs_filter(runs)
+    attributes = _util.resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(runs, attributes, context, container_type=_search.ContainerType.RUN)
 
@@ -121,9 +122,9 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    runs_ = _resolve_runs_filter(runs)
+    runs_ = _util.resolve_runs_filter(runs)
     assert runs_ is not None
-    attributes = _resolve_attributes_filter(attributes)
+    attributes = _util.resolve_attributes_filter(attributes)
 
     return _fetch_metrics.fetch_metrics(
         filter_=runs_,
@@ -169,9 +170,9 @@ def fetch_runs_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     If you don't specify aggregates to return, only the last logged value of each metric is returned.
     """
-    runs = _resolve_runs_filter(runs)
-    attributes = _resolve_attributes_filter(attributes)
-    sort_by = _resolve_sort_by(sort_by)
+    runs = _util.resolve_runs_filter(runs)
+    attributes = _util.resolve_attributes_filter(attributes)
+    sort_by = _util.resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
         filter_=runs,
@@ -183,23 +184,3 @@ def fetch_runs_table(
         context=context,
         container_type=_search.ContainerType.RUN,
     )
-
-
-def _resolve_runs_filter(runs: Optional[Union[str, _filters.Filter]]) -> Optional[_filters.Filter]:
-    if isinstance(runs, str):
-        return _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
-    return runs
-
-
-def _resolve_attributes_filter(attributes: Optional[Union[str, _filters.AttributeFilter]]) -> _filters.AttributeFilter:
-    if attributes is None:
-        return _filters.AttributeFilter()
-    if isinstance(attributes, str):
-        return _filters.AttributeFilter(name_matches_all=[attributes])
-    return attributes
-
-
-def _resolve_sort_by(sort_by: Union[str, _filters.Attribute]) -> _filters.Attribute:
-    if isinstance(sort_by, str):
-        return _filters.Attribute(sort_by)
-    return sort_by
