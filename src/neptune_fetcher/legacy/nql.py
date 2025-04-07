@@ -38,7 +38,7 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.util import escape_nql_criterion
+from neptune_fetcher.legacy.util import escape_nql_criterion
 
 
 @dataclass

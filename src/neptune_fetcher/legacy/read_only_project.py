@@ -47,8 +47,8 @@ from neptune_retrieval_api.models import (
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoAttributeDTO
 from pandas import DataFrame
 
-from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.nql import (
+from neptune_fetcher.legacy.api.api_client import ApiClient
+from neptune_fetcher.legacy.nql import (
     NQLAggregator,
     NQLAttributeOperator,
     NQLAttributeType,
@@ -58,8 +58,8 @@ from neptune_fetcher.nql import (
     RawNQLQuery,
     prepare_nql_query,
 )
-from neptune_fetcher.read_only_run import ReadOnlyRun
-from neptune_fetcher.util import (
+from neptune_fetcher.legacy.read_only_run import ReadOnlyRun
+from neptune_fetcher.legacy.util import (
     NeptuneWarning,
     escape_nql_criterion,
     getenv_int,
@@ -1067,7 +1067,7 @@ def _verify_string_collection(
 
 
 def _warn_large_dataframe(max_size):
-    from neptune_fetcher.util import NeptuneWarning
+    from neptune_fetcher.legacy.util import NeptuneWarning
 
     warnings.warn(
         f"You have requested a dataset that is over {max_size} entries large. "

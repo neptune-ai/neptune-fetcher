@@ -69,12 +69,12 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
-from neptune_fetcher.fields import (
+from neptune_fetcher.legacy.fields import (
     FieldDefinition,
     FieldType,
     FloatPointValue,
 )
-from neptune_fetcher.util import (
+from neptune_fetcher.legacy.util import (
     NeptuneException,
     backoff_retry,
     create_auth_api_client,

@@ -48,9 +48,9 @@ from neptune_fetcher import (
     ReadOnlyProject,
     ReadOnlyRun,
 )
-from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fetchable import SUPPORTED_TYPES
-from neptune_fetcher.util import (
+from neptune_fetcher.legacy.api.api_client import ApiClient
+from neptune_fetcher.legacy.fetchable import SUPPORTED_TYPES
+from neptune_fetcher.legacy.util import (
     NeptuneWarning,
     warn_unsupported_value_type,
 )
@@ -260,7 +260,7 @@ def warnings_are_errors():
 
 @fixture
 def backend_cls():
-    with patch("neptune_fetcher.read_only_project.ApiClient", new=MockApiClient) as patched:
+    with patch("neptune_fetcher.legacy.read_only_project.ApiClient", new=MockApiClient) as patched:
         yield patched
 
 
@@ -279,12 +279,12 @@ def warns_and_forgets_types(*args, **kwargs):
     See comments for util.py:_warned_types for more details.
     """
 
-    neptune_fetcher.util._warned_types.clear()
+    neptune_fetcher.legacy.util._warned_types.clear()
 
     with pytest.warns(NeptuneWarning, *args, **kwargs) as record:
         yield record
 
-    neptune_fetcher.util._warned_types.clear()
+    neptune_fetcher.legacy.util._warned_types.clear()
 
 
 def _assert_warning(record, *attr_types):

@@ -19,8 +19,8 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 impor
 )
 from pytest import fixture
 
-from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fields import FloatPointValue
+from neptune_fetcher.legacy.api.api_client import ApiClient
+from neptune_fetcher.legacy.fields import FloatPointValue
 
 
 @fixture

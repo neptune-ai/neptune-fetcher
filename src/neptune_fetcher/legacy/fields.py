@@ -44,12 +44,12 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.util import warn_unsupported_value_type
+from neptune_fetcher.legacy.util import warn_unsupported_value_type
 
 if TYPE_CHECKING:
     from pandas import DataFrame
 
-    from neptune_fetcher.api.api_client import ApiClient
+    from neptune_fetcher.legacy.api.api_client import ApiClient
 
 T = TypeVar("T")
 

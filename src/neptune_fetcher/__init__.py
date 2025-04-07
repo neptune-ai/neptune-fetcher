@@ -78,9 +78,8 @@ from neptune_fetcher.internal.context import (
     set_project,
 )
 from neptune_fetcher.internal.retrieval import search as _search
-
-from .read_only_project import ReadOnlyProject
-from .read_only_run import ReadOnlyRun
+from neptune_fetcher.legacy.read_only_project import ReadOnlyProject
+from neptune_fetcher.legacy.read_only_run import ReadOnlyRun
 
 
 def list_experiments(

@@ -37,14 +37,14 @@ from typing import (
 
 from pandas import DataFrame
 
-from neptune_fetcher.api.api_client import ApiClient
-from neptune_fetcher.fields import (
+from neptune_fetcher.legacy.api.api_client import ApiClient
+from neptune_fetcher.legacy.fields import (
     FieldDefinition,
     FieldType,
 )
 
 if TYPE_CHECKING:
-    from neptune_fetcher.cache import FieldsCache
+    from neptune_fetcher.legacy.cache import FieldsCache
 
 logger = logging.getLogger(__name__)
 

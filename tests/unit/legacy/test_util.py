@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from neptune_fetcher.util import (
+from neptune_fetcher.legacy.util import (
     batched_paths,
     escape_nql_criterion,
 )

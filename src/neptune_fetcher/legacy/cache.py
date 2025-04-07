@@ -35,11 +35,11 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 )
 from tqdm import tqdm
 
-from neptune_fetcher.api.api_client import (
+from neptune_fetcher.legacy.api.api_client import (
     ApiClient,
     backoff_retry,
 )
-from neptune_fetcher.fields import (
+from neptune_fetcher.legacy.fields import (
     Bool,
     DateTime,
     Field,
@@ -52,7 +52,7 @@ from neptune_fetcher.fields import (
     StringSet,
     Unsupported,
 )
-from neptune_fetcher.util import (
+from neptune_fetcher.legacy.util import (
     batched_paths,
     getenv_int,
     warn_unsupported_value_type,

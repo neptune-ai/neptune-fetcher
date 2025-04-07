@@ -24,16 +24,16 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.cache import FieldsCache
-from neptune_fetcher.fetchable import (
+from neptune_fetcher.legacy.cache import FieldsCache
+from neptune_fetcher.legacy.fetchable import (
     Fetchable,
     FetchableSeries,
     which_fetchable,
 )
-from neptune_fetcher.fields import FieldDefinition
+from neptune_fetcher.legacy.fields import FieldDefinition
 
 if TYPE_CHECKING:
-    from neptune_fetcher.read_only_project import ReadOnlyProject
+    from neptune_fetcher.legacy.read_only_project import ReadOnlyProject
 
 
 class ReadOnlyRun:
