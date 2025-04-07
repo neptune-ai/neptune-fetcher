@@ -1,7 +1,7 @@
 import os
 import sys
 
-from neptune_fetcher.api.api_client import ApiClient
+from neptune_fetcher.legacy.api.api_client import ApiClient
 
 
 def create_project(backend: ApiClient, organization, name):
