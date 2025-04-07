@@ -164,6 +164,7 @@ def create_auth_api_client(
     config: ClientConfig,
     token_refreshing_urls: TokenRefreshingURLs,
     proxies: Optional[Dict[str, str]],
+    api_version: str,
 ) -> AuthenticatedClient:
     return AuthenticatedClient(
         base_url=credentials.base_url,
@@ -174,7 +175,42 @@ def create_auth_api_client(
         verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
         timeout=httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS),
+        headers={"User-Agent": _generate_user_agent(api_version)},
     )
+
+
+def _generate_user_agent(api_version: str) -> str:
+    import platform
+    from importlib.metadata import version
+
+    fetcher_name = "neptune-fetcher"
+    fetcher_version = "unknown"
+    additional_metadata = {
+        "py-api": api_version,
+        "neptune-api": "unknown",
+        "python": "unknown",
+        "os": "unknown",
+    }
+
+    try:
+        fetcher_version = version(fetcher_name)
+    except Exception:
+        pass
+    try:
+        additional_metadata["neptune-api"] = version("neptune-api")
+    except Exception:
+        pass
+    try:
+        additional_metadata["python"] = platform.python_version()
+    except Exception:
+        pass
+    try:
+        additional_metadata["os"] = platform.platform()
+    except Exception:
+        pass
+
+    additional_metadata_str = "; ".join(f"{k}={v}" for k, v in additional_metadata.items())
+    return f"{fetcher_name}/{fetcher_version} ({additional_metadata_str})"
 
 
 def batched_paths(paths: list[str], batch_size: int, query_size_limit: int) -> list[list[str]]:
