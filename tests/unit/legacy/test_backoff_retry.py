@@ -8,8 +8,10 @@ import pytest
 from neptune_api.errors import ApiKeyRejectedError
 from pytest import fixture
 
-from neptune_fetcher.legacy.api.api_client import backoff_retry
-from neptune_fetcher.legacy.util import NeptuneException
+from neptune_fetcher.legacy.util import (
+    NeptuneException,
+    backoff_retry,
+)
 
 
 @fixture(autouse=True)
