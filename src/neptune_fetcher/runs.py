@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023, Neptune Labs Sp. z o.o.
+# Copyright (c) 2025, Neptune Labs Sp. z o.o.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,47 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 __all__ = [
-    # legacy api
-    "ReadOnlyProject",
-    "ReadOnlyRun",
-    # new api
-    "Context",
-    "get_context",
-    "set_api_token",
-    "set_context",
-    "set_project",
-    "list_experiments",
+    "list_runs",
     "list_attributes",
-    "fetch_experiments_table",
+    "fetch_runs_table",
     "fetch_metrics",
 ]
-
-from importlib.metadata import (
-    PackageNotFoundError,
-    version,
-)
-
-try:
-    # This will raise PackageNotFoundError if the package is not installed
-    version("neptune-experimental")
-
-    raise ImportError(
-        """You have `neptune-experimental` installed. The package is deprecated and causes errors.
-
-Uninstall it before using `neptune-fetcher`:
-
-    pip uninstall -y neptune-experimental neptune-fetcher; pip install neptune-fetcher
-
-If you're using `uv`:
-
-    uv pip uninstall neptune-experimental neptune-fetcher; uv pip install neptune-fetcher
-
-    """
-    )
-except PackageNotFoundError:
-    pass
-
 
 from typing import (
     Literal,
@@ -65,72 +31,62 @@ from typing import (
 import pandas as _pandas
 
 from neptune_fetcher import filters as _filters
+from neptune_fetcher.internal import context as _context
 from neptune_fetcher.internal import util as _util
 from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.internal.composition import fetch_table as _fetch_table
 from neptune_fetcher.internal.composition import list_attributes as _list_attributes
 from neptune_fetcher.internal.composition import list_containers as _list_containers
-from neptune_fetcher.internal.context import (
-    Context,
-    get_context,
-    set_api_token,
-    set_context,
-    set_project,
-)
 from neptune_fetcher.internal.retrieval import search as _search
-from neptune_fetcher.legacy.read_only_project import ReadOnlyProject
-from neptune_fetcher.legacy.read_only_run import ReadOnlyRun
 
 
-def list_experiments(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
+def list_runs(
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     *,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
-     Returns a list of experiment names in a project.
+     Returns a list of run IDs in a project.
 
-    `experiments` - a filter specifying which experiments to include
-         - a regex that experiment name must match, or
+    `runs` - a filter specifying which runs to include
+         - a regex that the run ID must match, or
          - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
-    experiments = _util.resolve_experiments_filter(experiments)
+    runs = _util.resolve_runs_filter(runs)
 
-    return _list_containers.list_containers(experiments, context, _search.ContainerType.EXPERIMENT)
+    return _list_containers.list_containers(runs, context, _search.ContainerType.RUN)
 
 
 def list_attributes(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
     *,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
-    List attributes' names in project.
-    Optionally filter by experiments and attributes.
-    `experiments` - a filter specifying experiments to which the attributes belong
-        - a regex that experiment name must match, or
+    List the names of attributes in a project.
+    Optionally filter by runs and attributes.
+    `runs` - a filter specifying runs to which the attributes belong
+        - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
+        - a regex that the attribute name must match, or
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
             not supported in this function.
     `context` - a Context object to be used; primarily useful for switching projects
 
-    Returns a list of unique attribute names in experiments matching the filter.
+    Returns a list of unique attribute names in runs matching the filter.
     """
-    experiments = _util.resolve_experiments_filter(experiments)
+    runs = _util.resolve_runs_filter(runs)
     attributes = _util.resolve_attributes_filter(attributes)
 
-    return _list_attributes.list_attributes(
-        experiments, attributes, context, container_type=_search.ContainerType.EXPERIMENT
-    )
+    return _list_attributes.list_attributes(runs, attributes, context, container_type=_search.ContainerType.RUN)
 
 
 def fetch_metrics(
-    experiments: Union[str, list[str], _filters.Filter],
+    runs: Union[str, list[str], _filters.Filter],
     attributes: Union[str, list[str], _filters.AttributeFilter],
     *,
     include_time: Optional[Literal["absolute"]] = None,
@@ -139,39 +95,39 @@ def fetch_metrics(
     tail_limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
     include_point_previews: bool = False,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
-    `experiments` - a filter specifying which experiments to include
-        - a regex that experiment name must match, or
+    `runs` - a filter specifying which runs to include
+        - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
+        - a regex that the attribute name must match, or
         - an AttributeFilter object;
                 If `AttributeFilter.aggregations` is set, an exception will be raised as
                 they're not supported in this function.
     `include_time` - whether to include absolute timestamp
     `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
-        If False, only includes points from the most recent experiment in the lineage.
+    `lineage_to_the_root` - if True (default), includes all points from the complete run history.
+        If False, only includes points from the most recent run in the lineage.
     `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
+    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
+        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+        If False, an exception is raised if there are multiple types under one attribute path.
     `include_point_previews` - False by default. If False the returned results will only contain committed
         points. If True the results will also include preview points and the returned DataFrame will
         have additional sub-columns with preview status (is_preview and preview_completion).
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    experiments_ = _util.resolve_experiments_filter(experiments)
-    assert experiments_ is not None
+    runs_ = _util.resolve_runs_filter(runs)
+    assert runs_ is not None
     attributes = _util.resolve_attributes_filter(attributes)
 
     return _fetch_metrics.fetch_metrics(
-        filter_=experiments_,
+        filter_=runs_,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -180,51 +136,51 @@ def fetch_metrics(
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_point_previews,
         context=context,
-        container_type=_search.ContainerType.EXPERIMENT,
+        container_type=_search.ContainerType.RUN,
     )
 
 
-def fetch_experiments_table(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
+def fetch_runs_table(
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
     *,
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
-    context: Optional[Context] = None,
+    context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
-    `experiments` - a filter specifying which experiments to include in the table
-        - a regex that experiment name must match, or
+    `runs` - a filter specifying which runs to include in the table
+        - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
+        - a regex that the attribute name must match, or
         - an AttributeFilter object
     `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
     `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of experiments to return; by default all experiments are returned.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
+    `limit` - maximum number of runs to return; by default all runs are returned.
+    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
+        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+        If False, an exception is raised if there are multiple types under one attribute path.
     `context` - a Context object to be used; primarily useful for switching projects
 
-    Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
+    Returns a DataFrame similar to the runs table in the web app, with an important difference:
     aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
+    If you don't specify aggregates to return, only the last logged value of each metric is returned.
     """
-    experiments = _util.resolve_experiments_filter(experiments)
+    runs = _util.resolve_runs_filter(runs)
     attributes = _util.resolve_attributes_filter(attributes)
     sort_by = _util.resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
-        filter_=experiments,
+        filter_=runs,
         attributes=attributes,
         sort_by=sort_by,
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=context,
-        container_type=_search.ContainerType.EXPERIMENT,
+        container_type=_search.ContainerType.RUN,
     )

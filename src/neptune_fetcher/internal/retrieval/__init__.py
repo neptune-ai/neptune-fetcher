@@ -12,18 +12,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-
-__all__ = [
-    "list_runs",
-    "list_attributes",
-    "fetch_runs_table",
-    "fetch_metrics",
-]
-
-from neptune_fetcher.runs import (
-    fetch_metrics,
-    fetch_runs_table,
-    list_attributes,
-    list_runs,
-)
