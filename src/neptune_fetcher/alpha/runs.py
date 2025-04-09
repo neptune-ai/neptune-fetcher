@@ -40,12 +40,7 @@ def list_runs(
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
-     Returns a list of run IDs in a project.
-
-    `runs` - a filter specifying which runs to include
-         - a regex that the run ID must match, or
-         - a Filter object
-    `context` - a Context object to be used; primarily useful for switching projects
+    Deprecated. Use `list_runs` from the `neptune_fetcher.runs` package instead.
     """
     return _runs.list_runs(runs=runs, context=context)
 
@@ -56,19 +51,7 @@ def list_attributes(
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
-    List the names of attributes in a project.
-    Optionally filter by runs and attributes.
-    `runs` - a filter specifying runs to which the attributes belong
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a list of unique attribute names in runs matching the filter.
+    Deprecated. Use `list_attributes` from the `neptune_fetcher.runs` package instead.
     """
     return _runs.list_attributes(
         runs=runs,
@@ -89,29 +72,7 @@ def fetch_metrics(
     context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
-
-    `runs` - a filter specifying which runs to include
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
-    `include_time` - whether to include absolute timestamp
-    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete run history.
-        If False, only includes points from the most recent run in the lineage.
-    `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
-    `include_point_previews` - False by default. If False the returned results will only contain committed
-        points. If True the results will also include preview points and the returned DataFrame will
-        have additional sub-columns with preview status (is_preview and preview_completion).
-
-    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
+    Deprecated. Use `fetch_metrics` from the `neptune_fetcher.runs` package instead.
     """
     return _runs.fetch_metrics(
         runs=runs,
@@ -136,24 +97,7 @@ def fetch_runs_table(
     context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
-    `runs` - a filter specifying which runs to include in the table
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
-    `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of runs to return; by default all runs are returned.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a DataFrame similar to the runs table in the web app, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    If you don't specify aggregates to return, only the last logged value of each metric is returned.
+    Deprecated. Use `fetch_runs_table` from the `neptune_fetcher.runs` package instead.
     """
     return _runs.fetch_runs_table(
         runs=runs,
