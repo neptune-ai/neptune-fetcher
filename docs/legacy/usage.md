@@ -1,9 +1,7 @@
 # Using the old Fetcher API
 
 > [!NOTE]
-> We're redesigning the Fetcher API.
->
-> To try the new version, see [Migrate to Fetcher Alpha][fetcher-migration] in the Neptune docs.
+> We've redesigned the Fetcher API. See [Migrate from Legacy Fetcher][fetcher-migration] in the Neptune docs.
 
 In your Python code, create a [`ReadOnlyProject`][read-only-project] instance:
 

@@ -99,10 +99,10 @@ For instructions, see the [how-to guides][fetcher-guide] in the Neptune document
 
 ## Legacy API
 
-For documentation related to the legacy version of the Fetcher API, see the `docs/old/` directory:
+For documentation related to the legacy version of the Fetcher API, see the `docs/legacy/` directory:
 
-- [docs/old/usage.md](docs/old/usage.md)
-- [docs/old/api_reference.md](docs/old/api_reference.md)
+- [docs/legacy/usage.md](docs/legacy/usage.md)
+- [docs/legacy/api_reference.md](docs/legacy/api_reference.md)
 
 To update your code to the new version, see [Migrate from Legacy Fetcher][fetcher-migration] in the Neptune documentation.
 

@@ -1,9 +1,7 @@
 # Old Fetcher API reference
 
 > [!NOTE]
-> We're redesigning the Fetcher API.
->
-> To try the new version, see [Migrate to Fetcher Alpha][fetcher-migration] in the Neptune docs.
+> We've redesigned the Fetcher API. See [Migrate from Legacy Fetcher][fetcher-migration] in the Neptune docs.
 
 ## `ReadOnlyProject`
 
@@ -557,7 +555,6 @@ __Returns:__ `str`
 
 > [!NOTE]
 > The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
-> To learn more about this field, see [System namespace: State][sys-state] in the Neptune legacy docs.
 
 __Example:__
 
@@ -596,4 +593,3 @@ groups = run["sys/group_tags"].fetch()
 
 [docs-metric-previews]: https://docs-beta.neptune.ai/metric_previews
 [fetcher-migration]: https://docs-beta.neptune.ai/fetcher_migration
-[sys-state]: https://docs.neptune.ai/api/sys/#state
