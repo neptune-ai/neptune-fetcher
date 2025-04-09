@@ -24,6 +24,7 @@ from typing import (
     Union,
 )
 
+from neptune_fetcher.internal import warnings as _warnings
 from neptune_fetcher.legacy.cache import FieldsCache
 from neptune_fetcher.legacy.fetchable import (
     Fetchable,
@@ -45,6 +46,9 @@ class ReadOnlyRun:
         experiment_name: Optional[str] = None,
         eager_load_fields: bool = True,
     ) -> None:
+        _warnings.warn_deprecated(
+            "ReadOnlyRun is deprecated. Use the new neptune-fetcher package instead.", stacklevel=3
+        )
         sys_id = ReadOnlyRun._select_and_validate_id(
             read_only_project, sys_id=with_id, custom_id=custom_id, experiment_name=experiment_name
         )
