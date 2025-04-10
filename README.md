@@ -1,11 +1,6 @@
 # Neptune Fetcher
 
-> [!NOTE]
-> This package is experimental and only works with Neptune Scale (`scale.neptune.ai`), which is in beta.
->
-> For the Python API corresponding to `app.neptune.ai`, see [neptune-client][neptune-client].
-
-Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Scale client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
+Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Python client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
 
 With the Fetcher API, you can:
 
@@ -41,10 +36,8 @@ For help, see [Get started][setup] in the Neptune documentation.
 
 ## Usage
 
-Import the `alpha` module:
-
 ```python
-import neptune_fetcher.alpha as npt
+import neptune_fetcher as npt
 ```
 
 To fetch experiment metadata from your project, use the `fetch_experiments_table()` function.
@@ -104,14 +97,14 @@ For instructions, see the [how-to guides][fetcher-guide] in the Neptune document
 
 ---
 
-## Old Fetcher API
+## Legacy API
 
-For documentation related to the previous version of the Fetcher API, see the `docs/old/` directory:
+For documentation related to the legacy version of the Fetcher API, see the `docs/legacy/` directory:
 
-- [docs/old/usage.md](docs/old/usage.md)
-- [docs/old/api_reference.md](docs/old/api_reference.md)
+- [docs/legacy/usage.md](docs/legacy/usage.md)
+- [docs/legacy/api_reference.md](docs/legacy/api_reference.md)
 
-To update your code to the new version, see [Migrate to Fetcher Alpha][fetcher-migration] in the Neptune documentation.
+To update your code to the new version, see [Migrate from Legacy Fetcher][fetcher-migration] in the Neptune documentation.
 
 ---
 
@@ -130,7 +123,6 @@ This project is licensed under the Apache License Version 2.0. For details, see 
 [set-context]: https://docs-beta.neptune.ai/set_fetching_context
 [setup]: https://docs-beta.neptune.ai/setup
 
-[neptune-client]: https://github.com/neptune-ai/neptune-client
 [neptune-client-scale]: https://github.com/neptune-ai/neptune-client-scale
 
 [license]: http://www.apache.org/licenses/LICENSE-2.0
