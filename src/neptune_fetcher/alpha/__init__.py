@@ -50,8 +50,8 @@ from neptune_fetcher import (
 from neptune_fetcher.internal import warnings as _warnings
 
 _warnings.warn_deprecated(
-    "The `neptune_fetcher.alpha` package is deprecated and will be removed in future versions. "
-    "Please use the `neptune_fetcher` package instead.",
+    "The `neptune_fetcher.alpha` package is deprecated and will be removed in a future version. "
+    "Import directly from the `neptune_fetcher` package instead of `alpha`.",
 )
 
 
@@ -60,7 +60,7 @@ def list_experiments(
     context: Optional[Context] = None,
 ) -> list[str]:
     """
-    Deprecated. Use `list_experiments` from the `neptune_fetcher` package instead.
+    The alpha package is deprecated. Use `list_experiments` directly from the `neptune_fetcher` package instead.
     """
     return _list_experiments(
         experiments=experiments,
@@ -74,7 +74,7 @@ def list_attributes(
     context: Optional[Context] = None,
 ) -> list[str]:
     """
-    Deprecated. Use `list_attributes` from the `neptune_fetcher` package instead.
+    The alpha package is deprecated. Use `list_attributes` directly from the `neptune_fetcher` package instead.
     """
     return _list_attributes(
         experiments=experiments,
@@ -95,7 +95,7 @@ def fetch_metrics(
     context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
     """
-    Deprecated. Use `fetch_metrics` from the `neptune_fetcher` package instead.
+    The alpha package is deprecated. Use `fetch_metrics` directly from the `neptune_fetcher` package instead.
     """
     return _fetch_metrics(
         experiments=experiments,
@@ -120,7 +120,7 @@ def fetch_experiments_table(
     context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
     """
-    Deprecated. Use `fetch_experiments_table` from the `neptune_fetcher` package instead.
+    The alpha package is deprecated. Use `fetch_experiments_table` directly from the `neptune_fetcher` package instead.
     """
     return _fetch_experiments_table(
         experiments=experiments,
