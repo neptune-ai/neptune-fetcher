@@ -26,12 +26,15 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_values import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-01-31"
+TEST_DATA_VERSION = "2025-04-11"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-attributes-{TEST_DATA_VERSION}"
 COMMON_PATH = f"test/test-internal-retrieval-attributes-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
+STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
+STRING_SERIES_TIMESTAMPS = [datetime(2025, 2, 21, 10, step) for step in range(20)]
+STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +79,10 @@ def run_with_attributes(client, project):
     path = f"{COMMON_PATH}/float-series-value"
     for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
         run.log_metrics(data={path: value}, step=step)
+
+    path = f"{COMMON_PATH}/string-series-value"
+    for step, timestamp, value in zip(STRING_SERIES_STEPS, STRING_SERIES_TIMESTAMPS, STRING_SERIES_VALUES):
+        run.log_string_series(data={path: value}, step=step, timestamp=timestamp)
 
     run.add_tags({"string-set-item"})  # the only way to write string-set type. It's implicit path is sys/tags
 
@@ -200,7 +207,7 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     )
 
 
-def test_fetch_attribute_definitions_single_series(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_float_series(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
@@ -220,6 +227,26 @@ def test_fetch_attribute_definitions_single_series(client, project, experiment_i
     assert attributes == [AttributeDefinition(path, "float_series")]
 
 
+def test_fetch_attribute_definitions_single_string_series(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = f"{COMMON_PATH}/string-series-value"
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq=path, type_in=["string_series"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions_single_filter(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+        )
+    )
+
+    # then
+    assert attributes == [AttributeDefinition(path, "string_series")]
+
+
 def test_fetch_attribute_definitions_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -230,6 +257,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
         (f"{COMMON_PATH}/bool-value", "bool"),
         (f"{COMMON_PATH}/datetime-value", "datetime"),
         (f"{COMMON_PATH}/float-series-value", "float_series"),
+        (f"{COMMON_PATH}/string-series-value", "string_series"),
         ("sys/tags", "string_set"),
     ]
 

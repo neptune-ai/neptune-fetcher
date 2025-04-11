@@ -21,17 +21,20 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 
-SYSTEM_TZ = pytz.timezone(datetime.now(timezone.utc).astimezone().tzname())
+SYSTEM_TZ = pytz.utc
 ONE_SECOND = timedelta(seconds=1)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-02-03"
+TEST_DATA_VERSION = "2025-04-11"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-search-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-retrieval-search-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
 FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
 FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
+STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
+STRING_SERIES_TIMESTAMPS = [datetime(2025, 2, 21, 10, step) for step in range(20)]
+STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +77,10 @@ def run_with_attributes(client, project):
     path = f"{PATH}/float-series-value"
     for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
         run.log_metrics(data={path: value}, step=step)
+
+    path = f"{PATH}/string-series-value"
+    for step, timestamp, value in zip(STRING_SERIES_STEPS, STRING_SERIES_TIMESTAMPS, STRING_SERIES_VALUES):
+        run.log_string_series(data={path: value}, step=step, timestamp=timestamp)
 
     run.close()
 
@@ -352,7 +359,43 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
         ),
     ],
 )
-def test_find_experiments_by_series_values(client, project, run_with_attributes, experiment_filter, found):
+def test_find_experiments_by_float_series_values(client, project, run_with_attributes, experiment_filter, found):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
+
+    # then
+    if found:
+        assert experiment_names == [EXPERIMENT_NAME]
+    else:
+        assert experiment_names == []
+
+
+@pytest.mark.parametrize(
+    "experiment_filter,found",
+    [
+        (
+            Filter.exists(
+                Attribute(name=f"{PATH}/string-series-value", type="string_series"),
+            ),
+            True,
+        ),
+        (
+            Filter.eq(Attribute(name=f"{PATH}/string-series-value", type="string_series"), STRING_SERIES_VALUES[-1]),
+            True,
+        ),
+        (
+            Filter.eq(
+                Attribute(name=f"{PATH}/string-series-value", type="string_series"),
+                STRING_SERIES_VALUES[-2],
+            ),
+            False,
+        ),
+    ],
+)
+def test_find_experiments_by_string_series_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_identifier = project.project_identifier
 
