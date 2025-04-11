@@ -33,6 +33,10 @@ from neptune_fetcher.alpha.internal.retrieval import (
     search,
     util,
 )
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FLOAT_SERIES_AGGREGATIONS,
+    STRING_SERIES_AGGREGATIONS,
+)
 
 
 def infer_attribute_types_in_filter(
@@ -106,7 +110,13 @@ def _infer_attribute_types_from_attribute(
 ) -> None:
     for attribute in attributes:
         if attribute.aggregation:
-            attribute.type = "float_series"
+            matches = []
+            if all(agg in FLOAT_SERIES_AGGREGATIONS for agg in attribute.aggregation):
+                matches.append("float_series")
+            if all(agg in STRING_SERIES_AGGREGATIONS for agg in attribute.aggregation):
+                matches.append("string_series")
+            if len(matches) == 1:
+                attribute.type = matches[0]  # type: ignore
 
 
 def _infer_attribute_types_from_api(

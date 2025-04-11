@@ -75,7 +75,6 @@ def fetch_series_values(
         ],
         "stepRange": {"from": step_range[0], "to": step_range[1]},
         "order": "ascending" if tail_limit is None else "descending",
-        "nextPage": {},
     }
     if tail_limit is not None:
         params["perSeriesPointsLimit"] = tail_limit
@@ -122,13 +121,28 @@ def _make_new_series_page_params(
     params: dict[str, Any], data: Optional[ProtoSeriesValuesResponseDTO]
 ) -> Optional[dict[str, Any]]:
     if data is None:
-        if "nextPageToken" in params["nextPage"]:
-            del params["nextPage"]["nextPageToken"]
+        for request in params["requests"]:
+            if "searchAfter" in request:
+                del request["searchAfter"]
         return params
 
-    next_page_token = data.nextPageToken
-    if not next_page_token:
+    request_id_to_search_after = {
+        series.requestId: series.searchAfter
+        for series in data.series
+        if series.searchAfter is not None and not series.searchAfter.finished
+    }
+    if not request_id_to_search_after:
         return None
 
-    params["nextPage"]["nextPageToken"] = next_page_token
+    new_requests = []
+    for request in params["requests"]:
+        request_id = request["requestId"]
+        if request_id in request_id_to_search_after:
+            search_after = request_id_to_search_after[request_id]
+            request["searchAfter"] = {
+                "finished": search_after.finished,
+                "token": search_after.token,
+            }
+            new_requests.append(request)
+    params["requests"] = new_requests
     return params

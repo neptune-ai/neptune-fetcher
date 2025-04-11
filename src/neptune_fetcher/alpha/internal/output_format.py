@@ -29,7 +29,12 @@ from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.retrieval import series
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FLOAT_SERIES_AGGREGATIONS,
+    STRING_SERIES_AGGREGATIONS,
+    FloatSeriesAggregations,
+    StringSeriesAggregations,
+)
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.retrieval.metrics import (
     AttributePathIndex,
@@ -70,7 +75,13 @@ def convert_table_to_dataframe(
             if value.attribute_definition.type == "float_series":
                 float_series_aggregations: FloatSeriesAggregations = value.value
                 selected_subset = selected_aggregations.get(value.attribute_definition, set())
-                agg_subset_values = get_aggregation_subset(float_series_aggregations, selected_subset)
+                agg_subset_values = get_float_series_aggregation_subset(float_series_aggregations, selected_subset)
+                for agg_name, agg_value in agg_subset_values.items():
+                    row[(column_name, agg_name)] = agg_value
+            elif value.attribute_definition.type == "string_series":
+                string_series_aggregations: StringSeriesAggregations = value.value
+                selected_subset = selected_aggregations.get(value.attribute_definition, set())
+                agg_subset_values = get_string_series_aggregation_subset(string_series_aggregations, selected_subset)
                 for agg_name, agg_value in agg_subset_values.items():
                     row[(column_name, agg_name)] = agg_value
             else:
@@ -80,13 +91,22 @@ def convert_table_to_dataframe(
     def get_column_name(attr: AttributeValue) -> str:
         return f"{attr.attribute_definition.name}:{attr.attribute_definition.type}"
 
-    def get_aggregation_subset(
+    def get_float_series_aggregation_subset(
         float_series_aggregations: FloatSeriesAggregations, selected_subset: set[str]
     ) -> dict[str, Any]:
         result = {}
-        for agg_name in ("last", "min", "max", "average", "variance"):
+        for agg_name in FLOAT_SERIES_AGGREGATIONS:
             if agg_name in selected_subset:
                 result[agg_name] = getattr(float_series_aggregations, agg_name)
+        return result
+
+    def get_string_series_aggregation_subset(
+        string_series_aggregations: StringSeriesAggregations, selected_subset: set[str]
+    ) -> dict[str, Any]:
+        result = {}
+        for agg_name in STRING_SERIES_AGGREGATIONS:
+            if agg_name in selected_subset:
+                result[agg_name] = getattr(string_series_aggregations, agg_name)
         return result
 
     def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:
