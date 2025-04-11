@@ -108,11 +108,13 @@ def _process_series_page(
     items: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
 
     for series in data.series:
-        run_definition = request_id_to_runs_definitions[series.requestId]
-        values = [
-            StringSeriesValue(value.step, value.value, value.timestamp_millis) for value in series.string_series.values
-        ]
-        items.setdefault(run_definition, []).extend(values)
+        if series.string_series.values:
+            run_definition = request_id_to_runs_definitions[series.requestId]
+            values = [
+                StringSeriesValue(value.step, value.value, value.timestamp_millis)
+                for value in series.string_series.values
+            ]
+            items.setdefault(run_definition, []).extend(values)
 
     return util.Page(items=list(items.items()))
 
@@ -129,7 +131,7 @@ def _make_new_series_page_params(
     request_id_to_search_after = {
         series.requestId: series.searchAfter
         for series in data.series
-        if series.searchAfter is not None and not series.searchAfter.finished
+        if series.searchAfter is not None and series.searchAfter.token and not series.searchAfter.finished
     }
     if not request_id_to_search_after:
         return None

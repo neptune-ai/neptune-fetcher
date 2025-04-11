@@ -53,6 +53,7 @@ class ExperimentData:
                 self.string_sets.keys(),
                 self.float_series.keys(),
                 self.unique_series.keys(),
+                self.string_series.keys(),
             )
         )
 

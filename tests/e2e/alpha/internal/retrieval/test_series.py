@@ -12,7 +12,7 @@ from neptune_fetcher.alpha.internal.retrieval.series import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-02-21"
+TEST_DATA_VERSION = "2025-04-11"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-series-{TEST_DATA_VERSION}"
 COMMON_PATH = f"test/test-internal-retrieval-series-{TEST_DATA_VERSION}"
 STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
