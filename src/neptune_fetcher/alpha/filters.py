@@ -79,7 +79,7 @@ class AttributeFilter(BaseAttributeFilter):
 
     name_eq: Union[str, list[str], None] = None
     type_in: list[
-        Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file_ref"]
+        Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file"]
     ] = field(
         default_factory=lambda: list(types.ALL_TYPES)  # type: ignore
     )
@@ -143,7 +143,7 @@ class Attribute:
     name: str
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]] = None
     type: Optional[
-        Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set", "string_series", "file_ref"]
+        Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set", "string_series", "file"]
     ] = None
 
     def __post_init__(self) -> None:

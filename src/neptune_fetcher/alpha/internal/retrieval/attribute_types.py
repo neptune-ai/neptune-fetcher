@@ -27,7 +27,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
 
 from neptune_fetcher.alpha.exceptions import warn_unsupported_value_type
 
-ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file_ref")
+ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file")
 FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
 STRING_SERIES_AGGREGATIONS = {"last"}
 ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
@@ -40,7 +40,7 @@ _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
     "string_set": "stringSet",
     "string_series": "stringSeries",
-    "file_ref": "fileRef",
+    "file": "fileRef",
 }
 
 _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.items()}

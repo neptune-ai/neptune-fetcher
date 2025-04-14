@@ -47,7 +47,7 @@ from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 def download_files(
     experiments: Optional[Filter],
     attributes: AttributeFilter,
-    destination: Optional[pathlib.Path],
+    destination: pathlib.Path,
     context: Optional[Context],
 ) -> None:
     valid_context = validate_context(context or get_context())
@@ -136,7 +136,7 @@ def _ensure_write_access(destination: pathlib.Path) -> None:
 def _filter_file_refs(
     definitions: list[attribute_definitions.AttributeDefinition],
 ) -> list[attribute_definitions.AttributeDefinition]:
-    return [attribute for attribute in definitions if attribute.type == "file_ref"]
+    return [attribute for attribute in definitions if attribute.type == "file"]
 
 
 def _create_target_path(

@@ -28,6 +28,7 @@ __all__ = [
     "download_files",
 ]
 
+import pathlib as _pathlib
 from typing import (
     Literal,
     Optional,
@@ -35,7 +36,6 @@ from typing import (
     Union,
 )
 
-import pathlib as _pathlib
 import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
@@ -289,14 +289,18 @@ def download_files(
       - Ensure that the `destination` directory has write permissions for successful file downloads.
       - If the specified destination or any subdirectories do not exist, they will be automatically created.
     """
-    pass
     if isinstance(experiments, str):
         experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
 
     if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file_ref"])
+        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file"])
     elif attributes is None:
-        attributes = _filters.AttributeFilter(type_in=["file_ref"])
+        attributes = _filters.AttributeFilter(type_in=["file"])
+    else:
+        if "file" in attributes.type_in:
+            attributes.type_in = ["file"]
+        else:
+            return
 
     if destination is None:
         destination_path = _pathlib.Path.cwd()
