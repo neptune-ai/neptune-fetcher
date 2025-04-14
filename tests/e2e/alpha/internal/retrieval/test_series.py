@@ -12,10 +12,10 @@ from neptune_fetcher.alpha.internal.retrieval.series import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-04-11"
+TEST_DATA_VERSION = "2025-04-14"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-series-{TEST_DATA_VERSION}"
 COMMON_PATH = f"test/test-internal-retrieval-series-{TEST_DATA_VERSION}"
-STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
+STRING_SERIES_STEPS = [step * 0.5 for step in range(1, 21)]
 STRING_SERIES_TIMESTAMPS = [datetime.datetime(2025, 2, 21, 10, step) for step in range(20)]
 STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
 
@@ -108,7 +108,11 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     )
 
     # then
-    assert series == [(run_definition, list(zip(STRING_SERIES_STEPS, STRING_SERIES_VALUES, STRING_SERIES_TIMESTAMPS)))]
+    expected = [
+        (step, value, int(ts.timestamp() * 1000))
+        for step, value, ts in zip(STRING_SERIES_STEPS, STRING_SERIES_VALUES, STRING_SERIES_TIMESTAMPS)
+    ]
+    assert series == [(run_definition, expected)]
 
 
 def _extract_pages(generator):
