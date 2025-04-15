@@ -196,6 +196,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
         (f"{PATH}/datetime-value", "datetime"),
         (FLOAT_SERIES_PATHS[0], "float_series"),
         (STRING_SERIES_PATHS[0], "string_series"),
+        (f"{PATH}/files/file-value.txt", "file"),
         ("sys/tags", "string_set"),
     ]
 
@@ -494,6 +495,7 @@ def test_fetch_attribute_values_all_types(client, project, experiment_identifier
             {f"string-0-{j}" for j in range(5)},
             experiment_identifier,
         ),
+        AttributeValue(AttributeDefinition(f"{PATH}/files/file-value.txt", "file"), "", experiment_identifier),
     ]
 
     #  when

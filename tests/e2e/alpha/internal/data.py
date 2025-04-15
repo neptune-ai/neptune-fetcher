@@ -75,7 +75,7 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
-                files = {f"{PATH}/files/file-value.txt/v.txt": b"Hello world!"}
+                files = {f"{PATH}/files/file-value.txt": b"Hello world!"}
 
                 self.experiments.append(
                     ExperimentData(

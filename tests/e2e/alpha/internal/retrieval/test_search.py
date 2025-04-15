@@ -154,6 +154,9 @@ def test_find_experiments_by_name_not_found(client, project):
         (Filter.exists(Attribute(name=f"{PATH}/str-value", type="string")), True),
         (Filter.exists(Attribute(name=f"{PATH}/str-value", type="int")), False),
         (Filter.exists(Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
+        (Filter.exists(Attribute(name=f"{PATH}/files/file-value.txt", type="file")), True),
+        (Filter.exists(Attribute(name=f"{PATH}/files/file-value.txt", type="int")), False),
+        (Filter.exists(Attribute(name=f"{PATH}/files/does-not-exist-value.txt", type="file")), False),
         (
             Filter.eq(
                 Attribute(name=f"{PATH}/datetime-value", type="datetime"),
