@@ -1,15 +1,8 @@
 import itertools as it
-import os
 import pathlib
 import tempfile
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
 
 import pytest
-import pytz
 
 from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
@@ -21,10 +14,6 @@ from neptune_fetcher.alpha.internal.retrieval.files import (
 )
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
-SYSTEM_TZ = pytz.timezone(datetime.now(timezone.utc).astimezone().tzname())
-ONE_SECOND = timedelta(seconds=1)
-
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-04-14"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-files-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-retrieval-files-{TEST_DATA_VERSION}"
