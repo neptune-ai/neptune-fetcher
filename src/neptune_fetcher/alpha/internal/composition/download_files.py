@@ -17,6 +17,7 @@ import pathlib
 from typing import (
     Generator,
     Optional,
+    Tuple,
 )
 
 from neptune_fetcher.alpha.filters import (
@@ -35,6 +36,7 @@ from neptune_fetcher.alpha.internal.context import (
     get_context,
     validate_context,
 )
+from neptune_fetcher.alpha.internal.identifiers import SysId
 from neptune_fetcher.alpha.internal.retrieval import (
     attribute_definitions,
     files,
@@ -43,12 +45,15 @@ from neptune_fetcher.alpha.internal.retrieval import (
 )
 from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
+SysIdLabel = Tuple[SysId, str]
+
 
 def download_files(
-    experiments: Optional[Filter],
+    filter_: Optional[Filter],
     attributes: AttributeFilter,
     destination: pathlib.Path,
     context: Optional[Context],
+    container_type: ContainerType,
 ) -> None:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(valid_context)
@@ -63,21 +68,21 @@ def download_files(
         type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project,
-            filter_=experiments,
+            filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=ContainerType.EXPERIMENT,
+            container_type=container_type,
         )
 
-        def process_sys_attrs_page(sys_attrs_page: util.Page[search.ExperimentSysAttrs]) -> concurrency.OUT:
-            sys_id_to_label = {sys_attrs.sys_id: sys_attrs.sys_name for sys_attrs in sys_attrs_page.items}
+        def process_sys_attrs_page(sys_attrs_page: util.Page[SysIdLabel]) -> concurrency.OUT:
+            sys_id_to_label = {sys_id: label for sys_id, label in sys_attrs_page.items}
             return _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                sys_ids=[sys_attrs.sys_id for sys_attrs in sys_attrs_page.items],
+                sys_ids=[sys_id for sys_id, _ in sys_attrs_page.items],
                 downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
                     client=client,
                     project_identifier=project,
@@ -111,12 +116,27 @@ def download_files(
                 ),
             )
 
-        output = concurrency.generate_concurrently(
-            items=search.fetch_experiment_sys_attrs(
+        if container_type == search.ContainerType.EXPERIMENT:
+            experiment_pages = search.fetch_experiment_sys_attrs(
                 client=client,
                 project_identifier=project,
-                filter_=experiments,
-            ),
+                filter_=filter_,
+            )
+            sys_id_label_pages: Generator[util.Page[SysIdLabel], None, None] = (
+                util.Page(items=[(item.sys_id, item.sys_name) for item in page.items]) for page in experiment_pages
+            )
+        else:
+            run_pages = search.fetch_run_sys_attrs(
+                client=client,
+                project_identifier=project,
+                filter_=filter_,
+            )
+            sys_id_label_pages = (
+                util.Page(items=[(item.sys_id, item.sys_custom_run_id) for item in page.items]) for page in run_pages
+            )
+
+        output = concurrency.generate_concurrently(
+            items=sys_id_label_pages,
             executor=executor,
             downstream=process_sys_attrs_page,
         )
@@ -139,7 +159,5 @@ def _filter_file_refs(
     return [attribute for attribute in definitions if attribute.type == "file"]
 
 
-def _create_target_path(
-    destination: pathlib.Path, experiment_name: identifiers.SysName, attribute_path: str
-) -> pathlib.Path:
+def _create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
     return destination / experiment_name / attribute_path

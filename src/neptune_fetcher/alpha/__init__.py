@@ -308,8 +308,9 @@ def download_files(
         destination_path = _pathlib.Path(destination).resolve()
 
     return _download_files.download_files(
-        experiments=experiments,
+        filter_=experiments,
         attributes=attributes,
         destination=destination_path,
         context=context,
+        container_type=_search.ContainerType.EXPERIMENT,
     )

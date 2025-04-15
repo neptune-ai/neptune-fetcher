@@ -22,6 +22,7 @@ __all__ = [
     "fetch_series",
 ]
 
+import pathlib as _pathlib
 from typing import (
     Literal,
     Optional,
@@ -33,6 +34,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
 from neptune_fetcher.alpha.internal import context as _context
+from neptune_fetcher.alpha.internal.composition import download_files as _download_files
 from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.alpha.internal.composition import fetch_series as _fetch_series
 from neptune_fetcher.alpha.internal.composition import fetch_table as _fetch_table
@@ -219,6 +221,81 @@ def fetch_series(
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
+        context=context,
+        container_type=_search.ContainerType.RUN,
+    )
+
+
+def download_files(
+    runs: Optional[Union[str, _filters.Filter]] = None,
+    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    *,
+    destination: Optional[str] = None,
+    context: Optional[_context.Context] = None,
+) -> None:
+    """
+    Downloads files associated with selected experiments and attributes.
+
+    Args:
+      runs: a filter specifying which runs to include in the table
+        - a regex that the run ID must match, or
+        - a Filter object
+
+      attributes: Specifies the attribute(s) to filter files by within the selected experiments.
+          - A string representing the attribute path or an `AttributeFilter` object.
+          - If `None`, all attributes are considered.
+
+      destination: The directory where files will be downloaded.
+          - If `None`, the current working directory (CWD) is used as the default.
+          - The path can be relative or absolute.
+
+      context: Provides additional contextual information for the download (optional).
+          - A `Context` object, which may include things like credentials or other metadata.
+
+    Download Path Construction:
+      - Files are downloaded to the following directory structure:
+          <destination>/<experiment_name>/<attribute_path>/<file_name>
+      - If `<experiment_name>` or `<attribute_path>` contains '/', corresponding subdirectories will be created.
+      - The `<file_name>` is the final part of the file's path on object storage after splitting it by '/'.
+
+    Example:
+      Given an experiment named "some/experiment" and an attribute "some/attribute" with an uploaded file path
+      of "/my/path/on/object/storage/file.txt":
+
+          download_files(experiments="some/experiment", attributes="some/attribute", destination="/my/destination")
+
+      The file will be downloaded to:
+
+          /my/destination/some/experiment/some/attribute/file.txt
+
+    Notes:
+      - If the experiment or attribute paths include slashes ('/'), they will be treated as subdirectory structures,
+        and those directories will be created during the download process.
+      - Ensure that the `destination` directory has write permissions for successful file downloads.
+      - If the specified destination or any subdirectories do not exist, they will be automatically created.
+    """
+    if isinstance(runs, str):
+        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), runs)
+
+    if isinstance(attributes, str):
+        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file"])
+    elif attributes is None:
+        attributes = _filters.AttributeFilter(type_in=["file"])
+    else:
+        if "file" in attributes.type_in:
+            attributes.type_in = ["file"]
+        else:
+            return
+
+    if destination is None:
+        destination_path = _pathlib.Path.cwd()
+    else:
+        destination_path = _pathlib.Path(destination).resolve()
+
+    return _download_files.download_files(
+        filter_=runs,
+        attributes=attributes,
+        destination=destination_path,
         context=context,
         container_type=_search.ContainerType.RUN,
     )
