@@ -420,10 +420,10 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             Filter.eq(Attribute("sys/name", type="string"), f"test_alpha_0_{TEST_DATA_VERSION}"),
             [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
-        (
-            Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),
-            [f"test_experiment_0_{TEST_DATA_VERSION}"],
-        ),
+        # (     TODO - FILE nto supported in nql
+        #     Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),
+        #     [f"test_experiment_0_{TEST_DATA_VERSION}"],
+        # ),
     ],
 )
 def test_list_experiments_with_filter_matching_some(project, filter_, expected):

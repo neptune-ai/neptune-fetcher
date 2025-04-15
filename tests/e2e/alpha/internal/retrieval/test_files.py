@@ -14,7 +14,7 @@ from neptune_fetcher.alpha.internal.retrieval.files import (
 )
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
-TEST_DATA_VERSION = "2025-04-14"
+TEST_DATA_VERSION = "2025-04-15"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-files-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-retrieval-files-{TEST_DATA_VERSION}"
 
@@ -87,7 +87,7 @@ def test_fetch_signed_url(client, project, experiment_identifier):
             [experiment_identifier],
             [AttributeDefinition(name=f"{PATH}/files/file-value.txt", type="file")],
         )
-    )[0]
+    )[0].value.path
 
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, [file_path], "read")
@@ -107,7 +107,7 @@ def test_download_file(client, project, experiment_identifier, temp_dir):
             [experiment_identifier],
             [AttributeDefinition(name=f"{PATH}/files/file-value.txt", type="file")],
         )
-    )[0]
+    )[0].value.path
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
 

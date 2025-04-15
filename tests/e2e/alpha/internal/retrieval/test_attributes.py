@@ -1,6 +1,8 @@
 import itertools as it
 import math
 import os
+import re
+import time
 from datetime import (
     datetime,
     timezone,
@@ -495,7 +497,6 @@ def test_fetch_attribute_values_all_types(client, project, experiment_identifier
             {f"string-0-{j}" for j in range(5)},
             experiment_identifier,
         ),
-        AttributeValue(AttributeDefinition(f"{PATH}/files/file-value.txt", "file"), "", experiment_identifier),
     ]
 
     #  when
@@ -513,6 +514,30 @@ def test_fetch_attribute_values_all_types(client, project, experiment_identifier
     for expected in all_values:
         value = next(value for value in values if value.attribute_definition == expected.attribute_definition)
         assert value == expected
+
+
+def test_fetch_attribute_values_file(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    attribute_definition = AttributeDefinition(f"{PATH}/files/file-value.txt", "file")
+
+    #  when
+    values = _extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [attribute_definition],
+        )
+    )
+
+    # then
+    assert len(values) == 1
+    value = values[0]
+    assert value.attribute_definition == attribute_definition
+    assert re.search(rf".*/{PATH}/files/file-value.txt/.*", value.value.path)
+    assert value.value.size_bytes == 12
+    assert value.value.mime_type == "application/octet-stream"
 
 
 def test_fetch_attribute_values_paging(client, project, experiment_identifier):

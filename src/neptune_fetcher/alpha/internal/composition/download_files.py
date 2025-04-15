@@ -97,7 +97,7 @@ def download_files(
                                 files.fetch_signed_urls(
                                     client=client,
                                     project_identifier=project,
-                                    file_paths=[value.value for value in values_page.items],
+                                    file_paths=[value.value.path for value in values_page.items],
                                 ),
                             )
                         ),

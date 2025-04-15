@@ -21,6 +21,7 @@ from typing import (
 
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
+    ProtoFileRefAttributeDTO,
     ProtoFloatSeriesAttributeDTO,
     ProtoStringSeriesAttributeDTO,
 )
@@ -69,6 +70,13 @@ class StringSeriesAggregations:
     last_step: float
 
 
+@dataclass(frozen=True)
+class FileProperties:
+    path: str
+    size_bytes: int
+    mime_type: str
+
+
 def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
     if attr.type == "floatSeries":
         return _extract_float_series_aggregations(attr.float_series_properties)
@@ -87,7 +95,7 @@ def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
     elif attr.type == "stringSet":
         return set(attr.string_set_properties.value)
     elif attr.type == "fileRef":
-        return attr.file_ref_properties.path  # there is also sizeBytes and mimeType when needed
+        return _extract_file_ref_properties(attr.file_ref_properties)
     elif attr.type == "experimentState":
         return None
     else:
@@ -109,4 +117,12 @@ def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> 
     return StringSeriesAggregations(
         last=attr.last,
         last_step=attr.last_step,
+    )
+
+
+def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> FileProperties:
+    return FileProperties(
+        path=attr.path,
+        size_bytes=attr.sizeBytes,
+        mime_type=attr.mimeType,
     )
