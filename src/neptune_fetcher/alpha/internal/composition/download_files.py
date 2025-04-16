@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import hashlib
 import os
 import pathlib
 from typing import (
@@ -160,4 +161,20 @@ def _filter_file_refs(
 
 
 def _create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
-    return destination / experiment_name / attribute_path
+    relative_target_path = pathlib.Path(".") / experiment_name / attribute_path
+
+    sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
+    relative_target_path = pathlib.Path(*sanitized_parts)
+
+    return destination / relative_target_path
+
+
+def _sanitize_path_part(part: str, max_part_length: int = 255) -> str:
+    # Replace invalid characters with underscores
+    part = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in part)
+
+    if len(part) > max_part_length:
+        digest = hashlib.blake2b(part.encode("utf-8"), digest_size=8).hexdigest()
+        part = f"{part[:max_part_length - 9]}_{digest}"
+
+    return part
