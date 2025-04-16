@@ -91,7 +91,7 @@ def download_files(
                     attribute_definitions=_filter_file_refs(definitions_page.items),
                     downstream=lambda values_page: concurrency.generate_concurrently(
                         items=(
-                            (value.run_identifier, file_)
+                            (value, file_)
                             for value, file_ in zip(
                                 values_page.items,
                                 files.fetch_signed_urls(
@@ -107,8 +107,8 @@ def download_files(
                                 signed_url=run_file_tuple[1].url,
                                 target_path=_create_target_path(
                                     destination=destination,
-                                    experiment_name=sys_id_to_label[run_file_tuple[0].sys_id],
-                                    attribute_path=run_file_tuple[1].path,
+                                    experiment_name=sys_id_to_label[run_file_tuple[0].run_identifier.sys_id],
+                                    attribute_path=run_file_tuple[0].attribute_definition.name,
                                 ),  # type: ignore
                             )
                         ),
