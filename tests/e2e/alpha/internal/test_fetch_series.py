@@ -46,7 +46,7 @@ STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(
 NUMBER_OF_STEPS = 10
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
-TEST_DATA_VERSION = "v1"
+TEST_DATA_VERSION = "v2"
 
 
 @dataclass

@@ -320,16 +320,16 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            (FLOAT_SERIES_PATHS[0] + suffix, "last"): [
+            (f"{PATH}/metrics/string-series-0" + suffix, "last"): [
                 TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-0"][-1] for i in range(3)
             ],
-            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
+            (f"{PATH}/metrics/string-series-1" + suffix, "last"): [
                 TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-1"][-1] for i in range(3)
             ],
         }
     ).set_index("experiment", drop=True)
     expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
-    assert df.shape == (3, 8)
+    assert df.shape == expected.shape
     pd.testing.assert_frame_equal(df[expected.columns], expected)
     assert df[expected.columns].columns.equals(expected.columns)
 

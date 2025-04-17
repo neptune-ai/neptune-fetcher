@@ -19,7 +19,10 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
     AttributeDefinition,
     fetch_attribute_definitions_single_filter,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FloatSeriesAggregations,
+    StringSeriesAggregations,
+)
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import (
     AttributeValue,
     fetch_attribute_values,
@@ -476,7 +479,7 @@ def test_fetch_attribute_values_two_strings(client, project, experiment_identifi
     }
 
 
-def test_fetch_attribute_values_single_series_all_aggregations(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_float_series_all_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     path = f"{COMMON_PATH}/float-series-value"
@@ -501,6 +504,30 @@ def test_fetch_attribute_values_single_series_all_aggregations(client, project, 
         variance=sum((value - average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
     )
     assert values == [AttributeValue(AttributeDefinition(path, "float_series"), aggregates, experiment_identifier)]
+
+
+def test_fetch_attribute_values_single_string_series_all_aggregations(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = f"{COMMON_PATH}/string-series-value"
+
+    #  when
+    values = _extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [AttributeDefinition(path, "string_series")],
+        )
+    )
+
+    # then
+    aggregates = StringSeriesAggregations(
+        last=STRING_SERIES_VALUES[-1],
+        last_step=STRING_SERIES_STEPS[-1],
+        size=sum(len(value) for value in STRING_SERIES_VALUES),
+    )
+    assert values == [AttributeValue(AttributeDefinition(path, "string_series"), aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_all_types(client, project, experiment_identifier):
