@@ -17,13 +17,11 @@ from typing import (
     Literal,
     Optional,
     Tuple,
-    Union,
 )
 
 import pandas as pd
 
 from neptune_fetcher.alpha.filters import (
-    Attribute,
     AttributeFilter,
     Filter,
 )
@@ -48,70 +46,10 @@ from neptune_fetcher.alpha.internal.retrieval import (
 )
 from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
-__all__ = (
-    "fetch_experiment_series",
-    "fetch_run_series",
-)
+__all__ = ("fetch_series",)
 
 
-_PATHS_PER_BATCH: int = 10_000
-
-
-def fetch_experiment_series(
-    experiments: Union[str, Filter],
-    attributes: Union[str, AttributeFilter],
-    include_time: Optional[Literal["absolute"]] = None,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-    context: Optional[Context] = None,
-) -> pd.DataFrame:
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-
-    return _fetch_series(
-        filter_=experiments,
-        attributes=attributes,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        context=context,
-        container_type=ContainerType.EXPERIMENT,
-    )
-
-
-def fetch_run_series(
-    runs: Union[str, Filter],
-    attributes: Union[str, AttributeFilter],
-    include_time: Optional[Literal["absolute"]] = None,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-    context: Optional[Context] = None,
-) -> pd.DataFrame:
-    if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-
-    return _fetch_series(
-        filter_=runs,
-        attributes=attributes,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        context=context,
-        container_type=ContainerType.RUN,
-    )
-
-
-def _fetch_series(
+def fetch_series(
     filter_: Filter,
     attributes: AttributeFilter,
     include_time: Optional[Literal["absolute"]],

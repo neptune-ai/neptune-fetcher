@@ -15,7 +15,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-04-15"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-series-{TEST_DATA_VERSION}"
 COMMON_PATH = f"test/test-internal-retrieval-series-{TEST_DATA_VERSION}"
-STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
+STRING_SERIES_STEPS = [step * 0.5 for step in range(1, 21)]
 STRING_SERIES_TIMESTAMPS = [datetime.datetime(2025, 2, 21, 10, step) for step in range(20)]
 STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
 
