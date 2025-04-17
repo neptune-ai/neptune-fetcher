@@ -21,7 +21,10 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 
-SYSTEM_TZ = pytz.utc
+try:
+    SYSTEM_TZ = pytz.timezone(datetime.now(timezone.utc).astimezone().tzname())
+except pytz.exceptions.UnknownTimeZoneError:
+    SYSTEM_TZ = pytz.timezone("Europe/Warsaw")
 ONE_SECOND = timedelta(seconds=1)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
