@@ -1,4 +1,5 @@
 import itertools as it
+import os
 import pathlib
 import tempfile
 
@@ -14,6 +15,7 @@ from neptune_fetcher.alpha.internal.retrieval.files import (
 )
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-04-15"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-files-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-retrieval-files-{TEST_DATA_VERSION}"

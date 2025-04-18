@@ -143,7 +143,8 @@ def download_files(
         )
 
         results: Generator[None, None, None] = concurrency.gather_results(output)
-        list(results)
+        for _ in results:
+            pass
 
 
 def _ensure_write_access(destination: pathlib.Path) -> None:
@@ -175,6 +176,6 @@ def _sanitize_path_part(part: str, max_part_length: int = 255) -> str:
 
     if len(part) > max_part_length:
         digest = hashlib.blake2b(part.encode("utf-8"), digest_size=8).hexdigest()
-        part = f"{part[:max_part_length - 9]}_{digest}"
+        part = f"{part[:max_part_length - len(digest) - 1]}_{digest}"
 
     return part

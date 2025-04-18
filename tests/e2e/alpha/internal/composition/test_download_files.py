@@ -1,4 +1,5 @@
 import itertools as it
+import os
 import pathlib
 import tempfile
 
@@ -15,7 +16,8 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 
-TEST_DATA_VERSION = "2025-04-15"
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
+TEST_DATA_VERSION = "2025-04-18"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-composition-download-files-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-composition-download-files-{TEST_DATA_VERSION}"
 
@@ -48,7 +50,7 @@ def run_with_attributes(client, project):
         experiment_name=EXPERIMENT_NAME,
     )
 
-    run.assign_files({f"{PATH}/files/file-value.txt": b"Hello world!"})
+    run.assign_files({f"{PATH}/files/file-value": b"Hello world!"})
 
     run.close()
 
@@ -81,14 +83,14 @@ def test_download_files(client, project, experiment_identifier, temp_dir):
     # when
     download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
-        attributes=AttributeFilter(name_eq=f"{PATH}/files/file-value.txt"),
+        attributes=AttributeFilter(name_eq=f"{PATH}/files/file-value"),
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
     )
 
     # then
-    target_path = temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value.txt"
+    target_path = temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value"
     assert target_path.exists()
     with open(target_path, "rb") as file:
         content = file.read()
