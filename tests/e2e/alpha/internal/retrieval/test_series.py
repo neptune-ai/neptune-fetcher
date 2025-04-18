@@ -115,5 +115,75 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     assert series == [(run_definition, expected)]
 
 
+@pytest.mark.parametrize(
+    "step_range, expected_start, expected_end",
+    [
+        ((None, None), 0, 20),
+        ((1, None), 1, 20),
+        ((None, 5.0), 0, 10),
+        ((2.5, 7.5), 4, 15),
+        ((None, 2.5), 0, 5),
+        ((5.0, None), 9, 20),
+    ],
+)
+def test_fetch_series_values_single_series_stop_range(
+    client, project, experiment_identifier, step_range, expected_start, expected_end
+):
+    # given
+    run_definition = RunAttributeDefinition(
+        experiment_identifier, AttributeDefinition(f"{COMMON_PATH}/string-series-value", "string")
+    )
+
+    #  when
+    series = _extract_pages(
+        fetch_series_values(client, [run_definition], include_inherited=False, step_range=step_range)
+    )
+
+    # then
+    expected = [
+        (step, value, int(ts.timestamp() * 1000))
+        for step, value, ts in zip(
+            STRING_SERIES_STEPS[expected_start:expected_end],
+            STRING_SERIES_VALUES[expected_start:expected_end],
+            STRING_SERIES_TIMESTAMPS[expected_start:expected_end],
+        )
+    ]
+    assert series == [(run_definition, expected)]
+
+
+@pytest.mark.parametrize(
+    "tail_limit",
+    [0, 1, 5, 20, 40],
+)
+def test_fetch_series_values_single_series_tail_limit(client, project, experiment_identifier, tail_limit):
+    # given
+    run_definition = RunAttributeDefinition(
+        experiment_identifier, AttributeDefinition(f"{COMMON_PATH}/string-series-value", "string")
+    )
+
+    #  when
+    series = _extract_pages(
+        fetch_series_values(client, [run_definition], include_inherited=False, tail_limit=tail_limit)
+    )
+
+    # then
+    if tail_limit == 0:
+        assert series == []
+    else:
+        expected = [
+            (step, value, int(ts.timestamp() * 1000))
+            for step, value, ts in reversed(
+                list(
+                    zip(
+                        STRING_SERIES_STEPS[-tail_limit:],
+                        STRING_SERIES_VALUES[-tail_limit:],
+                        STRING_SERIES_TIMESTAMPS[-tail_limit:],
+                    )
+                )
+            )
+        ]
+        assert series == [(run_definition, expected)]
+
+
 def _extract_pages(generator):
     return list(it.chain.from_iterable(i.items for i in generator))

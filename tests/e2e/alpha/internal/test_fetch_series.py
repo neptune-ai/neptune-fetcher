@@ -24,14 +24,24 @@ import pandas as pd
 import pytest
 from neptune_scale import Run
 
+from neptune_fetcher.alpha import fetch_series
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition.fetch_series import fetch_experiment_series
 from neptune_fetcher.alpha.internal.context import get_context
+from neptune_fetcher.alpha.internal.identifiers import (
+    RunIdentifier,
+    SysId,
+)
+from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+from neptune_fetcher.alpha.internal.retrieval.series import (
+    RunAttributeDefinition,
+    StringSeriesValue,
+)
 
 
 @dataclass
@@ -46,7 +56,7 @@ STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(
 NUMBER_OF_STEPS = 10
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
-TEST_DATA_VERSION = "v2"
+TEST_DATA_VERSION = "v4"
 
 
 @dataclass
@@ -62,7 +72,7 @@ class TestData:
                 experiment_name = f"pye2e-alpha-fetch-series_{i}_{TEST_DATA_VERSION}"
 
                 string_series = {
-                    path: [f"string-{step * (j + i)}" for step in range(NUMBER_OF_STEPS)]
+                    path: [f"string-{step * (j + i + 1)}" for step in range(NUMBER_OF_STEPS)]
                     for j, path in enumerate(STRING_SERIES_PATHS)
                 }
 
@@ -99,7 +109,8 @@ def run_with_attributes(client, project):
 
         for step in range(NUMBER_OF_STEPS):
             series_data = {path: value[step] for path, value in experiment.string_series.items()}
-            run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+            run.log_string_series(data=series_data, step=step + 1, timestamp=NOW + timedelta(seconds=int(step)))
+            # TODO: fix step + 1 -> step when backend returns step starting from 0
 
         runs[experiment.name] = run
 
@@ -115,7 +126,9 @@ def create_expected_data(
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
-    rows = []
+    series_data: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
+    sys_id_label_mapping: dict[SysId, str] = {}
+
     columns = set()
     filtered_exps = set()
 
@@ -125,43 +138,50 @@ def create_expected_data(
     )
     for experiment in experiments:
         steps = range(NUMBER_OF_STEPS)
+        sys_id_label_mapping[SysId(experiment.run_id)] = experiment.name
 
         for path, series in experiment.string_series.items():
+            run_attr = RunAttributeDefinition(
+                RunIdentifier(identifiers.ProjectIdentifier(NEPTUNE_PROJECT), SysId(experiment.run_id)),
+                AttributeDefinition(path, type="string_series"),
+            )
+
             filtered = []
             for step in steps:
-                if step_filter[0] <= step <= step_filter[1]:
+                step_val = step + 1  # TODO: fix step+1 -> step when backend returns step starting from 0
+                if step_filter[0] <= step_val <= step_filter[1]:
                     columns.add(path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
-                        (
-                            experiment.name,
-                            path,
-                            int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
-                            step,
+                        StringSeriesValue(
+                            step_val,
                             series[step],
+                            int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                         )
                     )
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
-            rows.extend(limited)
 
-    df = pd.DataFrame(rows, columns=["experiment", "path", "timestamp", "step", "value"])
-    df["experiment"] = df["experiment"].astype(str)
-    df["path"] = df["path"].astype(str)
-    df["timestamp"] = df["timestamp"].astype(int)
-    df["step"] = df["step"].astype(float)
-    df["value"] = df["value"].astype(str)
+            series_data.setdefault(run_attr, []).extend(limited)
+
+    df = create_series_dataframe(
+        series_data,
+        sys_id_label_mapping,
+        index_column_name="experiment",
+        timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+    )
 
     sorted_columns = list(sorted(columns))
-    # if include_time == "absolute":
-    #     absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
-
-    return df, sorted_columns, filtered_exps
+    if include_time == "absolute":
+        absolute_columns = [[(c, "absolute_time"), (c, "value")] for c in sorted_columns]
+        return df, list(it.chain.from_iterable(absolute_columns)), filtered_exps
+    else:
+        return df, sorted_columns, filtered_exps
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
-@pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["float_series"]), ".*"])
+@pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["string_series"]), ".*"])
 @pytest.mark.parametrize(
     "exp_filter",
     [
@@ -169,24 +189,25 @@ def create_expected_data(
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
     ],
 )
-@pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
+@pytest.mark.parametrize("include_time", [None, "absolute"])
 def test__fetch_series(
     project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    result = fetch_experiment_series(
+    result = fetch_series(
         experiments=exp_filter(),
         attributes=attr_filter,
+        include_time=include_time,
         step_range=step_range,
         tail_limit=tail_limit,
-        include_time=include_time,
+        lineage_to_the_root=True,
         context=get_context().with_project(project.project_identifier),
     )
 
-    expected, columns, filtred_exps = create_expected_data(experiments, include_time, step_range, tail_limit)
+    expected, columns, filtered_exps = create_expected_data(experiments, include_time, step_range, tail_limit)
 
     pd.testing.assert_frame_equal(result, expected)
     assert result.columns.tolist() == columns
     assert result.index.names == ["experiment", "step"]
-    assert {t[0] for t in result.index.tolist()} == filtred_exps
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
