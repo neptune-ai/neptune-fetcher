@@ -39,7 +39,6 @@ from neptune_fetcher.alpha.internal.context import (
 )
 from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
-    attribute_definitions,
     search,
     series,
     util,
@@ -118,7 +117,7 @@ def fetch_series(
                                 attribute_definition=definition,
                             )
                             for sys_id in sys_ids_split
-                            for definition in _filter_series(definitions_page.items)
+                            for definition in definitions_page.items
                         ],
                         include_inherited=lineage_to_the_root,
                         step_range=step_range,
@@ -178,9 +177,3 @@ def _validate_tail_limit(tail_limit: Optional[int]) -> None:
             raise ValueError("tail_limit must be None or an integer")
         if tail_limit <= 0:
             raise ValueError("tail_limit must be greater than 0")
-
-
-def _filter_series(
-    definitions: list[attribute_definitions.AttributeDefinition],
-) -> list[attribute_definitions.AttributeDefinition]:
-    return [attribute for attribute in definitions if attribute.type == "string_series"]

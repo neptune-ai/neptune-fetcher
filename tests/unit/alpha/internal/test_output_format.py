@@ -129,7 +129,9 @@ def test_convert_experiment_table_to_dataframe_single_string_series():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        selected_aggregations={},
+        selected_aggregations={
+            AttributeDefinition("attr1", "string_series"): {"last"},
+        },
         type_suffix_in_column_names=False,
     )
 
