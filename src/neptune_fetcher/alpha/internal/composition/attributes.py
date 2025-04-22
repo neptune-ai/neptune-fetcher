@@ -37,7 +37,7 @@ from neptune_fetcher.alpha.internal.retrieval import util
 @dataclass(frozen=True)
 class AttributeDefinitionAggregation:
     attribute_definition: att_defs.AttributeDefinition
-    aggregation: Literal["last", "min", "max", "average", "variance", "last_step", "size"]
+    aggregation: Literal["last", "min", "max", "average", "variance"]
 
 
 def fetch_attribute_definitions(

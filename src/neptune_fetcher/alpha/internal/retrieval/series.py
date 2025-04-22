@@ -54,7 +54,7 @@ def fetch_series_values(
         yield from []
         return
 
-    request_id_to_runs_definitions: dict[str, RunAttributeDefinition] = {
+    request_id_to_run_attr_definition: dict[str, RunAttributeDefinition] = {
         str(ix): pair for ix, pair in enumerate(run_attribute_definitions)
     }
 
@@ -71,7 +71,7 @@ def fetch_series_values(
                     "lineage": "FULL" if include_inherited else "NONE",
                 },
             }
-            for request_id, run_definition in request_id_to_runs_definitions.items()
+            for request_id, run_definition in request_id_to_run_attr_definition.items()
         ],
         "stepRange": {"from": step_range[0], "to": step_range[1]},
         "order": "ascending" if tail_limit is None else "descending",
@@ -82,7 +82,9 @@ def fetch_series_values(
     yield from util.fetch_pages(
         client=client,
         fetch_page=_fetch_series_page,
-        process_page=ft.partial(_process_series_page, request_id_to_runs_definitions=request_id_to_runs_definitions),
+        process_page=ft.partial(
+            _process_series_page, request_id_to_run_attr_definition=request_id_to_run_attr_definition
+        ),
         make_new_page_params=_make_new_series_page_params,
         params=params,
     )
@@ -103,13 +105,13 @@ def _fetch_series_page(
 
 def _process_series_page(
     data: ProtoSeriesValuesResponseDTO,
-    request_id_to_runs_definitions: dict[str, RunAttributeDefinition],
+    request_id_to_run_attr_definition: dict[str, RunAttributeDefinition],
 ) -> util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]]:
     items: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
 
     for series in data.series:
         if series.string_series.values:
-            run_definition = request_id_to_runs_definitions[series.requestId]
+            run_definition = request_id_to_run_attr_definition[series.requestId]
             values = [
                 StringSeriesValue(value.step, value.value, value.timestamp_millis)
                 for value in series.string_series.values

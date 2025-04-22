@@ -31,7 +31,6 @@ from neptune_fetcher.alpha.internal.retrieval import series
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
-    STRING_SERIES_AGGREGATIONS,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
@@ -80,10 +79,7 @@ def convert_table_to_dataframe(
                     row[(column_name, agg_name)] = agg_value
             elif value.attribute_definition.type == "string_series":
                 string_series_aggregations: StringSeriesAggregations = value.value
-                selected_subset = selected_aggregations.get(value.attribute_definition, set())
-                agg_subset_values = get_string_series_aggregation_subset(string_series_aggregations, selected_subset)
-                for agg_name, agg_value in agg_subset_values.items():
-                    row[(column_name, agg_name)] = agg_value
+                row[(column_name, "")] = string_series_aggregations.last
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -98,15 +94,6 @@ def convert_table_to_dataframe(
         for agg_name in FLOAT_SERIES_AGGREGATIONS:
             if agg_name in selected_subset:
                 result[agg_name] = getattr(float_series_aggregations, agg_name)
-        return result
-
-    def get_string_series_aggregation_subset(
-        string_series_aggregations: StringSeriesAggregations, selected_subset: set[str]
-    ) -> dict[str, Any]:
-        result = {}
-        for agg_name in STRING_SERIES_AGGREGATIONS:
-            if agg_name in selected_subset:
-                result[agg_name] = getattr(string_series_aggregations, agg_name)
         return result
 
     def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -275,13 +262,13 @@ def create_series_dataframe(
     path_mapping: dict[str, int] = {}
     label_mapping: list[str] = []
 
-    for run_definition in series_data.keys():
-        if run_definition.run_identifier.sys_id not in experiment_mapping:
-            experiment_mapping[run_definition.run_identifier.sys_id] = len(experiment_mapping)
-            label_mapping.append(sys_id_label_mapping[run_definition.run_identifier.sys_id])
+    for run_attr_definition in series_data.keys():
+        if run_attr_definition.run_identifier.sys_id not in experiment_mapping:
+            experiment_mapping[run_attr_definition.run_identifier.sys_id] = len(experiment_mapping)
+            label_mapping.append(sys_id_label_mapping[run_attr_definition.run_identifier.sys_id])
 
-        if run_definition.attribute_definition.name not in path_mapping:
-            path_mapping[run_definition.attribute_definition.name] = len(path_mapping)
+        if run_attr_definition.attribute_definition.name not in path_mapping:
+            path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, values in series_data.items():

@@ -29,8 +29,7 @@ from neptune_fetcher.alpha.exceptions import warn_unsupported_value_type
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series")
 FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
-STRING_SERIES_AGGREGATIONS = {"last", "last_step", "size"}
-ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
+ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS
 
 _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
@@ -62,7 +61,6 @@ class FloatSeriesAggregations:
 class StringSeriesAggregations:
     last: str
     last_step: float
-    size: int
 
 
 def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
@@ -103,5 +101,4 @@ def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> 
     return StringSeriesAggregations(
         last=attr.last,
         last_step=attr.last_step,
-        size=attr.size,
     )

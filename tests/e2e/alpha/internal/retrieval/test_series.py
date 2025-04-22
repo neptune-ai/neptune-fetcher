@@ -12,10 +12,10 @@ from neptune_fetcher.alpha.internal.retrieval.series import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-04-15"
+TEST_DATA_VERSION = "2025-04-21"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-series-{TEST_DATA_VERSION}"
 COMMON_PATH = f"test/test-internal-retrieval-series-{TEST_DATA_VERSION}"
-STRING_SERIES_STEPS = [step * 0.5 for step in range(1, 21)]
+STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
 STRING_SERIES_TIMESTAMPS = [datetime.datetime(2025, 2, 21, 10, step) for step in range(20)]
 STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
 
@@ -119,11 +119,11 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     "step_range, expected_start, expected_end",
     [
         ((None, None), 0, 20),
-        ((1, None), 1, 20),
-        ((None, 5.0), 0, 10),
-        ((2.5, 7.5), 4, 15),
-        ((None, 2.5), 0, 5),
-        ((5.0, None), 9, 20),
+        ((1, None), 2, 20),
+        ((None, 5.0), 0, 11),
+        ((2.5, 7.5), 5, 16),
+        ((None, 2.5), 0, 6),
+        ((5.0, None), 10, 20),
     ],
 )
 def test_fetch_series_values_single_series_stop_range(

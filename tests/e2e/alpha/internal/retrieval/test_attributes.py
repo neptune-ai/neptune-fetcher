@@ -506,7 +506,6 @@ def test_fetch_attribute_values_single_float_series_all_aggregations(client, pro
     assert values == [AttributeValue(AttributeDefinition(path, "float_series"), aggregates, experiment_identifier)]
 
 
-@pytest.mark.skip(reason="TODO String series values are not supported yet")
 def test_fetch_attribute_values_single_string_series_all_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
@@ -526,7 +525,6 @@ def test_fetch_attribute_values_single_string_series_all_aggregations(client, pr
     aggregates = StringSeriesAggregations(
         last=STRING_SERIES_VALUES[-1],
         last_step=STRING_SERIES_STEPS[-1],
-        size=sum(len(value) for value in STRING_SERIES_VALUES),
     )
     assert values == [AttributeValue(AttributeDefinition(path, "string_series"), aggregates, experiment_identifier)]
 

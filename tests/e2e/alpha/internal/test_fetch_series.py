@@ -56,7 +56,7 @@ STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(
 NUMBER_OF_STEPS = 10
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
-TEST_DATA_VERSION = "v4"
+TEST_DATA_VERSION = "v5"
 
 
 @dataclass
@@ -109,8 +109,7 @@ def run_with_attributes(client, project):
 
         for step in range(NUMBER_OF_STEPS):
             series_data = {path: value[step] for path, value in experiment.string_series.items()}
-            run.log_string_series(data=series_data, step=step + 1, timestamp=NOW + timedelta(seconds=int(step)))
-            # TODO: fix step + 1 -> step when backend returns step starting from 0
+            run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
         runs[experiment.name] = run
 
@@ -148,13 +147,12 @@ def create_expected_data(
 
             filtered = []
             for step in steps:
-                step_val = step + 1  # TODO: fix step+1 -> step when backend returns step starting from 0
-                if step_filter[0] <= step_val <= step_filter[1]:
+                if step_filter[0] <= step <= step_filter[1]:
                     columns.add(path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
                         StringSeriesValue(
-                            step_val,
+                            step,
                             series[step],
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                         )

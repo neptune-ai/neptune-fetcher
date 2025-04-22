@@ -80,6 +80,11 @@ def fetch_series(
             container_type=container_type,
         )
 
+        if "string_series" in attributes.type_in:
+            attributes.type_in = ["string_series"]
+        else:
+            raise ValueError("Only string_series type is supported for attributes in fetch_series")
+
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
         def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
