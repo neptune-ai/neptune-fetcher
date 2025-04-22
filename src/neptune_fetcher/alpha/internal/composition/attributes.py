@@ -32,6 +32,7 @@ from neptune_fetcher.alpha.internal import (
 from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import util
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import TYPE_AGGREGATIONS
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,9 @@ def fetch_attribute_definition_aggregations(
 
             if definition.type == "float_series" or definition.type == "string_series":
                 for aggregation in filter_.aggregations:
+                    if aggregation not in TYPE_AGGREGATIONS[definition.type]:
+                        continue
+
                     definition_aggregation = AttributeDefinitionAggregation(
                         attribute_definition=definition, aggregation=aggregation
                     )

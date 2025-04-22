@@ -31,6 +31,7 @@ from neptune_fetcher.alpha.internal.retrieval import series
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
+    STRING_SERIES_AGGREGATIONS,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
@@ -79,7 +80,10 @@ def convert_table_to_dataframe(
                     row[(column_name, agg_name)] = agg_value
             elif value.attribute_definition.type == "string_series":
                 string_series_aggregations: StringSeriesAggregations = value.value
-                row[(column_name, "last")] = string_series_aggregations.last
+                selected_subset = selected_aggregations.get(value.attribute_definition, set())
+                agg_subset_values = get_string_series_aggregation_subset(string_series_aggregations, selected_subset)
+                for agg_name, agg_value in agg_subset_values.items():
+                    row[(column_name, agg_name)] = agg_value
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -94,6 +98,15 @@ def convert_table_to_dataframe(
         for agg_name in FLOAT_SERIES_AGGREGATIONS:
             if agg_name in selected_subset:
                 result[agg_name] = getattr(float_series_aggregations, agg_name)
+        return result
+
+    def get_string_series_aggregation_subset(
+        string_series_aggregation: StringSeriesAggregations, selected_subset: set[str]
+    ) -> dict[str, Any]:
+        result = {}
+        for agg_name in STRING_SERIES_AGGREGATIONS:
+            if agg_name in selected_subset:
+                result[agg_name] = getattr(string_series_aggregation, agg_name)
         return result
 
     def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:

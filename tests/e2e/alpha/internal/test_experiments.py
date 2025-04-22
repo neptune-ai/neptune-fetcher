@@ -200,6 +200,24 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
     assert df[expected.columns].columns.equals(expected.columns)
 
 
+@pytest.mark.parametrize(
+    "attr_filter",
+    [AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggregation(
+    project, run_with_attributes, attr_filter
+):
+    df = fetch_experiments_table(
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        attributes=attr_filter,
+        type_suffix_in_column_names=True,
+        context=_context(project),
+    )
+    assert df.empty
+
+
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize(
     "attr_filter",

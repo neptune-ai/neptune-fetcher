@@ -29,7 +29,12 @@ from neptune_fetcher.alpha.exceptions import warn_unsupported_value_type
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series")
 FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
-ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS
+STRING_SERIES_AGGREGATIONS = {"last"}
+ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
+TYPE_AGGREGATIONS = {
+    "float_series": FLOAT_SERIES_AGGREGATIONS,
+    "string_series": STRING_SERIES_AGGREGATIONS,
+}
 
 _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
