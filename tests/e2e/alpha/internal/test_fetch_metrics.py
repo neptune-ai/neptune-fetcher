@@ -1,19 +1,7 @@
-import itertools
-import itertools as it
 import os
-import uuid
-from dataclasses import (
-    dataclass,
-    field,
-)
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import timedelta
 from itertools import chain
 from typing import (
-    Dict,
     List,
     Literal,
     Optional,
@@ -24,108 +12,22 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pytest
-from neptune_scale import Run
 
 from neptune_fetcher.alpha import fetch_metrics
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.context import get_context
 from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+from tests.e2e.alpha.data import (
+    NOW,
+    PATH,
+    TEST_DATA,
+    ExperimentData,
+)
 
-
-@dataclass
-class ExperimentData:
-    name: str
-    config: Dict[str, any]
-    float_series: Dict[str, List[float]]
-    unique_series: Dict[str, List[float]]
-    run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-
-
-PATH = "metrics/fetch-metric"
-FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
-NUMBER_OF_STEPS = 100
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
-
-TEST_DATA_VERSION = "v2"
-
-
-@dataclass
-class TestData:
-    experiments: List[ExperimentData] = field(default_factory=list)
-
-    def exp_name(self, index: int) -> str:
-        return self.experiments[index].name
-
-    def __post_init__(self):
-        if not self.experiments:
-            for i in range(6):
-                experiment_name = f"pye2e-alpha_{i}_{TEST_DATA_VERSION}"
-
-                float_series = {
-                    path: [float(step * (j + i)) for step in range(NUMBER_OF_STEPS)]
-                    for j, path in enumerate(FLOAT_SERIES_PATHS)
-                }
-                unique_series = {
-                    f"{PATH}/metrics/unique-series-{i}-{j}": [
-                        float((step + j**2) / (i + 1)) for step in range(NUMBER_OF_STEPS)
-                    ]
-                    for j in range(3)
-                }
-
-                float_series[f"{PATH}/metrics/step"] = [float(step) for step in range(NUMBER_OF_STEPS)]
-                self.experiments.append(
-                    ExperimentData(
-                        name=experiment_name, config={}, float_series=float_series, unique_series=unique_series
-                    )
-                )
-
-
-NOW = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
-TEST_DATA = TestData()
-
-
-@pytest.fixture(scope="module", autouse=True)
-def run_with_attributes(client, project):
-    # TODO: remove this once we have a way to create experiments
-    expected_experiments = {exp.name for exp in TEST_DATA.experiments}
-    existing_experiments = it.chain.from_iterable(
-        [
-            p.items
-            for p in fetch_experiment_sys_attrs(
-                client=client,
-                project_identifier=identifiers.ProjectIdentifier(project.project_identifier),
-                filter_=Filter.name_in(*expected_experiments),
-            )
-        ]
-    )
-    if expected_experiments == {exp.sys_name for exp in existing_experiments}:
-        return {}
-
-    runs = {}
-    for experiment in TEST_DATA.experiments:
-        run = Run(
-            project=project.project_identifier,
-            run_id=experiment.run_id,
-            experiment_name=experiment.name,
-        )
-
-        for index, step in enumerate(experiment.float_series[f"{PATH}/metrics/step"]):
-            series = itertools.chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()])
-            metrics_data = {path: values[index] for path, values in series}
-            metrics_data[f"{PATH}/metrics/step"] = step
-            run.log_metrics(data=metrics_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
-
-        runs[experiment.name] = run
-
-    for run in runs.values():
-        run.close()
-
-    return runs
 
 
 def create_expected_data(

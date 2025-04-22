@@ -79,7 +79,7 @@ def convert_table_to_dataframe(
                     row[(column_name, agg_name)] = agg_value
             elif value.attribute_definition.type == "string_series":
                 string_series_aggregations: StringSeriesAggregations = value.value
-                row[(column_name, "")] = string_series_aggregations.last
+                row[(column_name, "last")] = string_series_aggregations.last
             else:
                 row[(column_name, "")] = value.value
         return row

@@ -1,17 +1,7 @@
 import itertools as it
 import os
-import uuid
-from dataclasses import (
-    dataclass,
-    field,
-)
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import timedelta
 from typing import (
-    Dict,
     List,
     Literal,
     Optional,
@@ -22,7 +12,6 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pytest
-from neptune_scale import Run
 
 from neptune_fetcher.alpha import fetch_series
 from neptune_fetcher.alpha.filters import (
@@ -37,86 +26,18 @@ from neptune_fetcher.alpha.internal.identifiers import (
 )
 from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 from neptune_fetcher.alpha.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
 )
+from tests.e2e.alpha.data import (
+    NOW,
+    NUMBER_OF_STEPS,
+    TEST_DATA,
+    ExperimentData,
+)
 
-
-@dataclass
-class ExperimentData:
-    name: str
-    string_series: Dict[str, List[str]]
-    run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-
-
-PATH = "metrics/fetch-series"
-STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
-NUMBER_OF_STEPS = 10
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
-
-TEST_DATA_VERSION = "v5"
-
-
-@dataclass
-class TestData:
-    experiments: List[ExperimentData] = field(default_factory=list)
-
-    def exp_name(self, index: int) -> str:
-        return self.experiments[index].name
-
-    def __post_init__(self):
-        if not self.experiments:
-            for i in range(6):
-                experiment_name = f"pye2e-alpha-fetch-series_{i}_{TEST_DATA_VERSION}"
-
-                string_series = {
-                    path: [f"string-{step * (j + i + 1)}" for step in range(NUMBER_OF_STEPS)]
-                    for j, path in enumerate(STRING_SERIES_PATHS)
-                }
-
-                self.experiments.append(ExperimentData(name=experiment_name, string_series=string_series))
-
-
-NOW = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
-TEST_DATA = TestData()
-
-
-@pytest.fixture(scope="module", autouse=True)
-def run_with_attributes(client, project):
-    expected_experiments = {exp.name for exp in TEST_DATA.experiments}
-    existing_experiments = it.chain.from_iterable(
-        [
-            p.items
-            for p in fetch_experiment_sys_attrs(
-                client=client,
-                project_identifier=identifiers.ProjectIdentifier(project.project_identifier),
-                filter_=Filter.name_in(*expected_experiments),
-            )
-        ]
-    )
-    if expected_experiments == {exp.sys_name for exp in existing_experiments}:
-        return {}
-
-    runs = {}
-    for experiment in TEST_DATA.experiments:
-        run = Run(
-            project=project.project_identifier,
-            run_id=experiment.run_id,
-            experiment_name=experiment.name,
-        )
-
-        for step in range(NUMBER_OF_STEPS):
-            series_data = {path: value[step] for path, value in experiment.string_series.items()}
-            run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
-
-        runs[experiment.name] = run
-
-    for run in runs.values():
-        run.close()
-
-    return runs
 
 
 def create_expected_data(

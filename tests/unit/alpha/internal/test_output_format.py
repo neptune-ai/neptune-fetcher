@@ -24,7 +24,10 @@ from neptune_fetcher.alpha.internal.output_format import (
     create_series_dataframe,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FloatSeriesAggregations,
+    StringSeriesAggregations,
+)
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.retrieval.metrics import FloatPointValue
 from neptune_fetcher.alpha.internal.retrieval.series import (
@@ -108,6 +111,31 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
         ("attr1", "last"): {"exp1": 42.0},
         ("attr1", "min"): {"exp1": 0.0},
         ("attr1", "variance"): {"exp1": 100.0},
+    }
+
+
+def test_convert_experiment_table_to_dataframe_single_string_series():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "string_series"),
+                StringSeriesAggregations(last="last log", last_step=10.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+    )
+
+    # then
+    assert dataframe.to_dict() == {
+        ("attr1", "last"): {"exp1": "last log"},
     }
 
 
