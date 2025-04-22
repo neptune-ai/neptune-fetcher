@@ -20,6 +20,12 @@ from neptune_fetcher.alpha.internal.retrieval.search import (
     ExperimentSysAttrs,
     fetch_experiment_sys_attrs,
 )
+from tests.e2e.alpha.internal.data import (
+    FLOAT_SERIES_PATHS,
+    PATH,
+    STRING_SERIES_PATHS,
+    TEST_DATA,
+)
 
 try:
     SYSTEM_TZ = pytz.timezone(datetime.now(timezone.utc).astimezone().tzname())
@@ -28,66 +34,17 @@ except pytz.exceptions.UnknownTimeZoneError:
 ONE_SECOND = timedelta(seconds=1)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-04-11"
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-search-{TEST_DATA_VERSION}"
-PATH = f"test/test-internal-retrieval-search-{TEST_DATA_VERSION}"
 DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
 DATETIME_VALUE2 = datetime(2025, 2, 1, 0, 0, 0, 0, timezone.utc)
-FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
-FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
-STRING_SERIES_STEPS = [step * 0.5 for step in range(20)]
-STRING_SERIES_TIMESTAMPS = [datetime(2025, 2, 21, 10, step) for step in range(20)]
-STRING_SERIES_VALUES = [chr(ord("a") + step) * (step % 3 + 1) for step in range(20)]
+EXPERIMENT_NAME = TEST_DATA.experiment_names[0]
+FLOAT_SERIES_VALUES = TEST_DATA.experiments[0].float_series[FLOAT_SERIES_PATHS[0]]
+STRING_SERIES_VALUES = TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]
 
 
-@pytest.fixture(scope="module")
-def run_with_attributes(client, project):
-    import uuid
-
-    from neptune_scale import Run
-
-    from neptune_fetcher.alpha.internal import identifiers
-
-    project_identifier = project.project_identifier
-
-    existing = next(
-        fetch_experiment_sys_attrs(
-            client,
-            identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME),
-        )
-    )
-    if existing.items:
-        return
-
-    run_id = str(uuid.uuid4())
-
-    run = Run(
-        project=project_identifier,
-        run_id=run_id,
-        experiment_name=EXPERIMENT_NAME,
-    )
-
-    data = {
-        f"{PATH}/int-value": 10,
-        f"{PATH}/float-value": 0.5,
-        f"{PATH}/str-value": "hello",
-        f"{PATH}/bool-value": True,
-        f"{PATH}/datetime-value": DATETIME_VALUE,
-    }
-    run.log_configs(data)
-
-    path = f"{PATH}/float-series-value"
-    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
-        run.log_metrics(data={path: value}, step=step)
-
-    path = f"{PATH}/string-series-value"
-    for step, timestamp, value in zip(STRING_SERIES_STEPS, STRING_SERIES_TIMESTAMPS, STRING_SERIES_VALUES):
-        run.log_string_series(data={path: value}, step=step, timestamp=timestamp)
-
-    run.close()
-
-    return run
+def _variance(xs):
+    n = len(xs)
+    mean = sum(xs) / n
+    return sum((x - mean) ** 2 for x in xs) / n
 
 
 def test_find_experiments_project_does_not_exist(client, project):
@@ -150,32 +107,32 @@ def test_find_experiments_by_name_not_found(client, project):
 @pytest.mark.parametrize(
     "experiment_filter,found",
     [
-        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11), False),
-        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 11), True),
-        (Filter.ge(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (Filter.gt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (Filter.le(Attribute(name=f"{PATH}/int-value", type="int"), 10), True),
-        (Filter.lt(Attribute(name=f"{PATH}/int-value", type="int"), 10), False),
-        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), False),
-        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
-        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.6), True),
-        (Filter.ge(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (Filter.gt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
-        (Filter.le(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), True),
-        (Filter.lt(Attribute(name=f"{PATH}/float-value", type="float"), 0.5), False),
+        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
+        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1), False),
+        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
+        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 1), True),
+        (Filter.ge(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
+        (Filter.gt(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
+        (Filter.le(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
+        (Filter.lt(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
+        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1), False),
+        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
+        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.1), True),
+        (Filter.ge(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (Filter.gt(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
+        (Filter.le(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (Filter.lt(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
         (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), True),
         (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), False),
         (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), False),
         (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), True),
-        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), True),
+        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello_0"), True),
         (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), False),
-        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello"), False),
+        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello_0"), False),
         (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), True),
-        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), "^he..o$"), True),
-        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "lo$"]), True),
+        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), "^he..o_0$"), True),
+        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "lo_0$"]), True),
         (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
         (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
         (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
@@ -250,9 +207,9 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
 
     # then
     if found:
-        assert experiment_names == [EXPERIMENT_NAME]
+        assert EXPERIMENT_NAME in experiment_names
     else:
-        assert experiment_names == []
+        assert EXPERIMENT_NAME not in experiment_names
 
 
 @pytest.mark.parametrize(
@@ -260,103 +217,116 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     [
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-2],
             ),
             False,
         ),
         (
             Filter.ne(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="last"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
             False,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES) + 1,
             ),
             False,
         ),
         (
             Filter.ne(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="min"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES) + 1,
             ),
             False,
         ),
         (
             Filter.ne(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="max"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES) + 1.0,
             ),
             False,
         ),
         (
             Filter.ne(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="average"),
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
             False,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05
+            Filter.ge(
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                _variance(FLOAT_SERIES_VALUES) - 1e-6,
+            )
+            & Filter.le(
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                _variance(FLOAT_SERIES_VALUES) + 1e-6,
             ),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05 + 1
+                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                _variance(FLOAT_SERIES_VALUES) + 1,
             ),
             False,
         ),
         (
-            Filter.ne(
-                Attribute(name=f"{PATH}/float-series-value", type="float_series", aggregation="variance"), 721.05
+            Filter.negate(
+                Filter.ge(
+                    Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                    _variance(FLOAT_SERIES_VALUES) - 1e-6,
+                )
+                & Filter.le(
+                    Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                    _variance(FLOAT_SERIES_VALUES) + 1e-6,
+                )
             ),
             False,
         ),
@@ -371,9 +341,9 @@ def test_find_experiments_by_float_series_values(client, project, run_with_attri
 
     # then
     if found:
-        assert experiment_names == [EXPERIMENT_NAME]
+        assert EXPERIMENT_NAME in experiment_names
     else:
-        assert experiment_names == []
+        assert EXPERIMENT_NAME not in experiment_names
 
 
 @pytest.mark.parametrize(
@@ -381,17 +351,17 @@ def test_find_experiments_by_float_series_values(client, project, run_with_attri
     [
         (
             Filter.exists(
-                Attribute(name=f"{PATH}/string-series-value", type="string_series"),
+                Attribute(name=STRING_SERIES_PATHS[0], type="string_series"),
             ),
             True,
         ),
         (
-            Filter.eq(Attribute(name=f"{PATH}/string-series-value", type="string_series"), STRING_SERIES_VALUES[-1]),
+            Filter.eq(Attribute(name=STRING_SERIES_PATHS[0], type="string_series"), STRING_SERIES_VALUES[-1]),
             True,
         ),
         (
             Filter.eq(
-                Attribute(name=f"{PATH}/string-series-value", type="string_series"),
+                Attribute(name=STRING_SERIES_PATHS[0], type="string_series"),
                 STRING_SERIES_VALUES[-2],
             ),
             False,
@@ -407,9 +377,9 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
 
     # then
     if found:
-        assert experiment_names == [EXPERIMENT_NAME]
+        assert EXPERIMENT_NAME in experiment_names
     else:
-        assert experiment_names == []
+        assert EXPERIMENT_NAME not in experiment_names
 
 
 @pytest.mark.parametrize(
@@ -417,81 +387,81 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
     [
         (
             Filter.all(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             True,
         ),
         (
             Filter.all(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             False,
         ),
         (
             Filter.all(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             False,
         ),
         (
             Filter.all(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             False,
         ),
         (
             Filter.any(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             True,
         ),
         (
             Filter.any(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             True,
         ),
         (
             Filter.any(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             True,
         ),
         (
             Filter.any(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
             False,
         ),
         (
             Filter.negate(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
             ),
             False,
         ),
         (
             Filter.negate(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 10),
+                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
             ),
             True,
         ),
         (
             Filter.all(
                 Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
                 Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
                 ),
             ),
             True,
@@ -499,12 +469,12 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
         (
             Filter.all(
                 Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
                 Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
             ),
             False,
@@ -512,12 +482,12 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
         (
             Filter.any(
                 Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.5),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
                 ),
                 Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
             ),
             True,
@@ -525,12 +495,12 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
         (
             Filter.any(
                 Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
                 Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
             ),
             False,
@@ -539,12 +509,12 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
             Filter.negate(
                 Filter.any(
                     Filter.all(
-                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 10),
-                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                     ),
                     Filter.all(
-                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 11),
-                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.6),
+                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
                     ),
                 )
             ),
@@ -561,9 +531,9 @@ def test_find_experiments_by_logical_expression(client, project, run_with_attrib
 
     # then
     if found:
-        assert experiment_names == [EXPERIMENT_NAME]
+        assert EXPERIMENT_NAME in experiment_names
     else:
-        assert experiment_names == []
+        assert EXPERIMENT_NAME not in experiment_names
 
 
 def test_find_experiments_sort_by_name_desc(client, project, run_with_attributes):

@@ -16,7 +16,7 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal import env
-from tests.e2e.alpha.data import (
+from tests.e2e.alpha.internal.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     TEST_DATA,
@@ -161,6 +161,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     assert df[expected.columns].columns.equals(expected.columns)
 
 
+@pytest.mark.skip("TODO: Waiting for fix to string series attribute values on backend")
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize(
     "attr_filter",
