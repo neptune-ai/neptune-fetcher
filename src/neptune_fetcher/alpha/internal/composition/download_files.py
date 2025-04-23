@@ -17,7 +17,6 @@ import pathlib
 from typing import (
     Generator,
     Optional,
-    Tuple,
 )
 
 from neptune_fetcher.alpha.filters import (
@@ -36,16 +35,16 @@ from neptune_fetcher.alpha.internal.context import (
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.identifiers import SysId
 from neptune_fetcher.alpha.internal.retrieval import (
     attribute_definitions,
     files,
     search,
     util,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
-
-SysIdLabel = Tuple[SysId, str]
+from neptune_fetcher.alpha.internal.retrieval.search import (
+    ContainerType,
+    SysIdLabel,
+)
 
 
 def download_files(
@@ -80,14 +79,14 @@ def download_files(
             raise ValueError("Only file attributes are supported for file download.")
 
         def process_sys_attrs_page(sys_attrs_page: util.Page[SysIdLabel]) -> concurrency.OUT:
-            sys_id_to_label = {sys_id: label for sys_id, label in sys_attrs_page.items}
+            sys_id_to_label = {item.sys_id: item.label for item in sys_attrs_page.items}
             return _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                sys_ids=[sys_id for sys_id, _ in sys_attrs_page.items],
+                sys_ids=[item.sys_id for item in sys_attrs_page.items],
                 downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
                     client=client,
                     project_identifier=project,
@@ -125,27 +124,12 @@ def download_files(
                 ),
             )
 
-        if container_type == search.ContainerType.EXPERIMENT:
-            experiment_pages = search.fetch_experiment_sys_attrs(
-                client=client,
-                project_identifier=project,
-                filter_=filter_,
-            )
-            sys_id_label_pages: Generator[util.Page[SysIdLabel], None, None] = (
-                util.Page(items=[(item.sys_id, item.sys_name) for item in page.items]) for page in experiment_pages
-            )
-        else:
-            run_pages = search.fetch_run_sys_attrs(
-                client=client,
-                project_identifier=project,
-                filter_=filter_,
-            )
-            sys_id_label_pages = (
-                util.Page(items=[(item.sys_id, item.sys_custom_run_id) for item in page.items]) for page in run_pages
-            )
-
         output = concurrency.generate_concurrently(
-            items=sys_id_label_pages,
+            items=search.fetch_sys_id_labels(container_type)(
+                client=client,
+                project_identifier=project,
+                filter_=filter_,
+            ),
             executor=executor,
             downstream=process_sys_attrs_page,
         )

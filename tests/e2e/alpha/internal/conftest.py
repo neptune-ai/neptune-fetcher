@@ -1,14 +1,14 @@
+import itertools as it
 import time
 from datetime import timedelta
-from io import BytesIO
 
 import pytest
 from neptune_scale import Run
-from neptune_scale.types import File
 
 from neptune_fetcher.alpha import set_project
 from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
 from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 from tests.e2e.alpha.internal.data import (
     NOW,
@@ -56,12 +56,7 @@ def run_with_attributes(project, client):
             series_data = {path: values[step] for path, values in experiment.string_series.items()}
             run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
-        run.log_files(
-            {
-                path.rsplit("/", 1)[0]: File(BytesIO(content), target_path=path.rsplit("/", 1)[1])
-                for path, content in experiment.files.items()
-            }
-        )
+        run.assign_files(experiment.files)
 
         runs[experiment.name] = run
     for run in runs.values():
@@ -83,3 +78,23 @@ def run_with_attributes(project, client):
         time.sleep(1)
 
     raise RuntimeError("Experiments did not appear in the system in time")
+
+
+@pytest.fixture(scope="module")
+def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
+    from neptune_fetcher.alpha.filters import Filter
+    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+
+    project_identifier = project.project_identifier
+
+    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
+    experiment_attrs = extract_pages(
+        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
+    )
+    sys_id = experiment_attrs[0].sys_id
+
+    return RunIdentifier(project_identifier, sys_id)
+
+
+def extract_pages(generator):
+    return list(it.chain.from_iterable(i.items for i in generator))

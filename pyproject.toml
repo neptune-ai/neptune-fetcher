@@ -13,12 +13,11 @@ python = "^3.9"
 
 # Base neptune package
 neptune-api = "^0.15.0"
+azure-storage-blob = "^12.7.0"
+pandas = { version = ">=1.4.0" }
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
-pandas = { version = ">=1.4.0" }
-azure-storage-blob = { version = ">=12,<13" }
-
 
 [tool.poetry]
 authors = ["neptune.ai <contact@neptune.ai>"]

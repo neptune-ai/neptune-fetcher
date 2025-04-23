@@ -4,7 +4,6 @@ from datetime import timedelta
 
 import pytest
 
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.series import (
     RunAttributeDefinition,
@@ -17,22 +16,6 @@ from tests.e2e.alpha.internal.data import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
-
-@pytest.fixture(scope="module")
-def experiment_identifier(client, project) -> RunIdentifier:
-    from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
-
-    project_identifier = project.project_identifier
-
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
-    experiment_attrs = _extract_pages(
-        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
-    )
-    sys_id = experiment_attrs[0].sys_id
-
-    return RunIdentifier(project_identifier, sys_id)
 
 
 def test_fetch_series_values_does_not_exist(client, project, experiment_identifier):

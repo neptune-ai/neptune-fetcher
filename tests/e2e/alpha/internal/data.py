@@ -10,7 +10,7 @@ from datetime import (
     timezone,
 )
 
-TEST_DATA_VERSION = "2025-04-20"
+TEST_DATA_VERSION = "2025-04-23"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -37,6 +37,7 @@ class ExperimentData:
                 self.float_series.keys(),
                 self.unique_series.keys(),
                 self.string_series.keys(),
+                self.files.keys(),
             )
         )
 
@@ -75,7 +76,7 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
-                files = {f"{PATH}/files/file-value.txt": b"Hello world!"}
+                files = {f"{PATH}/files/file-value.txt": b"Hello world!"} if i == 0 else {}
 
                 self.experiments.append(
                     ExperimentData(

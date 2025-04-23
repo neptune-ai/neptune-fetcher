@@ -39,22 +39,6 @@ from tests.e2e.alpha.internal.data import (
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
-@pytest.fixture(scope="module")
-def experiment_identifier(client, project) -> RunIdentifier:
-    from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
-
-    project_identifier = project.project_identifier
-
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
-    experiment_attrs = _extract_pages(
-        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
-    )
-    sys_id = experiment_attrs[0].sys_id
-
-    return RunIdentifier(project_identifier, sys_id)
-
-
 def test_fetch_attribute_definitions_project_does_not_exist(client, project):
     workspace, project = project.project_identifier.split("/")
     project_identifier = ProjectIdentifier(f"{workspace}/does-not-exist")
@@ -534,7 +518,7 @@ def test_fetch_attribute_values_file(client, project, experiment_identifier):
     assert len(values) == 1
     value = values[0]
     assert value.attribute_definition == attribute_definition
-    assert re.search(rf".*/{PATH}/files/file-value.txt/.*", value.value.path)
+    assert re.search(rf".*{PATH.replace('/', '_')}_files_file-value_txt.*", value.value.path)
     assert value.value.size_bytes == 12
     assert value.value.mime_type == "application/octet-stream"
 
