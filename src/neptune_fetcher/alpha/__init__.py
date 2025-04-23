@@ -24,6 +24,7 @@ __all__ = [
     "list_attributes",
     "fetch_experiments_table",
     "fetch_metrics",
+    "fetch_series",
 ]
 
 from typing import (
@@ -37,6 +38,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
 from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
+from neptune_fetcher.alpha.internal.composition import fetch_series as _fetch_series
 from neptune_fetcher.alpha.internal.composition import fetch_table as _fetch_table
 from neptune_fetcher.alpha.internal.composition import list_attributes as _list_attributes
 from neptune_fetcher.alpha.internal.composition import list_containers as _list_containers
@@ -203,6 +205,34 @@ def fetch_experiments_table(
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
+        context=context,
+        container_type=_search.ContainerType.EXPERIMENT,
+    )
+
+
+def fetch_series(
+    experiments: Union[str, _filters.Filter],
+    attributes: Union[str, _filters.AttributeFilter],
+    *,
+    include_time: Optional[Literal["absolute"]] = None,
+    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
+    lineage_to_the_root: bool = True,
+    tail_limit: Optional[int] = None,
+    context: Optional[Context] = None,
+) -> _pandas.DataFrame:
+    if isinstance(experiments, str):
+        experiments = _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), regex=experiments)
+
+    if isinstance(attributes, str):
+        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["string_series"])
+
+    return _fetch_series.fetch_series(
+        filter_=experiments,
+        attributes=attributes,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
     )

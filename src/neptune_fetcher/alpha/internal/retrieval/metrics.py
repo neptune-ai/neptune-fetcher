@@ -141,11 +141,11 @@ def _fetch_series_values(
     series_requests = []
 
     for ix, (exp_path, request) in enumerate(requests.items()):
-        id = f"{ix}"
-        series_requests_ids[id] = exp_path
+        request_id = f"{ix}"
+        series_requests_ids[request_id] = exp_path
         series_requests.append(
             FloatTimeSeriesValuesRequestSeries(
-                request_id=id,
+                request_id=request_id,
                 series=TimeSeries(
                     attribute=exp_path.attribute_path,
                     holder=AttributesHolderIdentifier(

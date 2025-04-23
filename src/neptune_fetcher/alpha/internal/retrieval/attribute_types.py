@@ -22,16 +22,24 @@ from typing import (
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
     ProtoFloatSeriesAttributeDTO,
+    ProtoStringSeriesAttributeDTO,
 )
 
 from neptune_fetcher.alpha.exceptions import warn_unsupported_value_type
 
-ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set")
-ALL_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
+ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series")
+FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
+STRING_SERIES_AGGREGATIONS = {"last"}
+ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
+TYPE_AGGREGATIONS = {
+    "float_series": FLOAT_SERIES_AGGREGATIONS,
+    "string_series": STRING_SERIES_AGGREGATIONS,
+}
 
 _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "float_series": "floatSeries",
     "string_set": "stringSet",
+    "string_series": "stringSeries",
 }
 
 _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.items()}
@@ -54,9 +62,17 @@ class FloatSeriesAggregations:
     variance: float
 
 
+@dataclass(frozen=True)
+class StringSeriesAggregations:
+    last: str
+    last_step: float
+
+
 def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
     if attr.type == "floatSeries":
-        return _extract_aggregations(attr.float_series_properties)
+        return _extract_float_series_aggregations(attr.float_series_properties)
+    elif attr.type == "stringSeries":
+        return _extract_string_series_aggregations(attr.string_series_properties)
     elif attr.type == "string":
         return attr.string_properties.value
     elif attr.type == "int":
@@ -76,11 +92,18 @@ def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
         return None
 
 
-def _extract_aggregations(attr: ProtoFloatSeriesAttributeDTO) -> FloatSeriesAggregations:
+def _extract_float_series_aggregations(attr: ProtoFloatSeriesAttributeDTO) -> FloatSeriesAggregations:
     return FloatSeriesAggregations(
         last=attr.last,
         min=attr.min,
         max=attr.max,
         average=attr.average,
         variance=attr.variance,
+    )
+
+
+def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> StringSeriesAggregations:
+    return StringSeriesAggregations(
+        last=attr.last,
+        last_step=attr.last_step,
     )

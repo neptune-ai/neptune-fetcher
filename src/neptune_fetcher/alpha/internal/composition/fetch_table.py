@@ -94,8 +94,8 @@ def fetch_table(
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
         selected_aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
 
-        def go_fetch_experiment_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_experiment_sys_attrs(
+        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_sys_id_labels(container_type)(
                 client=client,
                 project_identifier=project,
                 filter_=filter_,
@@ -106,30 +106,9 @@ def fetch_table(
                 sys_ids = []
                 for item in page.items:
                     result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.sys_name  # TODO: check for duplicate names?
+                    sys_id_label_mapping[item.sys_id] = item.label
                     sys_ids.append(item.sys_id)
                 yield sys_ids
-
-        def go_fetch_run_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_run_sys_attrs(
-                client=client,
-                project_identifier=project,
-                filter_=filter_,
-                sort_by=sort_by,
-                sort_direction=_sort_direction,
-                limit=limit,
-            ):
-                sys_ids = []
-                for item in page.items:
-                    result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.sys_custom_run_id
-                    sys_ids.append(item.sys_id)
-                yield sys_ids
-
-        if container_type == search.ContainerType.EXPERIMENT:
-            go_fetch_sys_attrs = go_fetch_experiment_sys_attrs
-        else:
-            go_fetch_sys_attrs = go_fetch_run_sys_attrs
 
         output = concurrency.generate_concurrently(
             items=go_fetch_sys_attrs(),

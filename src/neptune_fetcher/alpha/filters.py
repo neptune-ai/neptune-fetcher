@@ -56,8 +56,9 @@ class AttributeFilter(BaseAttributeFilter):
         name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
             names mustn't match. Attributes matching any of the regexes are excluded.
             If `None`, this filter is not applied.
-        aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of aggregation functions
-            to apply when fetching metrics of type FloatSeries. Defaults to ["last"].
+        aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of
+            aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
+            Defaults to ["last"].
 
     Example:
 
@@ -77,7 +78,9 @@ class AttributeFilter(BaseAttributeFilter):
     """
 
     name_eq: Union[str, list[str], None] = None
-    type_in: list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"]] = field(
+    type_in: list[
+        Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series"]
+    ] = field(
         default_factory=lambda: list(types.ALL_TYPES)  # type: ignore
     )
     name_matches_all: Union[str, list[str], None] = None
@@ -139,7 +142,9 @@ class Attribute:
 
     name: str
     aggregation: Optional[Literal["last", "min", "max", "average", "variance"]] = None
-    type: Optional[Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set"]] = None
+    type: Optional[
+        Literal["bool", "int", "float", "string", "datetime", "float_series", "string_set", "string_series"]
+    ] = None
 
     def __post_init__(self) -> None:
         _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")

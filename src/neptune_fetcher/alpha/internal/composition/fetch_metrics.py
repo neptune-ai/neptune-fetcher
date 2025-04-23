@@ -45,8 +45,9 @@ from neptune_fetcher.alpha.internal.context import (
     validate_context,
 )
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
-from neptune_fetcher.alpha.internal.output_format import create_dataframe
+from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
+    search,
     split,
     util,
 )
@@ -56,11 +57,7 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
     FloatPointValue,
     fetch_multiple_series_values,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import (
-    ContainerType,
-    fetch_experiment_sys_attrs,
-    fetch_run_sys_attrs,
-)
+from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
 __all__ = ("fetch_metrics",)
 
@@ -115,7 +112,7 @@ def fetch_metrics(
             container_type=container_type,
         )
 
-        df = create_dataframe(
+        df = create_metrics_dataframe(
             values_generator,
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -234,14 +231,8 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
-        if container_type == ContainerType.RUN:
-            run_pages = fetch_run_sys_attrs(client, project, filter_)
-            return ({run.sys_id: run.sys_custom_run_id for run in page.items} for page in run_pages)
-        elif container_type == ContainerType.EXPERIMENT:
-            experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
-            return ({exp.sys_id: exp.sys_name for exp in page.items} for page in experiment_pages)
-        else:
-            raise RuntimeError(f"Unknown container type: {container_type}")
+        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project, filter_)
+        return ({run.sys_id: run.label for run in page.items} for page in sys_attr_pages)
 
     def _start() -> Iterable[FloatPointValue]:
         futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}

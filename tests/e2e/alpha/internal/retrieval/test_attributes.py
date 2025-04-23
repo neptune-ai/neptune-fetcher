@@ -1,6 +1,6 @@
 import itertools as it
+import math
 import os
-import time
 from datetime import (
     datetime,
     timezone,
@@ -19,88 +19,33 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import (
     AttributeDefinition,
     fetch_attribute_definitions_single_filter,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import FloatSeriesAggregations
+from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FloatSeriesAggregations,
+    StringSeriesAggregations,
+)
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import (
     AttributeValue,
     fetch_attribute_values,
 )
+from tests.e2e.alpha.internal.data import (
+    FLOAT_SERIES_PATHS,
+    NUMBER_OF_STEPS,
+    PATH,
+    STRING_SERIES_PATHS,
+    TEST_DATA,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-01-31"
-EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-retrieval-attributes-{TEST_DATA_VERSION}"
-COMMON_PATH = f"test/test-internal-retrieval-attributes-{TEST_DATA_VERSION}"
-DATETIME_VALUE = datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc)
-FLOAT_SERIES_STEPS = [step * 0.5 for step in range(10)]
-FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 
 @pytest.fixture(scope="module")
-def run_with_attributes(client, project):
-    import uuid
-
-    from neptune_scale import Run
-
-    from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal import identifiers
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
-
-    project_identifier = project.project_identifier
-
-    existing = next(
-        fetch_experiment_sys_attrs(
-            client,
-            identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME),
-        )
-    )
-    if existing.items:
-        return
-
-    run_id = str(uuid.uuid4())
-
-    run = Run(
-        project=project_identifier,
-        run_id=run_id,
-        experiment_name=EXPERIMENT_NAME,
-    )
-
-    data = {
-        f"{COMMON_PATH}/int-value": 10,
-        f"{COMMON_PATH}/float-value": 0.5,
-        f"{COMMON_PATH}/str-value": "hello",
-        f"{COMMON_PATH}/bool-value": True,
-        f"{COMMON_PATH}/datetime-value": DATETIME_VALUE,
-    }
-    run.log_configs(data)
-
-    path = f"{COMMON_PATH}/float-series-value"
-    for step, value in zip(FLOAT_SERIES_STEPS, FLOAT_SERIES_VALUES):
-        run.log_metrics(data={path: value}, step=step)
-
-    run.add_tags({"string-set-item"})  # the only way to write string-set type. It's implicit path is sys/tags
-
-    now = time.time()
-    data = {
-        f"{COMMON_PATH}/int_value_a": int(now),
-        f"{COMMON_PATH}/int_value_b": int(now),
-        f"{COMMON_PATH}/float_value_a": now,
-        f"{COMMON_PATH}/float_value_b": now,
-    }
-    run.log_configs(data)
-
-    run.close()
-
-    return run
-
-
-@pytest.fixture(scope="module")
-def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
+def experiment_identifier(client, project) -> RunIdentifier:
     from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(EXPERIMENT_NAME)
+    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
     experiment_attrs = _extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
@@ -200,10 +145,10 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     )
 
 
-def test_fetch_attribute_definitions_single_series(client, project, experiment_identifier):
+def test_fetch_attribute_definitions_single_float_series(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
-    path = f"{COMMON_PATH}/float-series-value"
+    path = FLOAT_SERIES_PATHS[0]
 
     #  when
     attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
@@ -220,16 +165,37 @@ def test_fetch_attribute_definitions_single_series(client, project, experiment_i
     assert attributes == [AttributeDefinition(path, "float_series")]
 
 
+def test_fetch_attribute_definitions_single_string_series(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = STRING_SERIES_PATHS[0]
+
+    #  when
+    attribute_filter = AttributeFilter(name_eq=path, type_in=["string_series"])
+    attributes = _extract_pages(
+        fetch_attribute_definitions_single_filter(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+        )
+    )
+
+    # then
+    assert attributes == [AttributeDefinition(path, "string_series")]
+
+
 def test_fetch_attribute_definitions_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
     all_attrs = [
-        (f"{COMMON_PATH}/int-value", "int"),
-        (f"{COMMON_PATH}/float-value", "float"),
-        (f"{COMMON_PATH}/str-value", "string"),
-        (f"{COMMON_PATH}/bool-value", "bool"),
-        (f"{COMMON_PATH}/datetime-value", "datetime"),
-        (f"{COMMON_PATH}/float-series-value", "float_series"),
+        (f"{PATH}/int-value", "int"),
+        (f"{PATH}/float-value", "float"),
+        (f"{PATH}/str-value", "string"),
+        (f"{PATH}/bool-value", "bool"),
+        (f"{PATH}/datetime-value", "datetime"),
+        (FLOAT_SERIES_PATHS[0], "float_series"),
+        (STRING_SERIES_PATHS[0], "string_series"),
         ("sys/tags", "string_set"),
     ]
 
@@ -421,7 +387,9 @@ def test_fetch_attribute_values_single_string(client, project, experiment_identi
     )
 
     # then
-    assert values == [AttributeValue(AttributeDefinition("sys/name", "string"), EXPERIMENT_NAME, experiment_identifier)]
+    assert values == [
+        AttributeValue(AttributeDefinition("sys/name", "string"), TEST_DATA.experiment_names[0], experiment_identifier)
+    ]
 
 
 def test_fetch_attribute_values_two_strings(client, project, experiment_identifier):
@@ -448,10 +416,10 @@ def test_fetch_attribute_values_two_strings(client, project, experiment_identifi
     }
 
 
-def test_fetch_attribute_values_single_series_all_aggregations(client, project, experiment_identifier):
+def test_fetch_attribute_values_single_float_series_all_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
-    path = f"{COMMON_PATH}/float-series-value"
+    path = FLOAT_SERIES_PATHS[0]
 
     #  when
     values = _extract_pages(
@@ -464,41 +432,68 @@ def test_fetch_attribute_values_single_series_all_aggregations(client, project, 
     )
 
     # then
-    average = sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES)
+    data = TEST_DATA.experiments[0].float_series[path]
+    average = sum(data) / len(data)
     aggregates = FloatSeriesAggregations(
-        last=FLOAT_SERIES_VALUES[-1],
-        min=min(FLOAT_SERIES_VALUES),
-        max=max(FLOAT_SERIES_VALUES),
+        last=data[-1],
+        min=min(data),
+        max=max(data),
         average=average,
-        variance=sum((value - average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
+        variance=sum((value - average) ** 2 for value in data) / len(data),
     )
-    assert values == [AttributeValue(AttributeDefinition(path, "float_series"), aggregates, experiment_identifier)]
+    assert len(values) == 1
+    assert values[0].attribute_definition == AttributeDefinition(path, "float_series")
+    assert values[0].run_identifier == experiment_identifier
+    assert values[0].value.last == aggregates.last
+    assert values[0].value.min == aggregates.min
+    assert values[0].value.max == aggregates.max
+    assert values[0].value.average == aggregates.average
+    assert math.isclose(values[0].value.variance, aggregates.variance, rel_tol=1e-6)
+
+
+def test_fetch_attribute_values_single_string_series_all_aggregations(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = STRING_SERIES_PATHS[0]
+
+    #  when
+    values = _extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [AttributeDefinition(path, "string_series")],
+        )
+    )
+
+    # then
+    data = TEST_DATA.experiments[0].string_series[path]
+    aggregates = StringSeriesAggregations(
+        last=data[-1],
+        last_step=NUMBER_OF_STEPS - 1,
+    )
+    assert values == [AttributeValue(AttributeDefinition(path, "string_series"), aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_all_types(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
-    average = sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES)
+
     all_values = [
-        AttributeValue(AttributeDefinition(f"{COMMON_PATH}/int-value", "int"), 10, experiment_identifier),
-        AttributeValue(AttributeDefinition(f"{COMMON_PATH}/float-value", "float"), 0.5, experiment_identifier),
-        AttributeValue(AttributeDefinition(f"{COMMON_PATH}/str-value", "string"), "hello", experiment_identifier),
-        AttributeValue(AttributeDefinition(f"{COMMON_PATH}/bool-value", "bool"), True, experiment_identifier),
+        AttributeValue(AttributeDefinition(f"{PATH}/int-value", "int"), 0, experiment_identifier),
+        AttributeValue(AttributeDefinition(f"{PATH}/float-value", "float"), 0.0, experiment_identifier),
+        AttributeValue(AttributeDefinition(f"{PATH}/str-value", "string"), "hello_0", experiment_identifier),
+        AttributeValue(AttributeDefinition(f"{PATH}/bool-value", "bool"), True, experiment_identifier),
         AttributeValue(
-            AttributeDefinition(f"{COMMON_PATH}/datetime-value", "datetime"), DATETIME_VALUE, experiment_identifier
-        ),
-        AttributeValue(
-            AttributeDefinition(f"{COMMON_PATH}/float-series-value", "float_series"),
-            FloatSeriesAggregations(
-                last=FLOAT_SERIES_VALUES[-1],
-                min=min(FLOAT_SERIES_VALUES),
-                max=max(FLOAT_SERIES_VALUES),
-                average=average,
-                variance=sum((value - average) ** 2 for value in FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
-            ),
+            AttributeDefinition(f"{PATH}/datetime-value", "datetime"),
+            datetime(2025, 1, 1, 0, 0, 0, 0, timezone.utc),
             experiment_identifier,
         ),
-        AttributeValue(AttributeDefinition("sys/tags", "string_set"), {"string-set-item"}, experiment_identifier),
+        AttributeValue(
+            AttributeDefinition(f"{PATH}/string_set-value", "string_set"),
+            {f"string-0-{j}" for j in range(5)},
+            experiment_identifier,
+        ),
     ]
 
     #  when
