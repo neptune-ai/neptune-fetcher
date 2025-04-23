@@ -10,7 +10,9 @@ from datetime import (
     timezone,
 )
 
-TEST_DATA_VERSION = "2025-04-23"
+from neptune_scale.types import File
+
+TEST_DATA_VERSION = "2025-04-24"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -76,7 +78,14 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
-                files = {f"{PATH}/files/file-value.txt": b"Hello world!"} if i == 0 else {}
+                files = (
+                    {
+                        f"{PATH}/files/file-value": b"Binary content",
+                        f"{PATH}/files/file-value.txt": File(b"Text content", mime_type="text/plain"),
+                    }
+                    if i == 0
+                    else {}
+                )
 
                 self.experiments.append(
                     ExperimentData(

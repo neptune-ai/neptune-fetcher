@@ -520,7 +520,7 @@ def test_fetch_attribute_values_file(client, project, experiment_identifier):
     assert value.attribute_definition == attribute_definition
     assert re.search(rf".*{PATH.replace('/', '_')}_files_file-value_txt.*", value.value.path)
     assert value.value.size_bytes == 12
-    assert value.value.mime_type == "application/octet-stream"
+    assert value.value.mime_type == "text/plain"
 
 
 def test_fetch_attribute_values_paging(client, project, experiment_identifier):

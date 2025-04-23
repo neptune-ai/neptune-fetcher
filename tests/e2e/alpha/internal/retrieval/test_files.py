@@ -63,7 +63,7 @@ def test_download_file(client, project, experiment_identifier, temp_dir):
     # then
     with open(target_path, "rb") as file:
         content = file.read()
-        assert content == b"Hello world!"
+        assert content == b"Text content"
 
 
 def _extract_pages(generator):
