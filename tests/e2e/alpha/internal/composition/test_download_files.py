@@ -11,13 +11,14 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.alpha.internal.composition.download_files import download_files
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
+from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.search import (
     ContainerType,
     fetch_experiment_sys_attrs,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-TEST_DATA_VERSION = "2025-04-18"
+TEST_DATA_VERSION = "2025-04-19"
 EXPERIMENT_NAME = f"pye2e-fetcher-test-internal-composition-download-files-{TEST_DATA_VERSION}"
 PATH = f"test/test-internal-composition-download-files-{TEST_DATA_VERSION}"
 
@@ -81,7 +82,7 @@ def temp_dir():
 
 def test_download_files(client, project, experiment_identifier, temp_dir):
     # when
-    download_files(
+    results = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
         attributes=AttributeFilter(name_eq=f"{PATH}/files/file-value"),
         destination=temp_dir,
@@ -90,7 +91,13 @@ def test_download_files(client, project, experiment_identifier, temp_dir):
     )
 
     # then
-    target_path = temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value"
+    assert len(results) == 1
+    assert results[0] == (
+        experiment_identifier,
+        AttributeDefinition(f"{PATH}/files/file-value", "file"),
+        temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value",
+    )
+    target_path = results[0][2]
     assert target_path.exists()
     with open(target_path, "rb") as file:
         content = file.read()

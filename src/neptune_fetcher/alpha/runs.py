@@ -281,18 +281,13 @@ def download_files(
         attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file"])
     elif attributes is None:
         attributes = _filters.AttributeFilter(type_in=["file"])
-    else:
-        if "file" in attributes.type_in:
-            attributes.type_in = ["file"]
-        else:
-            return
 
     if destination is None:
         destination_path = _pathlib.Path.cwd()
     else:
         destination_path = _pathlib.Path(destination).resolve()
 
-    return _download_files.download_files(
+    _download_files.download_files(
         filter_=runs,
         attributes=attributes,
         destination=destination_path,

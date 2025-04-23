@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import hashlib
 import os
 import pathlib
 from typing import (
@@ -55,7 +54,7 @@ def download_files(
     destination: pathlib.Path,
     context: Optional[Context],
     container_type: ContainerType,
-) -> None:
+) -> list[tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path]]:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
@@ -75,6 +74,11 @@ def download_files(
             container_type=container_type,
         )
 
+        if "file" in attributes.type_in:
+            attributes.type_in = ["file"]
+        else:
+            raise ValueError("Only file attributes are supported for file download.")
+
         def process_sys_attrs_page(sys_attrs_page: util.Page[SysIdLabel]) -> concurrency.OUT:
             sys_id_to_label = {sys_id: label for sys_id, label in sys_attrs_page.items}
             return _components.fetch_attribute_definition_aggregations_split(
@@ -89,7 +93,7 @@ def download_files(
                     project_identifier=project,
                     executor=executor,
                     sys_ids=sys_ids_split,
-                    attribute_definitions=_filter_file_refs(definitions_page.items),
+                    attribute_definitions=definitions_page.items,
                     downstream=lambda values_page: concurrency.generate_concurrently(
                         items=(
                             (value, file_)
@@ -104,13 +108,17 @@ def download_files(
                         ),
                         executor=executor,
                         downstream=lambda run_file_tuple: concurrency.return_value(
-                            files.download_file(
-                                signed_url=run_file_tuple[1].url,
-                                target_path=_create_target_path(
-                                    destination=destination,
-                                    experiment_name=sys_id_to_label[run_file_tuple[0].run_identifier.sys_id],
-                                    attribute_path=run_file_tuple[0].attribute_definition.name,
-                                ),  # type: ignore
+                            (
+                                run_file_tuple[0].run_identifier,
+                                run_file_tuple[0].attribute_definition,
+                                files.download_file(
+                                    signed_url=run_file_tuple[1].url,
+                                    target_path=files.create_target_path(
+                                        destination=destination,
+                                        experiment_name=sys_id_to_label[run_file_tuple[0].run_identifier.sys_id],
+                                        attribute_path=run_file_tuple[0].attribute_definition.name,
+                                    ),
+                                ),
                             )
                         ),
                     ),
@@ -142,9 +150,10 @@ def download_files(
             downstream=process_sys_attrs_page,
         )
 
-        results: Generator[None, None, None] = concurrency.gather_results(output)
-        for _ in results:
-            pass
+        results: Generator[
+            tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path], None, None
+        ] = concurrency.gather_results(output)
+        return list(results)
 
 
 def _ensure_write_access(destination: pathlib.Path) -> None:
@@ -153,29 +162,3 @@ def _ensure_write_access(destination: pathlib.Path) -> None:
 
     if not os.access(destination, os.W_OK):
         raise PermissionError(f"No write access to the directory: {destination}")
-
-
-def _filter_file_refs(
-    definitions: list[attribute_definitions.AttributeDefinition],
-) -> list[attribute_definitions.AttributeDefinition]:
-    return [attribute for attribute in definitions if attribute.type == "file"]
-
-
-def _create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
-    relative_target_path = pathlib.Path(".") / experiment_name / attribute_path
-
-    sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
-    relative_target_path = pathlib.Path(*sanitized_parts)
-
-    return destination / relative_target_path
-
-
-def _sanitize_path_part(part: str, max_part_length: int = 255) -> str:
-    # Replace invalid characters with underscores
-    part = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in part)
-
-    if len(part) > max_part_length:
-        digest = hashlib.blake2b(part.encode("utf-8"), digest_size=8).hexdigest()
-        part = f"{part[:max_part_length - len(digest) - 1]}_{digest}"
-
-    return part

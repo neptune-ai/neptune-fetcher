@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import hashlib
 import pathlib
 from dataclasses import dataclass
 from typing import (
@@ -21,7 +22,7 @@ from typing import (
 
 from azure.storage.blob import BlobClient
 from neptune_api.client import AuthenticatedClient
-from neptune_storage_api.api.storagebridge import signed_url
+from neptune_storage_api.api import storagebridge
 from neptune_storage_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
@@ -55,7 +56,7 @@ def fetch_signed_urls(
         ]
     )
 
-    response = util.backoff_retry(signed_url.sync_detailed, client=client, body=body)
+    response = util.backoff_retry(storagebridge.signed_url.sync_detailed, client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
 
@@ -67,10 +68,31 @@ def download_file(
     target_path: pathlib.Path,
     max_concurrency: int = env.NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY.get(),
     timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
-) -> None:
+) -> pathlib.Path:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     with open(target_path, mode="wb") as opened:
         blob_client = BlobClient.from_blob_url(signed_url)
         download_stream = blob_client.download_blob(max_concurrency=max_concurrency, timeout=timeout)
         for chunk in download_stream.chunks():
             opened.write(chunk)
+    return target_path
+
+
+def create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
+    relative_target_path = pathlib.Path(".") / experiment_name / attribute_path
+
+    sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
+    relative_target_path = pathlib.Path(*sanitized_parts)
+
+    return destination / relative_target_path
+
+
+def _sanitize_path_part(part: str, max_part_length: int = 255) -> str:
+    # Replace invalid characters with underscores
+    part = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in part)
+
+    if len(part) > max_part_length:
+        digest = hashlib.blake2b(part.encode("utf-8"), digest_size=8).hexdigest()
+        part = f"{part[:max_part_length - len(digest) - 1]}_{digest}"
+
+    return part
