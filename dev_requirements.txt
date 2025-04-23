@@ -7,4 +7,4 @@ pytest-mock
 pytest-retry
 pytest-timeout
 icecream
-neptune-scale @ git+https://github.com/neptune-ai/neptune-client-scale.git@dev/string-series
+neptune-scale @ git+https://github.com/neptune-ai/neptune-client-scale.git@dev/string-series-merge

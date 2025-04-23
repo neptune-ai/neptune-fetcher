@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.9"
 
 # Base neptune package
-neptune-api = {git = "https://github.com/neptune-ai/neptune-api", rev="kg/new-swagger-code"}
+neptune-api = {git = "https://github.com/neptune-ai/neptune-api", rev="ms/gen-15"}
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
