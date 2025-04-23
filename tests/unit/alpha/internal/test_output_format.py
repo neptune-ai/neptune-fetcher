@@ -25,9 +25,9 @@ from neptune_fetcher.alpha.internal.output_format import (
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+    FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
-    FileProperties,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.retrieval.metrics import FloatPointValue
@@ -140,6 +140,7 @@ def test_convert_experiment_table_to_dataframe_single_string_series():
     assert dataframe.to_dict() == {
         ("attr1", "last"): {"exp1": "last log"},
     }
+
 
 def test_convert_experiment_table_to_dataframe_single_file():
     # given

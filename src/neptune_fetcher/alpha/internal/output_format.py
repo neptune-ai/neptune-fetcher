@@ -32,9 +32,9 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import Attri
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
+    FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
-    FileProperties,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.alpha.internal.retrieval.metrics import (

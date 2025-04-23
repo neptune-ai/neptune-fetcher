@@ -4,6 +4,7 @@ from io import BytesIO
 
 import pytest
 from neptune_scale import Run
+from neptune_scale.types import File
 
 from neptune_fetcher.alpha import set_project
 from neptune_fetcher.alpha.filters import Filter
@@ -14,7 +15,6 @@ from tests.e2e.alpha.internal.data import (
     PATH,
     TEST_DATA,
 )
-from neptune_scale.types import File
 
 
 @pytest.fixture(autouse=True)
@@ -56,10 +56,12 @@ def run_with_attributes(project, client):
             series_data = {path: values[step] for path, values in experiment.string_series.items()}
             run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
-        run.log_files({
-            path.rsplit('/', 1)[0]: File(BytesIO(content), target_path=path.rsplit('/', 1)[1])
-            for path, content in experiment.files.items()
-        })
+        run.log_files(
+            {
+                path.rsplit("/", 1)[0]: File(BytesIO(content), target_path=path.rsplit("/", 1)[1])
+                for path, content in experiment.files.items()
+            }
+        )
 
         runs[experiment.name] = run
     for run in runs.values():
