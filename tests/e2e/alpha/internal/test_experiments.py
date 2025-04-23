@@ -161,7 +161,6 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     assert df[expected.columns].columns.equals(expected.columns)
 
 
-@pytest.mark.skip("TODO: Waiting for fix to string series attribute values on backend")
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize(
     "attr_filter",

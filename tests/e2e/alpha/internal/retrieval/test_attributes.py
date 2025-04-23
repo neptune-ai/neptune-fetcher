@@ -451,7 +451,6 @@ def test_fetch_attribute_values_single_float_series_all_aggregations(client, pro
     assert math.isclose(values[0].value.variance, aggregates.variance, rel_tol=1e-6)
 
 
-@pytest.mark.skip("TODO: Waiting for fix on backend")
 def test_fetch_attribute_values_single_string_series_all_aggregations(client, project, experiment_identifier):
     # given
     project_identifier = project.project_identifier
