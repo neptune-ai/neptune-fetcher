@@ -90,7 +90,7 @@ def fetch_attribute_definition_aggregations(
                 new_definitions.append(definition)
                 seen_definitions.add(definition)
 
-            if definition.type == "float_series" or definition.type == "string_series":
+            if definition.type in TYPE_AGGREGATIONS.keys():
                 for aggregation in filter_.aggregations:
                     if aggregation not in TYPE_AGGREGATIONS[definition.type]:
                         continue
