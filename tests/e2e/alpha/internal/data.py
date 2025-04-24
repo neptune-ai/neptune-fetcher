@@ -10,7 +10,9 @@ from datetime import (
     timezone,
 )
 
-TEST_DATA_VERSION = "2025-04-20"
+from neptune_scale.types import File
+
+TEST_DATA_VERSION = "2025-04-24"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -25,6 +27,7 @@ class ExperimentData:
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
     string_series: dict[str, list[str]]
+    files: dict[str, bytes]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     @property
@@ -36,6 +39,7 @@ class ExperimentData:
                 self.float_series.keys(),
                 self.unique_series.keys(),
                 self.string_series.keys(),
+                self.files.keys(),
             )
         )
 
@@ -74,6 +78,15 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
+                files = (
+                    {
+                        f"{PATH}/files/file-value": b"Binary content",
+                        f"{PATH}/files/file-value.txt": File(b"Text content", mime_type="text/plain"),
+                    }
+                    if i == 0
+                    else {}
+                )
+
                 self.experiments.append(
                     ExperimentData(
                         name=experiment_name,
@@ -82,6 +95,7 @@ class TestData:
                         float_series=float_series,
                         string_series=string_series,
                         unique_series={},
+                        files=files,
                     )
                 )
 

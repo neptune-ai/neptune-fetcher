@@ -17,6 +17,7 @@ import os
 from typing import (
     Callable,
     Generic,
+    Optional,
     TypeVar,
 )
 
@@ -63,6 +64,15 @@ def _map_bool(value: str) -> bool:
     return value.lower() in {"true", "1"}
 
 
+def _lift_optional(mapper: Callable[[str], T]) -> Callable[[str], Optional[T]]:
+    def wrapped(value: str) -> Optional[T]:
+        if not value:
+            return None
+        return mapper(value)
+
+    return wrapped
+
+
 NEPTUNE_API_TOKEN = EnvVariable[str]("NEPTUNE_API_TOKEN", _map_str)
 NEPTUNE_PROJECT = EnvVariable[str]("NEPTUNE_PROJECT", _map_str)
 NEPTUNE_VERIFY_SSL = EnvVariable[bool]("NEPTUNE_VERIFY_SSL", _map_bool, True)
@@ -75,5 +85,7 @@ NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE = EnvVariable[int](
     "NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE", int, 10_000
 )
 NEPTUNE_FETCHER_QUERY_SIZE_LIMIT = EnvVariable[int]("NEPTUNE_FETCHER_QUERY_SIZE_LIMIT", int, 220_000)
+NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY = EnvVariable[int]("NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY", int, 1)
+NEPTUNE_FETCHER_FILES_TIMEOUT = EnvVariable[Optional[int]]("NEPTUNE_FETCHER_FILES_TIMEOUT", _lift_optional(int), None)
 
 NEPTUNE_ENABLE_COLORS = EnvVariable[bool]("NEPTUNE_ENABLE_COLORS", _map_bool, True)

@@ -32,6 +32,7 @@ from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import Attri
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
+    FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
@@ -84,6 +85,11 @@ def convert_table_to_dataframe(
                 agg_subset_values = get_string_series_aggregation_subset(string_series_aggregations, selected_subset)
                 for agg_name, agg_value in agg_subset_values.items():
                     row[(column_name, agg_name)] = agg_value
+            elif value.attribute_definition.type == "file":
+                file_properties: FileProperties = value.value
+                row[(column_name, "path")] = file_properties.path
+                row[(column_name, "size_bytes")] = file_properties.size_bytes
+                row[(column_name, "mime_type")] = file_properties.mime_type
             else:
                 row[(column_name, "")] = value.value
         return row

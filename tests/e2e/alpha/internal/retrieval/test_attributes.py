@@ -1,6 +1,7 @@
 import itertools as it
 import math
 import os
+import re
 from datetime import (
     datetime,
     timezone,
@@ -36,22 +37,6 @@ from tests.e2e.alpha.internal.data import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
-
-@pytest.fixture(scope="module")
-def experiment_identifier(client, project) -> RunIdentifier:
-    from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
-
-    project_identifier = project.project_identifier
-
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
-    experiment_attrs = _extract_pages(
-        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
-    )
-    sys_id = experiment_attrs[0].sys_id
-
-    return RunIdentifier(project_identifier, sys_id)
 
 
 def test_fetch_attribute_definitions_project_does_not_exist(client, project):
@@ -196,6 +181,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
         (f"{PATH}/datetime-value", "datetime"),
         (FLOAT_SERIES_PATHS[0], "float_series"),
         (STRING_SERIES_PATHS[0], "string_series"),
+        (f"{PATH}/files/file-value.txt", "file"),
         ("sys/tags", "string_set"),
     ]
 
@@ -511,6 +497,30 @@ def test_fetch_attribute_values_all_types(client, project, experiment_identifier
     for expected in all_values:
         value = next(value for value in values if value.attribute_definition == expected.attribute_definition)
         assert value == expected
+
+
+def test_fetch_attribute_values_file(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    attribute_definition = AttributeDefinition(f"{PATH}/files/file-value.txt", "file")
+
+    #  when
+    values = _extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [attribute_definition],
+        )
+    )
+
+    # then
+    assert len(values) == 1
+    value = values[0]
+    assert value.attribute_definition == attribute_definition
+    assert re.search(rf".*{PATH.replace('/', '_')}_files_file-value_txt.*", value.value.path)
+    assert value.value.size_bytes == 12
+    assert value.value.mime_type == "text/plain"
 
 
 def test_fetch_attribute_values_paging(client, project, experiment_identifier):

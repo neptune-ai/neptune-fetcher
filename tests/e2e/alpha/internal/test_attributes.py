@@ -44,6 +44,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
         (PATH, TEST_DATA.all_attribute_names),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
         (rf"{PATH}/metrics/.*", FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"] + STRING_SERIES_PATHS),
+        (rf"{PATH}/files/.*", {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"}),
         (
             rf"{PATH}/.*-value$",
             {
@@ -53,6 +54,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
                 f"{PATH}/bool-value",
                 f"{PATH}/datetime-value",
                 f"{PATH}/string_set-value",
+                f"{PATH}/files/file-value",
             },
         ),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
