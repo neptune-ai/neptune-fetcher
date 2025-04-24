@@ -232,7 +232,7 @@ def download_files(
     *,
     destination: Optional[str] = None,
     context: Optional[_context.Context] = None,
-) -> list[_pathlib.Path]:
+) -> _pandas.DataFrame:
     """
     Downloads files associated with selected experiments and attributes.
 
@@ -287,11 +287,10 @@ def download_files(
     else:
         destination_path = _pathlib.Path(destination).resolve()
 
-    results = _download_files.download_files(
+    return _download_files.download_files(
         filter_=runs,
         attributes=attributes,
         destination=destination_path,
         context=context,
         container_type=_search.ContainerType.RUN,
     )
-    return [result[2] for result in results]

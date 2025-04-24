@@ -2,6 +2,7 @@ import os
 import pathlib
 import tempfile
 
+import pandas as pd
 import pytest
 
 from neptune_fetcher.alpha.filters import (
@@ -9,7 +10,6 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.alpha.internal.composition.download_files import download_files
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 from tests.e2e.alpha.internal.data import (
     PATH,
@@ -28,7 +28,7 @@ def temp_dir():
 
 def test_download_files_single(client, project, experiment_identifier, temp_dir):
     # when
-    results = download_files(
+    result_df = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
         attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
@@ -37,14 +37,19 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
     )
 
     # then
-    assert len(results) == 1
-    assert results[0] == (
-        experiment_identifier,
-        AttributeDefinition(f"{PATH}/files/file-value.txt", "file"),
-        temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt",
-    )
-    target_path = results[0][2]
-    assert target_path.exists()
+    expected_df = pd.DataFrame(
+        [
+            {
+                "experiment": EXPERIMENT_NAME,
+                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt"),
+            }
+        ]
+    ).set_index("experiment")
+    expected_df.columns.names = ["attribute"]
+    assert result_df.equals(expected_df)
+
+    target_path = result_df.loc[EXPERIMENT_NAME, f"{PATH}/files/file-value.txt"]
+    assert pathlib.Path(target_path).exists()
     with open(target_path, "rb") as file:
         content = file.read()
         assert content == b"Text content"
@@ -52,7 +57,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
 
 def test_download_files_multiple(client, project, experiment_identifier, temp_dir):
     # when
-    results = download_files(
+    result_df = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
         attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
@@ -61,26 +66,25 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
     )
 
     # then
-    assert len(results) == 2
-    assert set(results) == {
-        (
-            experiment_identifier,
-            AttributeDefinition(f"{PATH}/files/file-value.txt", "file"),
-            temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt",
-        ),
-        (
-            experiment_identifier,
-            AttributeDefinition(f"{PATH}/files/file-value", "file"),
-            temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value",
-        ),
-    }
+    expected_df = pd.DataFrame(
+        [
+            {
+                "experiment": EXPERIMENT_NAME,
+                f"{PATH}/files/file-value": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value"),
+                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt"),
+            }
+        ]
+    ).set_index("experiment")
+    expected_df.columns.names = ["attribute"]
+    assert result_df.equals(expected_df)
 
-    for result in results:
-        target_path = result[2]
-        assert target_path.exists()
-        with open(target_path, "rb") as file:
-            content = file.read()
-            if result[1].name == f"{PATH}/files/file-value":
-                assert content == b"Binary content"
-            else:
-                assert content == b"Text content"
+    for row in result_df.iterrows():
+        for attr, path_value in row[1].items():
+            target_path = pathlib.Path(path_value)
+            assert target_path.exists()
+            with open(target_path, "rb") as file:
+                content = file.read()
+                if attr == f"{PATH}/files/file-value":
+                    assert content == b"Binary content"
+                else:
+                    assert content == b"Text content"

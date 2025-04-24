@@ -19,12 +19,17 @@ from typing import (
     Optional,
 )
 
+import pandas as pd
+
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
-from neptune_fetcher.alpha.internal import identifiers
+from neptune_fetcher.alpha.internal import (
+    identifiers,
+    output_format,
+)
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
 from neptune_fetcher.alpha.internal.composition import (
     concurrency,
@@ -39,12 +44,8 @@ from neptune_fetcher.alpha.internal.retrieval import (
     attribute_definitions,
     files,
     search,
-    util,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import (
-    ContainerType,
-    SysIdLabel,
-)
+from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
 
 def download_files(
@@ -53,7 +54,7 @@ def download_files(
     destination: pathlib.Path,
     context: Optional[Context],
     container_type: ContainerType,
-) -> list[tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path]]:
+) -> pd.DataFrame:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
@@ -78,15 +79,30 @@ def download_files(
         else:
             raise ValueError("Only file attributes are supported for file download.")
 
-        def process_sys_attrs_page(sys_attrs_page: util.Page[SysIdLabel]) -> concurrency.OUT:
-            sys_id_to_label = {item.sys_id: item.label for item in sys_attrs_page.items}
-            return _components.fetch_attribute_definition_aggregations_split(
+        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
+
+        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_sys_id_labels(container_type)(
+                client=client,
+                project_identifier=project,
+                filter_=filter_,
+            ):
+                sys_ids = []
+                for item in page.items:
+                    sys_id_label_mapping[item.sys_id] = item.label
+                    sys_ids.append(item.sys_id)
+                yield sys_ids
+
+        output = concurrency.generate_concurrently(
+            items=go_fetch_sys_attrs(),
+            executor=executor,
+            downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                sys_ids=[item.sys_id for item in sys_attrs_page.items],
+                sys_ids=sys_ids,
                 downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
                     client=client,
                     project_identifier=project,
@@ -114,7 +130,7 @@ def download_files(
                                     signed_url=run_file_tuple[1].url,
                                     target_path=files.create_target_path(
                                         destination=destination,
-                                        experiment_name=sys_id_to_label[run_file_tuple[0].run_identifier.sys_id],
+                                        experiment_name=sys_id_label_mapping[run_file_tuple[0].run_identifier.sys_id],
                                         attribute_path=run_file_tuple[0].attribute_definition.name,
                                     ),
                                 ),
@@ -122,22 +138,15 @@ def download_files(
                         ),
                     ),
                 ),
-            )
-
-        output = concurrency.generate_concurrently(
-            items=search.fetch_sys_id_labels(container_type)(
-                client=client,
-                project_identifier=project,
-                filter_=filter_,
             ),
-            executor=executor,
-            downstream=process_sys_attrs_page,
         )
 
         results: Generator[
             tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path], None, None
         ] = concurrency.gather_results(output)
-        return list(results)
+        file_list = list(results)
+
+        return output_format.create_files_dataframe(file_list, sys_id_label_mapping)
 
 
 def _ensure_write_access(destination: pathlib.Path) -> None:
