@@ -106,6 +106,7 @@ def create_expected_data(
     [
         lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])

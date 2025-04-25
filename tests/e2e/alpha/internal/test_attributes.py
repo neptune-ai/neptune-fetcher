@@ -33,6 +33,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
     "experiment_filter",
     (
         EXPERIMENTS_IN_THIS_TEST,
+        TEST_DATA.experiment_names,
         rf"test_alpha_[0-9]+_{TEST_DATA_VERSION}",
         ".*",
         None,
@@ -132,6 +133,11 @@ def test_list_attributes_unknown_name(filter_):
                 Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-0-0", "string-1-0", "string-4-0"]
             ),
             {f"{PATH}/unique-value-{i}" for i in (2, 3, 5)},
+        ),
+        (
+            [f"{PATH}/int-value", f"{PATH}/float-value"],
+            TEST_DATA.experiment_names,
+            {f"{PATH}/int-value", f"{PATH}/float-value"},
         ),
         (
             AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),

@@ -19,6 +19,7 @@ from tests.e2e.alpha.generator import (
         (".*", ALL_STATIC_RUNS),
         (None, ALL_STATIC_RUNS),
         (Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]), ALL_STATIC_RUNS),
+        ([run.custom_run_id for run in ALL_STATIC_RUNS], ALL_STATIC_RUNS),
         ("linear.*", LINEAR_HISTORY_TREE),
         (Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]), LINEAR_HISTORY_TREE),
         (Filter.eq("linear-history", True), LINEAR_HISTORY_TREE),
