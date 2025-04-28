@@ -14,7 +14,6 @@
 # limitations under the License.
 import pathlib
 from typing import (
-    Literal,
     Optional,
     Union,
 )
@@ -44,13 +43,9 @@ def resolve_experiments_filter(
 
 def resolve_attributes_filter(
     attributes: Optional[Union[str, list[str], _filters.AttributeFilter]],
-    default_type: Optional[
-        list[
-            Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file"]
-        ]
-    ] = None,
+    forced_type: Optional[list[_filters.ATTRIBUTE_LITERAL]] = None,
 ) -> _filters.AttributeFilter:
-    if default_type is None:
+    if forced_type is None:
         if attributes is None:
             return _filters.AttributeFilter()
         if isinstance(attributes, str):
@@ -60,11 +55,11 @@ def resolve_attributes_filter(
         return attributes
     else:
         if attributes is None:
-            return _filters.AttributeFilter(type_in=default_type)
+            return _filters.AttributeFilter(type_in=forced_type)
         if isinstance(attributes, str):
-            return _filters.AttributeFilter(name_matches_all=attributes, type_in=default_type)
+            return _filters.AttributeFilter(name_matches_all=attributes, type_in=forced_type)
         if isinstance(attributes, list):
-            return _filters.AttributeFilter(name_eq=attributes, type_in=default_type)
+            return _filters.AttributeFilter(name_eq=attributes, type_in=forced_type)
         return attributes
 
 

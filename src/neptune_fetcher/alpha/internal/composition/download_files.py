@@ -155,5 +155,8 @@ def _ensure_write_access(destination: pathlib.Path) -> None:
     if not destination.exists():
         destination.mkdir(parents=True, exist_ok=True)
 
+    if not destination.is_dir():
+        raise NotADirectoryError(f"Destination is not a directory: {destination}")
+
     if not os.access(destination, os.W_OK):
         raise PermissionError(f"No write access to the directory: {destination}")

@@ -28,7 +28,6 @@ __all__ = [
     "download_files",
 ]
 
-import pathlib as _pathlib
 from typing import (
     Literal,
     Optional,
@@ -140,7 +139,7 @@ def fetch_metrics(
     """
     experiments_ = _util.resolve_experiments_filter(experiments)
     assert experiments_ is not None
-    attributes = _util.resolve_attributes_filter(attributes, default_type=["float_series"])
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
         filter_=experiments_,
@@ -213,7 +212,7 @@ def fetch_series(
 ) -> _pandas.DataFrame:
     experiments_ = _util.resolve_experiments_filter(experiments)
     assert experiments_ is not None
-    attributes = _util.resolve_attributes_filter(attributes, default_type=["string_series"])
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
         filter_=experiments_,
@@ -276,7 +275,7 @@ def download_files(
       - If the specified destination or any subdirectories do not exist, they will be automatically created.
     """
     experiments = _util.resolve_experiments_filter(experiments)
-    attributes = _util.resolve_attributes_filter(attributes, default_type=["file"])
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["file"])
     destination_path = _util.resolve_destination_path(destination)
 
     return _download_files.download_files(
