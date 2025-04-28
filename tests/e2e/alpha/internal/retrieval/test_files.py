@@ -2,13 +2,22 @@ import itertools as it
 import os
 import pathlib
 import tempfile
+import urllib.parse
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
+import azure.core.exceptions
 import pytest
 
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_values import fetch_attribute_values
 from neptune_fetcher.alpha.internal.retrieval.files import (
+    SignedFile,
     download_file,
+    download_file_retry,
     fetch_signed_urls,
 )
 from tests.e2e.alpha.internal.data import PATH
@@ -22,11 +31,10 @@ def temp_dir():
         yield pathlib.Path(temp_dir)
 
 
-def test_fetch_signed_url(client, project, experiment_identifier):
-    # given
+@pytest.fixture
+def file_path(client, project, experiment_identifier):
     project_identifier = project.project_identifier
-
-    file_path = _extract_pages(
+    return _extract_pages(
         fetch_attribute_values(
             client,
             project_identifier,
@@ -35,6 +43,8 @@ def test_fetch_signed_url(client, project, experiment_identifier):
         )
     )[0].value.path
 
+
+def test_fetch_signed_url(client, project, experiment_identifier, file_path):
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, [file_path], "read")
 
@@ -42,18 +52,8 @@ def test_fetch_signed_url(client, project, experiment_identifier):
     assert len(signed_urls) == 1
 
 
-def test_download_file(client, project, experiment_identifier, temp_dir):
+def test_download_file(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    project_identifier = project.project_identifier
-
-    file_path = _extract_pages(
-        fetch_attribute_values(
-            client,
-            project_identifier,
-            [experiment_identifier],
-            [AttributeDefinition(name=f"{PATH}/files/file-value.txt", type="file")],
-        )
-    )[0].value.path
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
 
@@ -64,6 +64,85 @@ def test_download_file(client, project, experiment_identifier, temp_dir):
     with open(target_path, "rb") as file:
         content = file.read()
         assert content == b"Text content"
+
+
+def test_download_file_expired(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    expired_url = _modify_signed_url(
+        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
+    )
+
+    # then
+    with pytest.raises(azure.core.exceptions.ClientAuthenticationError) as exc_info:
+        download_file(signed_url=expired_url, target_path=target_path)
+
+    assert "Signed expiry time" in str(exc_info.value)
+
+
+def test_download_file_retry(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    project_identifier = project.project_identifier
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    expired_url = _modify_signed_url(
+        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
+    )
+    expired_file = SignedFile(url=expired_url, path=signed_file.path)
+
+    # when
+    download_file_retry(
+        client=client, project_identifier=project_identifier, signed_file=expired_file, target_path=target_path
+    )
+
+    # then
+    with open(target_path, "rb") as file:
+        content = file.read()
+        assert content == b"Text content"
+
+
+def test_download_file_no_retries(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    project_identifier = project.project_identifier
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    expired_url = _modify_signed_url(
+        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
+    )
+    expired_file = SignedFile(url=expired_url, path=signed_file.path)
+
+    # then
+    with pytest.raises(azure.core.exceptions.ClientAuthenticationError):
+        download_file_retry(
+            client=client,
+            project_identifier=project_identifier,
+            signed_file=expired_file,
+            target_path=target_path,
+            retries=0,
+        )
+
+
+def test_download_file_retry_failed(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    project_identifier = project.project_identifier
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    invalid_file = SignedFile(url="https://invalid", path=signed_file.path)
+
+    # then
+    with pytest.raises(ValueError):
+        download_file_retry(
+            client=client, project_identifier=project_identifier, signed_file=invalid_file, target_path=target_path
+        )
+
+
+def _modify_signed_url(signed_url: str, **kwargs) -> str:
+    original_url = urllib.parse.urlparse(signed_url)
+    original_query = urllib.parse.parse_qs(original_url.query)
+    original_query.update(kwargs)
+    new_query = urllib.parse.urlencode(original_query, doseq=True)
+    return original_url._replace(query=new_query).geturl()
 
 
 def _extract_pages(generator):

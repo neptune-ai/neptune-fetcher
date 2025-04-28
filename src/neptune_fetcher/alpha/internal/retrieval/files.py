@@ -20,6 +20,7 @@ from typing import (
     Optional,
 )
 
+import azure.core.exceptions
 from azure.storage.blob import BlobClient
 from neptune_api.client import AuthenticatedClient
 from neptune_storage_api.api import storagebridge
@@ -76,6 +77,31 @@ def download_file(
         for chunk in download_stream.chunks():
             opened.write(chunk)
     return target_path
+
+
+def download_file_retry(
+    client: AuthenticatedClient,
+    project_identifier: identifiers.ProjectIdentifier,
+    signed_file: SignedFile,
+    target_path: pathlib.Path,
+    retries: int = 3,
+) -> pathlib.Path:
+    attempt = 0
+    while True:
+        try:
+            return download_file(
+                signed_url=signed_file.url,
+                target_path=target_path,
+            )
+        except azure.core.exceptions.ClientAuthenticationError:
+            if attempt >= retries:
+                raise
+            attempt += 1
+            signed_file = fetch_signed_urls(
+                client=client,
+                project_identifier=project_identifier,
+                file_paths=[signed_file.path],
+            )[0]
 
 
 def create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
