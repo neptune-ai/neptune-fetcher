@@ -22,7 +22,6 @@ __all__ = [
     "fetch_series",
 ]
 
-import pathlib as _pathlib
 from typing import (
     Literal,
     Optional,
@@ -34,6 +33,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters as _filters
 from neptune_fetcher.alpha.internal import context as _context
+from neptune_fetcher.alpha.internal import util as _util
 from neptune_fetcher.alpha.internal.composition import download_files as _download_files
 from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.alpha.internal.composition import fetch_series as _fetch_series
@@ -44,7 +44,7 @@ from neptune_fetcher.alpha.internal.retrieval import search as _search
 
 
 def list_runs(
-    runs: Optional[Union[str, _filters.Filter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
@@ -55,15 +55,14 @@ def list_runs(
          - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
+    runs = _util.resolve_runs_filter(runs)
 
     return _list_containers.list_containers(runs, context, _search.ContainerType.RUN)
 
 
 def list_attributes(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
@@ -81,20 +80,15 @@ def list_attributes(
 
     Returns a list of unique attribute names in runs matching the filter.
     """
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if attributes is None:
-        attributes = _filters.AttributeFilter()
-    elif isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=[attributes])
+    runs = _util.resolve_runs_filter(runs)
+    attributes = _util.resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(runs, attributes, context, container_type=_search.ContainerType.RUN)
 
 
 def fetch_metrics(
-    runs: Union[str, _filters.Filter],
-    attributes: Union[str, _filters.AttributeFilter],
+    runs: Union[str, list[str], _filters.Filter],
+    attributes: Union[str, list[str], _filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -128,14 +122,12 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
+    runs_ = _util.resolve_runs_filter(runs)
+    assert runs_ is not None
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
-        filter_=runs,
+        filter_=runs_,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -149,8 +141,8 @@ def fetch_metrics(
 
 
 def fetch_runs_table(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Union[str, _filters.AttributeFilter] = "^sys/name$",
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
@@ -177,14 +169,9 @@ def fetch_runs_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     If you don't specify aggregates to return, only the last logged value of each metric is returned.
     """
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), runs)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes)
-
-    if isinstance(sort_by, str):
-        sort_by = _filters.Attribute(sort_by)
+    runs = _util.resolve_runs_filter(runs)
+    attributes = _util.resolve_attributes_filter(attributes)
+    sort_by = _util.resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
         filter_=runs,
@@ -199,8 +186,8 @@ def fetch_runs_table(
 
 
 def fetch_series(
-    runs: Union[str, _filters.Filter],
-    attributes: Union[str, _filters.AttributeFilter],
+    runs: Union[str, list[str], _filters.Filter],
+    attributes: Union[str, list[str], _filters.AttributeFilter],
     *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -208,14 +195,12 @@ def fetch_series(
     tail_limit: Optional[int] = None,
     context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["string_series"])
+    runs_ = _util.resolve_runs_filter(runs)
+    assert runs_ is not None
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
-        filter_=runs,
+        filter_=runs_,
         attributes=attributes,
         include_time=include_time,
         step_range=step_range,
@@ -227,8 +212,8 @@ def fetch_series(
 
 
 def download_files(
-    runs: Optional[Union[str, _filters.Filter]] = None,
-    attributes: Optional[Union[str, _filters.AttributeFilter]] = None,
+    runs: Optional[Union[str, list[str], _filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
     *,
     destination: Optional[str] = None,
     context: Optional[_context.Context] = None,
@@ -274,18 +259,9 @@ def download_files(
       - Ensure that the `destination` directory has write permissions for successful file downloads.
       - If the specified destination or any subdirectories do not exist, they will be automatically created.
     """
-    if isinstance(runs, str):
-        runs = _filters.Filter.matches_all(_filters.Attribute("sys/custom_run_id", type="string"), runs)
-
-    if isinstance(attributes, str):
-        attributes = _filters.AttributeFilter(name_matches_all=attributes, type_in=["file"])
-    elif attributes is None:
-        attributes = _filters.AttributeFilter(type_in=["file"])
-
-    if destination is None:
-        destination_path = _pathlib.Path.cwd()
-    else:
-        destination_path = _pathlib.Path(destination).resolve()
+    runs = _util.resolve_runs_filter(runs)
+    attributes = _util.resolve_attributes_filter(attributes, forced_type=["file"])
+    destination_path = _util.resolve_destination_path(destination)
 
     return _download_files.download_files(
         filter_=runs,

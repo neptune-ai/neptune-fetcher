@@ -101,6 +101,17 @@ from tests.e2e.alpha.generator import (
             False,
         ),
         (
+            ["linear_history_root", "linear_history_fork1"],
+            r"unique.*",
+            {
+                ("linear_history_root", "unique1/0"): RUN_BY_ID["linear_history_root"].metrics_values("unique1/0"),
+                ("linear_history_fork1", "unique2/0"): RUN_BY_ID["linear_history_fork1"].metrics_values("unique2/0"),
+            },
+            None,
+            (None, None),
+            False,
+        ),
+        (
             r"^linear_history_(root|fork1)$",
             r"unique.*",
             {

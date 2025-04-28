@@ -126,3 +126,18 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
                     assert content == b"Binary content"
                 else:
                     assert content == b"Text content"
+
+
+def test_download_files_destination_a_file(client, project, experiment_identifier, temp_dir):
+    destination = temp_dir / "file"
+    with open(destination, "wb") as file:
+        file.write(b"test")
+
+    with pytest.raises(NotADirectoryError):
+        download_files(
+            filter_=Filter.name_in(EXPERIMENT_NAME),
+            attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+            destination=destination,
+            context=None,
+            container_type=ContainerType.EXPERIMENT,
+        )

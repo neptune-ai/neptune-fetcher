@@ -51,6 +51,7 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     "experiment_filter",
     [
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        [TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)],
         Filter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
         Filter.name_eq(TEST_DATA.exp_name(0))
         | Filter.name_eq(TEST_DATA.exp_name(1))
@@ -61,6 +62,7 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     "attr_filter",
     [
         f"{PATH}/int-value|{PATH}/float-value|{PATH}/metrics/step",
+        [f"{PATH}/int-value", f"{PATH}/float-value", f"{PATH}/metrics/step"],
         AttributeFilter.any(
             AttributeFilter(f"{PATH}/int-value", type_in=["int"]),
             AttributeFilter(f"{PATH}/float-value", type_in=["float"]),
@@ -312,6 +314,7 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             Filter.matches_all(Attribute("sys/name", type="string"), [f"alpha.*{TEST_DATA_VERSION}", "_3"]),
             [f"test_alpha_3" f"_{TEST_DATA_VERSION}"],
         ),
+        (TEST_DATA.experiment_names, TEST_DATA.experiment_names),
         (
             Filter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"])
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
