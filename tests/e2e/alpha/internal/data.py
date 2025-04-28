@@ -12,7 +12,7 @@ from datetime import (
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-04-24"
+TEST_DATA_VERSION = "2025-04-27"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -82,6 +82,7 @@ class TestData:
                     {
                         f"{PATH}/files/file-value": b"Binary content",
                         f"{PATH}/files/file-value.txt": File(b"Text content", mime_type="text/plain"),
+                        f"{PATH}/files/does-not-exist": File("/tmp/does-not-exist", mime_type="text/plain", size=1),
                     }
                     if i == 0
                     else {}

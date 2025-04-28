@@ -2,6 +2,7 @@ import os
 import pathlib
 import tempfile
 
+import azure.core.exceptions
 import pandas as pd
 import pytest
 
@@ -24,6 +25,17 @@ EXPERIMENT_NAME = TEST_DATA.experiment_names[0]
 def temp_dir():
     with tempfile.TemporaryDirectory() as temp_dir:
         yield pathlib.Path(temp_dir)
+
+
+def test_download_files_missing(client, project, experiment_identifier, temp_dir):
+    with pytest.raises(azure.core.exceptions.ResourceNotFoundError):
+        download_files(
+            filter_=Filter.name_in(EXPERIMENT_NAME),
+            attributes=AttributeFilter(name_eq=[f"{PATH}/files/does-not-exist"]),
+            destination=temp_dir,
+            context=None,
+            container_type=ContainerType.EXPERIMENT,
+        )
 
 
 def test_download_files_single(client, project, experiment_identifier, temp_dir):
