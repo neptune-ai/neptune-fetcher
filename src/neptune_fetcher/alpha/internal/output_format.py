@@ -385,7 +385,9 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path]],
+    files_data: list[
+        tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, Optional[pathlib.Path]]
+    ],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
@@ -394,12 +396,12 @@ def create_files_dataframe(
             index=pd.Index([], name=index_column_name),
         )
 
-    rows: list[dict[str, str]] = []
+    rows: list[dict[str, Optional[str]]] = []
     for run_identifier, attribute_definition, target_path in files_data:
         row = {
             index_column_name: sys_id_label_mapping[run_identifier.sys_id],
             "attribute": attribute_definition.name,
-            "file_path": str(target_path),
+            "file_path": str(target_path) if target_path else None,
         }
         rows.append(row)
 

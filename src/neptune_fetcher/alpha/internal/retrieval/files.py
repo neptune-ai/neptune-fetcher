@@ -85,7 +85,7 @@ def download_file_retry(
     signed_file: SignedFile,
     target_path: pathlib.Path,
     retries: int = 3,
-) -> pathlib.Path:
+) -> Optional[pathlib.Path]:
     attempt = 0
     while True:
         try:
@@ -93,6 +93,8 @@ def download_file_retry(
                 signed_url=signed_file.url,
                 target_path=target_path,
             )
+        except azure.core.exceptions.ResourceNotFoundError:
+            return None
         except azure.core.exceptions.ClientAuthenticationError:
             if attempt >= retries:
                 raise

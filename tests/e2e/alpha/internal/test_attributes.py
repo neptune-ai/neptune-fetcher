@@ -44,7 +44,10 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
         (PATH, TEST_DATA.all_attribute_names),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
         (rf"{PATH}/metrics/.*", FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"] + STRING_SERIES_PATHS),
-        (rf"{PATH}/files/.*", {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"}),
+        (
+            rf"{PATH}/files/.*",
+            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"},
+        ),
         (
             rf"{PATH}/.*-value$",
             {

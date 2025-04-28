@@ -144,7 +144,9 @@ def download_files(
         )
 
         results: Generator[
-            tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path], None, None
+            tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, Optional[pathlib.Path]],
+            None,
+            None,
         ] = concurrency.gather_results(output)
         file_list = list(results)
 
