@@ -60,7 +60,7 @@ def test_fetch_signed_url_single(client, project, experiment_identifier, file_pa
     assert len(signed_urls) == 1
 
 
-def test_download_file_missing(client, project, experiment_identifier, file_path, temp_dir):
+def test_download_file_missing(client, project, experiment_identifier, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")[0]
     target_path = temp_dir / "test_download_file"
@@ -68,6 +68,19 @@ def test_download_file_missing(client, project, experiment_identifier, file_path
     # then
     with pytest.raises(azure.core.exceptions.ResourceNotFoundError):
         download_file(signed_url=signed_file.url, target_path=target_path)
+
+
+def test_download_file_no_permission(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    os.chmod(temp_dir, 0o000)  # No permission to write
+
+    # then
+    with pytest.raises(PermissionError):
+        download_file(signed_url=signed_file.url, target_path=target_path)
+
+    os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
 def test_download_file_single(client, project, experiment_identifier, file_path, temp_dir):

@@ -2,7 +2,6 @@ import os
 import pathlib
 import tempfile
 
-import azure.core.exceptions
 import pandas as pd
 import pytest
 
@@ -28,14 +27,41 @@ def temp_dir():
 
 
 def test_download_files_missing(client, project, experiment_identifier, temp_dir):
-    with pytest.raises(azure.core.exceptions.ResourceNotFoundError):
+    # when
+    result_df = download_files(
+        filter_=Filter.name_in(EXPERIMENT_NAME),
+        attributes=AttributeFilter(name_eq=[f"{PATH}/files/object-does-not-exist"]),
+        destination=temp_dir,
+        context=None,
+        container_type=ContainerType.EXPERIMENT,
+    )
+
+    # then
+    expected_df = pd.DataFrame(
+        [
+            {
+                "experiment": EXPERIMENT_NAME,
+                f"{PATH}/files/object-does-not-exist": None,
+            }
+        ]
+    ).set_index("experiment")
+    expected_df.columns.names = ["attribute"]
+    assert result_df.equals(expected_df)
+
+
+def test_download_files_no_permission(client, project, experiment_identifier, temp_dir):
+    os.chmod(temp_dir, 0o000)  # No permissions
+
+    with pytest.raises(PermissionError):
         download_files(
             filter_=Filter.name_in(EXPERIMENT_NAME),
-            attributes=AttributeFilter(name_eq=[f"{PATH}/files/does-not-exist"]),
+            attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
             destination=temp_dir,
             context=None,
             container_type=ContainerType.EXPERIMENT,
         )
+
+    os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
 def test_download_files_single(client, project, experiment_identifier, temp_dir):
