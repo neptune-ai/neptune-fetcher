@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import pathlib
 from typing import (
     Any,
     Generator,
@@ -27,7 +27,10 @@ import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.retrieval import series
+from neptune_fetcher.alpha.internal.retrieval import (
+    attribute_definitions,
+    series,
+)
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
@@ -51,6 +54,8 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
 __all__ = (
     "convert_table_to_dataframe",
     "create_metrics_dataframe",
+    "create_series_dataframe",
+    "create_files_dataframe",
 )
 
 
@@ -377,3 +382,29 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df.columns.name = None
         return df.sort_index(axis=1)
+
+
+def create_files_dataframe(
+    files_data: list[tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, pathlib.Path]],
+    sys_id_label_mapping: dict[identifiers.SysId, str],
+    index_column_name: str = "experiment",
+) -> pd.DataFrame:
+    if not files_data:
+        return pd.DataFrame(
+            index=pd.Index([], name=index_column_name),
+        )
+
+    rows: list[dict[str, str]] = []
+    for run_identifier, attribute_definition, target_path in files_data:
+        row = {
+            index_column_name: sys_id_label_mapping[run_identifier.sys_id],
+            "attribute": attribute_definition.name,
+            "file_path": str(target_path),
+        }
+        rows.append(row)
+
+    dataframe = pd.DataFrame(rows)
+    dataframe = dataframe.pivot(index=[index_column_name], columns="attribute", values="file_path")
+
+    sorted_columns = sorted(dataframe.columns)
+    return dataframe[sorted_columns]

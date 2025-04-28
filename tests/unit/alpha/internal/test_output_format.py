@@ -1,4 +1,5 @@
 import itertools
+import pathlib
 from datetime import (
     datetime,
     timedelta,
@@ -20,6 +21,7 @@ from neptune_fetcher.alpha.internal.identifiers import (
 )
 from neptune_fetcher.alpha.internal.output_format import (
     convert_table_to_dataframe,
+    create_files_dataframe,
     create_metrics_dataframe,
     create_series_dataframe,
 )
@@ -607,3 +609,86 @@ def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str,
     )
 
     pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+
+
+def test_create_files_dataframe_empty():
+    # given
+    files_data = []
+    sys_id_label_mapping = {}
+    index_column_name = "experiment"
+
+    # when
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
+
+    # then
+    assert dataframe.empty
+    assert dataframe.index.name == index_column_name
+    assert dataframe.columns.names == [None]
+
+
+def test_create_files_dataframe():
+    # given
+    files_data = [
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
+            AttributeDefinition("attr1", "file"),
+            pathlib.Path("/path/to/file1"),
+        ),
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp2")),
+            AttributeDefinition("attr2", "file"),
+            pathlib.Path("/path/to/file2"),
+        ),
+    ]
+    sys_id_label_mapping = {
+        SysId("exp1"): "experiment_1",
+        SysId("exp2"): "experiment_2",
+    }
+    index_column_name = "experiment"
+
+    # when
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
+
+    # then
+    expected_data = [
+        {index_column_name: "experiment_1", "attr1": str(pathlib.Path("/path/to/file1"))},
+        {index_column_name: "experiment_2", "attr2": str(pathlib.Path("/path/to/file2"))},
+    ]
+    expected_df = pd.DataFrame(expected_data).set_index(index_column_name)
+    expected_df.columns.names = ["attribute"]
+
+    assert_frame_equal(dataframe, expected_df)
+
+
+def test_create_files_dataframe_index_name_attribute_conflict():
+    # given
+    files_data = [
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
+            AttributeDefinition("experiment", "file"),
+            pathlib.Path("/path/to/file1"),
+        ),
+    ]
+    sys_id_label_mapping = {
+        SysId("exp1"): "experiment_1",
+    }
+    index_column_name = "experiment"
+
+    # when
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
+
+    # then
+    expected_data = [
+        {"_REPLACE_": "experiment_1", "experiment": str(pathlib.Path("/path/to/file1"))},
+    ]
+    expected_df = pd.DataFrame(expected_data).set_index("_REPLACE_")
+    expected_df.columns.names = ["attribute"]
+    expected_df.index.name = index_column_name
+
+    assert_frame_equal(dataframe, expected_df)
