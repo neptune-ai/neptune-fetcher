@@ -210,6 +210,27 @@ def fetch_series(
     tail_limit: Optional[int] = None,
     context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
+    """
+    Fetches raw values for string series from selected experiments.
+
+    Currently only supports attributes of type string_series.
+
+    `experiments` - a filter specifying which experiments to include
+        - a regex that experiment name must match, or
+        - a Filter object for more complex filtering
+    `attributes` - a filter specifying which attributes to include
+        - a regex that attribute name must match, or
+        - an AttributeFilter object
+    `include_time` - whether to include absolute timestamp
+    `step_range` - tuple specifying the range of steps to include; can represent an open interval
+    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
+        If False, only includes points from the most recent experiment in the lineage.
+    `tail_limit` - from the tail end of each series, maximum number of points to include.
+    `context` - context object to be used; primarily useful for switching projects
+
+    Returns a DataFrame containing string series for the specified experiments and attributes.
+    If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
+    """
     experiments_ = _util.resolve_experiments_filter(experiments)
     assert experiments_ is not None
     attributes = _util.resolve_attributes_filter(attributes, forced_type=["string_series"])
@@ -236,43 +257,18 @@ def download_files(
     """
     Downloads files associated with selected experiments and attributes.
 
-    Args:
-      experiments: Specifies the experiment(s) to filter files by.
-          - A string representing the experiment name or a `Filter` object for more complex filtering.
-          - If `None`, all experiments are considered.
+    `experiments` - a filter specifying which runs to include in the table
+        - a regex that the run ID must match, or
+        - a Filter object
+    `attributes` - a filter specifying which attributes to include in the table
+        - a regex that the attribute name must match, or
+        - an AttributeFilter object
+    `destination`: the directory where files will be downloaded.
+        - If `None`, the current working directory (CWD) is used as the default.
+        - The path can be relative or absolute.
+    `context` - a Context object to be used; primarily useful for switching projects
 
-      attributes: Specifies the attribute(s) to filter files by within the selected experiments.
-          - A string representing the attribute path or an `AttributeFilter` object.
-          - If `None`, all attributes are considered.
-
-      destination: The directory where files will be downloaded.
-          - If `None`, the current working directory (CWD) is used as the default.
-          - The path can be relative or absolute.
-
-      context: Provides additional contextual information for the download (optional).
-          - A `Context` object, which may include things like credentials or other metadata.
-
-    Download Path Construction:
-      - Files are downloaded to the following directory structure:
-          <destination>/<experiment_name>/<attribute_path>/<file_name>
-      - If `<experiment_name>` or `<attribute_path>` contains '/', corresponding subdirectories will be created.
-      - The `<file_name>` is the final part of the file's path on object storage after splitting it by '/'.
-
-    Example:
-      Given an experiment named "some/experiment" and an attribute "some/attribute" with an uploaded file path
-      of "/my/path/on/object/storage/file.txt":
-
-          download_files(experiments="some/experiment", attributes="some/attribute", destination="/my/destination")
-
-      The file will be downloaded to:
-
-          /my/destination/some/experiment/some/attribute/file.txt
-
-    Notes:
-      - If the experiment or attribute paths include slashes ('/'), they will be treated as subdirectory structures,
-        and those directories will be created during the download process.
-      - Ensure that the `destination` directory has write permissions for successful file downloads.
-      - If the specified destination or any subdirectories do not exist, they will be automatically created.
+    Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
     """
     experiments = _util.resolve_experiments_filter(experiments)
     attributes = _util.resolve_attributes_filter(attributes, forced_type=["file"])
