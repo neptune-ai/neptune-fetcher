@@ -117,7 +117,7 @@ def fetch_attribute_definitions_complete(
         )
     else:
         return concurrency.generate_concurrently(
-            items=search.fetch_sys_ids(
+            items=search.fetch_experiment_sys_ids(
                 client=client,
                 project_identifier=project_identifier,
                 filter_=filter_,

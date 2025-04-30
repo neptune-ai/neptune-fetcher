@@ -207,8 +207,6 @@ fetch_run_sys_ids = _create_fetch_sys_attrs(
     default_container_type=ContainerType.RUN,
 )
 
-fetch_sys_ids = fetch_experiment_sys_ids
-
 
 async def _fetch_sys_attrs_page(
     client: AuthenticatedClient,
@@ -225,7 +223,7 @@ async def _fetch_sys_attrs_page(
         body=body,
     )
 
-    yield ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
 
 
 def _process_sys_attrs_page(

@@ -1,9 +1,14 @@
-import itertools as it
+import asyncio
 import time
 from datetime import timedelta
+from typing import (
+    AsyncGenerator,
+    Optional,
+)
 
 import pytest
 from neptune_scale import Run
+from typing_extensions import TypeVar
 
 from neptune_fetcher.alpha import set_project
 from neptune_fetcher.alpha.filters import Filter
@@ -28,14 +33,14 @@ def run_with_attributes(project, client):
     for experiment in TEST_DATA.experiments:
         project_id = project.project_identifier
 
-        existing = next(
+        existing = get_first(
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
                 Filter.name_in(experiment.name),
             )
         )
-        if existing.items:
+        if existing and existing.items:
             continue
 
         run = Run(
@@ -64,7 +69,7 @@ def run_with_attributes(project, client):
 
     # Make sure all experiments are visible in the system before starting tests
     for _ in range(15):
-        existing = next(
+        existing = get_first(
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project.project_identifier),
@@ -88,13 +93,20 @@ def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier
     project_identifier = project.project_identifier
 
     experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
-    experiment_attrs = extract_pages(
+    experiment_attrs = get_first(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
-    sys_id = experiment_attrs[0].sys_id
+    sys_id = experiment_attrs.items[0].sys_id
 
     return RunIdentifier(project_identifier, sys_id)
 
 
-def extract_pages(generator):
-    return list(it.chain.from_iterable(i.items for i in generator))
+T = TypeVar("T")
+
+
+def get_first(async_generator: AsyncGenerator[T, None]):
+    async def go() -> Optional[T]:
+        async for page in async_generator:
+            return page
+
+    return asyncio.run(go())

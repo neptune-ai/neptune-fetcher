@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 from typing import Optional
 
 from neptune_fetcher.alpha.filters import Filter
@@ -48,5 +49,11 @@ def list_containers(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
 
-        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
-        return list(sorted(attrs.label for page in sys_attr_pages for attrs in page.items))
+        async def go() -> list[str]:
+            values: list[str] = []
+            async for page in search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_):
+                values.extend(attrs.label for attrs in page.items)
+            values.sort()
+            return values
+
+        return asyncio.run(go())
