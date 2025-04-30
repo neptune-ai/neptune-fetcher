@@ -12,11 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import asyncio
 from collections import defaultdict
-from concurrent.futures import Executor
 from typing import (
-    Generator,
     Iterable,
     Optional,
 )
@@ -27,12 +25,7 @@ from neptune_fetcher.alpha import filters
 from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import concurrency
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.alpha.internal.retrieval import (
-    search,
-    util,
-)
+from neptune_fetcher.alpha.internal.retrieval import search
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
@@ -43,8 +36,6 @@ def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters.Filter],
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> None:
     if filter_ is None:
@@ -64,8 +55,6 @@ def infer_attribute_types_in_filter(
         project_identifier=project_identifier,
         filter_=None,
         attributes=attributes,
-        executor=executor,
-        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
     )
     attributes = _filter_untyped(attributes)
@@ -78,8 +67,6 @@ def infer_attribute_types_in_sort_by(
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters.Filter],
     sort_by: filters.Attribute,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> None:
     attributes = _filter_untyped([sort_by])
@@ -96,8 +83,6 @@ def infer_attribute_types_in_sort_by(
         project_identifier=project_identifier,
         filter_=filter_,
         attributes=attributes,
-        executor=executor,
-        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
     )
     attributes = _filter_untyped(attributes)
@@ -123,31 +108,28 @@ def _infer_attribute_types_from_api(
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters.Filter],
     attributes: Iterable[filters.Attribute],
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
 ) -> None:
     attribute_filter_by_name = filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    output = _components.fetch_attribute_definitions_complete(
-        client=client,
-        project_identifier=project_identifier,
-        filter_=filter_,
-        attribute_filter=attribute_filter_by_name,
-        executor=executor,
-        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        container_type=container_type,
-        downstream=concurrency.return_value,
-    )
+    async def go() -> dict[str, set[str]]:
+        attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
 
-    attribute_definition_pages: Generator[
-        util.Page[att_defs.AttributeDefinition], None, None
-    ] = concurrency.gather_results(output)
+        attribute_definition_pages = _components.fetch_attribute_definitions_complete(
+            client=client,
+            project_identifier=project_identifier,
+            filter_=filter_,
+            attribute_filter=attribute_filter_by_name,
+            container_type=container_type,
+        )
 
-    attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
-    for attribute_definition_page in attribute_definition_pages:
-        for attr_def in attribute_definition_page.items:
-            attribute_name_to_definition[attr_def.name].add(attr_def.type)
+        async for attribute_definition_page in attribute_definition_pages:
+            for attr_def in attribute_definition_page.items:
+                attribute_name_to_definition[attr_def.name].add(attr_def.type)
+
+        return attribute_name_to_definition
+
+    attribute_name_to_definition = asyncio.run(go())
 
     for name, types in attribute_name_to_definition.items():
         if len(types) > 1:

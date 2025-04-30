@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
-    Generator,
+    AsyncGenerator,
     Iterable,
     Literal,
     Optional,
@@ -29,7 +28,6 @@ from neptune_fetcher.alpha.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import util
 from neptune_fetcher.alpha.internal.retrieval.attribute_types import TYPE_AGGREGATIONS
@@ -41,47 +39,43 @@ class AttributeDefinitionAggregation:
     aggregation: Literal["last", "min", "max", "average", "variance"]
 
 
-def fetch_attribute_definitions(
+async def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
-    pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
-    )
-
+) -> AsyncGenerator[util.Page[att_defs.AttributeDefinition], None]:
     seen_items: set[att_defs.AttributeDefinition] = set()
-    for page, filter_ in pages_filters:
+
+    async for page, filter_ in _fetch_attribute_definitions(
+        client, project_identifiers, run_identifiers, attribute_filter, batch_size
+    ):
         new_items = [item for item in page.items if item not in seen_items]
         seen_items.update(new_items)
+
         yield util.Page(items=new_items)
 
 
-def fetch_attribute_definition_aggregations(
+async def fetch_attribute_definition_aggregations(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]], None, None]:
+) -> AsyncGenerator[tuple[util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]], None]:
     """
     Each attribute definition is yielded once when it's first encountered.
     If the attribute definition is of a type that supports aggregations (for now only float_series),
     it's then yielded once for each aggregation in the filter that returned it.
     """
 
-    pages_filters = _fetch_attribute_definitions(
-        client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
-    )
-
     seen_definitions: set[att_defs.AttributeDefinition] = set()
     seen_definition_aggregations: set[AttributeDefinitionAggregation] = set()
 
-    for page, filter_ in pages_filters:
+    async for page, filter_ in _fetch_attribute_definitions(
+        client, project_identifiers, run_identifiers, attribute_filter, batch_size
+    ):
         new_definitions = []
         new_definition_aggregations = []
 
@@ -105,17 +99,16 @@ def fetch_attribute_definition_aggregations(
         yield util.Page(items=new_definitions), util.Page(items=new_definition_aggregations)
 
 
-def _fetch_attribute_definitions(
+async def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.BaseAttributeFilter,
     batch_size: int,
-    executor: Executor,
-) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], filters.AttributeFilter], None, None]:
+) -> AsyncGenerator[tuple[util.Page[att_defs.AttributeDefinition], filters.AttributeFilter], None]:
     def go_fetch_single(
         filter_: filters.AttributeFilter,
-    ) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
+    ) -> AsyncGenerator[util.Page[att_defs.AttributeDefinition], None]:
         return att_defs.fetch_attribute_definitions_single_filter(
             client=client,
             project_identifiers=project_identifiers,
@@ -128,16 +121,10 @@ def _fetch_attribute_definitions(
 
     if len(filters_) == 1:
         head = filters_[0]
-        for page in go_fetch_single(head):
+        async for page in go_fetch_single(head):
             yield page, head
     else:
-        output = concurrency.generate_concurrently(
-            items=(filter_ for filter_ in filters_),
-            executor=executor,
-            downstream=lambda filter_: concurrency.generate_concurrently(
-                items=go_fetch_single(filter_),
-                executor=executor,
-                downstream=lambda _page: concurrency.return_value((_page, filter_)),
-            ),
-        )
-        yield from concurrency.gather_results(output)
+        for filter_ in filters_:
+            # todo: each filter in parallel
+            async for page in go_fetch_single(filter_):
+                yield page, filter_

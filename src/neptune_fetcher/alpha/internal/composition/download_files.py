@@ -69,8 +69,6 @@ def download_files(
             client=client,
             project_identifier=project,
             filter_=filter_,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
 

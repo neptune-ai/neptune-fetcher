@@ -15,6 +15,7 @@
 
 from concurrent.futures import Executor
 from typing import (
+    AsyncGenerator,
     Callable,
     Optional,
 )
@@ -38,102 +39,72 @@ from neptune_fetcher.alpha.internal.retrieval import (
 )
 
 
-def fetch_attribute_definitions_split(
+async def fetch_attribute_definitions_split(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
-) -> concurrency.OUT:
-    return concurrency.generate_concurrently(
-        items=split.split_sys_ids(sys_ids),
-        executor=executor,
-        downstream=lambda sys_ids_split: concurrency.generate_concurrently(
-            fetch_attribute_definitions(
-                client=client,
-                project_identifiers=[project_identifier],
-                run_identifiers=[identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split],
-                attribute_filter=attribute_filter,
-                executor=fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=lambda definitions: downstream(sys_ids_split, definitions),
-        ),
-    )
+) -> AsyncGenerator[tuple[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], None]:
+    for sys_ids_split in split.split_sys_ids(sys_ids):
+        # todo: each split in parallel
+        async for attr_defs_page in fetch_attribute_definitions(
+            client=client,
+            project_identifiers=[project_identifier],
+            run_identifiers=[identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split],
+            attribute_filter=attribute_filter,
+        ):
+            yield (sys_ids_split, attr_defs_page)
 
 
-def fetch_attribute_definition_aggregations_split(
+async def fetch_attribute_definition_aggregations_split(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[
-        [list[identifiers.SysId], util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]],
-        concurrency.OUT,
-    ],
-) -> concurrency.OUT:
-    return concurrency.generate_concurrently(
-        items=split.split_sys_ids(sys_ids),
-        executor=executor,
-        downstream=lambda sys_ids_split: concurrency.generate_concurrently(
-            fetch_attribute_definition_aggregations(
-                client=client,
-                project_identifiers=[project_identifier],
-                run_identifiers=[identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split],
-                attribute_filter=attribute_filter,
-                executor=fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=lambda page_pair: downstream(sys_ids_split, page_pair[0], page_pair[1]),
-        ),
-    )
+) -> AsyncGenerator[
+    tuple[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]],
+    None,
+]:
+    for sys_ids_split in split.split_sys_ids(sys_ids):
+        # todo: each split in parallel
+        async for attr_defs_page, attr_aggs_page in fetch_attribute_definition_aggregations(
+            client=client,
+            project_identifiers=[project_identifier],
+            run_identifiers=[identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split],
+            attribute_filter=attribute_filter,
+        ):
+            yield (sys_ids_split, attr_defs_page, attr_aggs_page)
 
 
-def fetch_attribute_definitions_complete(
+async def fetch_attribute_definitions_complete(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters.Filter],
     attribute_filter: filters.BaseAttributeFilter,
-    executor: Executor,
-    fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
-    downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
-) -> concurrency.OUT:
+) -> AsyncGenerator[util.Page[att_defs.AttributeDefinition], None]:
     if container_type == search.ContainerType.RUN and filter_ is None:
-        return concurrency.generate_concurrently(
-            fetch_attribute_definitions(
-                client=client,
-                project_identifiers=[project_identifier],
-                run_identifiers=None,
-                attribute_filter=attribute_filter,
-                executor=fetch_attribute_definitions_executor,
-            ),
-            executor=executor,
-            downstream=downstream,
-        )
+        async for attr_defs_page in fetch_attribute_definitions(
+            client=client,
+            project_identifiers=[project_identifier],
+            run_identifiers=None,
+            attribute_filter=attribute_filter,
+        ):
+            yield attr_defs_page
     else:
-        return concurrency.generate_concurrently(
-            items=search.fetch_experiment_sys_ids(
-                client=client,
-                project_identifier=project_identifier,
-                filter_=filter_,
-                container_type=container_type,
-            ),
-            executor=executor,
-            downstream=lambda sys_ids_page: fetch_attribute_definitions_split(
+        async for sys_ids_page in search.fetch_experiment_sys_ids(
+            client=client,
+            project_identifier=project_identifier,
+            filter_=filter_,
+            container_type=container_type,
+        ):
+            async for _, attr_defs_page in fetch_attribute_definitions_split(
                 client=client,
                 project_identifier=project_identifier,
                 attribute_filter=attribute_filter,
-                executor=executor,
-                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids_page.items,
-                downstream=lambda _, definitions: downstream(definitions),
-            ),
-        )
+            ):
+                yield attr_defs_page
 
 
 def fetch_attribute_values_split(

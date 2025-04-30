@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
+    AsyncGenerator,
     Iterable,
     Optional,
     Union,
@@ -63,7 +63,7 @@ def fetch_attribute_definitions_single_filter(
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters.AttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeDefinition], None, None]:
+) -> AsyncGenerator[util.Page[AttributeDefinition], None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),
         "attributeNameFilter": dict(),
@@ -94,7 +94,7 @@ def fetch_attribute_definitions_single_filter(
 
     # note: attribute_filter.aggregations is intentionally ignored
 
-    return util.fetch_pages(
+    return util.fetch_pages_async(
         client=client,
         fetch_page=_fetch_attribute_definitions_page,
         process_page=_process_attribute_definitions_page,
@@ -103,14 +103,14 @@ def fetch_attribute_definitions_single_filter(
     )
 
 
-def _fetch_attribute_definitions_page(
+async def _fetch_attribute_definitions_page(
     client: AuthenticatedClient,
     params: dict[str, Any],
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-    response = util.backoff_retry(
-        query_attribute_definitions_within_project.sync_detailed,
+    response = await util.backoff_retry_async(
+        query_attribute_definitions_within_project.asyncio_detailed,
         client=client,
         body=body,
     )

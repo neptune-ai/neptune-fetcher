@@ -159,9 +159,7 @@ def test_infer_attribute_types_in_filter_no_filter(client, executor, project, ru
         ),
     ],
 )
-def test_infer_attribute_types_in_filter_single(
-    client, executor, project, run_with_attributes, filter_before, filter_after
-):
+def test_infer_attribute_types_in_filter_single(client, project, run_with_attributes, filter_before, filter_after):
     # given
     project_identifier = project.project_identifier
 
@@ -170,8 +168,6 @@ def test_infer_attribute_types_in_filter_single(
         client,
         project_identifier,
         filter_before,
-        executor,
-        executor,
     )
 
     # then
@@ -189,9 +185,7 @@ def test_infer_attribute_types_in_filter_single(
         (Attribute(f"{PATH}/float-series-value"), Attribute(f"{PATH}/float-series-value", type="float_series")),
     ],
 )
-def infer_attribute_types_in_sort_by_single(
-    client, executor, project, run_with_attributes, attribute_before, attribute_after
-):
+def infer_attribute_types_in_sort_by_single(client, project, run_with_attributes, attribute_before, attribute_after):
     # given
     project_identifier = project.project_identifier
 
@@ -201,8 +195,6 @@ def infer_attribute_types_in_sort_by_single(
         project_identifier,
         filter_=None,
         sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
     )
 
     # then
@@ -215,7 +207,7 @@ def infer_attribute_types_in_sort_by_single(
         Filter.eq(f"{PATH}/does-not-exist", 10),
     ],
 )
-def test_infer_attribute_types_in_filter_missing(client, executor, project, filter_before):
+def test_infer_attribute_types_in_filter_missing(client, project, filter_before):
     # given
     project_identifier = project.project_identifier
 
@@ -225,8 +217,6 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
             client,
             project_identifier,
             filter_=filter_before,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -238,7 +228,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
         (Attribute(f"{PATH}/int-value"), Filter.name_in(EXPERIMENT_NAME + "does-not-exist")),
     ],
 )
-def test_infer_attribute_types_in_sort_by_missing(client, executor, project, attribute, experiment_filter):
+def test_infer_attribute_types_in_sort_by_missing(client, project, attribute, experiment_filter):
     # given
     project_identifier = project.project_identifier
 
@@ -249,8 +239,6 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
             project_identifier,
             filter_=experiment_filter,
             sort_by=attribute,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -261,7 +249,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types(
-    client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
+    client, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
@@ -272,8 +260,6 @@ def test_infer_attribute_types_in_filter_conflicting_types(
             client,
             project_identifier,
             filter_=filter_before,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -287,7 +273,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types_todo(
-    client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
+    client, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
@@ -298,8 +284,6 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
             client,
             project_identifier,
             filter_=filter_before,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -314,7 +298,7 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types(
-    client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
+    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
@@ -326,8 +310,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
             project_identifier,
             filter_=experiment_filter,
             sort_by=attribute_before,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -345,7 +327,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
     ],
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
-    client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
+    client, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
@@ -357,8 +339,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
             project_identifier,
             filter_=experiment_filter,
             sort_by=attribute_before,
-            executor=executor,
-            fetch_attribute_definitions_executor=executor,
         )
 
 
@@ -389,7 +369,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
 )
 def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
     client,
-    executor,
     project,
     run_with_attributes,
     run_with_attributes_b,
@@ -406,8 +385,6 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
         project_identifier,
         filter_=experiment_filter,
         sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
     )
 
     # then

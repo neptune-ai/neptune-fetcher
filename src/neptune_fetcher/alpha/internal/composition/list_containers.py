@@ -19,10 +19,7 @@ from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import context as _context
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import (
-    concurrency,
-    type_inference,
-)
+from neptune_fetcher.alpha.internal.composition import type_inference
 from neptune_fetcher.alpha.internal.retrieval import search
 
 __all__ = ("list_containers",)
@@ -37,23 +34,17 @@ def list_containers(
     client = _client.get_client(validated_context)
     project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        type_inference.infer_attribute_types_in_filter(
-            client=client,
-            project_identifier=project_identifier,
-            filter_=filter_,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        )
+    type_inference.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project_identifier,
+        filter_=filter_,
+    )
 
-        async def go() -> list[str]:
-            values: list[str] = []
-            async for page in search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_):
-                values.extend(attrs.label for attrs in page.items)
-            values.sort()
-            return values
+    async def go() -> list[str]:
+        values: list[str] = []
+        async for page in search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_):
+            values.extend(attrs.label for attrs in page.items)
+        values.sort()
+        return values
 
-        return asyncio.run(go())
+    return asyncio.run(go())

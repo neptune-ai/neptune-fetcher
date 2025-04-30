@@ -16,10 +16,8 @@
 
 __all__ = ("list_attributes",)
 
-from typing import (
-    Generator,
-    Optional,
-)
+import asyncio
+from typing import Optional
 
 from neptune_fetcher.alpha.filters import (
     AttributeFilter,
@@ -28,20 +26,13 @@ from neptune_fetcher.alpha.filters import (
 from neptune_fetcher.alpha.internal import client as _client
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import (
-    concurrency,
-    type_inference,
-)
+from neptune_fetcher.alpha.internal.composition import type_inference
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.alpha.internal.retrieval import (
-    search,
-    util,
-)
+from neptune_fetcher.alpha.internal.retrieval import search
 
 
 def list_attributes(
@@ -54,34 +45,26 @@ def list_attributes(
     client = _client.get_client(valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        type_inference.infer_attribute_types_in_filter(
-            client,
-            project_identifier,
-            filter_,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
-        )
+    type_inference.infer_attribute_types_in_filter(
+        client,
+        project_identifier,
+        filter_,
+        container_type=container_type,
+    )
 
-        output = _components.fetch_attribute_definitions_complete(
+    async def go() -> list[str]:
+        names = set()
+
+        async for attr_def_page in _components.fetch_attribute_definitions_complete(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
             attribute_filter=attributes,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            downstream=concurrency.return_value,
             container_type=container_type,
-        )
-
-        results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
-        names = set()
-        for page in results:
-            for item in page.items:
-                names.add(item.name)
+        ):
+            for attr_def in attr_def_page.items:
+                names.add(attr_def.name)
 
         return sorted(names)
+
+    return asyncio.run(go())

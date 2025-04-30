@@ -75,8 +75,6 @@ def fetch_table(
             client=client,
             project_identifier=project,
             filter_=filter_,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
 
@@ -85,8 +83,6 @@ def fetch_table(
             project_identifier=project,
             filter_=filter_,
             sort_by=sort_by,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
 
