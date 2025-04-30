@@ -22,6 +22,8 @@ import time
 from dataclasses import dataclass
 from typing import (
     Any,
+    AsyncGenerator,
+    Awaitable,
     Callable,
     Generator,
     Generic,
@@ -62,6 +64,22 @@ def fetch_pages(
     page_params = make_new_page_params(params, None)
     while page_params is not None:
         data = fetch_page(client, page_params)
+        page = process_page(data)
+        page_params = make_new_page_params(page_params, data)
+
+        yield page
+
+
+async def fetch_pages_async(
+    client: AuthenticatedClient,
+    fetch_page: Callable[[AuthenticatedClient, _Params], Awaitable[R]],
+    process_page: Callable[[R], Page[T]],
+    make_new_page_params: Callable[[_Params, Optional[R]], Optional[_Params]],
+    params: _Params,
+) -> AsyncGenerator[Page[T]]:
+    page_params = make_new_page_params(params, None)
+    while page_params is not None:
+        data = await fetch_page(client, page_params)
         page = process_page(data)
         page_params = make_new_page_params(page_params, data)
 

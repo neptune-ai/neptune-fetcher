@@ -12,14 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import asyncio
 import functools as ft
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
     Any,
+    AsyncGenerator,
     Callable,
-    Generator,
     Literal,
     Optional,
     Protocol,
@@ -129,7 +128,7 @@ class FetchSysAttrs(Protocol[T]):
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
         container_type: ContainerType = ContainerType.EXPERIMENT,
-    ) -> Generator[util.Page[T], None, None]:
+    ) -> AsyncGenerator[util.Page[T], None]:
         ...
 
 
@@ -147,7 +146,7 @@ def _create_fetch_sys_attrs(
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
         container_type: ContainerType = default_container_type,
-    ) -> Generator[util.Page[T], None, None]:
+    ) -> AsyncGenerator[util.Page[T], None]:
         params: dict[str, Any] = {
             "attributeFilters": [{"path": attribute_name} for attribute_name in attribute_names],
             "pagination": {"limit": batch_size},
@@ -164,7 +163,7 @@ def _create_fetch_sys_attrs(
         if sort_by.type is not None:
             params["sorting"]["sortBy"]["type"] = map_attribute_type_python_to_backend(sort_by.type)
 
-        return util.fetch_pages(
+        return util.fetch_pages_async(
             client=client,
             fetch_page=ft.partial(_fetch_sys_attrs_page, project_identifier=project_identifier),
             process_page=ft.partial(_process_sys_attrs_page, make_record=make_record),
@@ -211,24 +210,22 @@ fetch_run_sys_ids = _create_fetch_sys_attrs(
 fetch_sys_ids = fetch_experiment_sys_ids
 
 
-def _fetch_sys_attrs_page(
+async def _fetch_sys_attrs_page(
     client: AuthenticatedClient,
     params: dict[str, Any],
     project_identifier: identifiers.ProjectIdentifier,
 ) -> ProtoLeaderboardEntriesSearchResultDTO:
     body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-    response = asyncio.run(
-        util.backoff_retry_async(
-            search_leaderboard_entries_proto.asyncio_detailed,
-            client=client,
-            project_identifier=project_identifier,
-            type=["run"],
-            body=body,
-        )
+    response = await util.backoff_retry_async(
+        search_leaderboard_entries_proto.asyncio_detailed,
+        client=client,
+        project_identifier=project_identifier,
+        type=["run"],
+        body=body,
     )
 
-    return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    yield ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
 
 
 def _process_sys_attrs_page(
