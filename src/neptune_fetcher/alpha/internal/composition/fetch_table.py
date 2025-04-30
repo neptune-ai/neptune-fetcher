@@ -12,12 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 from collections import defaultdict
 from typing import (
-    Generator,
     Literal,
     Optional,
-    Union,
 )
 
 import pandas as pd
@@ -34,17 +33,10 @@ from neptune_fetcher.alpha.internal import (
     output_format,
 )
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import (
-    concurrency,
-    type_inference,
-)
-from neptune_fetcher.alpha.internal.composition.attributes import AttributeDefinitionAggregation
+from neptune_fetcher.alpha.internal.composition import type_inference
 from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.alpha.internal.retrieval import attribute_values as att_vals
-from neptune_fetcher.alpha.internal.retrieval import (
-    search,
-    util,
-)
+from neptune_fetcher.alpha.internal.retrieval import search
 
 __all__ = ("fetch_table",)
 
@@ -66,88 +58,70 @@ def fetch_table(
     client = _client.get_client(valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
+    type_inference.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project,
+        filter_=filter_,
+        container_type=container_type,
+    )
 
-        type_inference.infer_attribute_types_in_filter(
-            client=client,
-            project_identifier=project,
-            filter_=filter_,
-            container_type=container_type,
-        )
+    type_inference.infer_attribute_types_in_sort_by(
+        client=client,
+        project_identifier=project,
+        filter_=filter_,
+        sort_by=sort_by,
+        container_type=container_type,
+    )
 
-        type_inference.infer_attribute_types_in_sort_by(
-            client=client,
-            project_identifier=project,
-            filter_=filter_,
-            sort_by=sort_by,
-            container_type=container_type,
-        )
-
+    async def go() -> tuple[
+        dict[identifiers.SysId, str],
+        dict[identifiers.SysId, list[att_vals.AttributeValue]],
+        dict[att_defs.AttributeDefinition, set[str]],
+    ]:
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
         selected_aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
 
-        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_sys_id_labels(container_type)(
-                client=client,
-                project_identifier=project,
-                filter_=filter_,
-                sort_by=sort_by,
-                sort_direction=_sort_direction,
-                limit=limit,
-            ):
-                sys_ids = []
-                for item in page.items:
-                    result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.label
-                    sys_ids.append(item.sys_id)
-                yield sys_ids
+        async for sys_ids_page in search.fetch_sys_id_labels(container_type)(
+            client=client,
+            project_identifier=project,
+            filter_=filter_,
+            sort_by=sort_by,
+            sort_direction=_sort_direction,
+            limit=limit,
+        ):
+            # todo: each page in parallel
+            sys_ids = []
+            for item in sys_ids_page.items:
+                result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
+                sys_id_label_mapping[item.sys_id] = item.label
+                sys_ids.append(item.sys_id)
 
-        output = concurrency.generate_concurrently(
-            items=go_fetch_sys_attrs(),
-            executor=executor,
-            downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
+            async for pages in _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project,
                 attribute_filter=attributes,
-                executor=executor,
-                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
-                downstream=lambda sys_ids_split, definitions_page, aggregations_page: concurrency.fork_concurrently(
-                    executor=executor,
-                    downstreams=[
-                        lambda: _components.fetch_attribute_values_split(
-                            client=client,
-                            project_identifier=project,
-                            executor=executor,
-                            sys_ids=sys_ids_split,
-                            attribute_definitions=definitions_page.items,
-                            downstream=concurrency.return_value,
-                        ),
-                        lambda: concurrency.return_value(aggregations_page.items),
-                    ],
-                ),
-            ),
-        )
-        results: Generator[
-            Union[util.Page[att_vals.AttributeValue], dict[att_defs.AttributeDefinition, set[str]]], None, None
-        ] = concurrency.gather_results(output)
+            ):
+                sys_ids_split, definitions_page, aggregations_page = pages
 
-        for result in results:
-            if isinstance(result, util.Page):
-                attribute_values_page = result
-                for attribute_value in attribute_values_page.items:
-                    sys_id = attribute_value.run_identifier.sys_id
-                    result_by_id[sys_id].append(attribute_value)
-            elif isinstance(result, list):
-                aggregations: list[AttributeDefinitionAggregation] = result
-                for aggregation in aggregations:
+                # todo: each page in parallel
+                for aggregation in aggregations_page.items:
                     selected_aggregations[aggregation.attribute_definition].add(aggregation.aggregation)
-            else:
-                raise RuntimeError(f"Unexpected result type: {type(result)}")
+
+                async for attribute_values_page in _components.fetch_attribute_values_split(
+                    client=client,
+                    project_identifier=project,
+                    sys_ids=sys_ids_split,
+                    attribute_definitions=definitions_page.items,
+                ):
+                    for attribute_value in attribute_values_page.items:
+                        sys_id = attribute_value.run_identifier.sys_id
+                        result_by_id[sys_id].append(attribute_value)
+
+        return sys_id_label_mapping, result_by_id, selected_aggregations
+
+    sys_id_label_mapping, result_by_id, selected_aggregations = asyncio.run(go())
 
     result_by_name = _map_keys_preserving_order(result_by_id, sys_id_label_mapping)
     dataframe = output_format.convert_table_to_dataframe(

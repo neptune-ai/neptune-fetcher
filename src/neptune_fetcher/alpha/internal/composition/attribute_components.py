@@ -13,10 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent.futures import Executor
 from typing import (
     AsyncGenerator,
-    Callable,
     Optional,
 )
 
@@ -24,7 +22,6 @@ from neptune_api.client import AuthenticatedClient
 
 import neptune_fetcher.alpha.filters as filters
 from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import concurrency
 from neptune_fetcher.alpha.internal.composition.attributes import (
     AttributeDefinitionAggregation,
     fetch_attribute_definition_aggregations,
@@ -73,7 +70,7 @@ async def fetch_attribute_definition_aggregations_split(
             run_identifiers=[identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split],
             attribute_filter=attribute_filter,
         ):
-            yield (sys_ids_split, attr_defs_page, attr_aggs_page)
+            yield sys_ids_split, attr_defs_page, attr_aggs_page
 
 
 async def fetch_attribute_definitions_complete(
@@ -107,25 +104,18 @@ async def fetch_attribute_definitions_complete(
                 yield attr_defs_page
 
 
-def fetch_attribute_values_split(
+async def fetch_attribute_values_split(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    executor: Executor,
     sys_ids: list[identifiers.SysId],
     attribute_definitions: list[att_defs.AttributeDefinition],
-    downstream: Callable[[util.Page[att_vals.AttributeValue]], concurrency.OUT],
-) -> concurrency.OUT:
-    return concurrency.generate_concurrently(
-        items=split.split_sys_ids_attributes(sys_ids, attribute_definitions),
-        executor=executor,
-        downstream=lambda split_pair: concurrency.generate_concurrently(
-            items=att_vals.fetch_attribute_values(
-                client=client,
-                project_identifier=project_identifier,
-                run_identifiers=[identifiers.RunIdentifier(project_identifier, s) for s in split_pair[0]],
-                attribute_definitions=split_pair[1],
-            ),
-            executor=executor,
-            downstream=downstream,
-        ),
-    )
+) -> AsyncGenerator[util.Page[att_vals.AttributeValue], None]:
+    for sys_ids_split, attr_defs_split in split.split_sys_ids_attributes(sys_ids, attribute_definitions):
+        # todo: each split in parallel
+        async for values_page in att_vals.fetch_attribute_values(
+            client=client,
+            project_identifier=project_identifier,
+            run_identifiers=[identifiers.RunIdentifier(project_identifier, s) for s in sys_ids_split],
+            attribute_definitions=attr_defs_split,
+        ):
+            yield values_page

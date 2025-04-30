@@ -16,7 +16,7 @@ import functools as ft
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
+    AsyncGenerator,
     Iterable,
     Optional,
 )
@@ -51,13 +51,17 @@ def fetch_attribute_values(
     run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_definitions: Iterable[AttributeDefinition],
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeValue], None, None]:
+) -> AsyncGenerator[util.Page[AttributeValue], None]:
     attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
     experiments = [str(e) for e in run_identifiers]
 
     if not attribute_definitions_set or not run_identifiers:
-        yield from []
-        return
+
+        async def empty() -> AsyncGenerator[util.Page[AttributeValue], None]:
+            if False:
+                yield
+
+        return empty()
 
     params: dict[str, Any] = {
         "experimentIdsFilter": experiments,
@@ -65,7 +69,7 @@ def fetch_attribute_values(
         "nextPage": {"limit": batch_size},
     }
 
-    yield from util.fetch_pages(
+    return util.fetch_pages_async(
         client=client,
         fetch_page=ft.partial(_fetch_attribute_values_page, project_identifier=project_identifier),
         process_page=ft.partial(
@@ -78,17 +82,20 @@ def fetch_attribute_values(
     )
 
 
-def _fetch_attribute_values_page(
+async def _fetch_attribute_values_page(
     client: AuthenticatedClient,
     params: dict[str, Any],
     project_identifier: identifiers.ProjectIdentifier,
 ) -> ProtoQueryAttributesResultDTO:
-    response = util.backoff_retry(
-        query_attributes_within_project_proto.sync_detailed,
+    body = QueryAttributesBodyDTO.from_dict(params)
+
+    response = await util.backoff_retry_async(
+        query_attributes_within_project_proto.asyncio_detailed,
         client=client,
-        body=QueryAttributesBodyDTO.from_dict(params),
+        body=body,
         project_identifier=project_identifier,
     )
+
     return ProtoQueryAttributesResultDTO.FromString(response.content)
 
 
