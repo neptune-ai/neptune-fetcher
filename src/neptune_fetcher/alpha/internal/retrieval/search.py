@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 import functools as ft
 from dataclasses import dataclass
 from enum import Enum
@@ -217,12 +218,14 @@ def _fetch_sys_attrs_page(
 ) -> ProtoLeaderboardEntriesSearchResultDTO:
     body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-    response = util.backoff_retry(
-        search_leaderboard_entries_proto.sync_detailed,
-        client=client,
-        project_identifier=project_identifier,
-        type=["run"],
-        body=body,
+    response = asyncio.run(
+        util.backoff_retry_async(
+            search_leaderboard_entries_proto.asyncio_detailed,
+            client=client,
+            project_identifier=project_identifier,
+            type=["run"],
+            body=body,
+        )
     )
 
     return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)

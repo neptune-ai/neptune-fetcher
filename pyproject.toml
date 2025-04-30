@@ -12,7 +12,7 @@ pattern = "default-unprefixed"
 python = "^3.9"
 
 # Base neptune package
-neptune-api = "^0.15.0"
+neptune-api = { git = "https://github.com/neptune-ai/neptune-api.git", branch = "ms/a-version" }
 azure-storage-blob = "^12.7.0"
 pandas = { version = ">=1.4.0" }
 
