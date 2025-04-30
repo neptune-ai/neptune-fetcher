@@ -16,7 +16,7 @@ import functools as ft
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
+    AsyncGenerator,
     Iterable,
     NamedTuple,
     Optional,
@@ -49,10 +49,14 @@ def fetch_series_values(
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> Generator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None, None]:
+) -> AsyncGenerator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None]:
     if not run_attribute_definitions:
-        yield from []
-        return
+
+        async def empty() -> AsyncGenerator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None]:
+            if False:
+                yield
+
+        return empty()
 
     request_id_to_run_attr_definition: dict[str, RunAttributeDefinition] = {
         str(ix): pair for ix, pair in enumerate(run_attribute_definitions)
@@ -79,7 +83,7 @@ def fetch_series_values(
     if tail_limit is not None:
         params["perSeriesPointsLimit"] = tail_limit
 
-    yield from util.fetch_pages(
+    return util.fetch_pages_async(
         client=client,
         fetch_page=_fetch_series_page,
         process_page=ft.partial(
@@ -90,16 +94,18 @@ def fetch_series_values(
     )
 
 
-def _fetch_series_page(
+async def _fetch_series_page(
     client: AuthenticatedClient,
     params: dict[str, Any],
 ) -> ProtoSeriesValuesResponseDTO:
     body = SeriesValuesRequest.from_dict(params)
-    response = util.backoff_retry(
-        get_series_values_proto.sync_detailed,
+
+    response = await util.backoff_retry_async(
+        get_series_values_proto.asyncio_detailed,
         client=client,
         body=body,
     )
+
     return ProtoSeriesValuesResponseDTO.FromString(response.content)
 
 

@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 from typing import (
-    Generator,
     Literal,
     Optional,
     Tuple,
@@ -28,10 +28,7 @@ from neptune_fetcher.alpha.filters import (
 from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.client import get_client
 from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import (
-    concurrency,
-    type_inference,
-)
+from neptune_fetcher.alpha.internal.composition import type_inference
 from neptune_fetcher.alpha.internal.context import (
     Context,
     get_context,
@@ -41,7 +38,6 @@ from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
     series,
-    util,
 )
 from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
@@ -66,81 +62,69 @@ def fetch_series(
     client = get_client(valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        type_inference.infer_attribute_types_in_filter(
+    type_inference.infer_attribute_types_in_filter(
+        client=client,
+        project_identifier=project_identifier,
+        filter_=filter_,
+        container_type=container_type,
+    )
+
+    if "string_series" in attributes.type_in:
+        attributes.type_in = ["string_series"]
+    else:
+        raise ValueError("Only string_series type is supported for attributes in fetch_series")
+
+    async def go() -> tuple[
+        dict[identifiers.SysId, str],
+        dict[series.RunAttributeDefinition, list[series.StringSeriesValue]],
+    ]:
+        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
+        series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
+
+        async for sys_ids_page in search.fetch_sys_id_labels(container_type)(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
-            container_type=container_type,
-        )
+        ):
+            sys_ids = []
+            for item in sys_ids_page.items:
+                sys_id_label_mapping[item.sys_id] = item.label
+                sys_ids.append(item.sys_id)
 
-        if "string_series" in attributes.type_in:
-            attributes.type_in = ["string_series"]
-        else:
-            raise ValueError("Only string_series type is supported for attributes in fetch_series")
-
-        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
-
-        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_sys_id_labels(container_type)(
-                client=client,
-                project_identifier=project_identifier,
-                filter_=filter_,
-            ):
-                sys_ids = []
-                for item in page.items:
-                    sys_id_label_mapping[item.sys_id] = item.label
-                    sys_ids.append(item.sys_id)
-                yield sys_ids
-
-        output = concurrency.generate_concurrently(
-            items=go_fetch_sys_attrs(),
-            executor=executor,
-            downstream=lambda sys_ids: _components.fetch_attribute_definitions_split(
+            async for sys_ids_split, definitions_page in _components.fetch_attribute_definitions_split(
                 client=client,
                 project_identifier=project_identifier,
                 attribute_filter=attributes,
-                executor=executor,
-                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
-                downstream=lambda sys_ids_split, definitions_page: concurrency.generate_concurrently(
-                    items=series.fetch_series_values(
-                        client=client,
-                        run_attribute_definitions=[
-                            series.RunAttributeDefinition(
-                                run_identifier=identifiers.RunIdentifier(project_identifier, sys_id),
-                                attribute_definition=definition,
-                            )
-                            for sys_id in sys_ids_split
-                            for definition in definitions_page.items
-                        ],
-                        include_inherited=lineage_to_the_root,
-                        step_range=step_range,
-                        tail_limit=tail_limit,
-                    ),
-                    executor=executor,
-                    downstream=concurrency.return_value,
-                ),
-            ),
-        )
-        results: Generator[
-            util.Page[tuple[series.RunAttributeDefinition, list[series.StringSeriesValue]]], None, None
-        ] = concurrency.gather_results(output)
+            ):
+                # todo: each split in parallel
+                async for series_page in series.fetch_series_values(
+                    client=client,
+                    run_attribute_definitions=[
+                        series.RunAttributeDefinition(
+                            run_identifier=identifiers.RunIdentifier(project_identifier, sys_id),
+                            attribute_definition=definition,
+                        )
+                        for sys_id in sys_ids_split
+                        for definition in definitions_page.items
+                    ],
+                    include_inherited=lineage_to_the_root,
+                    step_range=step_range,
+                    tail_limit=tail_limit,
+                ):
+                    for run_attribute_definition, series_values in series_page.items:
+                        series_data.setdefault(run_attribute_definition, []).extend(series_values)
 
-        series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
-        for result in results:
-            for run_attribute_definition, series_values in result.items:
-                series_data.setdefault(run_attribute_definition, []).extend(series_values)
+        return sys_id_label_mapping, series_data
 
-        return create_series_dataframe(
-            series_data,
-            sys_id_label_mapping,
-            index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
-            timestamp_column_name="absolute_time" if include_time == "absolute" else None,
-        )
+    sys_id_label_mapping, series_data = asyncio.run(go())
+
+    return create_series_dataframe(
+        series_data,
+        sys_id_label_mapping,
+        index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
+        timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+    )
 
 
 # TODO: common validation and output of series+metrics
