@@ -31,9 +31,13 @@ from neptune_fetcher.fetchable import (
     which_fetchable,
 )
 from neptune_fetcher.fields import FieldDefinition
+from neptune_fetcher.util import getenv_int
 
 if TYPE_CHECKING:
     from neptune_fetcher.read_only_project import ReadOnlyProject
+
+
+MAX_ACCEPTABLE_PATH_SIZE_BYTES = getenv_int("NEPTUNE_MAX_ACCEPTABLE_PATH_SIZE", 1024)
 
 
 class ReadOnlyRun:
@@ -128,6 +132,7 @@ class ReadOnlyRun:
                     self._cache,
                 )
                 for definition in definitions
+                if len(definition.path.encode("utf-8")) <= MAX_ACCEPTABLE_PATH_SIZE_BYTES
             }
             self._loaded_structure = True
 

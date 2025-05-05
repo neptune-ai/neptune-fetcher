@@ -83,9 +83,31 @@ class NeptuneApiTokenNotProvided(NeptuneUserError):
             """
 {h1}NeptuneApiTokenNotProvided: The Neptune API token was not provided.{end}
 
-Make sure to specify the API token with `set_api_token()` function,
-by providing the `context` argument with `project` and `api_token` set to the function call,
-or with the `NEPTUNE_API_TOKEN` environment variable.
+Make sure to specify a valid token in one of the following ways:
+
+- Call the `set_api_token()` function
+- Create a Context with the API token and pass it to the `context` argument of the fetching method
+- Set the `NEPTUNE_API_TOKEN` environment variable
+
+For details, see https://docs-beta.neptune.ai/fetcher_setup
+"""
+        )
+
+
+class NeptuneInvalidCredentialsError(NeptuneUserError):
+    def __init__(self) -> None:
+        super().__init__(
+            """
+{h1}NeptuneInvalidCredentialsError: Your Neptune API token was rejected by the server.{end}
+
+The API token must be valid and the associated account must have access to the target project.
+Make sure to specify your Neptune credentials in one of the following ways:
+
+- Call the `set_api_token()` or `set_project()` functions
+- Create a Context with the API token and project, then pass it to the `context` argument of the fetching method
+- Set the `NEPTUNE_API_TOKEN` and `NEPTUNE_PROJECT` environment variables
+
+For details, see https://docs-beta.neptune.ai/fetcher_setup
 """
         )
 

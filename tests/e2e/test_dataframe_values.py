@@ -237,7 +237,9 @@ def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
     # All runs should be present
     assert len(df) == len(all_run_ids + all_experiment_ids)
     # All columns that are not system columns: 10 * config/* + 10 * metrics/* + 20 unique metrics * 12 runs
-    assert len([col for col in df.columns if not col.startswith("sys/")]) == 280
+    assert (
+        len([col for col in df.columns if not col.startswith("sys/") and not col.startswith("monitoring/")]) == 280
+    ), f"{df.columns=}"
 
     for i, (_, row) in enumerate(df.iterrows(), start=1):
         for column in df.columns[1:]:
@@ -245,6 +247,8 @@ def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
 
             if column.startswith("sys/"):
                 _validate_sys_attr(row, i, column, value)
+            elif column.startswith("monitoring/"):
+                pass
             elif "unique" in column:
                 if isinstance(value, str):
                     # Column format: "config/fooX-unique-CUSTOM_RUN_ID", custom run id must match

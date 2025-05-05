@@ -22,14 +22,12 @@ from typing import (
     Literal,
     Optional,
     Tuple,
-    Union,
 )
 
 import pandas as pd
 from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.alpha.filters import (
-    Attribute,
     AttributeFilter,
     Filter,
 )
@@ -46,8 +44,9 @@ from neptune_fetcher.alpha.internal.context import (
     get_valid_context,
 )
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
-from neptune_fetcher.alpha.internal.output_format import create_dataframe
+from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
+    search,
     split,
     util,
 )
@@ -57,134 +56,15 @@ from neptune_fetcher.alpha.internal.retrieval.metrics import (
     FloatPointValue,
     fetch_multiple_series_values,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import (
-    ContainerType,
-    fetch_experiment_sys_attrs,
-    fetch_run_sys_attrs,
-)
+from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
-__all__ = (
-    "fetch_experiment_metrics",
-    "fetch_run_metrics",
-)
+__all__ = ("fetch_metrics",)
 
 
 _PATHS_PER_BATCH: int = 10_000
 
 
-def fetch_experiment_metrics(
-    experiments: Union[str, Filter],
-    attributes: Union[str, AttributeFilter],
-    include_time: Optional[Literal["absolute"]] = None,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-    type_suffix_in_column_names: bool = False,
-    include_point_previews: bool = False,
-    context: Optional[Context] = None,
-) -> pd.DataFrame:
-    """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
-
-    `experiments` - a filter specifying which experiments to include
-        - a regex that experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
-    `include_time` - whether to include absolute timestamp
-    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
-        If False, only includes points from the most recent experiment in the lineage.
-    `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
-    `include_point_previews` - False by default. If False the returned results will only contain committed
-        points. If True the results will also include preview points and the returned DataFrame will
-        have additional sub-columns with preview status (is_preview and preview_completion).
-
-    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
-    """
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), regex=experiments)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-
-    return _fetch_metrics(
-        filter_=experiments,
-        attributes=attributes,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        include_point_previews=include_point_previews,
-        context=context,
-        container_type=ContainerType.EXPERIMENT,
-    )
-
-
-def fetch_run_metrics(
-    runs: Union[str, Filter],
-    attributes: Union[str, AttributeFilter],
-    include_time: Optional[Literal["absolute"]] = None,
-    step_range: Tuple[Optional[float], Optional[float]] = (None, None),
-    lineage_to_the_root: bool = True,
-    tail_limit: Optional[int] = None,
-    type_suffix_in_column_names: bool = False,
-    include_point_previews: bool = False,
-    context: Optional[Context] = None,
-) -> pd.DataFrame:
-    """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
-
-    `runs` - a filter specifying which runs to include
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
-    `include_time` - whether to include absolute timestamp
-    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete run history.
-        If False, only includes points from the most recent run in the lineage.
-    `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
-    `include_point_previews` - False by default. If False the returned results will only contain committed
-        points. If True the results will also include preview points and the returned DataFrame will
-        have additional sub-columns with preview status (is_preview and preview_completion).
-
-    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
-    """
-    if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), regex=runs)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes, type_in=["float_series"])
-
-    return _fetch_metrics(
-        filter_=runs,
-        attributes=attributes,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        include_point_previews=include_point_previews,
-        context=context,
-        container_type=ContainerType.RUN,
-    )
-
-
-def _fetch_metrics(
+def fetch_metrics(
     filter_: Filter,
     attributes: AttributeFilter,
     include_time: Optional[Literal["absolute"]],
@@ -231,7 +111,7 @@ def _fetch_metrics(
             container_type=container_type,
         )
 
-        df = create_dataframe(
+        df = create_metrics_dataframe(
             values_generator,
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -350,14 +230,8 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
-        if container_type == ContainerType.RUN:
-            run_pages = fetch_run_sys_attrs(client, project, filter_)
-            return ({run.sys_id: run.sys_custom_run_id for run in page.items} for page in run_pages)
-        elif container_type == ContainerType.EXPERIMENT:
-            experiment_pages = fetch_experiment_sys_attrs(client, project, filter_)
-            return ({exp.sys_id: exp.sys_name for exp in page.items} for page in experiment_pages)
-        else:
-            raise RuntimeError(f"Unknown container type: {container_type}")
+        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project, filter_)
+        return ({run.sys_id: run.label for run in page.items} for page in sys_attr_pages)
 
     def _start() -> Iterable[FloatPointValue]:
         futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}

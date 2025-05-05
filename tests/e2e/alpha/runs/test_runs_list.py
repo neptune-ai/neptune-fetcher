@@ -14,7 +14,12 @@ from tests.e2e.alpha.generator import (
 
 @pytest.mark.parametrize(
     "all_filter",
-    [".*", None, Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS])],
+    [
+        ".*",
+        None,
+        [run.custom_run_id for run in ALL_STATIC_RUNS],
+        Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]),
+    ],
 )
 def test_list_all_runs(new_project_context: Context, all_filter):
     result = runs.list_runs(all_filter, context=new_project_context)
@@ -26,6 +31,7 @@ def test_list_all_runs(new_project_context: Context, all_filter):
     "linear_history_filter",
     [
         "linear.*",
+        [run.custom_run_id for run in LINEAR_HISTORY_TREE],
         Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]),
         Filter.eq("linear-history", True),
         Filter.eq(Attribute(name="linear-history", type="bool"), True),
@@ -44,6 +50,7 @@ def test_list_linear_history_runs(new_project_context: Context, linear_history_f
     "linear_history_filter",
     [
         "abc",
+        ["abc"],
         Filter.eq(Attribute(name="non-existent", type="bool"), True),
     ],
 )

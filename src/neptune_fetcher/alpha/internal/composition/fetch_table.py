@@ -46,113 +46,10 @@ from neptune_fetcher.alpha.internal.retrieval import (
     util,
 )
 
-__all__ = (
-    "fetch_experiments_table",
-    "fetch_runs_table",
-)
+__all__ = ("fetch_table",)
 
 
-def fetch_experiments_table(
-    experiments: Optional[Union[str, Filter]] = None,
-    attributes: Union[str, AttributeFilter] = "^sys/name$",
-    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
-    sort_direction: Literal["asc", "desc"] = "desc",
-    limit: Optional[int] = None,
-    type_suffix_in_column_names: bool = False,
-    context: Optional[_context.Context] = None,
-) -> pd.DataFrame:
-    """
-    `experiments` - a filter specifying which experiments to include in the table
-        - a regex that experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that attribute name must match, or
-        - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
-    `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of experiments to return; by default all experiments are returned.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
-    """
-    if isinstance(experiments, str):
-        experiments = Filter.matches_all(Attribute("sys/name", type="string"), experiments)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes)
-
-    if isinstance(sort_by, str):
-        sort_by = Attribute(sort_by)
-
-    return _fetch_table(
-        filter_=experiments,
-        attributes=attributes,
-        sort_by=sort_by,
-        sort_direction=sort_direction,
-        limit=limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        context=context,
-        container_type=search.ContainerType.EXPERIMENT,
-    )
-
-
-def fetch_runs_table(
-    runs: Optional[Union[str, Filter]] = None,
-    attributes: Union[str, AttributeFilter] = "^sys/name$",
-    sort_by: Union[str, Attribute] = Attribute("sys/creation_time", type="datetime"),
-    sort_direction: Literal["asc", "desc"] = "desc",
-    limit: Optional[int] = None,
-    type_suffix_in_column_names: bool = False,
-    context: Optional[_context.Context] = None,
-) -> pd.DataFrame:
-    """
-    `runs` - a filter specifying which runs to include in the table
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
-    `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of runs to return; by default all runs are returned.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a DataFrame similar to the runs table in the web app, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    If you don't specify aggregates to return, only the last logged value of each metric is returned.
-    """
-    if isinstance(runs, str):
-        runs = Filter.matches_all(Attribute("sys/custom_run_id", type="string"), runs)
-
-    if isinstance(attributes, str):
-        attributes = AttributeFilter(name_matches_all=attributes)
-
-    if isinstance(sort_by, str):
-        sort_by = Attribute(sort_by)
-
-    return _fetch_table(
-        filter_=runs,
-        attributes=attributes,
-        sort_by=sort_by,
-        sort_direction=sort_direction,
-        limit=limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        context=context,
-        container_type=search.ContainerType.RUN,
-    )
-
-
-def _fetch_table(
+def fetch_table(
     filter_: Optional[Filter],
     attributes: AttributeFilter,
     sort_by: Attribute,
@@ -197,8 +94,8 @@ def _fetch_table(
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
         selected_aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
 
-        def go_fetch_experiment_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_experiment_sys_attrs(
+        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+            for page in search.fetch_sys_id_labels(container_type)(
                 client=client,
                 project_identifier=project_identifier,
                 filter_=filter_,
@@ -209,30 +106,9 @@ def _fetch_table(
                 sys_ids = []
                 for item in page.items:
                     result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.sys_name  # TODO: check for duplicate names?
+                    sys_id_label_mapping[item.sys_id] = item.label
                     sys_ids.append(item.sys_id)
                 yield sys_ids
-
-        def go_fetch_run_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_run_sys_attrs(
-                client=client,
-                project_identifier=project_identifier,
-                filter_=filter_,
-                sort_by=sort_by,
-                sort_direction=_sort_direction,
-                limit=limit,
-            ):
-                sys_ids = []
-                for item in page.items:
-                    result_by_id[item.sys_id] = []  # I assume that dict preserves the order set here
-                    sys_id_label_mapping[item.sys_id] = item.sys_custom_run_id
-                    sys_ids.append(item.sys_id)
-                yield sys_ids
-
-        if container_type == search.ContainerType.EXPERIMENT:
-            go_fetch_sys_attrs = go_fetch_experiment_sys_attrs
-        else:
-            go_fetch_sys_attrs = go_fetch_run_sys_attrs
 
         output = concurrency.generate_concurrently(
             items=go_fetch_sys_attrs(),
