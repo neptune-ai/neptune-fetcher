@@ -37,8 +37,7 @@ from neptune_fetcher.alpha.internal.composition import (
 )
 from neptune_fetcher.alpha.internal.context import (
     Context,
-    get_context,
-    validate_context,
+    get_valid_context,
 )
 from neptune_fetcher.alpha.internal.retrieval import (
     attribute_definitions,
@@ -55,9 +54,9 @@ def download_files(
     context: Optional[Context],
     container_type: ContainerType,
 ) -> pd.DataFrame:
-    valid_context = validate_context(context or get_context())
-    client = _client.get_client(valid_context)
-    project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = get_valid_context(context)
+    client = _client.get_client(valid_context.api_token)
+    project = valid_context.project_identifier
 
     _ensure_write_access(destination)
 
