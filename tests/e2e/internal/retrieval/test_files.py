@@ -1,4 +1,3 @@
-import itertools as it
 import os
 import pathlib
 import tempfile
@@ -20,6 +19,7 @@ from neptune_fetcher.internal.retrieval.files import (
     download_file_retry,
     fetch_signed_urls,
 )
+from tests.e2e.conftest import extract_pages
 from tests.e2e.data import PATH
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -34,7 +34,7 @@ def temp_dir():
 @pytest.fixture
 def file_path(client, project, experiment_identifier):
     project_identifier = project.project_identifier
-    return _extract_pages(
+    return extract_pages(
         fetch_attribute_values(
             client,
             project_identifier,
@@ -174,7 +174,3 @@ def _modify_signed_url(signed_url: str, **kwargs) -> str:
     original_query.update(kwargs)
     new_query = urllib.parse.urlencode(original_query, doseq=True)
     return original_url._replace(query=new_query).geturl()
-
-
-def _extract_pages(generator):
-    return list(it.chain.from_iterable(i.items for i in generator))

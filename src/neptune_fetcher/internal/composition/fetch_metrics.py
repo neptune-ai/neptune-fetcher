@@ -34,7 +34,6 @@ from neptune_fetcher.internal.composition import (
     type_inference,
 )
 from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.internal.composition.util import batched
 from neptune_fetcher.internal.context import (
     Context,
     get_context,
@@ -61,8 +60,7 @@ from neptune_fetcher.internal.retrieval.search import ContainerType
 
 __all__ = ("fetch_metrics",)
 
-
-_PATHS_PER_BATCH: int = 10_000
+from neptune_fetcher.internal.retrieval.split import split_series_attributes
 
 
 def fetch_metrics(
@@ -200,7 +198,7 @@ def _fetch_flat_dataframe_metrics(
                 if _path.type == "float_series"
             ]
 
-            for batch in batched(exp_paths, _PATHS_PER_BATCH):
+            for batch in split_series_attributes(items=exp_paths, get_path=lambda r: r.attribute_path):
                 _futures.append(executor.submit(fetch_values, batch))
 
         return _futures, []

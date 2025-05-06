@@ -99,9 +99,7 @@ def _fetch_series_page(
 ) -> ProtoSeriesValuesResponseDTO:
     body = SeriesValuesRequest.from_dict(params)
     response = util.backoff_retry(
-        get_series_values_proto.sync_detailed,
-        client=client,
-        body=body,
+        get_series_values_proto.sync_detailed, client=client, body=body, use_deprecated_string_fields=False
     )
     return ProtoSeriesValuesResponseDTO.FromString(response.content)
 
@@ -113,11 +111,11 @@ def _process_series_page(
     items: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
 
     for series in data.series:
-        if series.string_series.values:
+        if series.seriesValues.values:
             run_definition = request_id_to_run_attr_definition[series.requestId]
             values = [
-                StringSeriesValue(value.step, value.value, value.timestamp_millis)
-                for value in series.string_series.values
+                StringSeriesValue(value.step, value.object.stringValue, value.timestamp_millis)
+                for value in series.seriesValues.values
             ]
             items.setdefault(run_definition, []).extend(values)
 

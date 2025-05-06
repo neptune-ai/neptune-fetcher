@@ -9,25 +9,30 @@ from datetime import (
     datetime,
     timezone,
 )
+from typing import Any
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-04-29"
+TEST_DATA_VERSION = "2025-05-08"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 NUMBER_OF_STEPS = 10
+MAX_PATH_LENGTH = 1024
 
 
 @dataclass
 class ExperimentData:
     name: str
-    config: dict[str, any]
+    config: dict[str, Any]
     string_sets: dict[str, list[str]]
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
     string_series: dict[str, list[str]]
     files: dict[str, bytes]
+    long_path_configs: dict[str, int]
+    long_path_series: dict[str, str]
+    long_path_metrics: dict[str, float]
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     @property
@@ -40,6 +45,9 @@ class ExperimentData:
                 self.unique_series.keys(),
                 self.string_series.keys(),
                 self.files.keys(),
+                self.long_path_configs.keys(),
+                self.long_path_series.keys(),
+                self.long_path_metrics.keys(),
             )
         )
 
@@ -78,17 +86,36 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
-                files = (
-                    {
+                if i == 0:
+                    files = {
                         f"{PATH}/files/file-value": b"Binary content",
                         f"{PATH}/files/file-value.txt": File(b"Text content", mime_type="text/plain"),
                         f"{PATH}/files/object-does-not-exist": File(
                             "/tmp/object-does-not-exist", mime_type="text/plain", size=1
                         ),
                     }
-                    if i == 0
-                    else {}
-                )
+                else:
+                    files = {}
+
+                if i <= 2:
+                    long_path_prefix = f"{PATH}/long/int-value-"
+                    long_path_prefix_len = len(long_path_prefix)
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
+                    long_path_configs = {f"{long_path_prefix}{k:0{k_len}d}": k for k in range(4000)}
+
+                    long_path_prefix = f"{PATH}/long/string-series-"
+                    long_path_prefix_len = len(long_path_prefix)
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
+                    long_path_series = {f"{long_path_prefix}{k:0{k_len}d}": f"string-{k}" for k in range(4000)}
+
+                    long_path_prefix = f"{PATH}/long/float-series-"
+                    long_path_prefix_len = len(long_path_prefix)
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
+                    long_path_metrics = {f"{long_path_prefix}{k:0{k_len}d}": float(k) for k in range(4000)}
+                else:
+                    long_path_configs = {}
+                    long_path_series = {}
+                    long_path_metrics = {}
 
                 self.experiments.append(
                     ExperimentData(
@@ -98,6 +125,9 @@ class TestData:
                         float_series=float_series,
                         string_series=string_series,
                         unique_series={},
+                        long_path_configs=long_path_configs,
+                        long_path_series=long_path_series,
+                        long_path_metrics=long_path_metrics,
                         files=files,
                     )
                 )

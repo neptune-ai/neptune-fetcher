@@ -53,7 +53,7 @@ def values_model(steps_values: List[Tuple[float, float]]) -> List[FloatPointValu
     ]
 
 
-def values_dto(steps_values: List[Tuple[float, float]]) -> [ProtoFloatPointValueDTO]:
+def values_dto(steps_values: List[Tuple[float, float]]) -> List[ProtoFloatPointValueDTO]:
     return [
         ProtoFloatPointValueDTO(
             timestamp_millis=i,

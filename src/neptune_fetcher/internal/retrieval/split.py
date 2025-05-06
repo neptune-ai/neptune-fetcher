@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024, Neptune Labs Sp. z o.o.
+# Copyright (c) 2025, Neptune Labs Sp. z o.o.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,12 @@
 
 from __future__ import annotations
 
-from typing import Generator
+from typing import (
+    Callable,
+    Generator,
+    Iterable,
+    TypeVar,
+)
 
 from neptune_fetcher.internal import (
     env,
@@ -25,9 +30,19 @@ from neptune_fetcher.internal.retrieval import attribute_definitions as adef
 
 _UUID_SIZE = 50
 
+T = TypeVar("T")
+
 
 def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
-    return len(attr.name.encode("utf-8"))
+    return _attribute_name_size(attr.name)
+
+
+def _attribute_name_size(attr_name: str) -> int:
+    return len(attr_name.encode("utf-8"))
+
+
+def _sys_id_size() -> int:
+    return _UUID_SIZE
 
 
 def split_sys_ids(
@@ -38,14 +53,14 @@ def split_sys_ids(
     Use before fetching attribute definitions.
     """
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
-    identifier_num_limit = max(query_size_limit // _UUID_SIZE, 1)
+    identifier_num_limit = max(query_size_limit // _sys_id_size(), 1)
 
     identifier_num = len(sys_ids)
     batch_num = _ceil_div(identifier_num, identifier_num_limit)
 
-    if batch_num <= 1:
+    if batch_num == 1:
         yield sys_ids
-    else:
+    elif batch_num > 1:
         batch_size = _ceil_div(identifier_num, batch_num)
         for i in range(0, identifier_num, batch_size):
             yield sys_ids[i : i + batch_size]
@@ -59,7 +74,9 @@ def split_sys_ids_attributes(
     Splits a pair of sys ids and attribute_definitions into batches that:
     When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
     When their item count is multiplied, it is at most `NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE`.
-    Use before fetching attribute values.
+
+    It's intended for use before fetching attribute values and assumes that the sys_ids and attribute_definitions
+    will be sent to the server in a single request and the response will contain data for their cartesian product.
     """
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
     attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
@@ -67,7 +84,11 @@ def split_sys_ids_attributes(
     if not attribute_definitions:
         return
 
-    attribute_batches = _split_attribute_definitions(attribute_definitions)
+    attribute_batches = _split_attribute_definitions(
+        attribute_definitions,
+        query_size_limit=query_size_limit - _sys_id_size(),  # ensure at least one sys_id can fit later
+        attribute_values_batch_size=attribute_values_batch_size,
+    )
     max_attribute_batch_size = max(
         sum(_attribute_definition_size(attr) for attr in batch) for batch in attribute_batches
     )
@@ -78,14 +99,14 @@ def split_sys_ids_attributes(
     for experiment in sys_ids:
         if sys_id_batch and (
             (len(sys_id_batch) + 1) * max_attribute_batch_len > attribute_values_batch_size
-            or total_batch_size + _UUID_SIZE > query_size_limit
+            or total_batch_size + _sys_id_size() > query_size_limit
         ):
             for attribute_batch in attribute_batches:
                 yield sys_id_batch, attribute_batch
             sys_id_batch = []
             total_batch_size = max_attribute_batch_size
         sys_id_batch.append(experiment)
-        total_batch_size += _UUID_SIZE
+        total_batch_size += _sys_id_size()
     if sys_id_batch:
         for attribute_batch in attribute_batches:
             yield sys_id_batch, attribute_batch
@@ -93,10 +114,9 @@ def split_sys_ids_attributes(
 
 def _split_attribute_definitions(
     attribute_definitions: list[adef.AttributeDefinition],
+    query_size_limit: int,
+    attribute_values_batch_size: int,
 ) -> list[list[adef.AttributeDefinition]]:
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get() - _UUID_SIZE
-    attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
-
     attribute_batches = []
     current_batch: list[adef.AttributeDefinition] = []
     current_batch_size = 0
@@ -115,6 +135,35 @@ def _split_attribute_definitions(
         attribute_batches.append(current_batch)
 
     return attribute_batches
+
+
+def split_series_attributes(items: Iterable[T], get_path: Callable[[T], str]) -> Generator[list[T]]:
+    """
+    Splits a list of classes containing an attribute_definition into batches so that:
+    When the lengths of attribute paths are added, the total length is at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
+    Item count is at most `NEPTUNE_FETCHER_SERIES_BATCH_SIZE`.
+
+    Intended for use before fetching (string, float) series.
+    """
+    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
+    batch_size_limit = env.NEPTUNE_FETCHER_SERIES_BATCH_SIZE.get()
+
+    if not items:
+        return
+
+    batch: list[T] = []
+    batch_size = 0
+    for item in items:
+        attr_size = _attribute_name_size(get_path(item))
+        if batch and (len(batch) >= batch_size_limit or batch_size + attr_size > query_size_limit):
+            yield batch
+            batch = []
+            batch_size = 0
+        batch.append(item)
+        batch_size += attr_size
+
+    if batch:
+        yield batch
 
 
 def _ceil_div(a: int, b: int) -> int:
