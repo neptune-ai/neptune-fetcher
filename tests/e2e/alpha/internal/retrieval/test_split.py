@@ -39,8 +39,8 @@ LONG_PATH_METRICS = TEST_DATA.experiments[0].long_path_metrics
 @pytest.mark.parametrize(
     "limit,success",
     [
-        (258, True),
-        (259, False),
+        (257, True),
+        (258, False),
     ],
 )
 def test_fetch_attribute_definitions(client, project, experiment_identifier, limit, success):
@@ -96,8 +96,7 @@ def test_fetch_attribute_values(client, project, experiment_identifier, limit, s
 @pytest.mark.parametrize(
     "limit,success",
     [
-        (2040, True),
-        (2041, False),
+        (len(LONG_PATH_SERIES), True),  # no known limit
     ],
 )
 def test_fetch_string_series_values(client, project, experiment_identifier, limit, success):
@@ -135,8 +134,7 @@ def test_fetch_string_series_values(client, project, experiment_identifier, limi
 @pytest.mark.parametrize(
     "limit,success",
     [
-        (2040, True),
-        (2041, False),
+        (len(LONG_PATH_METRICS), True),  # no known limit
     ],
 )
 def test_fetch_float_series_values(client, project, experiment_identifier, limit, success):
