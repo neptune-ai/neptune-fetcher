@@ -56,6 +56,10 @@ def run_with_attributes(project, client):
             series_data = {path: values[step] for path, values in experiment.string_series.items()}
             run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
+        run.log_configs(experiment.long_path_configs)
+        run.log_string_series(data=experiment.long_path_series, step=1, timestamp=NOW)
+        run.log_metrics(data=experiment.long_path_metrics, step=1, timestamp=NOW)
+
         run.assign_files(experiment.files)
 
         runs[experiment.name] = run
