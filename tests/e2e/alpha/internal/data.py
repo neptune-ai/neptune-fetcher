@@ -12,7 +12,7 @@ from datetime import (
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-05-07"
+TEST_DATA_VERSION = "2025-05-07b"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -89,13 +89,16 @@ class TestData:
                             "/tmp/object-does-not-exist", mime_type="text/plain", size=1
                         ),
                     }
+                else:
+                    files = {}
 
+                if i <= 2:
                     long_path_prefix = f"{PATH}/long/int-value-"
                     long_path_prefix_len = len(long_path_prefix)
                     k_len = 1000 - long_path_prefix_len
                     long_path_configs = {f"{long_path_prefix}{k:0{k_len}d}": k for k in range(4000)}
 
-                    long_path_prefix = f"{PATH}/long/intstring-series-"
+                    long_path_prefix = f"{PATH}/long/string-series-"
                     long_path_prefix_len = len(long_path_prefix)
                     k_len = 1000 - long_path_prefix_len
                     long_path_series = {f"{long_path_prefix}{k:0{k_len}d}": f"string-{k}" for k in range(4000)}
@@ -105,7 +108,6 @@ class TestData:
                     k_len = 1000 - long_path_prefix_len
                     long_path_metrics = {f"{long_path_prefix}{k:0{k_len}d}": float(k) for k in range(4000)}
                 else:
-                    files = {}
                     long_path_configs = {}
                     long_path_series = {}
                     long_path_metrics = {}

@@ -30,6 +30,10 @@ def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
     return len(attr.name.encode("utf-8"))
 
 
+def _sys_id_size() -> int:
+    return _UUID_SIZE
+
+
 def split_sys_ids(
     sys_ids: list[identifiers.SysId],
 ) -> Generator[list[identifiers.SysId]]:
@@ -38,7 +42,7 @@ def split_sys_ids(
     Use before fetching attribute definitions.
     """
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
-    identifier_num_limit = max(query_size_limit // _UUID_SIZE, 1)
+    identifier_num_limit = max(query_size_limit // _sys_id_size(), 1)
 
     identifier_num = len(sys_ids)
     batch_num = _ceil_div(identifier_num, identifier_num_limit)
@@ -67,7 +71,11 @@ def split_sys_ids_attributes(
     if not attribute_definitions:
         return
 
-    attribute_batches = _split_attribute_definitions(attribute_definitions)
+    attribute_batches = _split_attribute_definitions(
+        attribute_definitions,
+        query_size_limit=query_size_limit - _sys_id_size(),  # ensure at least one sys_id can fit later
+        attribute_values_batch_size=attribute_values_batch_size,
+    )
     max_attribute_batch_size = max(
         sum(_attribute_definition_size(attr) for attr in batch) for batch in attribute_batches
     )
@@ -78,14 +86,14 @@ def split_sys_ids_attributes(
     for experiment in sys_ids:
         if sys_id_batch and (
             (len(sys_id_batch) + 1) * max_attribute_batch_len > attribute_values_batch_size
-            or total_batch_size + _UUID_SIZE > query_size_limit
+            or total_batch_size + _sys_id_size() > query_size_limit
         ):
             for attribute_batch in attribute_batches:
                 yield sys_id_batch, attribute_batch
             sys_id_batch = []
             total_batch_size = max_attribute_batch_size
         sys_id_batch.append(experiment)
-        total_batch_size += _UUID_SIZE
+        total_batch_size += _sys_id_size()
     if sys_id_batch:
         for attribute_batch in attribute_batches:
             yield sys_id_batch, attribute_batch
@@ -93,10 +101,9 @@ def split_sys_ids_attributes(
 
 def _split_attribute_definitions(
     attribute_definitions: list[adef.AttributeDefinition],
+    query_size_limit: int,
+    attribute_values_batch_size: int,
 ) -> list[list[adef.AttributeDefinition]]:
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get() - _UUID_SIZE
-    attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
-
     attribute_batches = []
     current_batch: list[adef.AttributeDefinition] = []
     current_batch_size = 0

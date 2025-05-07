@@ -85,19 +85,23 @@ def run_with_attributes(project, client):
 
 
 @pytest.fixture(scope="module")
-def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
+def experiment_identifiers(client, project, run_with_attributes) -> list[RunIdentifier]:
     from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
+    experiment_filter = Filter.name_in(*TEST_DATA.experiment_names)
     experiment_attrs = extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
-    sys_id = experiment_attrs[0].sys_id
 
-    return RunIdentifier(project_identifier, sys_id)
+    return [RunIdentifier(project_identifier, e.sys_id) for e in sorted(experiment_attrs, key=lambda e: e.sys_name)]
+
+
+@pytest.fixture(scope="module")
+def experiment_identifier(experiment_identifiers) -> RunIdentifier:
+    return experiment_identifiers[0]
 
 
 def extract_pages(generator):
