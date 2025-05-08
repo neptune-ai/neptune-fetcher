@@ -13,7 +13,7 @@ from typing import Any
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-05-07d"
+TEST_DATA_VERSION = "2025-05-08"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -45,6 +45,9 @@ class ExperimentData:
                 self.unique_series.keys(),
                 self.string_series.keys(),
                 self.files.keys(),
+                self.long_path_configs.keys(),
+                self.long_path_series.keys(),
+                self.long_path_metrics.keys(),
             )
         )
 
