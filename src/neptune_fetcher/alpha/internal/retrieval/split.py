@@ -15,7 +15,12 @@
 
 from __future__ import annotations
 
-from typing import Generator
+from typing import (
+    Callable,
+    Generator,
+    Iterable,
+    TypeVar,
+)
 
 from neptune_fetcher.alpha.internal import (
     env,
@@ -25,9 +30,15 @@ from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as ad
 
 _UUID_SIZE = 50
 
+T = TypeVar("T")
+
 
 def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
-    return len(attr.name.encode("utf-8"))
+    return _attribute_name_size(attr.name)
+
+
+def _attribute_name_size(attr_name: str) -> int:
+    return len(attr_name.encode("utf-8"))
 
 
 def _sys_id_size() -> int:
@@ -63,7 +74,9 @@ def split_sys_ids_attributes(
     Splits a pair of sys ids and attribute_definitions into batches that:
     When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
     When their item count is multiplied, it is at most `NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE`.
-    Use before fetching attribute values.
+
+    It's intended for use before fetching attribute values and assumes that the sys_ids and attribute_definitions
+    will be sent to the server in a single request and the response will contain data for their cartesian product.
     """
     query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
     attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
@@ -122,6 +135,35 @@ def _split_attribute_definitions(
         attribute_batches.append(current_batch)
 
     return attribute_batches
+
+
+def split_series_attributes(items: Iterable[T], get_path: Callable[[T], str]) -> Generator[list[T]]:
+    """
+    Splits a list of classes containing an attribute_definition into batches so that:
+    When the lengths of attribute paths are added, the total length is at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
+    Item count is at most `NEPTUNE_FETCHER_SERIES_BATCH_SIZE`.
+
+    Intended for use before fetching (string, float) series.
+    """
+    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
+    batch_size_limit = env.NEPTUNE_FETCHER_SERIES_BATCH_SIZE.get()
+
+    if not items:
+        return
+
+    batch: list[T] = []
+    batch_size = 0
+    for item in items:
+        attr_size = _attribute_name_size(get_path(item))
+        if batch and (len(batch) >= batch_size_limit or batch_size + attr_size > query_size_limit):
+            yield batch
+            batch = []
+            batch_size = 0
+        batch.append(item)
+        batch_size += attr_size
+
+    if batch:
+        yield batch
 
 
 def _ceil_div(a: int, b: int) -> int:

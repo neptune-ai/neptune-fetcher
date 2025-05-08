@@ -9,20 +9,22 @@ from datetime import (
     datetime,
     timezone,
 )
+from typing import Any
 
 from neptune_scale.types import File
 
-TEST_DATA_VERSION = "2025-05-07b"
+TEST_DATA_VERSION = "2025-05-07d"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 NUMBER_OF_STEPS = 10
+MAX_PATH_LENGTH = 1024
 
 
 @dataclass
 class ExperimentData:
     name: str
-    config: dict[str, any]
+    config: dict[str, Any]
     string_sets: dict[str, list[str]]
     float_series: dict[str, list[float]]
     unique_series: dict[str, list[float]]
@@ -95,17 +97,17 @@ class TestData:
                 if i <= 2:
                     long_path_prefix = f"{PATH}/long/int-value-"
                     long_path_prefix_len = len(long_path_prefix)
-                    k_len = 1000 - long_path_prefix_len
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
                     long_path_configs = {f"{long_path_prefix}{k:0{k_len}d}": k for k in range(4000)}
 
                     long_path_prefix = f"{PATH}/long/string-series-"
                     long_path_prefix_len = len(long_path_prefix)
-                    k_len = 1000 - long_path_prefix_len
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
                     long_path_series = {f"{long_path_prefix}{k:0{k_len}d}": f"string-{k}" for k in range(4000)}
 
                     long_path_prefix = f"{PATH}/long/float-series-"
                     long_path_prefix_len = len(long_path_prefix)
-                    k_len = 1000 - long_path_prefix_len
+                    k_len = MAX_PATH_LENGTH - long_path_prefix_len
                     long_path_metrics = {f"{long_path_prefix}{k:0{k_len}d}": float(k) for k in range(4000)}
                 else:
                     long_path_configs = {}

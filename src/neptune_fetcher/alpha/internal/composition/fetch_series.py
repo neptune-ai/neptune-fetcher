@@ -41,6 +41,7 @@ from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
 from neptune_fetcher.alpha.internal.retrieval import (
     search,
     series,
+    split,
     util,
 )
 from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
@@ -109,22 +110,29 @@ def fetch_series(
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
                 downstream=lambda sys_ids_split, definitions_page: concurrency.generate_concurrently(
-                    items=series.fetch_series_values(
-                        client=client,
-                        run_attribute_definitions=[
+                    items=split.split_series_attributes(
+                        items=(
                             series.RunAttributeDefinition(
                                 run_identifier=identifiers.RunIdentifier(project_identifier, sys_id),
                                 attribute_definition=definition,
                             )
                             for sys_id in sys_ids_split
                             for definition in definitions_page.items
-                        ],
-                        include_inherited=lineage_to_the_root,
-                        step_range=step_range,
-                        tail_limit=tail_limit,
+                        ),
+                        get_path=lambda x: x.attribute_definition.name,
                     ),
                     executor=executor,
-                    downstream=concurrency.return_value,
+                    downstream=lambda run_attribute_definitions_split: concurrency.generate_concurrently(
+                        items=series.fetch_series_values(
+                            client=client,
+                            run_attribute_definitions=run_attribute_definitions_split,
+                            include_inherited=lineage_to_the_root,
+                            step_range=step_range,
+                            tail_limit=tail_limit,
+                        ),
+                        executor=executor,
+                        downstream=concurrency.return_value,
+                    ),
                 ),
             ),
         )
