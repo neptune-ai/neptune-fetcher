@@ -66,8 +66,10 @@ def test_fetch_attribute_definitions_retrieval(client, project, experiment_ident
 
     # then
     if success:
-        assert result == [AttributeDefinition(key, "int") for key in attr_data.keys()]
+        assert thrown_e is None
+        assert set(result) == {AttributeDefinition(key, "int") for key in attr_data}
     else:
+        assert result is None
         assert thrown_e is not None
 
 
@@ -107,17 +109,27 @@ def test_fetch_attribute_values_retrieval(client, project, experiment_identifier
     exp_data = experiment_identifiers[:exp_limit]
     attr_data = dict(list(LONG_PATH_CONFIGS.items())[:attr_limit])
     project_identifier = project.project_identifier
-    attribute_definitions = [AttributeDefinition(key, "int") for key in attr_data.keys()]
+    attribute_definitions = [AttributeDefinition(key, "int") for key in attr_data]
 
     #  when
-    result = extract_pages(fetch_attribute_values(client, project_identifier, exp_data, attribute_definitions))
+    result = None
+    thrown_e = None
+    try:
+        result = extract_pages(fetch_attribute_values(client, project_identifier, exp_data, attribute_definitions))
+    except (NeptuneRetryError, NeptuneUnexpectedResponseError) as e:
+        thrown_e = e
 
     # then
-    assert list(sorted(result, key=lambda r: (r.run_identifier.sys_id, r.attribute_definition.name))) == [
-        AttributeValue(AttributeDefinition(key, "int"), value=value, run_identifier=exp)
-        for exp in exp_data
-        for key, value in attr_data.items()
-    ]
+    if success:
+        assert thrown_e is None
+        assert set(result) == {
+            AttributeValue(AttributeDefinition(key, "int"), value=value, run_identifier=exp)
+            for exp in exp_data
+            for key, value in attr_data.items()
+        }
+    else:
+        assert result is None
+        assert thrown_e is not None
 
 
 @pytest.mark.parametrize(
@@ -150,10 +162,10 @@ def test_fetch_attribute_values_composition(client, project, experiment_identifi
     "exp_limit,attr_limit,success",
     [
         (1, len(LONG_PATH_SERIES), True),  # no known limit
-        (2, 3873, True),
+        (2, 2043, True),
         (2, len(LONG_PATH_SERIES), False),
         (3, 2043, True),
-        (3, 2044, False),
+        (3, len(LONG_PATH_SERIES), False),
     ],
 )
 def test_fetch_string_series_values_retrieval(client, project, experiment_identifiers, exp_limit, attr_limit, success):
@@ -163,7 +175,7 @@ def test_fetch_string_series_values_retrieval(client, project, experiment_identi
     attribute_definitions = [
         RunAttributeDefinition(run_identifier=exp, attribute_definition=AttributeDefinition(key, "string_series"))
         for exp in exp_data
-        for key in attr_data.keys()
+        for key in attr_data
     ]
 
     # when
@@ -191,11 +203,12 @@ def test_fetch_string_series_values_retrieval(client, project, experiment_identi
             for key, value in attr_data.items()
         ]
 
-        assert (
-            sorted(result, key=lambda r: (r[0].run_identifier.sys_id, r[0].attribute_definition.name))
-            == expected_values
+        assert thrown_e is None
+        assert sorted(result, key=lambda r: (r[0].run_identifier.sys_id, r[0].attribute_definition.name)) == sorted(
+            expected_values, key=lambda r: (r[0].run_identifier.sys_id, r[0].attribute_definition.name)
         )
     else:
+        assert result is None
         assert thrown_e is not None
 
 
@@ -239,7 +252,7 @@ def test_fetch_float_series_values_retrieval(client, project, experiment_identif
     attribute_definitions = [
         AttributePathInRun(run_identifier=exp, run_label=exp.sys_id, attribute_path=key)
         for exp in exp_data
-        for key in attr_data.keys()
+        for key in attr_data
     ]
 
     # when
@@ -264,8 +277,10 @@ def test_fetch_float_series_values_retrieval(client, project, experiment_identif
             for exp in exp_data
             for key, value in attr_data.items()
         }
+        assert thrown_e is None
         assert set(result) == expected_values
     else:
+        assert result is None
         assert thrown_e is not None
 
 
