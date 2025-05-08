@@ -6,9 +6,11 @@ from neptune_fetcher.alpha.internal import identifiers
 from neptune_fetcher.alpha.internal.env import (
     NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE,
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
+    NEPTUNE_FETCHER_SERIES_BATCH_SIZE,
 )
 from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.alpha.internal.retrieval.split import (
+    split_series_attributes,
     split_sys_ids,
     split_sys_ids_attributes,
 )
@@ -134,6 +136,58 @@ def test_split_sys_ids_attributes_custom_envs(
 
     # when
     groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
+
+    # then
+    assert groups == expected
+
+
+@pytest.mark.parametrize(
+    "attributes, expected",
+    [
+        ([], []),
+        ([ATTRIBUTE_DEFINITION], [[ATTRIBUTE_DEFINITION]]),
+        ([ATTRIBUTE_DEFINITION] * 2, [[ATTRIBUTE_DEFINITION] * 2]),
+    ],
+)
+def test_split_series_attributes(attributes, expected):
+    # given
+    # when
+    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
+
+    # then
+    assert groups == expected
+
+
+@pytest.mark.parametrize(
+    "given_num, query_size_limit, batch_size, expected_nums",
+    [
+        (0, 500, 500, []),
+        (1, 500, 500, [1]),
+        (2, 500, 500, [2]),
+        (2, 1, 500, [1, 1]),
+        (2, ATTRIBUTE_DEFINITION_SIZE, 500, [1, 1]),
+        (2, 2 * ATTRIBUTE_DEFINITION_SIZE, 500, [2]),
+        (2, 2 * ATTRIBUTE_DEFINITION_SIZE - 1, 500, [1, 1]),
+        (2, 500, 1, [1, 1]),
+        (3, 500, 1, [1, 1, 1]),
+        (3, 500, 2, [2, 1]),
+        (3, 500, 3, [3]),
+        (3, 500, 4, [3]),
+        (3, ATTRIBUTE_DEFINITION_SIZE, 500, [1, 1, 1]),
+        (3, 2 * ATTRIBUTE_DEFINITION_SIZE, 500, [2, 1]),
+        (3, 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [3]),
+        (3, 4 * ATTRIBUTE_DEFINITION_SIZE, 500, [3]),
+    ],
+)
+def split_series_attributes_custom_envs(given_num, query_size_limit, batch_size, expected_nums):
+    # given
+    os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
+    os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name] = str(batch_size)
+    attributes = [ATTRIBUTE_DEFINITION] * given_num
+    expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
+
+    # when
+    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
 
     # then
     assert groups == expected
