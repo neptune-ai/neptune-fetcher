@@ -41,7 +41,7 @@ LONG_PATH_METRICS = TEST_DATA.experiments[0].long_path_metrics
 @pytest.mark.parametrize(
     "exp_limit,attr_limit,success",
     [
-        (1, len(LONG_PATH_CONFIGS), True),  # no limits
+        (1, len(LONG_PATH_CONFIGS), True),  # no known limit
         (2, len(LONG_PATH_CONFIGS), True),
         (3, len(LONG_PATH_CONFIGS), True),
     ],
@@ -123,7 +123,7 @@ def test_fetch_attribute_values_retrieval(client, project, experiment_identifier
 @pytest.mark.parametrize(
     "exp_limit,attr_limit,success",
     [
-        (1, len(LONG_PATH_CONFIGS), True),  # no known limit
+        (1, len(LONG_PATH_CONFIGS), True),
         (2, len(LONG_PATH_CONFIGS), True),
         (3, len(LONG_PATH_CONFIGS), True),
     ],
@@ -151,7 +151,7 @@ def test_fetch_attribute_values_composition(client, project, experiment_identifi
     [
         (1, len(LONG_PATH_SERIES), True),  # no known limit
         (2, 3873, True),
-        (2, 3874, False),
+        (2, len(LONG_PATH_SERIES), False),
         (3, 2043, True),
         (3, 2044, False),
     ],
@@ -203,8 +203,8 @@ def test_fetch_string_series_values_retrieval(client, project, experiment_identi
     "exp_limit,attr_limit",
     [
         (1, len(LONG_PATH_SERIES)),
-        (2, 3873),  # TODO: should pass for len(LONG_PATH_SERIES)
-        (3, 2043),
+        (2, len(LONG_PATH_SERIES)),
+        (3, len(LONG_PATH_SERIES)),
     ],
 )
 def test_fetch_string_series_values_composition(client, project, experiment_identifiers, exp_limit, attr_limit):
