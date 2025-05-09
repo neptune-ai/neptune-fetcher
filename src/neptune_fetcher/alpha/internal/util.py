@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import pathlib
 from typing import (
     Optional,
@@ -28,7 +29,7 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], _filters.Filter]]) 
         return _filters.Filter.any(
             *[_filters.Filter.eq(_filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
         )
-    return runs
+    return copy.deepcopy(runs)
 
 
 def resolve_experiments_filter(
@@ -38,7 +39,7 @@ def resolve_experiments_filter(
         return _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
     if isinstance(experiments, list):
         return _filters.Filter.name_in(*experiments)
-    return experiments
+    return copy.deepcopy(experiments)
 
 
 def resolve_attributes_filter(
@@ -52,7 +53,7 @@ def resolve_attributes_filter(
             return _filters.AttributeFilter(name_matches_all=attributes)
         if isinstance(attributes, list):
             return _filters.AttributeFilter(name_eq=attributes)
-        return attributes
+        return copy.deepcopy(attributes)
     else:
         if attributes is None:
             return _filters.AttributeFilter(type_in=forced_type)
@@ -60,13 +61,13 @@ def resolve_attributes_filter(
             return _filters.AttributeFilter(name_matches_all=attributes, type_in=forced_type)
         if isinstance(attributes, list):
             return _filters.AttributeFilter(name_eq=attributes, type_in=forced_type)
-        return attributes
+        return copy.deepcopy(attributes)
 
 
 def resolve_sort_by(sort_by: Union[str, _filters.Attribute]) -> _filters.Attribute:
     if isinstance(sort_by, str):
         return _filters.Attribute(sort_by)
-    return sort_by
+    return copy.deepcopy(sort_by)
 
 
 def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
