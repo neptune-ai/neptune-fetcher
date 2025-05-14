@@ -161,11 +161,12 @@ def test_fetch_attribute_values_composition(client, project, experiment_identifi
 @pytest.mark.parametrize(
     "exp_limit,attr_limit,success",
     [
-        (1, len(LONG_PATH_SERIES), True),  # no known limit
-        (2, 2043, True),
-        (2, len(LONG_PATH_SERIES), False),
-        (3, 2043, True),
-        (3, len(LONG_PATH_SERIES), False),
+        (1, 2000, True),
+        (1, 2001, False),
+        (2, 1000, True),
+        (2, 1001, False),
+        (3, 666, True),
+        (3, 667, False),
     ],
 )
 def test_fetch_string_series_values_retrieval(client, project, experiment_identifiers, exp_limit, attr_limit, success):
