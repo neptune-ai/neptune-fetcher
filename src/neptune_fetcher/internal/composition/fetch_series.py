@@ -21,10 +21,6 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.internal.filters import (
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.client import get_client
 from neptune_fetcher.internal.composition import attribute_components as _components
@@ -36,6 +32,10 @@ from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
+)
+from neptune_fetcher.internal.filters import (
+    AttributeFilter,
+    Filter,
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval import (

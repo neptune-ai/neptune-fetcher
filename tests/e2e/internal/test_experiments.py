@@ -10,12 +10,12 @@ from neptune_fetcher.alpha import (
     fetch_experiments_table,
     list_experiments,
 )
+from neptune_fetcher.internal import env
 from neptune_fetcher.internal.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.internal import env
 from tests.e2e.internal.data import (
     FLOAT_SERIES_PATHS,
     PATH,

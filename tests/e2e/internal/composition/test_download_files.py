@@ -5,11 +5,11 @@ import tempfile
 import pandas as pd
 import pytest
 
+from neptune_fetcher.internal.composition.download_files import download_files
 from neptune_fetcher.internal.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.internal.composition.download_files import download_files
 from neptune_fetcher.internal.retrieval.search import ContainerType
 from tests.e2e.internal.data import (
     PATH,

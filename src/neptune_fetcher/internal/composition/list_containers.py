@@ -14,7 +14,6 @@
 # limitations under the License.
 from typing import Optional
 
-from neptune_fetcher.internal.filters import Filter
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import context as _context
 from neptune_fetcher.internal import identifiers
@@ -22,6 +21,7 @@ from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
+from neptune_fetcher.internal.filters import Filter
 from neptune_fetcher.internal.retrieval import search
 
 __all__ = ("list_containers",)

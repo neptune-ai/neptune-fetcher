@@ -7,11 +7,11 @@ from datetime import (
     timezone,
 )
 
+from neptune_api import AuthenticatedClient
+from neptune_api.credentials import Credentials
 from neptune_scale import Run
 from pytest import fixture
 
-from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
 from neptune_fetcher import (
     ReadOnlyProject,
     ReadOnlyRun,
@@ -21,7 +21,6 @@ from neptune_fetcher.api.api_client import (
     get_config_and_token_urls,
 )
 from neptune_fetcher.internal.composition import concurrency
-
 
 # NOTE
 # The fixtures below assume that we're testing on a "many metrics" project

@@ -22,11 +22,6 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.internal.filters import (
-    Attribute,
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import context as _context
 from neptune_fetcher.internal import (
@@ -39,6 +34,11 @@ from neptune_fetcher.internal.composition import (
     type_inference,
 )
 from neptune_fetcher.internal.composition.attributes import AttributeDefinitionAggregation
+from neptune_fetcher.internal.filters import (
+    Attribute,
+    AttributeFilter,
+    Filter,
+)
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.internal.retrieval import (
