@@ -23,7 +23,7 @@ from unittest.mock import (
 from pytest import fixture
 
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.internal.client import (
+from neptune_fetcher.internal.client import (
     clear_cache,
     get_client,
 )
@@ -67,8 +67,8 @@ def clear_cache_before_test():
 @fixture(autouse=True)
 def mock_networking():
     with (
-        patch("neptune_fetcher.alpha.internal.client.get_config_and_token_urls") as get_config_and_token_urls,
-        patch("neptune_fetcher.alpha.internal.client.create_auth_api_client") as create_auth_api_client,
+        patch("neptune_fetcher.internal.client.get_config_and_token_urls") as get_config_and_token_urls,
+        patch("neptune_fetcher.internal.client.create_auth_api_client") as create_auth_api_client,
     ):
         get_config_and_token_urls.return_value = (Mock(), Mock())
         # create_auth_api_client() needs to return a different "client" each time
