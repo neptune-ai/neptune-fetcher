@@ -18,8 +18,8 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal.context import get_context
-from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
+from neptune_fetcher.internal.context import get_context
+from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from tests.e2e.alpha.internal.data import (
     NOW,
     PATH,

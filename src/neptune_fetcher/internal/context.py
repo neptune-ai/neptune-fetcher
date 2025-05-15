@@ -19,7 +19,7 @@ import threading
 from dataclasses import dataclass
 from typing import Optional
 
-from neptune_fetcher.alpha.internal.env import (
+from neptune_fetcher.internal.env import (
     NEPTUNE_API_TOKEN,
     NEPTUNE_PROJECT,
 )

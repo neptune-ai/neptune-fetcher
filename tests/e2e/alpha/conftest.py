@@ -17,7 +17,7 @@ from pytest import fixture
 
 import tests.e2e.alpha.generator as data
 from neptune_fetcher.alpha import get_context
-from neptune_fetcher.alpha.internal.composition import concurrency
+from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.api.api_client import (
     create_auth_api_client,
     get_config_and_token_urls,

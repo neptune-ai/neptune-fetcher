@@ -4,8 +4,8 @@ from datetime import timedelta
 
 import pytest
 
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.series import (
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,
 )

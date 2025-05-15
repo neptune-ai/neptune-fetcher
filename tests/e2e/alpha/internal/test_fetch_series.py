@@ -18,15 +18,15 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.context import get_context
-from neptune_fetcher.alpha.internal.identifiers import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.context import get_context
+from neptune_fetcher.internal.identifiers import (
     RunIdentifier,
     SysId,
 )
-from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.series import (
+from neptune_fetcher.internal.output_format import create_series_dataframe
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
 )

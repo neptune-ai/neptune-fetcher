@@ -26,21 +26,21 @@ import numpy as np
 import pandas as pd
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.retrieval import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.retrieval import (
     attribute_definitions,
     series,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
     FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
-from neptune_fetcher.alpha.internal.retrieval.metrics import (
+from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
+from neptune_fetcher.internal.retrieval.metrics import (
     AttributePathIndex,
     ExperimentNameIndex,
     FloatPointValue,
