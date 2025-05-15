@@ -9,7 +9,7 @@ from typing import Generator
 import pytest
 import pytz
 
-from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
+from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
