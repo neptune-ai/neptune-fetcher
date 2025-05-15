@@ -13,7 +13,7 @@ from neptune_fetcher.alpha.exceptions import (
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
 )
-from neptune_fetcher.alpha.internal.retrieval.util import backoff_retry
+from neptune_fetcher.internal.retrieval.util import backoff_retry
 
 
 @fixture(autouse=True)

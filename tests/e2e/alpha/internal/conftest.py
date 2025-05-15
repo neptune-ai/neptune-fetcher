@@ -7,9 +7,9 @@ from neptune_scale import Run
 
 from neptune_fetcher.alpha import set_project
 from neptune_fetcher.alpha.filters import Filter
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
-from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.identifiers import RunIdentifier
+from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 from tests.e2e.alpha.internal.data import (
     NOW,
     PATH,
@@ -83,7 +83,7 @@ def run_with_attributes(project, client):
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
     from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
