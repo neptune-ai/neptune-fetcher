@@ -10,7 +10,7 @@ import pytest
 import pytz
 
 from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     Filter,
 )

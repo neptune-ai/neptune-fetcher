@@ -39,7 +39,7 @@ class AttributeDefinition:
 
 
 # The following imports need to go after the AttributeDefinition to avoid circular imports, thus the noqa
-import neptune_fetcher.alpha.filters as filters  # noqa: E402
+import neptune_fetcher.internal.filters as filters  # noqa: E402
 from neptune_fetcher.internal import (  # noqa: E402
     env,
     identifiers,

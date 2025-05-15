@@ -10,7 +10,7 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.alpha.exceptions import NeptuneProjectInaccessible
-from neptune_fetcher.alpha.filters import AttributeFilter
+from neptune_fetcher.internal.filters import AttributeFilter
 from neptune_fetcher.internal.identifiers import (
     ProjectIdentifier,
     RunIdentifier,
