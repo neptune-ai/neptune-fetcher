@@ -30,7 +30,7 @@ from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
 )
-from tests.e2e.alpha.internal.data import (
+from tests.e2e.internal.data import (
     NOW,
     NUMBER_OF_STEPS,
     TEST_DATA,
