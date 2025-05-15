@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     AttributeFilter,
     Filter,

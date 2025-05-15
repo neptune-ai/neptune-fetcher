@@ -21,7 +21,7 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     AttributeFilter,
     Filter,
 )

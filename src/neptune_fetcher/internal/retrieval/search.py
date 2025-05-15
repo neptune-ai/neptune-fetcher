@@ -32,7 +32,7 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     Filter,
 )
