@@ -37,8 +37,8 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.internal import util as _util
 from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.internal import util as _util
 from neptune_fetcher.internal.composition import download_files as _download_files
 from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.internal.composition import fetch_series as _fetch_series

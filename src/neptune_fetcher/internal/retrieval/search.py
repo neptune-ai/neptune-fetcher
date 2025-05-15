@@ -32,13 +32,13 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 
-from neptune_fetcher.internal.filters import (
-    Attribute,
-    Filter,
-)
 from neptune_fetcher.internal import (
     env,
     identifiers,
+)
+from neptune_fetcher.internal.filters import (
+    Attribute,
+    Filter,
 )
 from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.attribute_types import map_attribute_type_python_to_backend

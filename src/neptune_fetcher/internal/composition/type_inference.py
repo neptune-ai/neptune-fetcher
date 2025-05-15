@@ -24,7 +24,10 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.exceptions import AttributeTypeInferenceError
-from neptune_fetcher.internal import identifiers, filters
+from neptune_fetcher.internal import (
+    filters,
+    identifiers,
+)
 from neptune_fetcher.internal.composition import attribute_components as _components
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
@@ -139,9 +142,9 @@ def _infer_attribute_types_from_api(
         downstream=concurrency.return_value,
     )
 
-    attribute_definition_pages: Generator[util.Page[att_defs.AttributeDefinition], None, None] = (
-        concurrency.gather_results(output)
-    )
+    attribute_definition_pages: Generator[
+        util.Page[att_defs.AttributeDefinition], None, None
+    ] = concurrency.gather_results(output)
 
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
     for attribute_definition_page in attribute_definition_pages:
