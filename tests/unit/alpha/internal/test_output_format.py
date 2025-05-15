@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
-from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
+from neptune_fetcher.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.identifiers import (
     ProjectIdentifier,
