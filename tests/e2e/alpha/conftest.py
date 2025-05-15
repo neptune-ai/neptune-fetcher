@@ -3,7 +3,6 @@ import os
 import platform
 import random
 import uuid
-from concurrent.futures import Executor
 from datetime import (
     datetime,
     timezone,
@@ -12,38 +11,15 @@ from typing import Any
 
 from _pytest.outcomes import Failed
 from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
 from pytest import fixture
 
 import tests.e2e.alpha.generator as data
 from neptune_fetcher.alpha import get_context
-from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.api.api_client import (
-    create_auth_api_client,
-    get_config_and_token_urls,
-)
 from tests.e2e.alpha.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
 NEPTUNE_E2E_REUSE_PROJECT = os.environ.get("NEPTUNE_E2E_REUSE_PROJECT", "False").lower() in {"true", "1"}
 NEPTUNE_E2E_WORKSPACE = os.environ.get("NEPTUNE_E2E_WORKSPACE", "neptune-e2e")
-
-
-@fixture(scope="session")
-def client() -> AuthenticatedClient:
-    api_token = os.getenv(API_TOKEN_ENV_NAME)
-    credentials = Credentials.from_api_key(api_key=api_token)
-    config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=None)
-    client = create_auth_api_client(
-        credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=None
-    )
-
-    return client
-
-
-@fixture(scope="module")
-def executor() -> Executor:
-    return concurrency.create_thread_pool_executor()
 
 
 def pytest_set_filtered_exceptions() -> list[type[BaseException]]:
