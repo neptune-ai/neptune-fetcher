@@ -10,7 +10,7 @@ from neptune_fetcher.alpha import (
     fetch_experiments_table,
     list_experiments,
 )
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     AttributeFilter,
     Filter,

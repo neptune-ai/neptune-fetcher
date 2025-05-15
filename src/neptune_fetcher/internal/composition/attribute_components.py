@@ -21,7 +21,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-import neptune_fetcher.alpha.filters as filters
+import neptune_fetcher.internal.filters as filters
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.composition.attributes import (

@@ -5,7 +5,7 @@ import tempfile
 import pandas as pd
 import pytest
 
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     AttributeFilter,
     Filter,
 )

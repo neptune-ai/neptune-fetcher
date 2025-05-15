@@ -4,7 +4,7 @@ from typing import Iterable
 import pytest
 
 from neptune_fetcher.alpha import list_attributes
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     AttributeFilter,
     Filter,
