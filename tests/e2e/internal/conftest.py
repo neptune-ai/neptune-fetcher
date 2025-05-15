@@ -10,7 +10,7 @@ from neptune_fetcher.internal.filters import Filter
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
-from tests.e2e.alpha.internal.data import (
+from tests.e2e.internal.data import (
     NOW,
     PATH,
     TEST_DATA,

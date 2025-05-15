@@ -9,7 +9,7 @@ from neptune_fetcher.internal.filters import (
     AttributeFilter,
     Filter,
 )
-from tests.e2e.alpha.internal.data import (
+from tests.e2e.internal.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     STRING_SERIES_PATHS,
