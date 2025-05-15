@@ -33,7 +33,7 @@ __all__ = (
     "validate_context",
 )
 
-from neptune_fetcher.alpha.exceptions import (
+from neptune_fetcher.exceptions import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )

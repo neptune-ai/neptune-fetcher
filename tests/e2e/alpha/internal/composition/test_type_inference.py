@@ -6,7 +6,7 @@ from datetime import (
 
 import pytest
 
-from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
+from neptune_fetcher.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.internal.filters import (
     Attribute,
     Filter,
