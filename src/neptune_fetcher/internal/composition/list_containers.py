@@ -14,7 +14,6 @@
 # limitations under the License.
 from typing import Optional
 
-from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import context as _context
 from neptune_fetcher.internal import identifiers
@@ -22,13 +21,14 @@ from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
+from neptune_fetcher.internal.filters import _Filter
 from neptune_fetcher.internal.retrieval import search
 
 __all__ = ("list_containers",)
 
 
 def list_containers(
-    filter_: Optional[Filter],
+    filter_: Optional[_Filter],
     context: Optional[_context.Context],
     container_type: search.ContainerType,
 ) -> list[str]:

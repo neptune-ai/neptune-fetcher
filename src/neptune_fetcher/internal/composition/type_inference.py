@@ -23,9 +23,11 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.alpha import filters
-from neptune_fetcher.internal import identifiers
 from neptune_fetcher.exceptions import AttributeTypeInferenceError
+from neptune_fetcher.internal import (
+    filters,
+    identifiers,
+)
 from neptune_fetcher.internal.composition import attribute_components as _components
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
@@ -42,7 +44,7 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
+    filter_: Optional[filters._Filter],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
@@ -76,8 +78,8 @@ def infer_attribute_types_in_filter(
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
-    sort_by: filters.Attribute,
+    filter_: Optional[filters._Filter],
+    sort_by: filters._Attribute,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
@@ -106,7 +108,7 @@ def infer_attribute_types_in_sort_by(
 
 
 def _infer_attribute_types_from_attribute(
-    attributes: Iterable[filters.Attribute],
+    attributes: Iterable[filters._Attribute],
 ) -> None:
     for attribute in attributes:
         matches = []
@@ -121,13 +123,13 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
-    attributes: Iterable[filters.Attribute],
+    filter_: Optional[filters._Filter],
+    attributes: Iterable[filters._Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
 ) -> None:
-    attribute_filter_by_name = filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
+    attribute_filter_by_name = filters._AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
     output = _components.fetch_attribute_definitions_complete(
         client=client,
@@ -140,9 +142,9 @@ def _infer_attribute_types_from_api(
         downstream=concurrency.return_value,
     )
 
-    attribute_definition_pages: Generator[util.Page[att_defs.AttributeDefinition], None, None] = (
-        concurrency.gather_results(output)
-    )
+    attribute_definition_pages: Generator[
+        util.Page[att_defs.AttributeDefinition], None, None
+    ] = concurrency.gather_results(output)
 
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
     for attribute_definition_page in attribute_definition_pages:
@@ -159,12 +161,12 @@ def _infer_attribute_types_from_api(
 
 
 def _filter_untyped(
-    attributes: Iterable[filters.Attribute],
-) -> list[filters.Attribute]:
+    attributes: Iterable[filters._Attribute],
+) -> list[filters._Attribute]:
     return [attr for attr in attributes if attr.type is None]
 
 
-def _walk_attributes(experiment_filter: filters.Filter) -> Iterable[filters.Attribute]:
+def _walk_attributes(experiment_filter: filters._Filter) -> Iterable[filters._Attribute]:
     if isinstance(experiment_filter, filters._AttributeValuePredicate):
         yield experiment_filter.attribute
     elif isinstance(experiment_filter, filters._AttributePredicate):
