@@ -25,20 +25,20 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import client as _client
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import (
+from neptune_fetcher.internal import client as _client
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.composition import attribute_components as _components
+from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.alpha.internal.retrieval import (
+from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
+from neptune_fetcher.internal.retrieval import (
     search,
     util,
 )
