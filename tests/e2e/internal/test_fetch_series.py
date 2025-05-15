@@ -14,12 +14,12 @@ import pandas as pd
 import pytest
 
 from neptune_fetcher.alpha import fetch_series
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import (
     RunIdentifier,
     SysId,

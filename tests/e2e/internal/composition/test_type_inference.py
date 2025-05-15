@@ -7,13 +7,13 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.exceptions import AttributeTypeInferenceError
-from neptune_fetcher.internal.filters import (
-    Attribute,
-    Filter,
-)
 from neptune_fetcher.internal.composition.type_inference import (
     infer_attribute_types_in_filter,
     infer_attribute_types_in_sort_by,
+)
+from neptune_fetcher.internal.filters import (
+    Attribute,
+    Filter,
 )
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 

@@ -6,8 +6,8 @@ import pytest
 from neptune_scale import Run
 
 from neptune_fetcher.alpha import set_project
-from neptune_fetcher.internal.filters import Filter
 from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.filters import Filter
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 from tests.e2e.internal.data import (
