@@ -20,7 +20,7 @@ from neptune_fetcher.internal.retrieval.files import (
     download_file_retry,
     fetch_signed_urls,
 )
-from tests.e2e.alpha.internal.data import PATH
+from tests.e2e.internal.data import PATH
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
