@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from typing import Generator
 
-from neptune_fetcher.alpha.internal import (
+from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as adef
+from neptune_fetcher.internal.retrieval import attribute_definitions as adef
 
 _UUID_SIZE = 50
 

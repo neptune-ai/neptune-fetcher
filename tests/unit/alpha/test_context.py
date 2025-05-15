@@ -22,8 +22,8 @@ from neptune_fetcher.alpha.exceptions import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )
-from neptune_fetcher.alpha.internal import env
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.internal import env
+from neptune_fetcher.internal.context import (
     get_context,
     validate_context,
 )

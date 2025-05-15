@@ -3,7 +3,7 @@ import pytest
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
+from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,

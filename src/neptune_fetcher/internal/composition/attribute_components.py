@@ -22,16 +22,16 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 import neptune_fetcher.alpha.filters as filters
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import concurrency
-from neptune_fetcher.alpha.internal.composition.attributes import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.composition import concurrency
+from neptune_fetcher.internal.composition.attributes import (
     AttributeDefinitionAggregation,
     fetch_attribute_definition_aggregations,
     fetch_attribute_definitions,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.alpha.internal.retrieval import attribute_values as att_vals
-from neptune_fetcher.alpha.internal.retrieval import (
+from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
+from neptune_fetcher.internal.retrieval import attribute_values as att_vals
+from neptune_fetcher.internal.retrieval import (
     search,
     split,
     util,

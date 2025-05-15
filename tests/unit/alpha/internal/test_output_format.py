@@ -13,27 +13,27 @@ import pytest
 from pandas._testing import assert_frame_equal
 
 from neptune_fetcher.alpha.exceptions import ConflictingAttributeTypes
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.identifiers import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.identifiers import (
     ProjectIdentifier,
     RunIdentifier,
     SysId,
 )
-from neptune_fetcher.alpha.internal.output_format import (
+from neptune_fetcher.internal.output_format import (
     convert_table_to_dataframe,
     create_files_dataframe,
     create_metrics_dataframe,
     create_series_dataframe,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.attribute_types import (
     FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_values import AttributeValue
-from neptune_fetcher.alpha.internal.retrieval.metrics import FloatPointValue
-from neptune_fetcher.alpha.internal.retrieval.series import (
+from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
+from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
+from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
 )
