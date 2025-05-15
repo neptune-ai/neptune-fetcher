@@ -26,13 +26,13 @@ from neptune_retrieval_api.api.default import query_attributes_within_project_pr
 from neptune_retrieval_api.models import QueryAttributesBodyDTO
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
-from neptune_fetcher.alpha.internal import (
+from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.retrieval import util
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import (
+from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
 )

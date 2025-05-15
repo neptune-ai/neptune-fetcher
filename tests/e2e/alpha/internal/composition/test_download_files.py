@@ -9,8 +9,8 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal.composition.download_files import download_files
-from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
+from neptune_fetcher.internal.composition.download_files import download_files
+from neptune_fetcher.internal.retrieval.search import ContainerType
 from tests.e2e.alpha.internal.data import (
     PATH,
     TEST_DATA,

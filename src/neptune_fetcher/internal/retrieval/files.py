@@ -31,11 +31,11 @@ from neptune_storage_api.models import (
     Permission,
 )
 
-from neptune_fetcher.alpha.internal import (
+from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.retrieval import util
+from neptune_fetcher.internal.retrieval import util
 
 
 @dataclass(frozen=True)

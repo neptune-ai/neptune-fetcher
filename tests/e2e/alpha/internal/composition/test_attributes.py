@@ -10,9 +10,9 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.alpha.filters import AttributeFilter
-from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
+from neptune_fetcher.internal.identifiers import RunIdentifier
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"
@@ -30,8 +30,8 @@ def run_with_attributes(client, project):
     from neptune_scale import Run
 
     from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal import identifiers
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.internal import identifiers
+    from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
@@ -85,7 +85,7 @@ def run_with_attributes(client, project):
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
     from neptune_fetcher.alpha.filters import Filter
-    from neptune_fetcher.alpha.internal.retrieval.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 

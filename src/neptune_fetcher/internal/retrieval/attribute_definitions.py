@@ -31,19 +31,21 @@ from neptune_retrieval_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
-import neptune_fetcher.alpha.filters as filters
-from neptune_fetcher.alpha.internal import (
-    env,
-    identifiers,
-)
-from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
-from neptune_fetcher.alpha.internal.retrieval import util
-
 
 @dataclass(frozen=True)
 class AttributeDefinition:
     name: str
     type: str
+
+
+# The following imports need to go after the AttributeDefinition to avoid circular imports, thus the noqa
+import neptune_fetcher.alpha.filters as filters  # noqa: E402
+from neptune_fetcher.internal import (  # noqa: E402
+    env,
+    identifiers,
+)
+from neptune_fetcher.internal.retrieval import attribute_types as types  # noqa: E402
+from neptune_fetcher.internal.retrieval import util  # noqa: E402
 
 
 def split_attribute_filters(
