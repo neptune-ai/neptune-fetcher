@@ -19,6 +19,7 @@ from typing import (
     Any,
     Callable,
     Generator,
+    List,
     Literal,
     Optional,
     Protocol,
@@ -32,13 +33,13 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
 )
 
-from neptune_fetcher.alpha.filters import (
-    Attribute,
-    Filter,
-)
 from neptune_fetcher.internal import (
     env,
     identifiers,
+)
+from neptune_fetcher.internal.filters import (
+    _Attribute,
+    _Filter,
 )
 from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.attribute_types import map_attribute_type_python_to_backend
@@ -81,7 +82,7 @@ class ExperimentSysAttrs:
         return self.sys_name
 
     @staticmethod
-    def attribute_names() -> list[str]:
+    def attribute_names() -> List[str]:
         return ["sys/name", "sys/id"]
 
     @staticmethod
@@ -102,7 +103,7 @@ class RunSysAttrs:
         return self.sys_custom_run_id
 
     @staticmethod
-    def attribute_names() -> list[str]:
+    def attribute_names() -> List[str]:
         return ["sys/custom_run_id", "sys/id"]
 
     @staticmethod
@@ -122,8 +123,8 @@ class FetchSysAttrs(Protocol[T]):
         self,
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        filter_: Optional[Filter] = None,
-        sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
+        filter_: Optional[_Filter] = None,
+        sort_by: _Attribute = _Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
@@ -133,15 +134,15 @@ class FetchSysAttrs(Protocol[T]):
 
 
 def _create_fetch_sys_attrs(
-    attribute_names: list[str],
+    attribute_names: List[str],
     make_record: Callable[[dict[str, Any]], T],
     default_container_type: ContainerType,
 ) -> FetchSysAttrs[T]:
     def fetch_sys_attrs(
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        filter_: Optional[Filter] = None,
-        sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
+        filter_: Optional[_Filter] = None,
+        sort_by: _Attribute = _Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),

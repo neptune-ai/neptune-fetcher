@@ -21,7 +21,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-import neptune_fetcher.alpha.filters as filters
+import neptune_fetcher.internal.filters as filters
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.composition.attributes import (
@@ -41,7 +41,7 @@ from neptune_fetcher.internal.retrieval import (
 def fetch_attribute_definitions_split(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    attribute_filter: filters.BaseAttributeFilter,
+    attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
@@ -67,7 +67,7 @@ def fetch_attribute_definitions_split(
 def fetch_attribute_definition_aggregations_split(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    attribute_filter: filters.BaseAttributeFilter,
+    attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
@@ -96,8 +96,8 @@ def fetch_attribute_definition_aggregations_split(
 def fetch_attribute_definitions_complete(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
-    attribute_filter: filters.BaseAttributeFilter,
+    filter_: Optional[filters._Filter],
+    attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
