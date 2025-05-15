@@ -130,7 +130,7 @@ class ApiClient:
 
     def fetch_multiple_series_values(
         self,
-        paths: List[str],
+        paths: list[str],
         include_inherited: bool,
         container_id: str,
         include_point_previews: bool = True,

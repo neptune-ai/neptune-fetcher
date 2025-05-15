@@ -24,7 +24,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-import neptune_fetcher.alpha.filters as filters
+import neptune_fetcher.internal.filters as filters
 from neptune_fetcher.internal import (
     env,
     identifiers,
@@ -45,7 +45,7 @@ def fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
-    attribute_filter: filters.BaseAttributeFilter,
+    attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
@@ -64,7 +64,7 @@ def fetch_attribute_definition_aggregations(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Iterable[identifiers.RunIdentifier],
-    attribute_filter: filters.BaseAttributeFilter,
+    attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]], None, None]:
@@ -109,12 +109,12 @@ def _fetch_attribute_definitions(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
-    attribute_filter: filters.BaseAttributeFilter,
+    attribute_filter: filters._BaseAttributeFilter,
     batch_size: int,
     executor: Executor,
-) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], filters.AttributeFilter], None, None]:
+) -> Generator[tuple[util.Page[att_defs.AttributeDefinition], filters._AttributeFilter], None, None]:
     def go_fetch_single(
-        filter_: filters.AttributeFilter,
+        filter_: filters._AttributeFilter,
     ) -> Generator[util.Page[att_defs.AttributeDefinition], None, None]:
         return att_defs.fetch_attribute_definitions_single_filter(
             client=client,
