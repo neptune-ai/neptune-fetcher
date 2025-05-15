@@ -27,10 +27,6 @@ from typing import (
 import pandas as pd
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.client import get_client
 from neptune_fetcher.internal.composition import (
@@ -43,6 +39,10 @@ from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
+)
+from neptune_fetcher.internal.filters import (
+    _AttributeFilter,
+    _Filter,
 )
 from neptune_fetcher.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
@@ -66,8 +66,8 @@ _PATHS_PER_BATCH: int = 10_000
 
 
 def fetch_metrics(
-    filter_: Filter,
-    attributes: AttributeFilter,
+    filter_: _Filter,
+    attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
@@ -157,8 +157,8 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
 
 
 def _fetch_flat_dataframe_metrics(
-    filter_: Filter,
-    attributes: AttributeFilter,
+    filter_: _Filter,
+    attributes: _AttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
     executor: Executor,

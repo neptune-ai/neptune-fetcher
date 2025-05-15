@@ -21,10 +21,6 @@ from typing import (
     Optional,
 )
 
-from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import attribute_components as _components
@@ -37,6 +33,10 @@ from neptune_fetcher.internal.context import (
     get_context,
     validate_context,
 )
+from neptune_fetcher.internal.filters import (
+    _AttributeFilter,
+    _Filter,
+)
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import (
     search,
@@ -45,8 +45,8 @@ from neptune_fetcher.internal.retrieval import (
 
 
 def list_attributes(
-    filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    filter_: Optional[_Filter],
+    attributes: _AttributeFilter,
     context: Optional[Context],
     container_type: search.ContainerType,
 ) -> list[str]:
