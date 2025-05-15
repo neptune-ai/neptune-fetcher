@@ -25,25 +25,25 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.client import get_client
-from neptune_fetcher.alpha.internal.composition import attribute_components as _components
-from neptune_fetcher.alpha.internal.composition import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.client import get_client
+from neptune_fetcher.internal.composition import attribute_components as _components
+from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.output_format import create_series_dataframe
-from neptune_fetcher.alpha.internal.retrieval import (
+from neptune_fetcher.internal.output_format import create_series_dataframe
+from neptune_fetcher.internal.retrieval import (
     search,
     series,
     util,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
+from neptune_fetcher.internal.retrieval.search import ContainerType
 
 __all__ = ("fetch_series",)
 

@@ -25,14 +25,14 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 import neptune_fetcher.alpha.filters as filters
-from neptune_fetcher.alpha.internal import (
+from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.alpha.internal.composition import concurrency
-from neptune_fetcher.alpha.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.alpha.internal.retrieval import util
-from neptune_fetcher.alpha.internal.retrieval.attribute_types import TYPE_AGGREGATIONS
+from neptune_fetcher.internal.composition import concurrency
+from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
+from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval.attribute_types import TYPE_AGGREGATIONS
 
 
 @dataclass(frozen=True)

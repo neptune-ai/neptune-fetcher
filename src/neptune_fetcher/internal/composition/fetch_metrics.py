@@ -31,33 +31,33 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.client import get_client
-from neptune_fetcher.alpha.internal.composition import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.client import get_client
+from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.alpha.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.alpha.internal.composition.util import batched
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
+from neptune_fetcher.internal.composition.util import batched
+from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier as ExpId
-from neptune_fetcher.alpha.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.alpha.internal.retrieval import (
+from neptune_fetcher.internal.identifiers import RunIdentifier as ExpId
+from neptune_fetcher.internal.output_format import create_metrics_dataframe
+from neptune_fetcher.internal.retrieval import (
     search,
     split,
     util,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.metrics import (
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.metrics import (
     AttributePathInRun,
     FloatPointValue,
     fetch_multiple_series_values,
 )
-from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
+from neptune_fetcher.internal.retrieval.search import ContainerType
 
 __all__ = ("fetch_metrics",)
 
