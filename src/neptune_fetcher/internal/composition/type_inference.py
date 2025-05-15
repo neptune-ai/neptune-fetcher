@@ -23,7 +23,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.alpha.exceptions import AttributeTypeInferenceError
+from neptune_fetcher.exceptions import AttributeTypeInferenceError
 from neptune_fetcher.internal import identifiers, filters
 from neptune_fetcher.internal.composition import attribute_components as _components
 from neptune_fetcher.internal.composition import concurrency
