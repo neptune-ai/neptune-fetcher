@@ -7,6 +7,7 @@ from unittest.mock import (
 import pytest
 
 from neptune_fetcher import alpha as npt
+from neptune_fetcher.alpha import Context
 from neptune_fetcher.alpha.filters import AttributeFilter
 from neptune_fetcher.alpha.internal.identifiers import (
     ProjectIdentifier,
@@ -36,8 +37,7 @@ def test_fetch_string_series_values_composition_patched(
 ):
     #  given
     project = ProjectIdentifier("project")
-    npt.set_project(project)
-    npt.set_api_token("irrelevant")
+    context = Context(project=project, api_token="irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{experiment_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_number)
@@ -68,7 +68,7 @@ def test_fetch_string_series_values_composition_patched(
         fetch_attribute_definitions_single_filter.return_value = iter([util.Page(attributes)])
         fetch_series_values.return_value = iter([])
 
-        npt.fetch_series(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"))
+        npt.fetch_series(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
 
     # then
     call_sizes = [
@@ -86,7 +86,8 @@ def test_fetch_string_series_values_composition_patched(
                 tail_limit=ANY,
             )
             for start, end in _edges(expected_calls)
-        ]
+        ],
+        any_order=True,
     )
 
 

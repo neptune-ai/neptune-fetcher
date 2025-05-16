@@ -65,16 +65,19 @@ def test_split_sys_ids(sys_ids, expected):
     ],
 )
 def test_split_sys_ids_custom_envs(given_num, query_size_limit, expected_nums):
-    # given
-    sys_ids = [SYS_ID] * given_num
-    expected = [[SYS_ID] * num for num in expected_nums]
-    os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
+    try:
+        # given
+        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
+        sys_ids = [SYS_ID] * given_num
+        expected = [[SYS_ID] * num for num in expected_nums]
 
-    # when
-    groups = list(split_sys_ids(sys_ids))
+        # when
+        groups = list(split_sys_ids(sys_ids))
 
-    # then
-    assert groups == expected
+        # then
+        assert groups == expected
+    finally:
+        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
 
 
 @pytest.mark.parametrize(
@@ -128,17 +131,22 @@ def test_split_sys_ids_attributes(sys_ids, attributes, expected):
 def test_split_sys_ids_attributes_custom_envs(
     sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums
 ):
-    sys_ids = [SYS_ID] * sys_id_num
-    attributes = [ATTRIBUTE_DEFINITION] * attribute_num
-    expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
-    os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
-    os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name] = str(values_batch_size)
+    try:
+        # given
+        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
+        os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name] = str(values_batch_size)
+        sys_ids = [SYS_ID] * sys_id_num
+        attributes = [ATTRIBUTE_DEFINITION] * attribute_num
+        expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
 
-    # when
-    groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
+        # when
+        groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
 
-    # then
-    assert groups == expected
+        # then
+        assert groups == expected
+    finally:
+        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
+        del os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name]
 
 
 @pytest.mark.parametrize(
@@ -181,13 +189,17 @@ def test_split_series_attributes(attributes, expected):
 )
 def split_series_attributes_custom_envs(given_num, query_size_limit, batch_size, expected_nums):
     # given
-    os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
-    os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name] = str(batch_size)
-    attributes = [ATTRIBUTE_DEFINITION] * given_num
-    expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
+    try:
+        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
+        os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name] = str(batch_size)
+        attributes = [ATTRIBUTE_DEFINITION] * given_num
+        expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
 
-    # when
-    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
+        # when
+        groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
 
-    # then
-    assert groups == expected
+        # then
+        assert groups == expected
+    finally:
+        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
+        del os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name]
