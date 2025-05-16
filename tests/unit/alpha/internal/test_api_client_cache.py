@@ -54,8 +54,13 @@ def make_token():
 
 
 @fixture
-def context():
-    return Context(api_token=make_token(), project="default_project")
+def api_token():
+    return make_token()
+
+
+@fixture
+def context(api_token):
+    return Context(api_token=api_token, project="default_project")
 
 
 @fixture(autouse=True)
@@ -76,42 +81,42 @@ def mock_networking():
         yield
 
 
-def test_same_token(context):
+def test_same_token(api_token):
     """Should return a single instance of the client because the token is the same"""
 
-    client = get_client(context)
-    assert get_client(context) is client
+    client = get_client(api_token)
+    assert get_client(api_token) is client
 
 
 def test_same_token_different_project(context):
     """Should return a single instance of the client because the token is the same"""
 
-    client = get_client(context)
-    assert get_client(context.with_project("foo")) is client
+    client = get_client(context.api_token)
+    assert get_client(context.with_project("foo").api_token) is client
 
 
 def test_different_token(context):
     """Should return a different instance of the client, depending on the token"""
 
-    client = get_client(context)
-    assert get_client(context.with_api_token(make_token())) is not client
+    client = get_client(context.api_token)
+    assert get_client(context.with_api_token(make_token()).api_token) is not client
 
 
 def test_same_token_and_proxies(context):
     """Should return a single instance of the client because the token and proxies are the same"""
     proxies = {"https": "https://proxy.does-not-exist"}
 
-    client = get_client(context, proxies=proxies)
-    assert get_client(context, proxies=proxies) is client
-    assert get_client(context.with_project("foo"), proxies=proxies) is client
+    client = get_client(context.api_token, proxies=proxies)
+    assert get_client(context.api_token, proxies=proxies) is client
+    assert get_client(context.with_project("foo").api_token, proxies=proxies) is client
 
 
-def test_same_token_different_proxies(context):
+def test_same_token_different_proxies(api_token):
     """Should return a different instance of the client because the proxies are different"""
     proxies1 = {"https": "https://proxy1.does-not-exist"}
     proxies2 = {"https": "https://proxy2.does-not-exist"}
 
-    assert get_client(context, proxies=proxies1) is not get_client(context, proxies=proxies2)
+    assert get_client(api_token, proxies=proxies1) is not get_client(api_token, proxies=proxies2)
 
 
 def test_same_proxies_different_token(context):
@@ -119,5 +124,5 @@ def test_same_proxies_different_token(context):
 
     proxies = {"https": "https://proxy.does-not-exist"}
 
-    client = get_client(context, proxies=proxies)
-    assert get_client(context.with_api_token(make_token()), proxies=proxies) is not client
+    client = get_client(context.api_token, proxies=proxies)
+    assert get_client(context.with_api_token(make_token()).api_token, proxies=proxies) is not client
