@@ -51,8 +51,9 @@ def list_runs(
      Returns a list of run IDs in a project.
 
     `runs` - a filter specifying which runs to include
-         - a regex that the run ID must match, or
-         - a Filter object
+        - a list of specific run IDs, or
+        - a regex that the run ID must match, or
+        - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
     runs = _util.resolve_runs_filter(runs)
@@ -69,9 +70,11 @@ def list_attributes(
     List the names of attributes in a project.
     Optionally filter by runs and attributes.
     `runs` - a filter specifying runs to which the attributes belong
+        - a list of specific run IDs, or
         - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
@@ -101,9 +104,11 @@ def fetch_metrics(
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
     `runs` - a filter specifying which runs to include
+        - a list of specific run IDs, or
         - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
                 If `AttributeFilter.aggregations` is set, an exception will be raised as
@@ -151,9 +156,11 @@ def fetch_runs_table(
 ) -> _pandas.DataFrame:
     """
     `runs` - a filter specifying which runs to include in the table
+        - a list of specific run IDs, or
         - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object
     `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
@@ -196,14 +203,16 @@ def fetch_series(
     context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
-    Fetches raw values for string series from selected experiments.
+    Fetches raw values for string series from selected runs.
 
     Currently only supports attributes of type string_series.
 
-    `runs` - a filter specifying which experiments to include
+    `runs` - a filter specifying which runs to include
+        - a list of specific run IDs, or
         - a regex that experiment name must match, or
         - a Filter object for more complex filtering
     `attributes` - a filter specifying which attributes to include
+        - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object
     `include_time` - whether to include absolute timestamp
@@ -213,7 +222,7 @@ def fetch_series(
     `tail_limit` - from the tail end of each series, maximum number of points to include.
     `context` - context object to be used; primarily useful for switching projects
 
-    Returns a DataFrame containing string series for the specified experiments and attributes.
+    Returns a DataFrame containing string series for the specified runs and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
     runs_ = _util.resolve_runs_filter(runs)
@@ -240,12 +249,14 @@ def download_files(
     context: Optional[_context.Context] = None,
 ) -> _pandas.DataFrame:
     """
-    Downloads files associated with selected experiments and attributes.
+    Downloads files associated with selected runs and attributes.
 
     `runs` - a filter specifying which runs to include in the table
+        - a list of specific run IDs, or
         - a regex that the run ID must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object
     `destination`: the directory where files will be downloaded.
@@ -253,7 +264,7 @@ def download_files(
         - The path can be relative or absolute.
     `context` - a Context object to be used; primarily useful for switching projects
 
-    Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
+    Returns a DataFrame mapping runs and attributes to the paths of downloaded files.
     """
     runs = _util.resolve_runs_filter(runs)
     attributes = _util.resolve_attributes_filter(attributes, forced_type=["file"])

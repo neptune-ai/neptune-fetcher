@@ -63,8 +63,9 @@ def list_experiments(
      Returns a list of experiment names in a project.
 
     `experiments` - a filter specifying which experiments to include
-         - a regex that experiment name must match, or
-         - a Filter object
+        - a list of specific experiment names, or
+        - a regex that experiment name must match, or
+        - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
     experiments = _util.resolve_experiments_filter(experiments)
@@ -81,9 +82,11 @@ def list_attributes(
     List attributes' names in project.
     Optionally filter by experiments and attributes.
     `experiments` - a filter specifying experiments to which the attributes belong
+        - a list of specific experiment names, or
         - a regex that experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
@@ -116,9 +119,11 @@ def fetch_metrics(
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
     `experiments` - a filter specifying which experiments to include
+        - a list of specific experiment names, or
         - a regex that experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
                 If `AttributeFilter.aggregations` is set, an exception will be raised as
@@ -166,9 +171,11 @@ def fetch_experiments_table(
 ) -> _pandas.DataFrame:
     """
     `experiments` - a filter specifying which experiments to include in the table
+        - a list of specific experiment names, or
         - a regex that experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object
     `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
@@ -216,9 +223,11 @@ def fetch_series(
     Currently only supports attributes of type string_series.
 
     `experiments` - a filter specifying which experiments to include
+        - a list of specific experiment names, or
         - a regex that experiment name must match, or
         - a Filter object for more complex filtering
     `attributes` - a filter specifying which attributes to include
+        - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object
     `include_time` - whether to include absolute timestamp
@@ -257,10 +266,12 @@ def download_files(
     """
     Downloads files associated with selected experiments and attributes.
 
-    `experiments` - a filter specifying which runs to include in the table
-        - a regex that the run ID must match, or
+    `experiments` - a filter specifying which experiments to include in the table
+        - a list of specific experiment names, or
+        - a regex that the experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
+        - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object
     `destination`: the directory where files will be downloaded.
