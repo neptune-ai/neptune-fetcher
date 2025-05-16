@@ -2,12 +2,12 @@ from datetime import datetime
 
 import pytest
 
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.alpha.internal.retrieval import attribute_types as types
+from neptune_fetcher.internal.retrieval import attribute_types as types
 
 
 def test_attribute_valid_values():

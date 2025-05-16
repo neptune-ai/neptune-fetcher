@@ -2,7 +2,7 @@ import pytest
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.filters import (
     Attribute,
     Filter,
 )
