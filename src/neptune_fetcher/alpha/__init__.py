@@ -64,7 +64,7 @@ def list_experiments(
 
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that experiment name must match, or
+        - a regex that the experiment name must match, or
         - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
@@ -83,7 +83,7 @@ def list_attributes(
     Optionally filter by experiments and attributes.
     `experiments` - a filter specifying experiments to which the attributes belong
         - a list of specific experiment names, or
-        - a regex that experiment name must match, or
+        - a regex that the experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -120,7 +120,7 @@ def fetch_metrics(
 
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that experiment name must match, or
+        - a regex that the experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -172,7 +172,7 @@ def fetch_experiments_table(
     """
     `experiments` - a filter specifying which experiments to include in the table
         - a list of specific experiment names, or
-        - a regex that experiment name must match, or
+        - a regex that the experiment name must match, or
         - a Filter object
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -224,7 +224,7 @@ def fetch_series(
 
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that experiment name must match, or
+        - a regex that the experiment name must match, or
         - a Filter object for more complex filtering
     `attributes` - a filter specifying which attributes to include
         - a list of specific attribute names, or
