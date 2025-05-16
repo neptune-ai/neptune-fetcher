@@ -1,17 +1,15 @@
 # Neptune Fetcher
 
-> [!NOTE]
-> This package is experimental and only works with Neptune Scale (`scale.neptune.ai`), which is in beta.
->
-> For the Python API corresponding to `app.neptune.ai`, see [neptune-client][neptune-client].
-
-Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Scale client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
+Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Python client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
 
 With the Fetcher API, you can:
 
 - List experiments, runs, and attributes of a project.
 - Fetch experiment or run metadata as a data frame.
 - Define filters to fetch experiments, runs, and attributes that meet certain criteria.
+
+> [!NOTE]
+> _For the Python API corresponding to [Neptune 2.x][legacy-app], see [neptune-client][neptune-client]._
 
 ## Documentation
 
@@ -54,20 +52,17 @@ To fetch experiment metadata from your project, use the `fetch_experiments_table
 
 ```python
 npt.fetch_experiments_table(
-    experiments=r"exp.*",
-    attributes=r".*metric.*/val_.+",
+    experiments=["exp_ergwq", "exp_qgguv"],
+    attributes=["metrics/train_accuracy", "metrics/train_loss"],
 )
 ```
 
 ```pycon
-           metrics/val_accuracy metrics/val_loss
-                           last             last
+           metrics/train_accuracy   metrics/train_loss
+                             last                 last
 experiment
-exp_ergwq              0.278149         0.336344
-exp_qgguv              0.160260         0.790268
-exp_cnuwh              0.702490         0.366390
-exp_kokxd              0.301545         0.917683
-exp_gyvpp              0.999489         0.069839
+exp_ergwq                0.278149             0.336344
+exp_qgguv                0.160260             0.790268
 ```
 
 To fetch values at each step, use `fetch_metrics()`:
@@ -119,17 +114,17 @@ To update your code to the new version, see [Migrate to Fetcher Alpha][fetcher-m
 
 This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
 
+[construct-filters]: https://docs.neptune.ai/construct_fetching_filters
+[fetch-data]: https://docs.neptune.ai/fetch_metadata
+[fetcher-api-ref]: https://docs.neptune.ai/fetcher/attribute
+[fetcher-guide]: https://docs.neptune.ai/query_metadata
+[fetcher-migration]: https://docs.neptune.ai/fetcher_migration
+[project-explo]: https://docs.neptune.ai/list_project_contents
+[runs-api]: https://docs.neptune.ai/fetcher_runs_api
+[set-context]: https://docs.neptune.ai/set_fetching_context
+[setup]: https://docs.neptune.ai/setup
 
-[construct-filters]: https://docs-beta.neptune.ai/construct_fetching_filters
-[fetch-data]: https://docs-beta.neptune.ai/fetch_metadata
-[fetcher-api-ref]: https://docs-beta.neptune.ai/fetcher/attribute
-[fetcher-guide]: https://docs-beta.neptune.ai/query_metadata
-[fetcher-migration]: https://docs-beta.neptune.ai/fetcher_migration
-[project-explo]: https://docs-beta.neptune.ai/list_project_contents
-[runs-api]: https://docs-beta.neptune.ai/fetcher_runs_api
-[set-context]: https://docs-beta.neptune.ai/set_fetching_context
-[setup]: https://docs-beta.neptune.ai/setup
-
+[legacy-app]: https://app.neptune.ai/
 [neptune-client]: https://github.com/neptune-ai/neptune-client
 [neptune-client-scale]: https://github.com/neptune-ai/neptune-client-scale
 
