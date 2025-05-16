@@ -45,7 +45,7 @@ Import the `alpha` module:
 import neptune_fetcher.alpha as npt
 ```
 
-To fetch experiment metadata from your project, use the `fetch_experiments_table()` function.
+To fetch experiment metadata from your project, use the [`fetch_experiments_table()`][fetch-exp-table] function.
 
 - To filter experiments to return, use the `experiments` parameter.
 - To specify attributes to include as columns, use the `attributes` parameter.
@@ -65,7 +65,7 @@ exp_ergwq                0.278149             0.336344
 exp_qgguv                0.160260             0.790268
 ```
 
-To fetch values at each step, use `fetch_metrics()`:
+To fetch values at each step, use [`fetch_metrics()`][fetch-metrics]:
 
 ```python
 npt.fetch_metrics(
@@ -114,9 +114,12 @@ To update your code to the new version, see [Migrate to Fetcher Alpha][fetcher-m
 
 This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
 
+[fetcher-api-ref]: https://docs.neptune.ai/fetcher/attribute
+[fetch-exp-table]: https://docs.neptune.ai/fetcher/fetch_experiments_table
+[fetch-metrics]: https://docs.neptune.ai/fetcher/fetch_metrics
+
 [construct-filters]: https://docs.neptune.ai/construct_fetching_filters
 [fetch-data]: https://docs.neptune.ai/fetch_metadata
-[fetcher-api-ref]: https://docs.neptune.ai/fetcher/attribute
 [fetcher-guide]: https://docs.neptune.ai/query_metadata
 [fetcher-migration]: https://docs.neptune.ai/fetcher_migration
 [project-explo]: https://docs.neptune.ai/list_project_contents
