@@ -182,7 +182,7 @@ def test_list_attributes_depending_on_values_in_experiments(attribute_filter, ex
             r"sys/(name|id)",
             {"sys/name", "sys/id"},
         ),
-        (r"sys/.*id$", {"sys/custom_run_id", "sys/id"}),
+        (r"sys/.*id$", {"sys/custom_run_id", "sys/id", "sys/diagnostics/project_uuid", "sys/diagnostics/run_uuid"}),
         (AttributeFilter(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
     ],
 )
