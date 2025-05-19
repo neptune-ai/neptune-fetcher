@@ -4,7 +4,7 @@ import pytest
 
 from neptune_fetcher.internal.filters import (
     Attribute,
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from neptune_fetcher.internal.retrieval import attribute_types as types
@@ -131,15 +131,15 @@ def test_filter_datetime_formatting():
 
 def test_attribute_filter_valid_values():
     # Test valid cases
-    AttributeFilter()  # default values
-    AttributeFilter(name_eq="test")  # string
-    AttributeFilter(name_eq=["test1", "test2"])  # list of strings
-    AttributeFilter(type_in=["float", "int"])  # valid types
-    AttributeFilter(name_matches_all="test")  # string
-    AttributeFilter(name_matches_all=["test1", "test2"])  # list of strings
-    AttributeFilter(name_matches_none="test")  # string
-    AttributeFilter(name_matches_none=["test1", "test2"])  # list of strings
-    AttributeFilter(aggregations=["last", "min"])  # valid aggregations
+    AttributeFilterMatch()  # default values
+    AttributeFilterMatch(name_eq="test")  # string
+    AttributeFilterMatch(name_eq=["test1", "test2"])  # list of strings
+    AttributeFilterMatch(type_in=["float", "int"])  # valid types
+    AttributeFilterMatch(name_matches_all="test")  # string
+    AttributeFilterMatch(name_matches_all=["test1", "test2"])  # list of strings
+    AttributeFilterMatch(name_matches_none="test")  # string
+    AttributeFilterMatch(name_matches_none=["test1", "test2"])  # list of strings
+    AttributeFilterMatch(aggregations=["last", "min"])  # valid aggregations
 
 
 def test_name_eq_validation():
@@ -154,7 +154,7 @@ def test_name_eq_validation():
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            AttributeFilter(name_eq=invalid_value)  # type: ignore
+            AttributeFilterMatch(name_eq=invalid_value)  # type: ignore
         assert "name_eq must be a string or list of strings" in str(exc_info.value)
 
 
@@ -169,7 +169,7 @@ def test_type_in_validation():
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            AttributeFilter(type_in=invalid_value)  # type: ignore
+            AttributeFilterMatch(type_in=invalid_value)  # type: ignore
         assert f"type_in must be a list of valid values: {sorted(types.ALL_TYPES)}" in str(exc_info.value)
 
 
@@ -185,7 +185,7 @@ def test_name_matches_all_validation():
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            AttributeFilter(name_matches_all=invalid_value)  # type: ignore
+            AttributeFilterMatch(name_matches_all=invalid_value)  # type: ignore
         assert "name_matches_all must be a string or list of strings" in str(exc_info.value)
 
 
@@ -201,7 +201,7 @@ def test_name_matches_none_validation():
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            AttributeFilter(name_matches_none=invalid_value)  # type: ignore
+            AttributeFilterMatch(name_matches_none=invalid_value)  # type: ignore
         assert "name_matches_none must be a string or list of strings" in str(exc_info.value)
 
 
@@ -216,19 +216,19 @@ def test_aggregations_validation():
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            AttributeFilter(aggregations=invalid_value)  # type: ignore
+            AttributeFilterMatch(aggregations=invalid_value)  # type: ignore
         assert f"aggregations must be a list of valid values: {sorted(types.ALL_AGGREGATIONS)}" in str(exc_info.value)
 
 
 @pytest.mark.parametrize("valid_type", sorted(types.ALL_TYPES))
 def test_all_valid_types(valid_type):
     # Test each valid type individually
-    attr_filter = AttributeFilter(type_in=[valid_type])
+    attr_filter = AttributeFilterMatch(type_in=[valid_type])
     assert valid_type in attr_filter.type_in
 
 
 @pytest.mark.parametrize("valid_agg", sorted(types.ALL_AGGREGATIONS))
 def test_all_valid_aggregations(valid_agg):
     # Test each valid aggregation individually
-    attr_filter = AttributeFilter(aggregations=[valid_agg])
+    attr_filter = AttributeFilterMatch(aggregations=[valid_agg])
     assert valid_agg in attr_filter.aggregations

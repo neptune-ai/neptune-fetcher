@@ -13,7 +13,7 @@ from neptune_fetcher.alpha import (
 from neptune_fetcher.internal import env
 from neptune_fetcher.internal.filters import (
     Attribute,
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from tests.e2e.internal.data import (
@@ -63,14 +63,14 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     [
         f"{PATH}/int-value|{PATH}/float-value|{PATH}/metrics/step",
         [f"{PATH}/int-value", f"{PATH}/float-value", f"{PATH}/metrics/step"],
-        AttributeFilter.any(
-            AttributeFilter(f"{PATH}/int-value", type_in=["int"]),
-            AttributeFilter(f"{PATH}/float-value", type_in=["float"]),
-            AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+        AttributeFilterMatch.any(
+            AttributeFilterMatch(f"{PATH}/int-value", type_in=["int"]),
+            AttributeFilterMatch(f"{PATH}/float-value", type_in=["float"]),
+            AttributeFilterMatch(f"{PATH}/metrics/step", type_in=["float_series"]),
         ),
-        AttributeFilter(f"{PATH}/int-value", type_in=["int"])
-        | AttributeFilter(f"{PATH}/float-value", type_in=["float"])
-        | AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+        AttributeFilterMatch(f"{PATH}/int-value", type_in=["int"])
+        | AttributeFilterMatch(f"{PATH}/float-value", type_in=["float"])
+        | AttributeFilterMatch(f"{PATH}/metrics/step", type_in=["float_series"]),
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -108,11 +108,11 @@ def test__fetch_experiments_table_with_attributes_filter(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(
+        AttributeFilterMatch(
             f"{PATH}/metrics/step", type_in=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
         )
-        | AttributeFilter(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
-        | AttributeFilter(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
+        | AttributeFilterMatch(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
+        | AttributeFilterMatch(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
     ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_metrics(
@@ -167,8 +167,8 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["last"])
-        | AttributeFilter(f"{PATH}/metrics/string-series-value_1", type_in=["string_series"])
+        AttributeFilterMatch(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["last"])
+        | AttributeFilterMatch(f"{PATH}/metrics/string-series-value_1", type_in=["string_series"])
     ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_series(
@@ -203,7 +203,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
 
 @pytest.mark.parametrize(
     "attr_filter",
-    [AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
+    [AttributeFilterMatch(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggregation(
     project, run_with_attributes, attr_filter
@@ -223,8 +223,8 @@ def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggreg
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
-        AttributeFilter(
+        AttributeFilterMatch(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
+        AttributeFilterMatch(
             name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
             name_matches_none=".*value_[5-9].*",
         ),

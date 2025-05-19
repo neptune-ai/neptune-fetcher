@@ -6,7 +6,7 @@ import pytest
 from neptune_fetcher.alpha import list_attributes
 from neptune_fetcher.internal.filters import (
     Attribute,
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from tests.e2e.internal.data import (
@@ -62,13 +62,15 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
             },
         ),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
-        (AttributeFilter(name_matches_all=PATH), TEST_DATA.all_attribute_names),
-        (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
+        (AttributeFilterMatch(name_matches_all=PATH), TEST_DATA.all_attribute_names),
+        (AttributeFilterMatch(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
         (
-            AttributeFilter.any(AttributeFilter(name_matches_all="^(foo)"), AttributeFilter(name_matches_all=PATH)),
+            AttributeFilterMatch.any(
+                AttributeFilterMatch(name_matches_all="^(foo)"), AttributeFilterMatch(name_matches_all=PATH)
+            ),
             TEST_DATA.all_attribute_names,
         ),
-        (AttributeFilter(name_matches_none=".*"), []),
+        (AttributeFilterMatch(name_matches_none=".*"), []),
     ],
 )
 def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys(
@@ -85,8 +87,8 @@ def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys
         None,
         "",
         ".*",
-        AttributeFilter(name_matches_all=".*"),
-        AttributeFilter(),
+        AttributeFilterMatch(name_matches_all=".*"),
+        AttributeFilterMatch(),
     ),
 )
 def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filter):
@@ -102,8 +104,8 @@ def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filte
         ".*unknown.*",
         "sys/abcdef",
         " ",
-        AttributeFilter(name_eq=".*"),
-        AttributeFilter(name_matches_all="unknown"),
+        AttributeFilterMatch(name_eq=".*"),
+        AttributeFilterMatch(name_matches_all="unknown"),
     ),
 )
 def test_list_attributes_unknown_name(filter_):
@@ -143,12 +145,12 @@ def test_list_attributes_unknown_name(filter_):
             {f"{PATH}/int-value", f"{PATH}/float-value"},
         ),
         (
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilterMatch(name_matches_none="sys/.*", name_matches_all=".*"),
             Filter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
             [],
         ),
         (
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilterMatch(name_matches_none="sys/.*", name_matches_all=".*"),
             Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
             [],
         ),
@@ -183,7 +185,7 @@ def test_list_attributes_depending_on_values_in_experiments(attribute_filter, ex
             {"sys/name", "sys/id"},
         ),
         (r"sys/.*id$", {"sys/custom_run_id", "sys/id", "sys/diagnostics/project_uuid", "sys/diagnostics/run_uuid"}),
-        (AttributeFilter(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
+        (AttributeFilterMatch(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
     ],
 )
 def test_list_attributes_sys_attrs(attribute_filter, expected):

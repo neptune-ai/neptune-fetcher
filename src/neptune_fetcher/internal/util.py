@@ -47,19 +47,19 @@ def resolve_attributes_filter(
 ) -> _filters.AttributeFilter:
     if forced_type is None:
         if attributes is None:
-            return _filters.AttributeFilter()
+            return _filters.AttributeFilterMatch()
         if isinstance(attributes, str):
-            return _filters.AttributeFilter(name_matches_all=attributes)
+            return _filters.AttributeFilterMatch(name_matches_all=attributes)
         if isinstance(attributes, list):
-            return _filters.AttributeFilter(name_eq=attributes)
+            return _filters.AttributeFilterMatch(name_eq=attributes)
         return attributes
     else:
         if attributes is None:
-            return _filters.AttributeFilter(type_in=forced_type)
+            return _filters.AttributeFilterMatch(type_in=forced_type)
         if isinstance(attributes, str):
-            return _filters.AttributeFilter(name_matches_all=attributes, type_in=forced_type)
+            return _filters.AttributeFilterMatch(name_matches_all=attributes, type_in=forced_type)
         if isinstance(attributes, list):
-            return _filters.AttributeFilter(name_eq=attributes, type_in=forced_type)
+            return _filters.AttributeFilterMatch(name_eq=attributes, type_in=forced_type)
         return attributes
 
 

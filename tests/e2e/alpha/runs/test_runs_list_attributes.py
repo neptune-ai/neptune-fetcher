@@ -4,7 +4,7 @@ import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal.filters import (
     Attribute,
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from tests.e2e.alpha.generator import (
@@ -37,27 +37,27 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
     "_attr_filter, expected",
     [
         # DateTime attributes
-        (AttributeFilter(name_eq="datetime-value", type_in=["datetime"]), {"datetime-value"}),
+        (AttributeFilterMatch(name_eq="datetime-value", type_in=["datetime"]), {"datetime-value"}),
         # Numeric series
-        (AttributeFilter(name_eq="unique1/0", type_in=["float_series"]), {"unique1/0"}),
-        (AttributeFilter(name_eq="foo0", type_in=["float_series"]), {"foo0"}),
-        (AttributeFilter(name_eq="foo1", type_in=["float_series"]), {"foo1"}),
+        (AttributeFilterMatch(name_eq="unique1/0", type_in=["float_series"]), {"unique1/0"}),
+        (AttributeFilterMatch(name_eq="foo0", type_in=["float_series"]), {"foo0"}),
+        (AttributeFilterMatch(name_eq="foo1", type_in=["float_series"]), {"foo1"}),
         # Primitive types
-        (AttributeFilter(type_in=["int"]), {"int-value"}),
-        (AttributeFilter(type_in=["float"]), {"float-value"}),
-        (AttributeFilter(type_in=["string"]), {"str-value"}),
-        (AttributeFilter(type_in=["bool"]), {"bool-value"}),
+        (AttributeFilterMatch(type_in=["int"]), {"int-value"}),
+        (AttributeFilterMatch(type_in=["float"]), {"float-value"}),
+        (AttributeFilterMatch(type_in=["string"]), {"str-value"}),
+        (AttributeFilterMatch(type_in=["bool"]), {"bool-value"}),
         # Multiple types
-        (AttributeFilter(type_in=["float", "int"]), {"float-value", "int-value"}),
+        (AttributeFilterMatch(type_in=["float", "int"]), {"float-value", "int-value"}),
         # Name patterns
-        (AttributeFilter(name_matches_all="unique.*"), {"unique1/0", "unique2/0"}),
-        (AttributeFilter(name_matches_all="foo.*"), {"foo0", "foo1"}),
+        (AttributeFilterMatch(name_matches_all="unique.*"), {"unique1/0", "unique2/0"}),
+        (AttributeFilterMatch(name_matches_all="foo.*"), {"foo0", "foo1"}),
         # Combined filters
-        (AttributeFilter(name_matches_all=".*value.*", type_in=["float"]), {"float-value"}),
-        (AttributeFilter(name_matches_all=".*value.*", type_in=["int"]), {"int-value"}),
+        (AttributeFilterMatch(name_matches_all=".*value.*", type_in=["float"]), {"float-value"}),
+        (AttributeFilterMatch(name_matches_all=".*value.*", type_in=["int"]), {"int-value"}),
         (
-            AttributeFilter(name_matches_all=".*value.*", type_in=["float"])
-            | AttributeFilter(name_matches_all=".*value.*", type_in=["int"]),
+            AttributeFilterMatch(name_matches_all=".*value.*", type_in=["float"])
+            | AttributeFilterMatch(name_matches_all=".*value.*", type_in=["int"]),
             {"float-value", "int-value"},
         ),
     ],
