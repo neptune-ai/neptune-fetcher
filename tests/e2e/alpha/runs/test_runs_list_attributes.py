@@ -55,6 +55,20 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
         # Combined filters
         (AttributeFilter(name_matches_all=".*value.*", type_in=["float"]), {"float-value"}),
         (AttributeFilter(name_matches_all=".*value.*", type_in=["int"]), {"int-value"}),
+    ],
+)
+def test_list_attributes_with_attribute_filter(new_project_context: Context, _attr_filter, expected):
+    attributes = runs.list_attributes(
+        "^forked_history_root$|^forked_history_fork1$", _attr_filter, context=new_project_context
+    )
+
+    assert _filter_out_sys(attributes) == expected
+
+
+@pytest.mark.parametrize(
+    "_attr_filter, expected",
+    [
+        # Combined filters
         (
             AttributeFilter(name_matches_all=".*value.*", type_in=["float"])
             | AttributeFilter(name_matches_all=".*value.*", type_in=["int"]),
@@ -62,7 +76,7 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
         ),
     ],
 )
-def test_list_attributes_with_attribute_filter(new_project_context: Context, _attr_filter, expected):
+def test_list_attributes_with_attribute_filter_alt(new_project_context: Context, _attr_filter, expected):
     attributes = runs.list_attributes(
         "^forked_history_root$|^forked_history_fork1$", _attr_filter, context=new_project_context
     )
