@@ -2,6 +2,7 @@ import itertools as it
 import os
 from datetime import timedelta
 from typing import (
+    List,
     Literal,
     Optional,
     Tuple,
@@ -13,12 +14,12 @@ import pandas as pd
 import pytest
 
 from neptune_fetcher.alpha import fetch_series
+from neptune_fetcher.alpha.filters import (
+    AttributeFilter,
+    Filter,
+)
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.context import get_context
-from neptune_fetcher.internal.filters import (
-    _AttributeFilter,
-    _Filter,
-)
 from neptune_fetcher.internal.identifiers import (
     RunIdentifier,
     SysId,
@@ -44,7 +45,7 @@ def create_expected_data(
     include_time: Union[Literal["absolute"], None],
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
-) -> Tuple[pd.DataFrame, list[str], set[str]]:
+) -> Tuple[pd.DataFrame, List[str], set[str]]:
     series_data: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
     sys_id_label_mapping: dict[SysId, str] = {}
 
@@ -99,11 +100,11 @@ def create_expected_data(
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
-@pytest.mark.parametrize("attr_filter", [_AttributeFilter(name_matches_all=[r".*"], type_in=["string_series"]), ".*"])
+@pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["string_series"]), ".*"])
 @pytest.mark.parametrize(
     "exp_filter",
     [
-        lambda: _Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
         lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
