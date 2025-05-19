@@ -36,7 +36,7 @@ from neptune_fetcher.internal.composition import (
 from neptune_fetcher.internal.composition.attributes import AttributeDefinitionAggregation
 from neptune_fetcher.internal.filters import (
     Attribute,
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
@@ -51,7 +51,7 @@ __all__ = ("fetch_table",)
 
 def fetch_table(
     filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    attributes: AttributeFilterMatch,
     sort_by: Attribute,
     sort_direction: Literal["asc", "desc"],
     limit: Optional[int],

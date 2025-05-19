@@ -34,7 +34,7 @@ from neptune_fetcher.internal.context import (
     validate_context,
 )
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
@@ -50,7 +50,7 @@ __all__ = ("fetch_series",)
 
 def fetch_series(
     filter_: Filter,
-    attributes: AttributeFilter,
+    attributes: AttributeFilterMatch,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,

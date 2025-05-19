@@ -10,7 +10,7 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.internal.filters import AttributeFilter
+from neptune_fetcher.internal.filters import AttributeFilterMatch
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 
@@ -102,8 +102,12 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
+    attribute_filter_1 = AttributeFilterMatch(
+        name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"]
+    )
+    attribute_filter_2 = AttributeFilterMatch(
+        name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"]
+    )
 
     #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2
@@ -131,8 +135,8 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     "make_attribute_filter",
     [
         lambda a, b, c: a | b | c,
-        lambda a, b, c: AttributeFilter.any(a, b, c),
-        lambda a, b, c: AttributeFilter.any(a, AttributeFilter.any(b, c)),
+        lambda a, b, c: AttributeFilterMatch.any(a, b, c),
+        lambda a, b, c: AttributeFilterMatch.any(a, AttributeFilterMatch.any(b, c)),
     ],
 )
 def test_fetch_attribute_definitions_filter_triple_or(
@@ -141,9 +145,15 @@ def test_fetch_attribute_definitions_filter_triple_or(
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
-    attribute_filter_3 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["int"])
+    attribute_filter_1 = AttributeFilterMatch(
+        name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"]
+    )
+    attribute_filter_2 = AttributeFilterMatch(
+        name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"]
+    )
+    attribute_filter_3 = AttributeFilterMatch(
+        name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["int"]
+    )
     attribute_filter = make_attribute_filter(attribute_filter_1, attribute_filter_2, attribute_filter_3)
 
     #  when
@@ -173,7 +183,7 @@ def test_fetch_attribute_definitions_paging_executor(client, executor, project, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = AttributeFilterMatch(name_matches_all="sys/.*_time", type_in=["datetime"])
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
@@ -202,10 +212,10 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, executor, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter_0 = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter_0 = AttributeFilterMatch(name_matches_all="sys/.*_time", type_in=["datetime"])
     attribute_filter = attribute_filter_0
     for i in range(10):
-        attribute_filter = attribute_filter | AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+        attribute_filter = attribute_filter | AttributeFilterMatch(name_matches_all="sys/.*_time", type_in=["datetime"])
 
     attributes = _extract_pages(
         fetch_attribute_definitions(

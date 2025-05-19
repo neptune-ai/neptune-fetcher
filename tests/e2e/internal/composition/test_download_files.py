@@ -7,7 +7,7 @@ import pytest
 
 from neptune_fetcher.internal.composition.download_files import download_files
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from neptune_fetcher.internal.retrieval.search import ContainerType
@@ -30,7 +30,7 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
     # when
     result_df = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
-        attributes=AttributeFilter(name_eq=[f"{PATH}/files/object-does-not-exist"]),
+        attributes=AttributeFilterMatch(name_eq=[f"{PATH}/files/object-does-not-exist"]),
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
@@ -55,7 +55,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     with pytest.raises(PermissionError):
         download_files(
             filter_=Filter.name_in(EXPERIMENT_NAME),
-            attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+            attributes=AttributeFilterMatch(name_eq=[f"{PATH}/files/file-value.txt"]),
             destination=temp_dir,
             context=None,
             container_type=ContainerType.EXPERIMENT,
@@ -68,7 +68,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
     # when
     result_df = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
-        attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+        attributes=AttributeFilterMatch(name_eq=[f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
@@ -97,7 +97,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
     # when
     result_df = download_files(
         filter_=Filter.name_in(EXPERIMENT_NAME),
-        attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"]),
+        attributes=AttributeFilterMatch(name_eq=[f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
@@ -136,7 +136,7 @@ def test_download_files_destination_a_file(client, project, experiment_identifie
     with pytest.raises(NotADirectoryError):
         download_files(
             filter_=Filter.name_in(EXPERIMENT_NAME),
-            attributes=AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+            attributes=AttributeFilterMatch(name_eq=[f"{PATH}/files/file-value.txt"]),
             destination=destination,
             context=None,
             container_type=ContainerType.EXPERIMENT,

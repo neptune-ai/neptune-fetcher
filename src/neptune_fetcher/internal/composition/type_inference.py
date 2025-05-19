@@ -129,7 +129,7 @@ def _infer_attribute_types_from_api(
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
 ) -> None:
-    attribute_filter_by_name = filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
+    attribute_filter_by_name = filters.AttributeFilterMatch(name_eq=list({attr.name for attr in attributes}))
 
     output = _components.fetch_attribute_definitions_complete(
         client=client,
@@ -167,14 +167,14 @@ def _filter_untyped(
 
 
 def _walk_attributes(experiment_filter: filters.Filter) -> Iterable[filters.Attribute]:
-    if isinstance(experiment_filter, filters._AttributeValuePredicate):
+    if isinstance(experiment_filter, filters.AttributeValuePredicate):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AttributePredicate):
+    elif isinstance(experiment_filter, filters.AttributePredicate):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AssociativeOperator):
+    elif isinstance(experiment_filter, filters.AssociativeOperator):
         for child in experiment_filter.filters:
             yield from _walk_attributes(child)
-    elif isinstance(experiment_filter, filters._PrefixOperator):
+    elif isinstance(experiment_filter, filters.PrefixOperator):
         yield from _walk_attributes(experiment_filter.filter_)
     else:
         raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")

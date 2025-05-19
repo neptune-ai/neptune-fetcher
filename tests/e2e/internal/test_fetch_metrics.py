@@ -16,7 +16,7 @@ import pytest
 from neptune_fetcher.alpha import fetch_metrics
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
+    AttributeFilterMatch,
     Filter,
 )
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
@@ -87,7 +87,9 @@ def create_expected_data(
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
-@pytest.mark.parametrize("attr_filter", [AttributeFilter(name_matches_all=[r".*"], type_in=["float_series"]), ".*"])
+@pytest.mark.parametrize(
+    "attr_filter", [AttributeFilterMatch(name_matches_all=[r".*"], type_in=["float_series"]), ".*"]
+)
 @pytest.mark.parametrize(
     "exp_filter",
     [

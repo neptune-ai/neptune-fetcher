@@ -62,7 +62,7 @@ def list_runs(
 
 def list_attributes(
     runs: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilterMatch]] = None,
     context: Optional[_context.Context] = None,
 ) -> list[str]:
     """
@@ -88,7 +88,7 @@ def list_attributes(
 
 def fetch_metrics(
     runs: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    attributes: Union[str, list[str], _filters.AttributeFilterMatch],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -142,7 +142,7 @@ def fetch_metrics(
 
 def fetch_runs_table(
     runs: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
+    attributes: Union[str, list[str], _filters.AttributeFilterMatch] = "^sys/name$",
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
@@ -187,7 +187,7 @@ def fetch_runs_table(
 
 def fetch_series(
     runs: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    attributes: Union[str, list[str], _filters.AttributeFilterMatch],
     *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -234,7 +234,7 @@ def fetch_series(
 
 def download_files(
     runs: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.AttributeFilterMatch]] = None,
     *,
     destination: Optional[str] = None,
     context: Optional[_context.Context] = None,

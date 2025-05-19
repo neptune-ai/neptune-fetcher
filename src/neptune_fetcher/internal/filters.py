@@ -14,10 +14,7 @@
 # limitations under the License.
 import abc
 from abc import ABC
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Iterable,
@@ -28,7 +25,7 @@ from typing import (
 
 from neptune_fetcher.internal.retrieval import attribute_types as types
 
-__all__ = ["Filter", "AttributeFilter", "Attribute"]
+__all__ = ["Filter", "AttributeFilterMatch", "Attribute"]
 
 
 ATTRIBUTE_LITERAL = Literal[
@@ -37,58 +34,21 @@ ATTRIBUTE_LITERAL = Literal[
 AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
 
 
-class BaseAttributeFilter(ABC):
-    def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
-        return BaseAttributeFilter.any(self, other)
+class AttributeFilter(ABC):
+    def __or__(self, other: "AttributeFilter") -> "AttributeFilter":
+        return AttributeFilter.any(self, other)
 
-    def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
-        return _AttributeFilterAlternative(filters=filters)
+    def any(*filters: "AttributeFilter") -> "AttributeFilter":
+        return AttributeFilterAlternative(filters=filters)
 
 
 @dataclass
-class AttributeFilter(BaseAttributeFilter):
-    """Filter to apply to attributes when fetching runs or experiments.
-
-    Use to select specific metrics or other metadata based on various criteria.
-
-    Args:
-        name_eq (Union[str, list[str], None]): An attribute name or list of names to match exactly.
-            If `None`, this filter is not applied.
-        type_in (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
-        "string_series", "file"]]):
-            A list of allowed attribute types. Defaults to all available types.
-            For a reference, see: https://docs-beta.neptune.ai/attribute_types
-        name_matches_all (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            name must match. If `None`, this filter is not applied.
-        name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            names mustn't match. Attributes matching any of the regexes are excluded.
-            If `None`, this filter is not applied.
-        aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of
-            aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
-            Defaults to ["last"].
-
-    Example:
-
-    ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import AttributeFilter
-
-
-    loss_avg_and_var = AttributeFilter(
-        type_in=["float_series"],
-        name_matches_all=[r"loss$"],
-        aggregations=["average", "variance"],
-    )
-
-    npt.fetch_experiments_table(attributes=loss_avg_and_var)
-    ```
-    """
-
-    name_eq: Union[str, list[str], None] = None
-    type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(types.ALL_TYPES))  # type: ignore
-    name_matches_all: Union[str, list[str], None] = None
-    name_matches_none: Union[str, list[str], None] = None
-    aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
+class AttributeFilterMatch(AttributeFilter):
+    name_eq: Union[str, list[str], None]
+    type_in: list[ATTRIBUTE_LITERAL]
+    name_matches_all: Union[str, list[str], None]
+    name_matches_none: Union[str, list[str], None]
+    aggregations: list[AGGREGATION_LITERAL]
 
     def __post_init__(self) -> None:
         _validate_string_or_string_list(self.name_eq, "name_eq")
@@ -100,49 +60,16 @@ class AttributeFilter(BaseAttributeFilter):
 
 
 @dataclass
-class _AttributeFilterAlternative(BaseAttributeFilter):
-    filters: Iterable[BaseAttributeFilter]
+class AttributeFilterAlternative(AttributeFilter):
+    filters: Iterable[AttributeFilter]
 
-    def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
+    def __or__(self, other: "AttributeFilter") -> "AttributeFilter":
         filters = tuple(self.filters) + (other,)
-        return _AttributeFilterAlternative(filters)
+        return AttributeFilterAlternative(filters)
 
 
 @dataclass
 class Attribute:
-    """Helper for specifying an attribute and picking a metric aggregation function.
-
-    When fetching experiments or runs, use this class to filter and sort the returned entries.
-
-    Args:
-        name (str): An attribute name to match exactly.
-        aggregation (Literal["last", "min", "max", "average", "variance"], optional):
-            Aggregation function to apply when specifying a metric of type FloatSeries.
-            Defaults to `"last"`, i.e. the last logged value.
-        type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
-            Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
-            that have the same name but are of a different type.
-            For a reference, see: https://docs-beta.neptune.ai/attribute_types
-
-    Example:
-
-    Select a metric and pick variance as the aggregation:
-
-    ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Attribute, Filter
-
-
-    val_loss_variance = Attribute(
-        name="val/loss",
-        aggregation="variance",
-    )
-    # Construct a filter and pass it to a fetching or listing method
-    tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
-    npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
-    ```
-    """
-
     name: str
     aggregation: Optional[AGGREGATION_LITERAL] = None
     type: Optional[ATTRIBUTE_LITERAL] = None
@@ -168,92 +95,48 @@ class Attribute:
 
 
 class Filter(ABC):
-    """Filter used to specify criteria when fetching experiments or runs.
-
-    Examples of filters:
-        - Name or attribute must match regular expression.
-        - Attribute value must pass a condition, like "greater than 0.9".
-
-    You can negate a filter or join multiple filters with logical operators.
-
-    Methods available for attribute values:
-    - `name_eq()`: Run or experiment name equals
-    - `name_in()`: Run or experiment name equals any of the provided names
-    - `eq()`: Value equals
-    - `ne()`: Value doesn't equal
-    - `gt()`: Value is greater than
-    - `ge()`: Value is greater than or equal to
-    - `lt()`: Value is less than
-    - `le()`: Value is less than or equal to
-    - `matches_all()`: Value matches regex or all in list of regexes
-    - `matches_none()`: Value doesn't match regex or any of list of regexes
-    - `contains_all()`: Tagset contains all tags, or string contains substrings
-    - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
-    - `exists()`: Attribute exists
-
-    Examples:
-
-    ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Filter
-
-    # Fetch metadata from specific experiments
-    specific_experiments = Filter.name_in("flying-123", "swimming-77")
-    npt.fetch_experiments_table(experiments=specific_experiments)
-
-    # Define various criteria
-    owned_by_me = Filter.eq("sys/owner", "vidar")
-    loss_filter = Filter.lt("validation/loss", 0.1)
-    tag_filter = Filter.contains_none("sys/tags", ["test", "buggy"])
-    dataset_check = Filter.exists("dataset_version")
-
-    my_interesting_experiments = owned_by_me & loss_filter & tag_filter & dataset_check
-    npt.fetch_experiments_table(experiments=my_interesting_experiments)
-    ```
-    """
-
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="==", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator="==", attribute=attribute, value=value)
 
     @staticmethod
     def ne(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="!=", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator="!=", attribute=attribute, value=value)
 
     @staticmethod
     def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator=">", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator=">", attribute=attribute, value=value)
 
     @staticmethod
     def ge(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator=">=", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator=">=", attribute=attribute, value=value)
 
     @staticmethod
     def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="<", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator="<", attribute=attribute, value=value)
 
     @staticmethod
     def le(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="<=", attribute=attribute, value=value)
+        return AttributeValuePredicate(operator="<=", attribute=attribute, value=value)
 
     @staticmethod
     def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
-            return _AttributeValuePredicate(operator="MATCHES", attribute=attribute, value=regex)
+            return AttributeValuePredicate(operator="MATCHES", attribute=attribute, value=regex)
         else:
             filters = [Filter.matches_all(attribute, r) for r in regex]
             return Filter.all(*filters)
@@ -263,7 +146,7 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
-            return _AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
+            return AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
         else:
             filters = [Filter.matches_none(attribute, r) for r in regex]
             return Filter.all(*filters)
@@ -273,7 +156,7 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
-            return _AttributeValuePredicate(operator="CONTAINS", attribute=attribute, value=value)
+            return AttributeValuePredicate(operator="CONTAINS", attribute=attribute, value=value)
         else:
             filters = [Filter.contains_all(attribute, v) for v in value]
             return Filter.all(*filters)
@@ -283,7 +166,7 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
-            return _AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
+            return AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
         else:
             filters = [Filter.contains_none(attribute, v) for v in value]
             return Filter.all(*filters)
@@ -292,19 +175,19 @@ class Filter(ABC):
     def exists(attribute: Union[str, Attribute]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributePredicate(postfix_operator="EXISTS", attribute=attribute)
+        return AttributePredicate(postfix_operator="EXISTS", attribute=attribute)
 
     @staticmethod
     def all(*filters: "Filter") -> "Filter":
-        return _AssociativeOperator(operator="AND", filters=filters)
+        return AssociativeOperator(operator="AND", filters=filters)
 
     @staticmethod
     def any(*filters: "Filter") -> "Filter":
-        return _AssociativeOperator(operator="OR", filters=filters)
+        return AssociativeOperator(operator="OR", filters=filters)
 
     @staticmethod
     def negate(filter_: "Filter") -> "Filter":
-        return _PrefixOperator(operator="NOT", filter_=filter_)
+        return PrefixOperator(operator="NOT", filter_=filter_)
 
     def __and__(self, other: "Filter") -> "Filter":
         return self.all(self, other)
@@ -337,7 +220,7 @@ class Filter(ABC):
 
 
 @dataclass
-class _AttributeValuePredicate(Filter):
+class AttributeValuePredicate(Filter):
     operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
     attribute: Attribute
     value: Union[bool, int, float, str, datetime]
@@ -361,7 +244,7 @@ class _AttributeValuePredicate(Filter):
 
 
 @dataclass
-class _AttributePredicate(Filter):
+class AttributePredicate(Filter):
     postfix_operator: Literal["EXISTS"]
     attribute: Attribute
 
@@ -370,7 +253,7 @@ class _AttributePredicate(Filter):
 
 
 @dataclass
-class _AssociativeOperator(Filter):
+class AssociativeOperator(Filter):
     operator: Literal["AND", "OR"]
     filters: Iterable[Filter]
 
@@ -380,7 +263,7 @@ class _AssociativeOperator(Filter):
 
 
 @dataclass
-class _PrefixOperator(Filter):
+class PrefixOperator(Filter):
     operator: Literal["NOT"]
     filter_: Filter
 
