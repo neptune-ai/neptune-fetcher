@@ -36,7 +36,7 @@ from neptune_fetcher.alpha.internal.retrieval.series import RunAttributeDefiniti
         (100, 8801, [2934, 2934, 2933]),
     ],
 )
-def test_fetch_attribute_definitions_composition_patches(sys_id_length, exp_count, expected_calls):
+def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
     context = Context(project=project, api_token="irrelevant")
@@ -99,9 +99,7 @@ def test_fetch_attribute_definitions_composition_patches(sys_id_length, exp_coun
         (10, 40000, 10, 1, [(4000, [1])] * 10),
     ],
 )
-def test_fetch_attribute_values_composition_patches(
-    sys_id_length, exp_count, attr_name_length, attr_count, expected_calls
-):
+def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
     context = Context(project=project, api_token="irrelevant")
@@ -192,9 +190,7 @@ def test_fetch_attribute_values_composition_patches(
         (1000, 20, 1000, 40, [220, 220, 220, 140]),
     ],
 )
-def test_fetch_string_series_values_composition_patched(
-    sys_id_length, exp_count, attr_name_length, attr_count, expected_calls
-):
+def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
     context = Context(project=project, api_token="irrelevant")
@@ -269,9 +265,7 @@ def test_fetch_string_series_values_composition_patched(
         (1000, 20, 1000, 40, [220, 220, 220, 140]),
     ],
 )
-def test_fetch_string_metric_values_composition_patched(
-    sys_id_length, exp_count, attr_name_length, attr_count, expected_calls
-):
+def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
     context = Context(project=project, api_token="irrelevant")

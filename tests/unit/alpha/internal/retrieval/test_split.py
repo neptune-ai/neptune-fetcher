@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from neptune_fetcher.alpha.internal import identifiers
@@ -64,20 +62,17 @@ def test_split_sys_ids(sys_ids, expected):
         (5, UUID_SIZE * 3, [3, 2]),
     ],
 )
-def test_split_sys_ids_custom_envs(given_num, query_size_limit, expected_nums):
-    try:
-        # given
-        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
-        sys_ids = [SYS_ID] * given_num
-        expected = [[SYS_ID] * num for num in expected_nums]
+def test_split_sys_ids_custom_envs(monkeypatch, given_num, query_size_limit, expected_nums):
+    # given
+    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
+    sys_ids = [SYS_ID] * given_num
+    expected = [[SYS_ID] * num for num in expected_nums]
 
-        # when
-        groups = list(split_sys_ids(sys_ids))
+    # when
+    groups = list(split_sys_ids(sys_ids))
 
-        # then
-        assert groups == expected
-    finally:
-        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
+    # then
+    assert groups == expected
 
 
 @pytest.mark.parametrize(
@@ -129,24 +124,20 @@ def test_split_sys_ids_attributes(sys_ids, attributes, expected):
     ],
 )
 def test_split_sys_ids_attributes_custom_envs(
-    sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums
+    monkeypatch, sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums
 ):
-    try:
-        # given
-        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
-        os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name] = str(values_batch_size)
-        sys_ids = [SYS_ID] * sys_id_num
-        attributes = [ATTRIBUTE_DEFINITION] * attribute_num
-        expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
+    # given
+    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
+    monkeypatch.setenv(NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name, str(values_batch_size))
+    sys_ids = [SYS_ID] * sys_id_num
+    attributes = [ATTRIBUTE_DEFINITION] * attribute_num
+    expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
 
-        # when
-        groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
+    # when
+    groups = list(split_sys_ids_attributes(sys_ids=sys_ids, attribute_definitions=attributes))
 
-        # then
-        assert groups == expected
-    finally:
-        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
-        del os.environ[NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name]
+    # then
+    assert groups == expected
 
 
 @pytest.mark.parametrize(
@@ -187,19 +178,15 @@ def test_split_series_attributes(attributes, expected):
         (3, 4 * ATTRIBUTE_DEFINITION_SIZE, 500, [3]),
     ],
 )
-def split_series_attributes_custom_envs(given_num, query_size_limit, batch_size, expected_nums):
+def split_series_attributes_custom_envs(monkeypatch, given_num, query_size_limit, batch_size, expected_nums):
     # given
-    try:
-        os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name] = str(query_size_limit)
-        os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name] = str(batch_size)
-        attributes = [ATTRIBUTE_DEFINITION] * given_num
-        expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
+    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
+    monkeypatch.setenv(NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name, str(batch_size))
+    attributes = [ATTRIBUTE_DEFINITION] * given_num
+    expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
 
-        # when
-        groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
+    # when
+    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
 
-        # then
-        assert groups == expected
-    finally:
-        del os.environ[NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name]
-        del os.environ[NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name]
+    # then
+    assert groups == expected
