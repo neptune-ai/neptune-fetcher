@@ -20,7 +20,7 @@ from neptune_fetcher.internal.filters import (
     Filter,
 )
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from tests.e2e.internal.data import (
+from tests.e2e.data import (
     NOW,
     PATH,
     TEST_DATA,

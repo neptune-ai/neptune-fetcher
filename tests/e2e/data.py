@@ -13,7 +13,7 @@ from datetime import (
 from neptune_scale.types import File
 
 TEST_DATA_VERSION = "2025-04-29"
-PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
+PATH = f"test/test-internal-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 NUMBER_OF_STEPS = 10
@@ -56,7 +56,7 @@ class TestData:
 
         if not self.experiments:
             for i in range(6):
-                experiment_name = f"test_alpha_{i}_{TEST_DATA_VERSION}"
+                experiment_name = f"test_internal_{i}_{TEST_DATA_VERSION}"
                 config = {
                     f"{PATH}/int-value": i,
                     f"{PATH}/float-value": float(i),

@@ -28,7 +28,7 @@ from neptune_fetcher.internal.retrieval.attribute_values import (
     AttributeValue,
     fetch_attribute_values,
 )
-from tests.e2e.internal.data import (
+from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
     NUMBER_OF_STEPS,
     PATH,

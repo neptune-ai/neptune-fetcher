@@ -11,7 +11,7 @@ from neptune_fetcher.internal.filters import (
     Filter,
 )
 from neptune_fetcher.internal.retrieval.search import ContainerType
-from tests.e2e.internal.data import (
+from tests.e2e.data import (
     PATH,
     TEST_DATA,
 )
