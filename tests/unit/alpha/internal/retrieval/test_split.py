@@ -28,7 +28,7 @@ UUID_SIZE = 50
 @pytest.mark.parametrize(
     "sys_ids, expected",
     [
-        ([], [[]]),
+        ([], []),
         ([SYS_ID], [[SYS_ID]]),
         (
             [SYS_IDS[0], SYS_IDS[1]],
@@ -47,7 +47,7 @@ def test_split_sys_ids(sys_ids, expected):
 @pytest.mark.parametrize(
     "given_num, query_size_limit, expected_nums",
     [
-        (0, 0, [0]),
+        (0, 0, []),
         (1, 0, [1]),
         (2, 0, [1, 1]),
         (3, UUID_SIZE * 2, [2, 1]),
