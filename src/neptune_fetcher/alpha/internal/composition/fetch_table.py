@@ -24,7 +24,7 @@ import pandas as pd
 
 from neptune_fetcher.alpha.filters import (
     Attribute,
-    AttributeFilter,
+    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
@@ -51,7 +51,7 @@ __all__ = ("fetch_table",)
 
 def fetch_table(
     filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     sort_by: Attribute,
     sort_direction: Literal["asc", "desc"],
     limit: Optional[int],

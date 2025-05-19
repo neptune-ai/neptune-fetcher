@@ -22,7 +22,7 @@ from typing import (
 import pandas as pd
 
 from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
+    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
@@ -50,7 +50,7 @@ from neptune_fetcher.alpha.internal.retrieval.search import ContainerType
 
 def download_files(
     filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     destination: pathlib.Path,
     context: Optional[Context],
     container_type: ContainerType,

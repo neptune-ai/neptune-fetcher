@@ -28,7 +28,7 @@ import pandas as pd
 from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
+    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
@@ -67,7 +67,7 @@ _PATHS_PER_BATCH: int = 10_000
 
 def fetch_metrics(
     filter_: Filter,
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
@@ -158,7 +158,7 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
 
 def _fetch_flat_dataframe_metrics(
     filter_: Filter,
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
     executor: Executor,

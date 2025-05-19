@@ -22,7 +22,7 @@ from typing import (
 )
 
 from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
+    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import client as _client
@@ -46,7 +46,7 @@ from neptune_fetcher.alpha.internal.retrieval import (
 
 def list_attributes(
     filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     context: Optional[Context],
     container_type: search.ContainerType,
 ) -> list[str]:

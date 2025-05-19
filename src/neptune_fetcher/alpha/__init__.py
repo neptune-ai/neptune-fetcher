@@ -75,7 +75,7 @@ def list_experiments(
 
 def list_attributes(
     experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.BaseAttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -106,7 +106,7 @@ def list_attributes(
 
 def fetch_metrics(
     experiments: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    attributes: Union[str, list[str], _filters.BaseAttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -162,7 +162,7 @@ def fetch_metrics(
 
 def fetch_experiments_table(
     experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
+    attributes: Union[str, list[str], _filters.BaseAttributeFilter] = "^sys/name$",
     sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
@@ -209,7 +209,7 @@ def fetch_experiments_table(
 
 def fetch_series(
     experiments: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    attributes: Union[str, list[str], _filters.BaseAttributeFilter],
     *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -258,7 +258,7 @@ def fetch_series(
 
 def download_files(
     experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    attributes: Optional[Union[str, list[str], _filters.BaseAttributeFilter]] = None,
     *,
     destination: Optional[str] = None,
     context: Optional[Context] = None,

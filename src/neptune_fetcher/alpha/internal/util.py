@@ -32,7 +32,7 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], _filters.Filter]]) 
 
 
 def resolve_experiments_filter(
-    experiments: Optional[Union[str, list[str], _filters.Filter]]
+    experiments: Optional[Union[str, list[str], _filters.Filter]],
 ) -> Optional[_filters.Filter]:
     if isinstance(experiments, str):
         return _filters.Filter.matches_all(_filters.Attribute("sys/name", type="string"), experiments)
@@ -42,9 +42,9 @@ def resolve_experiments_filter(
 
 
 def resolve_attributes_filter(
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]],
+    attributes: Optional[Union[str, list[str], _filters.BaseAttributeFilter]],
     forced_type: Optional[list[_filters.ATTRIBUTE_LITERAL]] = None,
-) -> _filters.AttributeFilter:
+) -> _filters.BaseAttributeFilter:
     if forced_type is None:
         if attributes is None:
             return _filters.AttributeFilter()
@@ -52,7 +52,11 @@ def resolve_attributes_filter(
             return _filters.AttributeFilter(name_matches_all=attributes)
         if isinstance(attributes, list):
             return _filters.AttributeFilter(name_eq=attributes)
-        return attributes
+        if isinstance(attributes, _filters.BaseAttributeFilter):
+            return attributes
+        raise ValueError(
+            f"Invalid type for attributes: {type(attributes)}. Expected str, list, or BaseAttributeFilter."
+        )
     else:
         if attributes is None:
             return _filters.AttributeFilter(type_in=forced_type)
@@ -60,7 +64,13 @@ def resolve_attributes_filter(
             return _filters.AttributeFilter(name_matches_all=attributes, type_in=forced_type)
         if isinstance(attributes, list):
             return _filters.AttributeFilter(name_eq=attributes, type_in=forced_type)
-        return attributes
+        if isinstance(attributes, _filters.BaseAttributeFilter):
+            # TODO: no forcing type here? Should this be limited somehow?
+            #  For _AllAttributesFilter, should we iterate over all sub-attributes and force type on them?
+            return attributes
+        raise ValueError(
+            f"Invalid type for attributes: {type(attributes)}. Expected str, list, or BaseAttributeFilter."
+        )
 
 
 def resolve_sort_by(sort_by: Union[str, _filters.Attribute]) -> _filters.Attribute:

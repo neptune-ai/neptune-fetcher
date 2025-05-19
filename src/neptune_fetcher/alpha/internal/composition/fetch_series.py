@@ -22,7 +22,7 @@ from typing import (
 import pandas as pd
 
 from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
+    BaseAttributeFilter,
     Filter,
 )
 from neptune_fetcher.alpha.internal import identifiers
@@ -50,7 +50,7 @@ __all__ = ("fetch_series",)
 
 def fetch_series(
     filter_: Filter,
-    attributes: AttributeFilter,
+    attributes: BaseAttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
