@@ -11,8 +11,8 @@ import pytz
 
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.internal.filters import (
-    Attribute,
-    Filter,
+    AttributeInternal,
+    FilterInternal,
 )
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.internal.retrieval import util
@@ -78,14 +78,14 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = Filter.name_eq(EXPERIMENT_NAME)
+    experiment_filter = FilterInternal.name_eq(EXPERIMENT_NAME)
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
     assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
-    experiment_filter = Filter.name_in(EXPERIMENT_NAME, "experiment_not_found")
+    experiment_filter = FilterInternal.name_in(EXPERIMENT_NAME, "experiment_not_found")
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
@@ -97,7 +97,7 @@ def test_find_experiments_by_name_not_found(client, project):
     project_identifier = project.project_identifier
 
     #  when
-    experiment_filter = Filter.name_eq("name_not_found")
+    experiment_filter = FilterInternal.name_eq("name_not_found")
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then
@@ -107,99 +107,99 @@ def test_find_experiments_by_name_not_found(client, project):
 @pytest.mark.parametrize(
     "experiment_filter,found",
     [
-        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
-        (Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1), False),
-        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
-        (Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 1), True),
-        (Filter.ge(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
-        (Filter.gt(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
-        (Filter.le(Attribute(name=f"{PATH}/int-value", type="int"), 0), True),
-        (Filter.lt(Attribute(name=f"{PATH}/int-value", type="int"), 0), False),
-        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
-        (Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1), False),
-        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
-        (Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.1), True),
-        (Filter.ge(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
-        (Filter.gt(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
-        (Filter.le(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), True),
-        (Filter.lt(Attribute(name=f"{PATH}/float-value", type="float"), 0.0), False),
-        (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), True),
-        (Filter.eq(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), False),
-        (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "True"), False),
-        (Filter.ne(Attribute(name=f"{PATH}/bool-value", type="bool"), "False"), True),
-        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello_0"), True),
-        (Filter.eq(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), False),
-        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello_0"), False),
-        (Filter.ne(Attribute(name=f"{PATH}/str-value", type="string"), "hello2"), True),
-        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), "^he..o_0$"), True),
-        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "lo_0$"]), True),
-        (Filter.matches_all(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
-        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
-        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
-        (Filter.matches_none(Attribute(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
-        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), "ll"), True),
-        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["e", "ll"]), True),
-        (Filter.contains_all(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
-        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), "x"), True),
-        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
-        (Filter.contains_none(Attribute(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
-        (Filter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (Filter.eq(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), False),
-        (Filter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (Filter.ne(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), True),
-        (Filter.ge(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (Filter.gt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (Filter.le(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
-        (Filter.lt(Attribute(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
-        (Filter.exists(Attribute(name=f"{PATH}/str-value", type="string")), True),
-        (Filter.exists(Attribute(name=f"{PATH}/str-value", type="int")), False),
-        (Filter.exists(Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1), True),
+        (FilterInternal.ge(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), True),
+        (FilterInternal.gt(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), False),
+        (FilterInternal.le(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), True),
+        (FilterInternal.lt(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0), False),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1), True),
+        (FilterInternal.ge(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (FilterInternal.gt(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), False),
+        (FilterInternal.le(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), True),
+        (FilterInternal.lt(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0), False),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/bool-value", type="bool"), "True"), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/bool-value", type="bool"), "False"), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/bool-value", type="bool"), "True"), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/bool-value", type="bool"), "False"), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/str-value", type="string"), "hello_0"), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/str-value", type="string"), "hello2"), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/str-value", type="string"), "hello_0"), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/str-value", type="string"), "hello2"), True),
+        (FilterInternal.matches_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), "^he..o_0$"), True),
+        (FilterInternal.matches_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["^he", "lo_0$"]), True),
+        (FilterInternal.matches_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
+        (FilterInternal.matches_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), "x"), True),
+        (FilterInternal.matches_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
+        (FilterInternal.matches_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["^he", "y"]), False),
+        (FilterInternal.contains_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), "ll"), True),
+        (FilterInternal.contains_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["e", "ll"]), True),
+        (FilterInternal.contains_all(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
+        (FilterInternal.contains_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), "x"), True),
+        (FilterInternal.contains_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["x", "y"]), True),
+        (FilterInternal.contains_none(AttributeInternal(name=f"{PATH}/str-value", type="string"), ["he", "y"]), False),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (FilterInternal.eq(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (FilterInternal.ne(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE2), True),
+        (FilterInternal.ge(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (FilterInternal.gt(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (FilterInternal.le(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), True),
+        (FilterInternal.lt(AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE), False),
+        (FilterInternal.exists(AttributeInternal(name=f"{PATH}/str-value", type="string")), True),
+        (FilterInternal.exists(AttributeInternal(name=f"{PATH}/str-value", type="int")), False),
+        (FilterInternal.exists(AttributeInternal(name=f"{PATH}/does-not-exist-value", type="string")), False),
         # (Filter.exists(Attribute(name=f"{PATH}/files/file-value.txt", type="file")), True),
         # TODO - FILE not supported in nql
-        (Filter.exists(Attribute(name=f"{PATH}/files/file-value.txt", type="int")), False),
+        (FilterInternal.exists(AttributeInternal(name=f"{PATH}/files/file-value.txt", type="int")), False),
         # (Filter.exists(Attribute(name=f"{PATH}/files/does-not-exist-value.txt", type="file")), False),
         # TODO - FILE not supported in nql
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 DATETIME_VALUE.astimezone(pytz.timezone("CET")),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 (DATETIME_VALUE + ONE_SECOND).astimezone(pytz.timezone("CET")),
             ),
-            False,
+                False,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 DATETIME_VALUE.astimezone(pytz.timezone("EST")),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 (DATETIME_VALUE + ONE_SECOND).astimezone(pytz.timezone("EST")),
             ),
-            False,
+                False,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 DATETIME_VALUE.astimezone(SYSTEM_TZ).replace(tzinfo=None),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=f"{PATH}/datetime-value", type="datetime"),
+                FilterInternal.eq(
+                AttributeInternal(name=f"{PATH}/datetime-value", type="datetime"),
                 (DATETIME_VALUE + ONE_SECOND).astimezone(SYSTEM_TZ).replace(tzinfo=None),
             ),
-            False,
+                False,
         ),
     ],
 )
@@ -221,119 +221,119 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
     "experiment_filter,found",
     [
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-2],
             ),
-            False,
+                False,
         ),
         (
-            Filter.ne(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
+                FilterInternal.ne(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="last"),
                 FLOAT_SERIES_VALUES[-1],
             ),
-            False,
+                False,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES) + 1,
             ),
-            False,
+                False,
         ),
         (
-            Filter.ne(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
+                FilterInternal.ne(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="min"),
                 min(FLOAT_SERIES_VALUES),
             ),
-            False,
+                False,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES) + 1,
             ),
-            False,
+                False,
         ),
         (
-            Filter.ne(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
+                FilterInternal.ne(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="max"),
                 max(FLOAT_SERIES_VALUES),
             ),
-            False,
+                False,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES) + 1.0,
             ),
-            False,
+                False,
         ),
         (
-            Filter.ne(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
+                FilterInternal.ne(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="average"),
                 sum(FLOAT_SERIES_VALUES) / len(FLOAT_SERIES_VALUES),
             ),
-            False,
+                False,
         ),
         (
-            Filter.ge(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                FilterInternal.ge(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
                 _variance(FLOAT_SERIES_VALUES) - 1e-6,
             )
-            & Filter.le(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                & FilterInternal.le(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
                 _variance(FLOAT_SERIES_VALUES) + 1e-6,
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                FilterInternal.eq(
+                AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
                 _variance(FLOAT_SERIES_VALUES) + 1,
             ),
-            False,
+                False,
         ),
         (
-            Filter.negate(
-                Filter.ge(
-                    Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                FilterInternal.negate(
+                    FilterInternal.ge(
+                    AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
                     _variance(FLOAT_SERIES_VALUES) - 1e-6,
                 )
-                & Filter.le(
-                    Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                    & FilterInternal.le(
+                    AttributeInternal(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
                     _variance(FLOAT_SERIES_VALUES) + 1e-6,
                 )
             ),
-            False,
+                False,
         ),
     ],
 )
@@ -355,21 +355,21 @@ def test_find_experiments_by_float_series_values(client, project, run_with_attri
     "experiment_filter,found",
     [
         (
-            Filter.exists(
-                Attribute(name=STRING_SERIES_PATHS[0], type="string_series"),
+                FilterInternal.exists(
+                AttributeInternal(name=STRING_SERIES_PATHS[0], type="string_series"),
             ),
-            True,
+                True,
         ),
         (
-            Filter.eq(Attribute(name=STRING_SERIES_PATHS[0], type="string_series"), STRING_SERIES_VALUES[-1]),
-            True,
+                FilterInternal.eq(AttributeInternal(name=STRING_SERIES_PATHS[0], type="string_series"), STRING_SERIES_VALUES[-1]),
+                True,
         ),
         (
-            Filter.eq(
-                Attribute(name=STRING_SERIES_PATHS[0], type="string_series"),
+                FilterInternal.eq(
+                AttributeInternal(name=STRING_SERIES_PATHS[0], type="string_series"),
                 STRING_SERIES_VALUES[-2],
             ),
-            False,
+                False,
         ),
     ],
 )
@@ -391,139 +391,139 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
     "experiment_filter,found",
     [
         (
-            Filter.all(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.all(
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            True,
+                True,
         ),
         (
-            Filter.all(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.all(
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            False,
+                False,
         ),
         (
-            Filter.all(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.all(
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            False,
+                False,
         ),
         (
-            Filter.all(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.all(
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            False,
+                False,
         ),
         (
-            Filter.any(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.any(
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            True,
+                True,
         ),
         (
-            Filter.any(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.any(
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            True,
+                True,
         ),
         (
-            Filter.any(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.any(
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            True,
+                True,
         ),
         (
-            Filter.any(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                Filter.ne(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.any(
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
             ),
-            False,
+                False,
         ),
         (
-            Filter.negate(
-                Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.negate(
+                FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
             ),
-            False,
+                False,
         ),
         (
-            Filter.negate(
-                Filter.ne(Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                FilterInternal.negate(
+                FilterInternal.ne(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
             ),
-            True,
+                True,
         ),
         (
-            Filter.all(
-                Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.all(
+                FilterInternal.any(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
-                Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-                ),
-            ),
-            True,
-        ),
-        (
-            Filter.all(
-                Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
-                Filter.any(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.any(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
                 ),
             ),
-            False,
+                True,
         ),
         (
-            Filter.any(
-                Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                FilterInternal.all(
+                FilterInternal.any(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
-                Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.any(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
             ),
-            True,
+                False,
         ),
         (
-            Filter.any(
-                Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.any(
+                FilterInternal.all(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.0),
                 ),
-                Filter.all(
-                    Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.all(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                 ),
             ),
-            False,
+                True,
         ),
         (
-            Filter.negate(
-                Filter.any(
-                    Filter.all(
-                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                FilterInternal.any(
+                FilterInternal.all(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
+                ),
+                FilterInternal.all(
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1),
+                    FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
+                ),
+            ),
+                False,
+        ),
+        (
+                FilterInternal.negate(
+                FilterInternal.any(
+                    FilterInternal.all(
+                        FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 0),
+                        FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                     ),
-                    Filter.all(
-                        Filter.eq(Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                        Filter.eq(Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                    FilterInternal.all(
+                        FilterInternal.eq(AttributeInternal(name=f"{PATH}/int-value", type="int"), 1),
+                        FilterInternal.eq(AttributeInternal(name=f"{PATH}/float-value", type="float"), 0.1),
                     ),
                 )
             ),
-            True,
+                True,
         ),
     ],
 )
@@ -551,7 +551,7 @@ def test_find_experiments_sort_by_name_desc(client, project, run_with_attributes
             client,
             project_identifier,
             filter_=None,
-            sort_by=Attribute("sys/name", type="string"),
+            sort_by=AttributeInternal("sys/name", type="string"),
             sort_direction="desc",
         )
     )
@@ -571,7 +571,7 @@ def test_find_experiments_sort_by_name_asc(client, project, run_with_attributes)
             client,
             project_identifier,
             filter_=None,
-            sort_by=Attribute("sys/name", type="string"),
+            sort_by=AttributeInternal("sys/name", type="string"),
             sort_direction="asc",
         )
     )
@@ -591,7 +591,7 @@ def test_find_experiments_sort_by_aggregate(client, project, run_with_attributes
             client,
             project_identifier,
             filter_=None,
-            sort_by=Attribute(f"{PATH}/float-series-value", type="float_series"),
+            sort_by=AttributeInternal(f"{PATH}/float-series-value", type="float_series"),
         )
     )
 

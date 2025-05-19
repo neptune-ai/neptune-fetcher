@@ -24,7 +24,7 @@ from neptune_fetcher.api.api_client import (
 )
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.internal.filters import Filter
+from neptune_fetcher.internal.filters import FilterInternal
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 from tests.e2e.data import (
     NOW,
@@ -198,7 +198,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
-                Filter.name_in(experiment.name),
+                FilterInternal.name_in(experiment.name),
             )
         )
         if existing.items:
@@ -234,7 +234,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project.project_identifier),
-                Filter.name_in(*TEST_DATA.experiment_names),
+                FilterInternal.name_in(*TEST_DATA.experiment_names),
             )
         )
 

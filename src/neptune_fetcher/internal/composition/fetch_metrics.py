@@ -41,8 +41,8 @@ from neptune_fetcher.internal.context import (
     validate_context,
 )
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
-    Filter,
+    AttributeFilterInternal,
+    FilterInternal,
 )
 from neptune_fetcher.internal.identifiers import RunIdentifier as ExpId
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
@@ -66,8 +66,8 @@ _PATHS_PER_BATCH: int = 10_000
 
 
 def fetch_metrics(
-    filter_: Filter,
-    attributes: AttributeFilter,
+    filter_: FilterInternal,
+    attributes: AttributeFilterInternal,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
@@ -157,8 +157,8 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
 
 
 def _fetch_flat_dataframe_metrics(
-    filter_: Filter,
-    attributes: AttributeFilter,
+    filter_: FilterInternal,
+    attributes: AttributeFilterInternal,
     client: AuthenticatedClient,
     project: identifiers.ProjectIdentifier,
     executor: Executor,

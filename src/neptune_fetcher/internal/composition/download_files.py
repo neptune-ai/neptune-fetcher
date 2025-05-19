@@ -37,8 +37,8 @@ from neptune_fetcher.internal.context import (
     validate_context,
 )
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
-    Filter,
+    AttributeFilterInternal,
+    FilterInternal,
 )
 from neptune_fetcher.internal.retrieval import (
     attribute_definitions,
@@ -49,8 +49,8 @@ from neptune_fetcher.internal.retrieval.search import ContainerType
 
 
 def download_files(
-    filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    filter_: Optional[FilterInternal],
+    attributes: AttributeFilterInternal,
     destination: pathlib.Path,
     context: Optional[Context],
     container_type: ContainerType,

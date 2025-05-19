@@ -10,7 +10,7 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
-from neptune_fetcher.internal.filters import AttributeFilter
+from neptune_fetcher.internal.filters import AttributeFilterInternal
 from neptune_fetcher.internal.identifiers import (
     ProjectIdentifier,
     RunIdentifier,
@@ -43,7 +43,7 @@ def test_fetch_attribute_definitions_project_does_not_exist(client, project):
     workspace, project = project.project_identifier.split("/")
     project_identifier = ProjectIdentifier(f"{workspace}/does-not-exist")
 
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     with pytest.raises(NeptuneProjectInaccessible):
         _extract_pages(
             fetch_attribute_definitions_single_filter(
@@ -58,7 +58,7 @@ def test_fetch_attribute_definitions_project_does_not_exist(client, project):
 def test_fetch_attribute_definitions_workspace_does_not_exist(client, project):
     project_identifier = ProjectIdentifier("this-workspace/does-not-exist")
 
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     with pytest.raises(NeptuneProjectInaccessible):
         _extract_pages(
             fetch_attribute_definitions_single_filter(
@@ -75,7 +75,7 @@ def test_fetch_attribute_definitions_single_string(client, project, experiment_i
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client, [project_identifier], [experiment_identifier], attribute_filter=attribute_filter
@@ -91,7 +91,7 @@ def test_fetch_attribute_definitions_does_not_exist(client, project, experiment_
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="does-not-exist", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="does-not-exist", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -110,7 +110,7 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq=["sys/name", "sys/owner"], type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq=["sys/name", "sys/owner"], type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -136,7 +136,7 @@ def test_fetch_attribute_definitions_single_float_series(client, project, experi
     path = FLOAT_SERIES_PATHS[0]
 
     #  when
-    attribute_filter = AttributeFilter(name_eq=path, type_in=["float_series"])
+    attribute_filter = AttributeFilterInternal(name_eq=path, type_in=["float_series"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -156,7 +156,7 @@ def test_fetch_attribute_definitions_single_string_series(client, project, exper
     path = STRING_SERIES_PATHS[0]
 
     #  when
-    attribute_filter = AttributeFilter(name_eq=path, type_in=["string_series"])
+    attribute_filter = AttributeFilterInternal(name_eq=path, type_in=["string_series"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -186,7 +186,7 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
     ]
 
     #  when
-    attribute_filter = AttributeFilter(name_eq=[name for name, _ in all_attrs])
+    attribute_filter = AttributeFilterInternal(name_eq=[name for name, _ in all_attrs])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -206,7 +206,7 @@ def test_fetch_attribute_definitions_no_type_in(client, project, experiment_iden
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name")
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name")
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -225,7 +225,7 @@ def test_fetch_attribute_definitions_regex_matches_all(client, project, experime
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = AttributeFilterInternal(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -251,7 +251,7 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(
+    attribute_filter = AttributeFilterInternal(
         name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
     )
     attributes = _extract_pages(
@@ -279,7 +279,7 @@ def test_fetch_attribute_definitions_multiple_projects(client, project, experime
     project_identifier_2 = f"{project_identifier}-does-not-exist"
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -298,7 +298,7 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = AttributeFilterInternal(name_matches_all="sys/.*_time", type_in=["datetime"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -325,7 +325,7 @@ def test_fetch_attribute_definitions_experiment_identifier_none(client, project,
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -344,7 +344,7 @@ def test_fetch_attribute_definitions_experiment_identifier_empty(client, project
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -567,7 +567,7 @@ def test_fetch_attribute_definitions_experiment_large_number_experiment_identifi
     experiment_identifiers = [experiment_identifier] + _generate_experiment_identifiers(project_identifier, 240 * 1024)
 
     #  when
-    attribute_filter = AttributeFilter(name_eq="sys/name", type_in=["string"])
+    attribute_filter = AttributeFilterInternal(name_eq="sys/name", type_in=["string"])
     attributes = _extract_pages(
         fetch_attribute_definitions_single_filter(
             client,

@@ -21,14 +21,14 @@ from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.internal.filters import Filter
+from neptune_fetcher.internal.filters import FilterInternal
 from neptune_fetcher.internal.retrieval import search
 
 __all__ = ("list_containers",)
 
 
 def list_containers(
-    filter_: Optional[Filter],
+    filter_: Optional[FilterInternal],
     context: Optional[_context.Context],
     container_type: search.ContainerType,
 ) -> list[str]:

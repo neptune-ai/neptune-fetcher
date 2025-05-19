@@ -34,8 +34,8 @@ from neptune_fetcher.internal.context import (
     validate_context,
 )
 from neptune_fetcher.internal.filters import (
-    AttributeFilter,
-    Filter,
+    AttributeFilterInternal,
+    FilterInternal,
 )
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import (
@@ -45,8 +45,8 @@ from neptune_fetcher.internal.retrieval import (
 
 
 def list_attributes(
-    filter_: Optional[Filter],
-    attributes: AttributeFilter,
+    filter_: Optional[FilterInternal],
+    attributes: AttributeFilterInternal,
     context: Optional[Context],
     container_type: search.ContainerType,
 ) -> list[str]:

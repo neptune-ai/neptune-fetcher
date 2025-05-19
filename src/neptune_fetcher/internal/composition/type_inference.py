@@ -44,7 +44,7 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
+    filter_: Optional[filters.FilterInternal],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
@@ -78,8 +78,8 @@ def infer_attribute_types_in_filter(
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
-    sort_by: filters.Attribute,
+    filter_: Optional[filters.FilterInternal],
+    sort_by: filters.AttributeInternal,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
@@ -108,7 +108,7 @@ def infer_attribute_types_in_sort_by(
 
 
 def _infer_attribute_types_from_attribute(
-    attributes: Iterable[filters.Attribute],
+    attributes: Iterable[filters.AttributeInternal],
 ) -> None:
     for attribute in attributes:
         matches = []
@@ -123,13 +123,13 @@ def _infer_attribute_types_from_attribute(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters.Filter],
-    attributes: Iterable[filters.Attribute],
+    filter_: Optional[filters.FilterInternal],
+    attributes: Iterable[filters.AttributeInternal],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
 ) -> None:
-    attribute_filter_by_name = filters.AttributeFilter(name_eq=list({attr.name for attr in attributes}))
+    attribute_filter_by_name = filters.AttributeFilterInternal(name_eq=list({attr.name for attr in attributes}))
 
     output = _components.fetch_attribute_definitions_complete(
         client=client,
@@ -161,20 +161,20 @@ def _infer_attribute_types_from_api(
 
 
 def _filter_untyped(
-    attributes: Iterable[filters.Attribute],
-) -> list[filters.Attribute]:
+    attributes: Iterable[filters.AttributeInternal],
+) -> list[filters.AttributeInternal]:
     return [attr for attr in attributes if attr.type is None]
 
 
-def _walk_attributes(experiment_filter: filters.Filter) -> Iterable[filters.Attribute]:
-    if isinstance(experiment_filter, filters._AttributeValuePredicate):
+def _walk_attributes(experiment_filter: filters.FilterInternal) -> Iterable[filters.AttributeInternal]:
+    if isinstance(experiment_filter, filters._AttributeValuePredicateInternal):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AttributePredicate):
+    elif isinstance(experiment_filter, filters._AttributePredicateInternal):
         yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AssociativeOperator):
+    elif isinstance(experiment_filter, filters._AssociativeOperatorInternal):
         for child in experiment_filter.filters:
             yield from _walk_attributes(child)
-    elif isinstance(experiment_filter, filters._PrefixOperator):
+    elif isinstance(experiment_filter, filters._PrefixOperatorInternal):
         yield from _walk_attributes(experiment_filter.filter_)
     else:
         raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")

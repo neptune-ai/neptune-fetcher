@@ -12,9 +12,9 @@ from neptune_fetcher.alpha import (
 )
 from neptune_fetcher.internal import env
 from neptune_fetcher.internal.filters import (
-    Attribute,
-    AttributeFilter,
-    Filter,
+    AttributeInternal,
+    AttributeFilterInternal,
+    FilterInternal,
 )
 from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
@@ -29,8 +29,8 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 @pytest.mark.parametrize("sort_direction", ["asc", "desc"])
 def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     df = fetch_experiments_table(
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
-        sort_by=Attribute("sys/name", type="string"),
+        experiments=FilterInternal.name_in(*[exp.name for exp in TEST_DATA.experiments]),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction=sort_direction,
         context=_context(project),
     )
@@ -52,10 +52,10 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     [
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
         [TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)],
-        Filter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
-        Filter.name_eq(TEST_DATA.exp_name(0))
-        | Filter.name_eq(TEST_DATA.exp_name(1))
-        | Filter.name_eq(TEST_DATA.exp_name(2)),
+        FilterInternal.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
+        FilterInternal.name_eq(TEST_DATA.exp_name(0))
+        | FilterInternal.name_eq(TEST_DATA.exp_name(1))
+        | FilterInternal.name_eq(TEST_DATA.exp_name(2)),
     ],
 )
 @pytest.mark.parametrize(
@@ -63,14 +63,14 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     [
         f"{PATH}/int-value|{PATH}/float-value|{PATH}/metrics/step",
         [f"{PATH}/int-value", f"{PATH}/float-value", f"{PATH}/metrics/step"],
-        AttributeFilter.any(
-            AttributeFilter(f"{PATH}/int-value", type_in=["int"]),
-            AttributeFilter(f"{PATH}/float-value", type_in=["float"]),
-            AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+        AttributeFilterInternal.any(
+            AttributeFilterInternal(f"{PATH}/int-value", type_in=["int"]),
+            AttributeFilterInternal(f"{PATH}/float-value", type_in=["float"]),
+            AttributeFilterInternal(f"{PATH}/metrics/step", type_in=["float_series"]),
         ),
-        AttributeFilter(f"{PATH}/int-value", type_in=["int"])
-        | AttributeFilter(f"{PATH}/float-value", type_in=["float"])
-        | AttributeFilter(f"{PATH}/metrics/step", type_in=["float_series"]),
+        AttributeFilterInternal(f"{PATH}/int-value", type_in=["int"])
+        | AttributeFilterInternal(f"{PATH}/float-value", type_in=["float"])
+        | AttributeFilterInternal(f"{PATH}/metrics/step", type_in=["float_series"]),
     ],
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -78,7 +78,7 @@ def test__fetch_experiments_table_with_attributes_filter(
     project, run_with_attributes, attr_filter, experiment_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
-        sort_by=Attribute("sys/name", type="string"),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction="asc",
         experiments=experiment_filter,
         attributes=attr_filter,
@@ -108,20 +108,20 @@ def test__fetch_experiments_table_with_attributes_filter(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(
+        AttributeFilterInternal(
             f"{PATH}/metrics/step", type_in=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
         )
-        | AttributeFilter(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
-        | AttributeFilter(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
+        | AttributeFilterInternal(FLOAT_SERIES_PATHS[0], type_in=["float_series"], aggregations=["average", "variance"])
+        | AttributeFilterInternal(FLOAT_SERIES_PATHS[1], type_in=["float_series"]),
     ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
-        sort_by=Attribute("sys/name", type="string"),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        experiments=FilterInternal.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=_context(project),
@@ -167,17 +167,17 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["last"])
-        | AttributeFilter(f"{PATH}/metrics/string-series-value_1", type_in=["string_series"])
+        AttributeFilterInternal(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["last"])
+        | AttributeFilterInternal(f"{PATH}/metrics/string-series-value_1", type_in=["string_series"])
     ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_series(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
-        sort_by=Attribute("sys/name", type="string"),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        experiments=FilterInternal.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=_context(project),
@@ -203,15 +203,15 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
 
 @pytest.mark.parametrize(
     "attr_filter",
-    [AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
+    [AttributeFilterInternal(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggregation(
     project, run_with_attributes, attr_filter
 ):
     df = fetch_experiments_table(
-        sort_by=Attribute("sys/name", type="string"),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        experiments=FilterInternal.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         attributes=attr_filter,
         type_suffix_in_column_names=True,
         context=_context(project),
@@ -223,8 +223,8 @@ def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggreg
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
-        AttributeFilter(
+        AttributeFilterInternal(name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
+        AttributeFilterInternal(
             name_matches_all=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
             name_matches_none=".*value_[5-9].*",
         ),
@@ -235,9 +235,9 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
-        sort_by=Attribute("sys/name", type="string"),
+        sort_by=AttributeInternal("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        experiments=FilterInternal.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=_context(project),
@@ -275,7 +275,7 @@ def _context(project):
         (".*", TEST_DATA.experiment_names),
         ("", TEST_DATA.experiment_names),
         ("test_alpha", TEST_DATA.experiment_names),
-        (Filter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
+        (FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
     ],
 )
 def test_list_experiments_with_regex_and_filters_matching_all(project, regex, expected_subset):
@@ -308,120 +308,120 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
 @pytest.mark.parametrize(
     "filter_, expected",
     [
-        (Filter.eq(Attribute("sys/name", type="string"), ""), []),
-        (Filter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
+        (FilterInternal.eq(AttributeInternal("sys/name", type="string"), ""), []),
+        (FilterInternal.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
         (
-            Filter.matches_all(Attribute("sys/name", type="string"), [f"alpha.*{TEST_DATA_VERSION}", "_3"]),
-            [f"test_alpha_3" f"_{TEST_DATA_VERSION}"],
+                FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), [f"alpha.*{TEST_DATA_VERSION}", "_3"]),
+                [f"test_alpha_3" f"_{TEST_DATA_VERSION}"],
         ),
         (TEST_DATA.experiment_names, TEST_DATA.experiment_names),
         (
-            Filter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"])
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [
+                FilterInternal.matches_none(AttributeInternal("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"])
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [
                 f"test_alpha_0_{TEST_DATA_VERSION}",
                 f"test_alpha_1_{TEST_DATA_VERSION}",
                 f"test_alpha_2_{TEST_DATA_VERSION}",
             ],
         ),
-        (Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_123"), []),
+        (FilterInternal.eq(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_123"), []),
         (
-            Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_1_{TEST_DATA_VERSION}"],
+                FilterInternal.eq(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_1")
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
-            (
-                Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
-                | Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
+                (
+                        FilterInternal.eq(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_1")
+                        | FilterInternal.eq(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_2")
             )
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_1_{TEST_DATA_VERSION}", f"test_alpha_2_{TEST_DATA_VERSION}"],
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_1_{TEST_DATA_VERSION}", f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
         (
-            Filter.ne(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
-            & Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_2_{TEST_DATA_VERSION}"],
+                FilterInternal.ne(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_1")
+                & FilterInternal.eq(AttributeInternal(f"{PATH}/str-value", type="string"), "hello_2")
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
-        (Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 12345), []),
+        (FilterInternal.eq(AttributeInternal(f"{PATH}/int-value", type="int"), 12345), []),
         (
-            Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_2_{TEST_DATA_VERSION}"],
-        ),
-        (
-            Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
-            | Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 3)
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_2_{TEST_DATA_VERSION}", f"test_alpha_3_{TEST_DATA_VERSION}"],
-        ),
-        (Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 1.2345), []),
-        (
-            Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 3)
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_3_{TEST_DATA_VERSION}"],
+                FilterInternal.eq(AttributeInternal(f"{PATH}/int-value", type="int"), 2)
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
         (
-            Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False)
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [
+                FilterInternal.eq(AttributeInternal(f"{PATH}/int-value", type="int"), 2)
+                | FilterInternal.eq(AttributeInternal(f"{PATH}/int-value", type="int"), 3)
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_2_{TEST_DATA_VERSION}", f"test_alpha_3_{TEST_DATA_VERSION}"],
+        ),
+        (FilterInternal.eq(AttributeInternal(f"{PATH}/float-value", type="float"), 1.2345), []),
+        (
+                FilterInternal.eq(AttributeInternal(f"{PATH}/float-value", type="float"), 3)
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_3_{TEST_DATA_VERSION}"],
+        ),
+        (
+                FilterInternal.eq(AttributeInternal(f"{PATH}/bool-value", type="bool"), False)
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [
                 f"test_alpha_1_{TEST_DATA_VERSION}",
                 f"test_alpha_3_{TEST_DATA_VERSION}",
                 f"test_alpha_5_{TEST_DATA_VERSION}",
             ],
         ),
         (
-            Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), True)
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [
+                FilterInternal.eq(AttributeInternal(f"{PATH}/bool-value", type="bool"), True)
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [
                 f"test_alpha_0_{TEST_DATA_VERSION}",
                 f"test_alpha_2_{TEST_DATA_VERSION}",
                 f"test_alpha_4_{TEST_DATA_VERSION}",
             ],
         ),
-        (Filter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
+        (FilterInternal.gt(AttributeInternal(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
         (
-            Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "no-such-string"),
-            [],
+                FilterInternal.contains_all(AttributeInternal(f"{PATH}/string_set-value", type="string_set"), "no-such-string"),
+                [],
         ),
         (
-            Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-1-0", "string-1-1"])
-            & Filter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
-            [f"test_alpha_1_{TEST_DATA_VERSION}"],
+                FilterInternal.contains_all(AttributeInternal(f"{PATH}/string_set-value", type="string_set"), ["string-1-0", "string-1-1"])
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), TEST_DATA_VERSION),
+                [f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
-            (
-                Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-1-0")
-                | Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
+                (
+                        FilterInternal.contains_all(AttributeInternal(f"{PATH}/string_set-value", type="string_set"), "string-1-0")
+                        | FilterInternal.contains_all(AttributeInternal(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
             )
-            & Filter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
-            [f"test_alpha_0_{TEST_DATA_VERSION}", f"test_alpha_1_{TEST_DATA_VERSION}"],
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), TEST_DATA_VERSION),
+                [f"test_alpha_0_{TEST_DATA_VERSION}", f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
-            Filter.contains_none(
-                Attribute(f"{PATH}/string_set-value", type="string_set"),
+                FilterInternal.contains_none(
+                AttributeInternal(f"{PATH}/string_set-value", type="string_set"),
                 ["string-1-0", "string-2-0", "string-3-0"],
             )
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [
                 f"test_alpha_0_{TEST_DATA_VERSION}",
                 f"test_alpha_4_{TEST_DATA_VERSION}",
                 f"test_alpha_5_{TEST_DATA_VERSION}",
             ],
         ),
         (
-            Filter.contains_none(
-                Attribute(f"{PATH}/string_set-value", type="string_set"),
+                FilterInternal.contains_none(
+                AttributeInternal(f"{PATH}/string_set-value", type="string_set"),
                 ["string-1-0", "string-2-0", "string-3-0"],
             )
-            & Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
-            & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
-            [f"test_alpha_0_{TEST_DATA_VERSION}"],
+                & FilterInternal.contains_all(AttributeInternal(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
+                & FilterInternal.matches_all(AttributeInternal("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
+                [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
         (
-            Filter.eq(Attribute("sys/name", type="string"), f"test_alpha_0_{TEST_DATA_VERSION}"),
-            [f"test_alpha_0_{TEST_DATA_VERSION}"],
+                FilterInternal.eq(AttributeInternal("sys/name", type="string"), f"test_alpha_0_{TEST_DATA_VERSION}"),
+                [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
         # (     TODO - FILE nto supported in nql
         #     Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),

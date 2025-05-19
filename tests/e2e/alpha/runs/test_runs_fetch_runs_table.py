@@ -10,9 +10,9 @@ import pytest
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal.filters import (
-    Attribute,
-    AttributeFilter,
-    Filter,
+    AttributeInternal,
+    AttributeFilterInternal,
+    FilterInternal,
 )
 
 
@@ -49,7 +49,7 @@ from neptune_fetcher.internal.filters import (
         ),
         (
             r"^linear_history_root$",
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
+            AttributeFilterInternal(name_matches_all=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
             {
                 "run": ["linear_history_root"],
                 ("foo0:float_series", "last"): [0.1 * 9],
@@ -61,8 +61,8 @@ from neptune_fetcher.internal.filters import (
         ),
         (
             "^linear_history_root$",
-            AttributeFilter(name_matches_all="foo0$", aggregations=["last", "min", "max", "average", "variance"])
-            | AttributeFilter(name_matches_all=".*-value$"),
+            AttributeFilterInternal(name_matches_all="foo0$", aggregations=["last", "min", "max", "average", "variance"])
+            | AttributeFilterInternal(name_matches_all=".*-value$"),
             {
                 "run": ["linear_history_root"],
                 ("int-value:int", ""): [1],
@@ -79,7 +79,7 @@ from neptune_fetcher.internal.filters import (
         ),
         (
             r"^linear_history_root$|^linear_history_fork2$",
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
+            AttributeFilterInternal(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
                 ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
@@ -92,9 +92,9 @@ from neptune_fetcher.internal.filters import (
             },
         ),
         (
-            ["linear_history_root", "linear_history_fork2"],
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
-            {
+                ["linear_history_root", "linear_history_fork2"],
+                AttributeFilterInternal(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
+                {
                 "run": ["linear_history_root", "linear_history_fork2"],
                 ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
                 ("foo0:float_series", "variance"): [
@@ -121,9 +121,9 @@ from neptune_fetcher.internal.filters import (
             },
         ),
         (
-            Filter.matches_all("sys/custom_run_id", r"forked_history_root|forked_history_fork1"),
+                FilterInternal.matches_all("sys/custom_run_id", r"forked_history_root|forked_history_fork1"),
             r".*-value$",
-            {
+                {
                 "run": ["forked_history_root", "forked_history_fork1"],
                 ("int-value:int", ""): [1, 2],
                 ("float-value:float", ""): [1.0, 2.0],
@@ -136,10 +136,10 @@ from neptune_fetcher.internal.filters import (
             },
         ),
         (
-            Filter.eq("sys/name", "exp_with_linear_history"),
-            # matches runs with experiment_name 'exp_with_linear_history'
+                FilterInternal.eq("sys/name", "exp_with_linear_history"),
+                # matches runs with experiment_name 'exp_with_linear_history'
             r".*-value$",
-            {
+                {
                 "run": ["linear_history_fork1", "linear_history_fork2", "linear_history_root"],
                 ("int-value:int", ""): [2, 3, 1],
                 ("float-value:float", ""): [2.0, 3.0, 1.0],
@@ -153,9 +153,9 @@ from neptune_fetcher.internal.filters import (
             },
         ),
         (
-            Filter.exists(Attribute("str-value", type="string")),  # matches runs that have config 'str-value'
+                FilterInternal.exists(AttributeInternal("str-value", type="string")),  # matches runs that have config 'str-value'
             r".*-value$",
-            {
+                {
                 "run": [
                     "forked_history_fork1",
                     "forked_history_fork2",
@@ -191,7 +191,7 @@ def test_fetch_runs_table(
     df = runs.fetch_runs_table(
         runs=runs_filter,
         attributes=attributes_filter,
-        sort_by=Attribute("sys/custom_run_id", type="string"),
+        sort_by=AttributeInternal("sys/custom_run_id", type="string"),
         sort_direction="desc",
         context=new_project_context,
         type_suffix_in_column_names=type_suffix_in_column_names,

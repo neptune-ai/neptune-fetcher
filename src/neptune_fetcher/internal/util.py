@@ -1,3 +1,13 @@
+
+
+
+
+
+# This entire file is alpha-specific and needs to be moved to top-level.
+
+
+
+
 #
 # Copyright (c) 2025, Neptune Labs Sp. z o.o.
 #
@@ -18,7 +28,8 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.internal import filters as _filters
+
+from neptune_fetcher.alpha import filters as _filters
 
 
 def resolve_runs_filter(runs: Optional[Union[str, list[str], _filters.Filter]]) -> Optional[_filters.Filter]:

@@ -3,8 +3,8 @@ import pytest
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal.filters import (
-    Attribute,
-    Filter,
+    AttributeInternal,
+    FilterInternal,
 )
 from tests.e2e.alpha.generator import (
     ALL_STATIC_RUNS,
@@ -18,7 +18,7 @@ from tests.e2e.alpha.generator import (
         ".*",
         None,
         [run.custom_run_id for run in ALL_STATIC_RUNS],
-        Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]),
+        FilterInternal.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]),
     ],
 )
 def test_list_all_runs(new_project_context: Context, all_filter):
@@ -32,10 +32,10 @@ def test_list_all_runs(new_project_context: Context, all_filter):
     [
         "linear.*",
         [run.custom_run_id for run in LINEAR_HISTORY_TREE],
-        Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]),
-        Filter.eq("linear-history", True),
-        Filter.eq(Attribute(name="linear-history", type="bool"), True),
-        Filter.eq(Attribute(name="linear-history"), True),
+        FilterInternal.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]),
+        FilterInternal.eq("linear-history", True),
+        FilterInternal.eq(AttributeInternal(name="linear-history", type="bool"), True),
+        FilterInternal.eq(AttributeInternal(name="linear-history"), True),
         # TODO string set filter
         # Filter.eq(Attribute(name="sys/tags", type="string_set"), ["linear"]),
     ],
@@ -51,7 +51,7 @@ def test_list_linear_history_runs(new_project_context: Context, linear_history_f
     [
         "abc",
         ["abc"],
-        Filter.eq(Attribute(name="non-existent", type="bool"), True),
+        FilterInternal.eq(AttributeInternal(name="non-existent", type="bool"), True),
     ],
 )
 def test_list_runs_empty_filter(new_project_context: Context, linear_history_filter):

@@ -10,7 +10,7 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.internal.filters import AttributeFilter
+from neptune_fetcher.internal.filters import AttributeFilterInternal
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 
@@ -30,7 +30,7 @@ def run_with_attributes(client, project):
     from neptune_scale import Run
 
     from neptune_fetcher.internal import identifiers
-    from neptune_fetcher.internal.filters import Filter
+    from neptune_fetcher.internal.filters import FilterInternal
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
@@ -39,7 +39,7 @@ def run_with_attributes(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME),
+            FilterInternal.name_in(EXPERIMENT_NAME),
         )
     )
     if existing.items:
@@ -84,12 +84,12 @@ def run_with_attributes(client, project):
 
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
-    from neptune_fetcher.internal.filters import Filter
+    from neptune_fetcher.internal.filters import FilterInternal
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(EXPERIMENT_NAME)
+    experiment_filter = FilterInternal.name_in(EXPERIMENT_NAME)
     experiment_attrs = _extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
@@ -102,8 +102,8 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
+    attribute_filter_1 = AttributeFilterInternal(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
+    attribute_filter_2 = AttributeFilterInternal(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
 
     #  when
     attribute_filter = attribute_filter_1 | attribute_filter_2
@@ -131,8 +131,8 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     "make_attribute_filter",
     [
         lambda a, b, c: a | b | c,
-        lambda a, b, c: AttributeFilter.any(a, b, c),
-        lambda a, b, c: AttributeFilter.any(a, AttributeFilter.any(b, c)),
+        lambda a, b, c: AttributeFilterInternal.any(a, b, c),
+        lambda a, b, c: AttributeFilterInternal.any(a, AttributeFilterInternal.any(b, c)),
     ],
 )
 def test_fetch_attribute_definitions_filter_triple_or(
@@ -141,9 +141,9 @@ def test_fetch_attribute_definitions_filter_triple_or(
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
-    attribute_filter_3 = AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["int"])
+    attribute_filter_1 = AttributeFilterInternal(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
+    attribute_filter_2 = AttributeFilterInternal(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
+    attribute_filter_3 = AttributeFilterInternal(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["int"])
     attribute_filter = make_attribute_filter(attribute_filter_1, attribute_filter_2, attribute_filter_3)
 
     #  when
@@ -173,7 +173,7 @@ def test_fetch_attribute_definitions_paging_executor(client, executor, project, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = AttributeFilterInternal(name_matches_all="sys/.*_time", type_in=["datetime"])
 
     attributes = _extract_pages(
         fetch_attribute_definitions(
@@ -202,10 +202,10 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, executor, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter_0 = AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter_0 = AttributeFilterInternal(name_matches_all="sys/.*_time", type_in=["datetime"])
     attribute_filter = attribute_filter_0
     for i in range(10):
-        attribute_filter = attribute_filter | AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+        attribute_filter = attribute_filter | AttributeFilterInternal(name_matches_all="sys/.*_time", type_in=["datetime"])
 
     attributes = _extract_pages(
         fetch_attribute_definitions(

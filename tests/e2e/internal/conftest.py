@@ -14,12 +14,12 @@ def context(project):
 
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
-    from neptune_fetcher.internal.filters import Filter
+    from neptune_fetcher.internal.filters import FilterInternal
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
+    experiment_filter = FilterInternal.name_in(TEST_DATA.experiment_names[0])
     experiment_attrs = extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )

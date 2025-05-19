@@ -37,7 +37,9 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.alpha import filters as _filters
+from neptune_fetcher.alpha.internal._filter_translation import filter_to_internal_filter, \
+    attribute_filter_to_internal_attribute_filter, attribute_to_internal_attribute
 from neptune_fetcher.internal import util as _util
 from neptune_fetcher.internal.composition import download_files as _download_files
 from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
@@ -100,7 +102,9 @@ def list_attributes(
     attributes = _util.resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
-        experiments, attributes, context, container_type=_search.ContainerType.EXPERIMENT
+        filter_=filter_to_internal_filter(experiments),
+        attributes=attribute_filter_to_internal_attribute_filter(attributes),
+        context=context, container_type=_search.ContainerType.EXPERIMENT
     )
 
 
@@ -147,8 +151,8 @@ def fetch_metrics(
     attributes = _util.resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
-        filter_=experiments_,
-        attributes=attributes,
+        filter_=filter_to_internal_filter(experiments_),
+        attributes=attribute_filter_to_internal_attribute_filter(attributes),
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
@@ -196,9 +200,9 @@ def fetch_experiments_table(
     sort_by = _util.resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
-        filter_=experiments,
-        attributes=attributes,
-        sort_by=sort_by,
+        filter_=filter_to_internal_filter(experiments),
+        attributes=attribute_filter_to_internal_attribute_filter(attributes),
+        sort_by=attribute_to_internal_attribute(sort_by),
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -245,8 +249,8 @@ def fetch_series(
     attributes = _util.resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
-        filter_=experiments_,
-        attributes=attributes,
+        filter_=filter_to_internal_filter(experiments_),
+        attributes=attribute_filter_to_internal_attribute_filter(attributes),
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
@@ -286,8 +290,8 @@ def download_files(
     destination_path = _util.resolve_destination_path(destination)
 
     return _download_files.download_files(
-        filter_=experiments,
-        attributes=attributes,
+        filter_=filter_to_internal_filter(experiments),
+        attributes=attribute_filter_to_internal_attribute_filter(attributes),
         destination=destination_path,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,

@@ -49,11 +49,11 @@ from neptune_fetcher.internal.retrieval import util  # noqa: E402
 
 
 def split_attribute_filters(
-    _attribute_filter: filters.BaseAttributeFilter,
-) -> list[filters.AttributeFilter]:
-    if isinstance(_attribute_filter, filters.AttributeFilter):
+    _attribute_filter: filters.InternalBaseAttributeFilter,
+) -> list[filters.AttributeFilterInternal]:
+    if isinstance(_attribute_filter, filters.AttributeFilterInternal):
         return [_attribute_filter]
-    elif isinstance(_attribute_filter, filters._AttributeFilterAlternative):
+    elif isinstance(_attribute_filter, filters._AttributeFilterAlternativeInternal):
         return list(it.chain.from_iterable(split_attribute_filters(child) for child in _attribute_filter.filters))
     else:
         raise RuntimeError(f"Unexpected filter type: {type(_attribute_filter)}")
@@ -63,7 +63,7 @@ def fetch_attribute_definitions_single_filter(
     client: AuthenticatedClient,
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
-    attribute_filter: filters.AttributeFilter,
+    attribute_filter: filters.AttributeFilterInternal,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeDefinition], None, None]:
     params: dict[str, Any] = {

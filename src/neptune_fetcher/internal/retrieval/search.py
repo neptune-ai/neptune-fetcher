@@ -37,8 +37,8 @@ from neptune_fetcher.internal import (
     identifiers,
 )
 from neptune_fetcher.internal.filters import (
-    Attribute,
-    Filter,
+    AttributeInternal,
+    FilterInternal,
 )
 from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.attribute_types import map_attribute_type_python_to_backend
@@ -122,8 +122,8 @@ class FetchSysAttrs(Protocol[T]):
         self,
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        filter_: Optional[Filter] = None,
-        sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
+        filter_: Optional[FilterInternal] = None,
+        sort_by: AttributeInternal = AttributeInternal("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
@@ -140,8 +140,8 @@ def _create_fetch_sys_attrs(
     def fetch_sys_attrs(
         client: AuthenticatedClient,
         project_identifier: identifiers.ProjectIdentifier,
-        filter_: Optional[Filter] = None,
-        sort_by: Attribute = Attribute("sys/creation_time", type="datetime"),
+        filter_: Optional[FilterInternal] = None,
+        sort_by: AttributeInternal = AttributeInternal("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
         batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
