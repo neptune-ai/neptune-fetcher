@@ -16,12 +16,9 @@
 import functools as ft
 import logging
 from dataclasses import dataclass
-from itertools import chain
 from typing import (
     Any,
-    Iterable,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -35,20 +32,15 @@ from neptune_fetcher.internal.retrieval import util
 
 logger = logging.getLogger(__name__)
 
-AttributePath = str
-RunLabel = str
-
 # Tuples are used here to enhance performance
-FloatPointValue = Tuple[RunLabel, AttributePath, float, float, float, bool, float]
+FloatPointValue = tuple[float, float, float, bool, float]
 (
-    ExperimentNameIndex,
-    AttributePathIndex,
     TimestampIndex,
     StepIndex,
     ValueIndex,
     IsPreviewIndex,
     PreviewCompletionIndex,
-) = range(7)
+) = range(5)
 
 TOTAL_POINT_LIMIT: int = 1_000_000
 
@@ -56,8 +48,7 @@ TOTAL_POINT_LIMIT: int = 1_000_000
 @dataclass(frozen=True)
 class AttributePathInRun:
     run_identifier: identifiers.RunIdentifier
-    run_label: RunLabel
-    attribute_path: AttributePath
+    attribute_path: str
 
 
 def fetch_multiple_series_values(
@@ -65,11 +56,11 @@ def fetch_multiple_series_values(
     run_attribute_definitions: list[AttributePathInRun],
     include_inherited: bool,
     include_preview: bool,
-    step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
+    step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> Iterable[FloatPointValue]:
+) -> dict[AttributePathInRun, list[FloatPointValue]]:
     if not run_attribute_definitions:
-        return []
+        return {}
 
     request_id_to_attribute: dict[str, AttributePathInRun] = {
         f"{i}": attr for i, attr in enumerate(run_attribute_definitions)
@@ -115,7 +106,7 @@ def fetch_multiple_series_values(
             sorted_values = values if tail_limit else reversed(values)
             results[attribute].extend(sorted_values)
 
-    return chain.from_iterable(results.values())
+    return results
 
 
 def _fetch_metrics_page(
@@ -133,11 +124,11 @@ def _process_metrics_page(
     data: ProtoFloatSeriesValuesResponseDTO,
     request_id_to_attribute: dict[str, AttributePathInRun],
 ) -> util.Page[tuple[AttributePathInRun, list[FloatPointValue]]]:
-    result = {
-        request_id_to_attribute[series.requestId]: [
+    result = {}
+    for series in data.series:
+        run_attribute = request_id_to_attribute[series.requestId]
+        result[run_attribute] = [
             (
-                request_id_to_attribute[series.requestId].run_label,
-                request_id_to_attribute[series.requestId].attribute_path,
                 point.timestamp_millis,
                 point.step,
                 point.value,
@@ -146,8 +137,6 @@ def _process_metrics_page(
             )
             for point in series.series.values
         ]
-        for series in data.series
-    }
     return util.Page(items=list(result.items()))
 
 
