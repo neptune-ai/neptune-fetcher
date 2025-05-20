@@ -21,7 +21,6 @@ from typing import (
     Iterable,
     Literal,
     Optional,
-    Tuple,
 )
 
 import pandas as pd
@@ -43,7 +42,7 @@ from neptune_fetcher.internal.filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.identifiers import RunIdentifier as ExpId
+from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.internal.retrieval import (
     search,
@@ -69,7 +68,7 @@ def fetch_metrics(
     filter_: _Filter,
     attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
-    step_range: Tuple[Optional[float], Optional[float]],
+    step_range: tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
     tail_limit: Optional[int],
     type_suffix_in_column_names: bool,
@@ -97,7 +96,7 @@ def fetch_metrics(
             container_type=container_type,
         )
 
-        values_generator = _fetch_flat_dataframe_metrics(
+        metrics_data, sys_id_to_label_mapping = _fetch_metrics(
             filter_=filter_,
             attributes=attributes,
             client=client,
@@ -112,7 +111,8 @@ def fetch_metrics(
         )
 
         df = create_metrics_dataframe(
-            values_generator,
+            metrics_data=metrics_data,
+            sys_id_label_mapping=sys_id_to_label_mapping,
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             include_point_previews=include_point_previews,
@@ -122,7 +122,7 @@ def fetch_metrics(
     return df
 
 
-def _validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> None:
+def _validate_step_range(step_range: tuple[Optional[float], Optional[float]]) -> None:
     """Validate that a step range tuple contains valid values and is properly ordered."""
     if not isinstance(step_range, tuple) or len(step_range) != 2:
         raise ValueError("step_range must be a tuple of two values")
@@ -155,22 +155,22 @@ def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
             raise ValueError("include_time must be 'absolute'")
 
 
-def _fetch_flat_dataframe_metrics(
+def _fetch_metrics(
     filter_: _Filter,
     attributes: _AttributeFilter,
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    step_range: Tuple[Optional[float], Optional[float]],
+    step_range: tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
     include_point_previews: bool,
     tail_limit: Optional[int],
     container_type: ContainerType,
-) -> Iterable[FloatPointValue]:  # pd.DataFrame:
+) -> tuple[dict[AttributePathInRun, list[FloatPointValue]], dict[identifiers.SysId, str]]:  # pd.DataFrame:
     def fetch_values(
         exp_paths: list[AttributePathInRun],
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
+    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
         _series = fetch_multiple_series_values(
             client,
             run_attribute_definitions=exp_paths,
@@ -182,44 +182,39 @@ def _fetch_flat_dataframe_metrics(
         return [], _series
 
     def process_definitions(
-        _sys_id_to_labels: dict[identifiers.SysId, str],
+        _sys_ids: Iterable[identifiers.SysId],
         _definitions: Generator[util.Page[AttributeDefinition], None, None],
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
+    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
         definitions_page = next(_definitions, None)
         _futures = []
+
         if definitions_page:
-            _futures.append(executor.submit(process_definitions, _sys_id_to_labels, _definitions))
+            _futures.append(executor.submit(process_definitions, _sys_ids, _definitions))
 
             paths = definitions_page.items
 
-            product = it.product(_sys_id_to_labels.items(), paths)
             exp_paths = [
-                AttributePathInRun(ExpId(project_identifier, sys_id), label, _path.name)
-                for (sys_id, label), _path in product
+                AttributePathInRun(RunIdentifier(project_identifier, sys_id), _path.name)
+                for sys_id, _path in it.product(_sys_ids, paths)
                 if _path.type == "float_series"
             ]
 
             for batch in split_series_attributes(items=exp_paths, get_path=lambda r: r.attribute_path):
                 _futures.append(executor.submit(fetch_values, batch))
 
-        return _futures, []
+        return _futures, {}
 
     def process_sys_ids(
-        sys_ids_generator: Generator[dict[identifiers.SysId, str], None, None],
-    ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
-        sys_id_to_labels = next(sys_ids_generator, None)
+        sys_ids_generator: Generator[list[identifiers.SysId], None, None],
+    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
+        sys_ids = next(sys_ids_generator, None)
         _futures = []
 
-        if sys_id_to_labels:
+        if sys_ids:
             _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
 
-            sys_ids = list(sys_id_to_labels.keys())
-
             for sys_ids_split in split.split_sys_ids(sys_ids):
-                run_identifiers_split = [
-                    identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split
-                ]
-                sys_id_to_labels_split = {sys_id: sys_id_to_labels[sys_id] for sys_id in sys_ids_split}
+                run_identifiers_split = [identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project_identifier],
@@ -227,24 +222,36 @@ def _fetch_flat_dataframe_metrics(
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
                 )
-                _futures.append(executor.submit(process_definitions, sys_id_to_labels_split, definitions_generator))
+                _futures.append(executor.submit(process_definitions, sys_ids_split, definitions_generator))
 
-        return _futures, []
+        return _futures, {}
 
-    def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
-        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
-        return ({run.sys_id: run.label for run in page.items} for page in sys_attr_pages)
+    sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
-    def _start() -> Iterable[FloatPointValue]:
-        futures = {executor.submit(lambda: process_sys_ids(fetch_sys_ids_labels()))}
+    def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
+        for page in search.fetch_sys_id_labels(container_type)(
+            client=client,
+            project_identifier=project_identifier,
+            filter_=filter_,
+        ):
+            sys_ids = []
+            for item in page.items:
+                sys_id_label_mapping[item.sys_id] = item.label
+                sys_ids.append(item.sys_id)
+            yield sys_ids
 
-        while futures:
-            done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            futures = not_done
-            for future in done:
-                new_futures, values = future.result()
-                futures.update(new_futures)
-                if values:
-                    yield from values
+    futures = {executor.submit(lambda: process_sys_ids(go_fetch_sys_attrs()))}
 
-    return _start()
+    metrics_data: dict[AttributePathInRun, list[FloatPointValue]] = {}
+
+    while futures:
+        done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+        futures = not_done
+        for future in done:
+            new_futures, values = future.result()
+            futures.update(new_futures)
+            if values:
+                for run_attribute, metric_points in values.items():
+                    metrics_data.setdefault(run_attribute, []).extend(metric_points)
+
+    return metrics_data, sys_id_label_mapping
