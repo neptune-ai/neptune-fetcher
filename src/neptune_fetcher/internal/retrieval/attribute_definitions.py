@@ -24,9 +24,9 @@ from typing import (
     Union,
 )
 
+from neptune_api.api.retrieval import query_attribute_definitions_within_project
 from neptune_api.client import AuthenticatedClient
-from neptune_retrieval_api.api.default import query_attribute_definitions_within_project
-from neptune_retrieval_api.models import (
+from neptune_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )

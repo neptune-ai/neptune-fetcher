@@ -29,6 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install . neptune==${{ matrix.neptune-version }} "pytest" "pytest-timeout" "pytest-xdist"
+          pip install git+https://github.com/neptune-ai/neptune-api.git@dev/single-package
         shell: bash
 
       - name: List dependencies

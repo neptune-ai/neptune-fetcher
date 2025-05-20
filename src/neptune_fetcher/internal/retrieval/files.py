@@ -22,9 +22,9 @@ from typing import (
 
 import azure.core.exceptions
 from azure.storage.blob import BlobClient
+from neptune_api.api.storage import signed_url
 from neptune_api.client import AuthenticatedClient
-from neptune_storage_api.api.storagebridge import signed_url
-from neptune_storage_api.models import (
+from neptune_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
     FileToSign,
