@@ -9,7 +9,7 @@ from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,
 )
-from tests.e2e.alpha.internal.data import (
+from tests.e2e.alpha.data import (
     NOW,
     STRING_SERIES_PATHS,
     TEST_DATA,
