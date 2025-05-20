@@ -37,7 +37,7 @@ from neptune_api.auth_helpers import exchange_api_key
 from neptune_api.credentials import Credentials
 from neptune_api.errors import ApiKeyRejectedError
 from neptune_api.models import ClientConfig
-from neptune_retrieval_api.types import Response
+from neptune_api.types import Response
 
 logger = logging.getLogger(__name__)
 
