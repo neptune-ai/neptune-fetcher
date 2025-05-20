@@ -1,3 +1,4 @@
+from collections import Counter
 from unittest.mock import (
     ANY,
     call,
@@ -56,11 +57,11 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
         npt.list_attributes(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
 
     # then
-    call_sizes = {
+    call_sizes = Counter(
         len(fetch_attribute_definitions_single_filter.call_args_list[i].kwargs["run_identifiers"])
         for i in range(fetch_attribute_definitions_single_filter.call_count)
-    }
-    assert call_sizes == set(expected_calls)
+    )
+    assert call_sizes == Counter(expected_calls)
     fetch_attribute_definitions_single_filter.assert_has_calls(
         [
             call(
@@ -122,10 +123,10 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
             expected_runs_attributes.append((run_identifiers, attribute_definitions))
             attribute_start += attribute_size
         experiment_start += experiment_size
-    expected_runs_attributes_sizes = {
+    expected_runs_attributes_sizes = [
         (len(run_identifiers), len(attribute_definitions))
         for run_identifiers, attribute_definitions in expected_runs_attributes
-    }
+    ]
 
     # when
     with (
@@ -150,14 +151,14 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
         )
 
     # then
-    call_sizes = {
+    call_sizes = Counter(
         (
             len(fetch_attribute_values.call_args_list[i].kwargs["run_identifiers"]),
             len(fetch_attribute_values.call_args_list[i].kwargs["attribute_definitions"]),
         )
         for i in range(fetch_attribute_values.call_count)
-    }
-    assert call_sizes == expected_runs_attributes_sizes
+    )
+    assert call_sizes == Counter(expected_runs_attributes_sizes)
     fetch_attribute_values.assert_has_calls(
         [
             call(
@@ -227,11 +228,11 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
         npt.fetch_series(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
 
     # then
-    call_sizes = {
+    call_sizes = Counter(
         len(fetch_series_values.call_args_list[i].kwargs["run_attribute_definitions"])
         for i in range(fetch_series_values.call_count)
-    }
-    assert call_sizes == set(expected_calls)
+    )
+    assert call_sizes == Counter(expected_calls)
     fetch_series_values.assert_has_calls(
         [
             call(
@@ -305,11 +306,11 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         npt.fetch_metrics(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
 
     # then
-    call_sizes = {
+    call_sizes = Counter(
         len(fetch_multiple_series_values.call_args_list[i].kwargs["exp_paths"])
         for i in range(fetch_multiple_series_values.call_count)
-    }
-    assert call_sizes == set(expected_calls)
+    )
+    assert call_sizes == Counter(expected_calls)
     fetch_multiple_series_values.assert_has_calls(
         [
             call(
