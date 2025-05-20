@@ -51,7 +51,7 @@ def create_expected_data(
         for path, series in chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()]):
             filtered = []
             for step in steps:
-                if step >= step_filter[0] and step <= step_filter[1]:
+                if step_filter[0] <= step <= step_filter[1]:
                     columns.add(f"{path}:float_series" if type_suffix_in_column_names else path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
