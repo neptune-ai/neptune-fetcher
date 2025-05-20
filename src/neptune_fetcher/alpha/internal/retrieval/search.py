@@ -25,12 +25,10 @@ from typing import (
     TypeVar,
 )
 
+from neptune_api.api.leaderboard import search_leaderboard_entries_proto
 from neptune_api.client import AuthenticatedClient
-from neptune_retrieval_api.api.default import search_leaderboard_entries_proto
-from neptune_retrieval_api.models import SearchLeaderboardEntriesParamsDTO
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
-    ProtoLeaderboardEntriesSearchResultDTO,
-)
+from neptune_api.models import SearchLeaderboardEntriesParamsDTO
+from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
 
 from neptune_fetcher.alpha.filters import (
     Attribute,

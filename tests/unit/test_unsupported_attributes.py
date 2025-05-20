@@ -12,22 +12,21 @@ from unittest.mock import (
 )
 
 import pytest
-from neptune_api.models import ProjectDTO
-from neptune_api.types import Response
-from neptune_retrieval_api.models import (
+from neptune_api.models import (
     AttributeDefinitionDTO,
     AttributeTypeDTO,
     NextPageDTO,
+    ProjectDTO,
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
+from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
     ProtoAttributeDefinitionDTO,
     ProtoAttributesSearchResultDTO,
     ProtoQueryAttributesExperimentResultDTO,
     ProtoQueryAttributesResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
     ProtoAttributesDTO,
     ProtoDatetimeAttributeDTO,
@@ -35,12 +34,13 @@ from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2
     ProtoLeaderboardEntriesSearchResultDTO,
     ProtoStringAttributeDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
     ProtoFloatPointValueDTO,
     ProtoFloatSeriesValuesDTO,
     ProtoFloatSeriesValuesResponseDTO,
     ProtoFloatSeriesValuesSingleSeriesResponseDTO,
 )
+from neptune_api.types import Response
 from pytest import fixture
 
 import neptune_fetcher

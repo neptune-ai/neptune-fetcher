@@ -27,9 +27,9 @@ from typing import (
     Union,
 )
 
-from neptune_retrieval_api.api.default import get_attributes_with_paths_filter_proto
-from neptune_retrieval_api.models import AttributeQueryDTO
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+from neptune_api.api.leaderboard import get_attributes_with_paths_filter_proto
+from neptune_api.models import AttributeQueryDTO
+from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
     ProtoAttributesDTO,
 )

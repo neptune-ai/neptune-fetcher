@@ -38,13 +38,13 @@ from typing import (
 )
 
 import pandas
-from neptune_api.models import ProjectDTO
-from neptune_retrieval_api.models import (
+from neptune_api.models import (
     AttributeNameFilterDTO,
+    ProjectDTO,
     QueryAttributesBodyDTO,
     SearchLeaderboardEntriesParamsDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoAttributeDTO
+from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoAttributeDTO
 from pandas import DataFrame
 
 from neptune_fetcher.api.api_client import ApiClient

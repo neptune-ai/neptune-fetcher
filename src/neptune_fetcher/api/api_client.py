@@ -38,21 +38,21 @@ from typing import (
 )
 
 from neptune_api.api.backend import get_project
-from neptune_api.credentials import Credentials
-from neptune_api.models import ProjectDTO
-from neptune_retrieval_api.api.default import (
+from neptune_api.api.leaderboard import (
     get_multiple_float_series_values_proto,
     query_attribute_definitions_proto,
     query_attribute_definitions_within_project,
     query_attributes_within_project_proto,
     search_leaderboard_entries_proto,
 )
-from neptune_retrieval_api.models import (
+from neptune_api.credentials import Credentials
+from neptune_api.models import (
     AttributesHolderIdentifier,
     FloatTimeSeriesValuesRequest,
     FloatTimeSeriesValuesRequestOrder,
     FloatTimeSeriesValuesRequestSeries,
     OpenRangeDTO,
+    ProjectDTO,
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
     QueryAttributesBodyDTO,
@@ -60,14 +60,12 @@ from neptune_retrieval_api.models import (
     TimeSeries,
     TimeSeriesLineage,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
+from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
     ProtoAttributesSearchResultDTO,
     ProtoQueryAttributesResultDTO,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
-    ProtoLeaderboardEntriesSearchResultDTO,
-)
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
+from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
 from neptune_fetcher.fields import (
     FieldDefinition,
