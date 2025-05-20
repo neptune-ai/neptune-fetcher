@@ -173,7 +173,7 @@ def _fetch_flat_dataframe_metrics(
     ) -> Tuple[list[concurrent.futures.Future], Iterable[FloatPointValue]]:
         _series = fetch_multiple_series_values(
             client,
-            exp_paths=exp_paths,
+            run_attribute_definitions=exp_paths,
             include_inherited=lineage_to_the_root,
             include_preview=include_point_previews,
             step_range=step_range,

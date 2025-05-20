@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools as ft
 import logging
 from dataclasses import dataclass
 from itertools import chain
 from typing import (
+    Any,
     Iterable,
-    Literal,
     Optional,
     Tuple,
     Union,
@@ -67,124 +68,84 @@ class AttributePathInRun:
     attribute_path: AttributePath
 
 
-@dataclass(frozen=True)
-class _SeriesRequest:
-    path: str
-    run_identifier: identifiers.RunIdentifier
-    include_inherited: bool
-    include_preview: bool
-    after_step: Optional[float]
-
-
 def fetch_multiple_series_values(
     client: AuthenticatedClient,
-    exp_paths: list[AttributePathInRun],
+    run_attribute_definitions: list[AttributePathInRun],
     include_inherited: bool,
     include_preview: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
 ) -> Iterable[FloatPointValue]:
-    results = []
-    partial_results: dict[AttributePathInRun, list[FloatPointValue]] = {exp_path: [] for exp_path in exp_paths}
-    attribute_steps = {exp_path: None for exp_path in exp_paths}
+    if not run_attribute_definitions:
+        return []
 
-    while attribute_steps:
-        per_series_point_limit = TOTAL_POINT_LIMIT // len(attribute_steps)
-        per_series_point_limit = min(per_series_point_limit, tail_limit) if tail_limit else per_series_point_limit
+    request_id_to_attribute: dict[str, AttributePathInRun] = {
+        f"{i}": attr for i, attr in enumerate(run_attribute_definitions)
+    }
 
-        requests = {
-            exp_path: _SeriesRequest(
-                path=exp_path.attribute_path,
-                run_identifier=exp_path.run_identifier,
-                include_inherited=include_inherited,
-                include_preview=include_preview,
-                after_step=after_step,
-            )
-            for exp_path, after_step in attribute_steps.items()
-        }
+    params: dict[str, Any] = {
+        "requests": [
+            {
+                "requestId": request_id,
+                "series": {
+                    "holder": {
+                        "identifier": str(run_attribute.run_identifier),
+                        "type": "experiment",
+                    },
+                    "attribute": run_attribute.attribute_path,
+                    "lineage": "FULL" if include_inherited else "NONE",
+                    "includePreview": include_preview,
+                },
+            }
+            for request_id, run_attribute in request_id_to_attribute.items()
+        ],
+        "stepRange": {"from": step_range[0], "to": step_range[1]},
+        "order": "ascending" if not tail_limit else "descending",
+    }
 
-        values = _fetch_series_values(
-            client=client,
-            requests=requests,
-            step_range=step_range,
-            per_series_point_limit=per_series_point_limit,
-            order="asc" if not tail_limit else "desc",
-        )
+    results: dict[AttributePathInRun, list[FloatPointValue]] = {
+        run_attribute: [] for run_attribute in run_attribute_definitions
+    }
 
-        new_attribute_steps = {}
+    for page_result in util.fetch_pages(
+        client=client,
+        fetch_page=_fetch_metrics_page,
+        process_page=ft.partial(_process_metrics_page, request_id_to_attribute=request_id_to_attribute),
+        make_new_page_params=ft.partial(
+            _make_new_metrics_page_params,
+            request_id_to_attribute=request_id_to_attribute,
+            tail_limit=tail_limit,
+            partial_results=results,
+        ),
+        params=params,
+    ):
+        for attribute, values in page_result.items:
+            sorted_values = values if tail_limit else reversed(values)
+            results[attribute].extend(sorted_values)
 
-        for path, series_values in values.items():
-            sorted_list = series_values if not tail_limit else reversed(series_values)
-            partial_results[path].extend(sorted_list)
-
-            is_page_full = len(series_values) == per_series_point_limit
-            need_more_points = tail_limit is None or len(partial_results[path]) < tail_limit
-            if is_page_full and need_more_points:
-                new_attribute_steps[path] = series_values[-1][StepIndex]
-            else:
-                path_result = partial_results.pop(path)
-                if path_result:
-                    results.append(path_result)
-        attribute_steps = new_attribute_steps  # type: ignore
-
-    return chain.from_iterable(results)
+    return chain.from_iterable(results.values())
 
 
-def _fetch_series_values(
+def _fetch_metrics_page(
     client: AuthenticatedClient,
-    requests: dict[AttributePathInRun, _SeriesRequest],
-    per_series_point_limit: int,
-    step_range: Tuple[Union[float, None], Union[float, None]],
-    order: Literal["asc", "desc"],
-) -> dict[AttributePathInRun, list[FloatPointValue]]:
-    series_requests_ids = {}
-    series_requests = []
+    params: dict[str, Any],
+) -> ProtoFloatSeriesValuesResponseDTO:
+    body = FloatTimeSeriesValuesRequest.from_dict(params)
 
-    for ix, (exp_path, request) in enumerate(requests.items()):
-        request_id = f"{ix}"
-        series_requests_ids[request_id] = exp_path
-        series_requests.append(
-            FloatTimeSeriesValuesRequestSeries(
-                request_id=request_id,
-                series=TimeSeries(
-                    attribute=exp_path.attribute_path,
-                    holder=AttributesHolderIdentifier(
-                        identifier=str(exp_path.run_identifier),
-                        type="experiment",
-                    ),
-                    lineage=TimeSeriesLineage.FULL if request.include_inherited else TimeSeriesLineage.NONE,
-                    include_preview=request.include_preview,
-                ),
-                after_step=request.after_step,
-            )
-        )
+    response = get_multiple_float_series_values_proto.sync_detailed(client=client, body=body)
 
-    response = util.backoff_retry(
-        lambda: get_multiple_float_series_values_proto.sync_detailed(
-            client=client,
-            body=FloatTimeSeriesValuesRequest(
-                per_series_points_limit=per_series_point_limit,
-                requests=series_requests,
-                step_range=OpenRangeDTO(
-                    from_=step_range[0],
-                    to=step_range[1],
-                ),
-                order=(
-                    FloatTimeSeriesValuesRequestOrder.ASCENDING
-                    if order == "asc"
-                    else FloatTimeSeriesValuesRequestOrder.DESCENDING
-                ),
-            ),
-        )
-    )
+    return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
-    data = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
+def _process_metrics_page(
+    data: ProtoFloatSeriesValuesResponseDTO,
+    request_id_to_attribute: dict[str, AttributePathInRun],
+) -> util.Page[tuple[AttributePathInRun, list[FloatPointValue]]]:
     result = {
-        series_requests_ids[series.requestId]: [
+        request_id_to_attribute[series.requestId]: [
             (
-                series_requests_ids[series.requestId].run_label,
-                series_requests_ids[series.requestId].attribute_path,
+                request_id_to_attribute[series.requestId].run_label,
+                request_id_to_attribute[series.requestId].attribute_path,
                 point.timestamp_millis,
                 point.step,
                 point.value,
@@ -195,5 +156,55 @@ def _fetch_series_values(
         ]
         for series in data.series
     }
+    return util.Page(items=list(result.items()))
 
-    return result
+
+def _make_new_metrics_page_params(
+    params: dict[str, Any],
+    data: Optional[ProtoFloatSeriesValuesResponseDTO],
+    request_id_to_attribute: dict[str, AttributePathInRun],
+    tail_limit: Optional[int],
+    partial_results: dict[AttributePathInRun, list[FloatPointValue]],
+) -> Optional[dict[str, Any]]:
+    if data is None:
+        for request in params["requests"]:
+            if "afterStep" in request:
+                del request["afterStep"]
+        per_series_points_limit = max(1, TOTAL_POINT_LIMIT // len(params["requests"]))
+        if tail_limit is not None:
+            per_series_points_limit = min(per_series_points_limit, tail_limit)
+        params["perSeriesPointsLimit"] = per_series_points_limit
+        return params
+
+    prev_per_series_points_limit = params["perSeriesPointsLimit"]
+
+    new_request_after_steps = {}
+    for series in data.series:
+        request_id = series.requestId
+        value_size = len(series.series.values)
+        is_page_full = value_size == prev_per_series_points_limit
+        if tail_limit is None:
+            if is_page_full:
+                new_request_after_steps[request_id] = series.series.values[-1].step
+        else:
+            attribute = request_id_to_attribute[request_id]
+            need_more_points = len(partial_results[attribute]) < tail_limit
+            if is_page_full and need_more_points:
+                new_request_after_steps[request_id] = series.series.values[0].step  # steps are in descending order
+
+    if not new_request_after_steps:
+        return None
+
+    new_requests = []
+    for request in params["requests"]:
+        request_id = request["requestId"]
+        if request_id in new_request_after_steps:
+            after_step = new_request_after_steps[request_id]
+            request["afterStep"] = after_step
+            new_requests.append(request)
+    params["requests"] = new_requests
+    per_series_points_limit = max(1, TOTAL_POINT_LIMIT // len(params["requests"]))
+    if tail_limit is not None:
+        per_series_points_limit = min(per_series_points_limit, tail_limit)
+    params["perSeriesPointsLimit"] = per_series_points_limit
+    return params
