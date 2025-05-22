@@ -130,23 +130,30 @@ def _make_new_series_page_params(
                 del request["searchAfter"]
         return params
 
-    request_id_to_search_after = {
-        series.requestId: series.searchAfter
-        for series in data.series
-        if series.searchAfter is not None and series.searchAfter.token and not series.searchAfter.finished
-    }
-    if not request_id_to_search_after:
+    request_id_to_search_after_token = {}
+    for series in data.series:
+        if series.HasField("searchAfter") and series.searchAfter.finished:
+            continue
+        elif series.HasField("searchAfter") and series.searchAfter.token:
+            request_id_to_search_after_token[series.requestId] = series.searchAfter.token
+        else:
+            request_id_to_search_after_token[series.requestId] = None
+    if not request_id_to_search_after_token:
         return None
 
     new_requests = []
     for request in params["requests"]:
         request_id = request["requestId"]
-        if request_id in request_id_to_search_after:
-            search_after = request_id_to_search_after[request_id]
-            request["searchAfter"] = {
-                "finished": search_after.finished,
-                "token": search_after.token,
-            }
+        if request_id in request_id_to_search_after_token:
+            search_after_token = request_id_to_search_after_token[request_id]
+            if search_after_token is None:
+                if "searchAfter" in request:
+                    del request["searchAfter"]
+            else:
+                request["searchAfter"] = {
+                    "finished": False,
+                    "token": search_after_token,
+                }
             new_requests.append(request)
     params["requests"] = new_requests
     return params
