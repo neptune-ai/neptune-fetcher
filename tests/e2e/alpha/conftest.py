@@ -1,4 +1,5 @@
 import hashlib
+import itertools as it
 import os
 import platform
 import random
@@ -22,6 +23,8 @@ from neptune_fetcher.api.api_client import (
     get_config_and_token_urls,
 )
 from neptune_fetcher.internal.composition import concurrency
+from neptune_fetcher.internal.identifiers import RunIdentifier
+from tests.e2e.alpha.data import TEST_DATA
 from tests.e2e.alpha.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
@@ -121,3 +124,23 @@ def data_hash(data: Any):
     node = platform.node()
     date = datetime.now().date().isoformat()
     return hashlib.md5((date + node + str(data)).encode()).hexdigest()
+
+
+@fixture(scope="module")
+def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
+    from neptune_fetcher.alpha.filters import Filter
+    from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
+
+    project_identifier = project.project_identifier
+
+    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
+    experiment_attrs = extract_pages(
+        fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
+    )
+    sys_id = experiment_attrs[0].sys_id
+
+    return RunIdentifier(project_identifier, sys_id)
+
+
+def extract_pages(generator):
+    return list(it.chain.from_iterable(i.items for i in generator))
