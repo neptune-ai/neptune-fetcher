@@ -158,6 +158,7 @@ def extract_pages(generator):
 
 @fixture(scope="module", autouse=True)
 def run_with_attributes(project, client):
+    raise Exception("conftest.py:run_with_attributes")
     runs = {}
     for experiment in TEST_DATA.experiments:
         project_id = project.project_identifier

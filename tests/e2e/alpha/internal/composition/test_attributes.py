@@ -25,6 +25,7 @@ FLOAT_SERIES_VALUES = [float(step**2) for step in range(10)]
 
 @pytest.fixture(scope="module")
 def run_with_attributes(client, project):
+    raise Exception("test_attributes.py:run_with_attributes")
     import uuid
 
     from neptune_scale import Run
