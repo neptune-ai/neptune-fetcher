@@ -203,7 +203,7 @@ def create_metrics_dataframe(
     experiment_mapping: dict[str, int] = {}
     label_mapping: list[str] = []
 
-    for run_attr_definition in metrics_data.keys():
+    for run_attr_definition in metrics_data:
         if run_attr_definition.run_identifier.sys_id not in experiment_mapping:
             experiment_mapping[run_attr_definition.run_identifier.sys_id] = len(experiment_mapping)
             label_mapping.append(sys_id_label_mapping[run_attr_definition.run_identifier.sys_id])
