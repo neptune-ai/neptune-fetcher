@@ -28,6 +28,7 @@ from neptune_api.client import AuthenticatedClient
 from neptune_retrieval_api.api.default import get_series_values_proto
 from neptune_retrieval_api.models import SeriesValuesRequest
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSeriesValuesResponseDTO
+from neptune_retrieval_api.types import UNSET
 
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
 from neptune_fetcher.alpha.internal.retrieval import util
@@ -135,19 +136,24 @@ def _make_new_series_page_params(
         series.requestId for series in data.series if series.HasField("searchAfter") and series.searchAfter.finished
     }
     updated_request_tokens = {
-        series.requestId: series.searchAfter.token
+        series.requestId: {"searchAfter": {"finished": False, "token": series.searchAfter.token}}
         for series in data.series
-        if series.HasField("searchAfter") and series.searchAfter.token
+        if series.HasField("searchAfter")
     }
+
+    # series does not exist: series.HasField("searchAfter") == False
+    # series finished: series.HasField("searchAfter") == True, series.searchAfter.finished == True,
+    #   series.searchAfter.token == 'nonempty'
+    # series sent partially: series.HasField("searchAfter") == True, series.searchAfter.finished == False,
+    #   series.searchAfter.token == 'nonempty'
+    # series exists, but is outside the current page: series.HasField("searchAfter") == False
     # if an attribute does not exist at all, the backend will keep returning an empty searchAfter for it
-    # so stop requesting when there has been no progress, even though some requests may still be unfinished
+    # so we stop requesting when there has been no progress, even though some requests may still be unfinished
     if not updated_request_tokens:
         return None
 
     new_requests = [
-        request | {"searchAfter": {"finished": False, "token": updated_request_tokens[request["requestId"]]}}
-        if request["requestId"] in updated_request_tokens
-        else request
+        request | updated_request_tokens.get(request["requestId"], {"searchAfter": UNSET})
         for request in params["requests"]
         if request["requestId"] not in finished_requests
     ]
