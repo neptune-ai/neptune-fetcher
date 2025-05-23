@@ -30,9 +30,9 @@ from neptune_retrieval_api.models import SeriesValuesRequest
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSeriesValuesResponseDTO
 from neptune_retrieval_api.types import UNSET
 
-from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
-from neptune_fetcher.alpha.internal.retrieval import util
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.identifiers import RunIdentifier
+from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 
 
 @dataclass(frozen=True)

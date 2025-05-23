@@ -28,7 +28,7 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 
-from neptune_fetcher.alpha.internal.context import Context
+from neptune_fetcher.internal.context import Context
 from neptune_fetcher.util import (
     create_auth_api_client,
     get_config_and_token_urls,

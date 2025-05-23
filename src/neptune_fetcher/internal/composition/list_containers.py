@@ -15,14 +15,14 @@
 from typing import Optional
 
 from neptune_fetcher.alpha.filters import Filter
-from neptune_fetcher.alpha.internal import client as _client
-from neptune_fetcher.alpha.internal import context as _context
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.composition import (
+from neptune_fetcher.internal import client as _client
+from neptune_fetcher.internal import context as _context
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.alpha.internal.retrieval import search
+from neptune_fetcher.internal.retrieval import search
 
 __all__ = ("list_containers",)
 
