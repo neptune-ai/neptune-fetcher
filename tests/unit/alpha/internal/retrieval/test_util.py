@@ -8,7 +8,7 @@ import pytest
 from neptune_api.errors import ApiKeyRejectedError
 from pytest import fixture
 
-from neptune_fetcher.alpha.exceptions import (
+from neptune_fetcher.exceptions import (
     NeptuneInvalidCredentialsError,
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
