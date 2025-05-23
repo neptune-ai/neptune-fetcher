@@ -28,6 +28,7 @@ from neptune_api.client import AuthenticatedClient
 from neptune_retrieval_api.api.default import get_series_values_proto
 from neptune_retrieval_api.models import SeriesValuesRequest
 from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSeriesValuesResponseDTO
+from neptune_retrieval_api.types import UNSET
 
 from neptune_fetcher.alpha.internal.identifiers import RunIdentifier
 from neptune_fetcher.alpha.internal.retrieval import util
@@ -54,8 +55,10 @@ def fetch_series_values(
         yield from []
         return
 
+    run_attribute_definitions = list(run_attribute_definitions)
+    width = len(str(len(run_attribute_definitions) - 1))
     request_id_to_run_attr_definition: dict[str, RunAttributeDefinition] = {
-        str(ix): pair for ix, pair in enumerate(run_attribute_definitions)
+        f"{ix:0{width}d}": pair for ix, pair in enumerate(run_attribute_definitions)
     }
 
     params: dict[str, Any] = {
@@ -126,27 +129,34 @@ def _make_new_series_page_params(
 ) -> Optional[dict[str, Any]]:
     if data is None:
         for request in params["requests"]:
-            if "searchAfter" in request:
-                del request["searchAfter"]
+            request.pop("searchAfter", None)
         return params
 
-    request_id_to_search_after = {
-        series.requestId: series.searchAfter
-        for series in data.series
-        if series.searchAfter is not None and series.searchAfter.token and not series.searchAfter.finished
+    finished_requests = {
+        series.requestId for series in data.series if series.HasField("searchAfter") and series.searchAfter.finished
     }
-    if not request_id_to_search_after:
+    updated_request_tokens = {
+        series.requestId: {"searchAfter": {"finished": False, "token": series.searchAfter.token}}
+        for series in data.series
+        if series.HasField("searchAfter")
+    }
+
+    # series does not exist: series.HasField("searchAfter") == False
+    # series finished: series.HasField("searchAfter") == True, series.searchAfter.finished == True,
+    #   series.searchAfter.token == 'nonempty'
+    # series sent partially: series.HasField("searchAfter") == True, series.searchAfter.finished == False,
+    #   series.searchAfter.token == 'nonempty'
+    # series exists, but is outside the current page: series.HasField("searchAfter") == False
+    # if an attribute does not exist at all, the backend will keep returning an empty searchAfter for it
+    # so we stop requesting when there has been no progress, even though some requests may still be unfinished
+    if not updated_request_tokens:
         return None
 
-    new_requests = []
-    for request in params["requests"]:
-        request_id = request["requestId"]
-        if request_id in request_id_to_search_after:
-            search_after = request_id_to_search_after[request_id]
-            request["searchAfter"] = {
-                "finished": search_after.finished,
-                "token": search_after.token,
-            }
-            new_requests.append(request)
+    new_requests = [
+        request | updated_request_tokens.get(request["requestId"], {"searchAfter": UNSET})
+        for request in params["requests"]
+        if request["requestId"] not in finished_requests
+    ]
+
     params["requests"] = new_requests
     return params
