@@ -29,8 +29,8 @@ def run_with_attributes(client, project):
 
     from neptune_scale import Run
 
-    from neptune_fetcher.alpha.filters import Filter
     from neptune_fetcher.internal import identifiers
+    from neptune_fetcher.internal.filters import _Filter
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
@@ -39,7 +39,7 @@ def run_with_attributes(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME),
+            _Filter.name_in(EXPERIMENT_NAME),
         )
     )
     if existing.items:
@@ -84,12 +84,12 @@ def run_with_attributes(client, project):
 
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
-    from neptune_fetcher.alpha.filters import Filter
+    from neptune_fetcher.internal.filters import _Filter
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(EXPERIMENT_NAME)
+    experiment_filter = _Filter.name_in(EXPERIMENT_NAME)
     experiment_attrs = _extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )

@@ -10,10 +10,10 @@ from neptune_api.credentials import Credentials
 from neptune_scale import Run
 
 from neptune_fetcher import ReadOnlyProject
-from neptune_fetcher.alpha.filters import Filter
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.context import set_project
+from neptune_fetcher.internal.filters import _Filter
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 from neptune_fetcher.util import (
@@ -75,7 +75,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
-                Filter.name_in(experiment.name),
+                _Filter.name_in(experiment.name),
             )
         )
         if existing.items:
@@ -111,7 +111,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project.project_identifier),
-                Filter.name_in(*TEST_DATA.experiment_names),
+                _Filter.name_in(*TEST_DATA.experiment_names),
             )
         )
 
@@ -125,12 +125,12 @@ def run_with_attributes(project, client):
 
 @pytest.fixture(scope="module")
 def experiment_identifier(client, project, run_with_attributes) -> RunIdentifier:
-    from neptune_fetcher.alpha.filters import Filter
+    from neptune_fetcher.internal.filters import _Filter
     from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 
-    experiment_filter = Filter.name_in(TEST_DATA.experiment_names[0])
+    experiment_filter = _Filter.name_in(TEST_DATA.experiment_names[0])
     experiment_attrs = extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )

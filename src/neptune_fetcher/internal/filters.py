@@ -75,11 +75,10 @@ class _AttributeFilter(_BaseAttributeFilter):
     Example:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import AttributeFilter
+    from neptune_fetcher.internal.filters import _AttributeFilter
 
 
-    loss_avg_and_var = AttributeFilter(
+    loss_avg_and_var = _AttributeFilter(
         type_in=["float_series"],
         name_matches_all=[r"loss$"],
         aggregations=["average", "variance"],
@@ -134,16 +133,15 @@ class _Attribute:
     Select a metric and pick variance as the aggregation:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Attribute, Filter
+    from neptune_fetcher.internal.filters import _Attribute, _Filter
 
 
-    val_loss_variance = Attribute(
+    val_loss_variance = _Attribute(
         name="val/loss",
         aggregation="variance",
     )
     # Construct a filter and pass it to a fetching or listing method
-    tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
+    tiny_val_loss_variance = _Filter.lt(val_loss_variance, 0.01)
     npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
     ```
     """
@@ -199,18 +197,17 @@ class _Filter(ABC):
     Examples:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Filter
+    from neptune_fetcher.internal.filters import _Filter
 
     # Fetch metadata from specific experiments
-    specific_experiments = Filter.name_in("flying-123", "swimming-77")
+    specific_experiments = _Filter.name_in("flying-123", "swimming-77")
     npt.fetch_experiments_table(experiments=specific_experiments)
 
     # Define various criteria
-    owned_by_me = Filter.eq("sys/owner", "vidar")
-    loss_filter = Filter.lt("validation/loss", 0.1)
-    tag_filter = Filter.contains_none("sys/tags", ["test", "buggy"])
-    dataset_check = Filter.exists("dataset_version")
+    owned_by_me = _Filter.eq("sys/owner", "vidar")
+    loss_filter = _Filter.lt("validation/loss", 0.1)
+    tag_filter = _Filter.contains_none("sys/tags", ["test", "buggy"])
+    dataset_check = _Filter.exists("dataset_version")
 
     my_interesting_experiments = owned_by_me & loss_filter & tag_filter & dataset_check
     npt.fetch_experiments_table(experiments=my_interesting_experiments)
