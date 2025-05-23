@@ -7,13 +7,13 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.exceptions import AttributeTypeInferenceError
-from neptune_fetcher.alpha.filters import (
-    Attribute,
-    Filter,
-)
 from neptune_fetcher.internal.composition.type_inference import (
     infer_attribute_types_in_filter,
     infer_attribute_types_in_sort_by,
+)
+from neptune_fetcher.internal.filters import (
+    _Attribute,
+    _Filter,
 )
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
@@ -41,7 +41,7 @@ def run_with_attributes(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME),
+            _Filter.name_in(EXPERIMENT_NAME),
         )
     )
     if existing.items:
@@ -89,7 +89,7 @@ def run_with_attributes_b(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            Filter.name_in(EXPERIMENT_NAME_B),
+            _Filter.name_in(EXPERIMENT_NAME_B),
         )
     )
     if existing.items:
@@ -134,28 +134,28 @@ def test_infer_attribute_types_in_filter_no_filter(client, executor, project, ru
     "filter_before, filter_after",
     [
         (
-            Filter.eq(f"{PATH}/int-value", 10),
-            Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 10),
+            _Filter.eq(f"{PATH}/int-value", 10),
+            _Filter.eq(_Attribute(f"{PATH}/int-value", type="int"), 10),
         ),
         (
-            Filter.eq(f"{PATH}/float-value", 0.5),
-            Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 0.5),
+            _Filter.eq(f"{PATH}/float-value", 0.5),
+            _Filter.eq(_Attribute(f"{PATH}/float-value", type="float"), 0.5),
         ),
         (
-            Filter.eq(f"{PATH}/str-value", "hello"),
-            Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello"),
+            _Filter.eq(f"{PATH}/str-value", "hello"),
+            _Filter.eq(_Attribute(f"{PATH}/str-value", type="string"), "hello"),
         ),
         (
-            Filter.eq(f"{PATH}/bool-value", True),
-            Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), True),
+            _Filter.eq(f"{PATH}/bool-value", True),
+            _Filter.eq(_Attribute(f"{PATH}/bool-value", type="bool"), True),
         ),
         (
-            Filter.eq(f"{PATH}/datetime-value", DATETIME_VALUE),
-            Filter.eq(Attribute(f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE),
+            _Filter.eq(f"{PATH}/datetime-value", DATETIME_VALUE),
+            _Filter.eq(_Attribute(f"{PATH}/datetime-value", type="datetime"), DATETIME_VALUE),
         ),
         (
-            Filter.eq(f"{PATH}/float-series-value", FLOAT_SERIES_VALUES[-1]),
-            Filter.eq(Attribute(f"{PATH}/float-series-value", type="float_series"), FLOAT_SERIES_VALUES[-1]),
+            _Filter.eq(f"{PATH}/float-series-value", FLOAT_SERIES_VALUES[-1]),
+            _Filter.eq(_Attribute(f"{PATH}/float-series-value", type="float_series"), FLOAT_SERIES_VALUES[-1]),
         ),
     ],
 )
@@ -181,12 +181,12 @@ def test_infer_attribute_types_in_filter_single(
 @pytest.mark.parametrize(
     "attribute_before, attribute_after",
     [
-        (Attribute(f"{PATH}/int-value"), Attribute(f"{PATH}/int-value", type="int")),
-        (Attribute(f"{PATH}/float-value"), Attribute(f"{PATH}/float-value", type="float")),
-        (Attribute(f"{PATH}/str-value"), Attribute(f"{PATH}/str-value", type="string")),
-        (Attribute(f"{PATH}/bool-value"), Attribute(f"{PATH}/bool-value", type="bool")),
-        (Attribute(f"{PATH}/datetime-value"), Attribute(f"{PATH}/datetime-value", type="datetime")),
-        (Attribute(f"{PATH}/float-series-value"), Attribute(f"{PATH}/float-series-value", type="float_series")),
+        (_Attribute(f"{PATH}/int-value"), _Attribute(f"{PATH}/int-value", type="int")),
+        (_Attribute(f"{PATH}/float-value"), _Attribute(f"{PATH}/float-value", type="float")),
+        (_Attribute(f"{PATH}/str-value"), _Attribute(f"{PATH}/str-value", type="string")),
+        (_Attribute(f"{PATH}/bool-value"), _Attribute(f"{PATH}/bool-value", type="bool")),
+        (_Attribute(f"{PATH}/datetime-value"), _Attribute(f"{PATH}/datetime-value", type="datetime")),
+        (_Attribute(f"{PATH}/float-series-value"), _Attribute(f"{PATH}/float-series-value", type="float_series")),
     ],
 )
 def infer_attribute_types_in_sort_by_single(
@@ -212,7 +212,7 @@ def infer_attribute_types_in_sort_by_single(
 @pytest.mark.parametrize(
     "filter_before",
     [
-        Filter.eq(f"{PATH}/does-not-exist", 10),
+        _Filter.eq(f"{PATH}/does-not-exist", 10),
     ],
 )
 def test_infer_attribute_types_in_filter_missing(client, executor, project, filter_before):
@@ -233,9 +233,9 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
 @pytest.mark.parametrize(
     "attribute,experiment_filter",
     [
-        (Attribute(f"{PATH}/does-not-exist"), None),
-        (Attribute(f"{PATH}/does-not-exist"), Filter.name_in(EXPERIMENT_NAME)),
-        (Attribute(f"{PATH}/int-value"), Filter.name_in(EXPERIMENT_NAME + "does-not-exist")),
+        (_Attribute(f"{PATH}/does-not-exist"), None),
+        (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_in(EXPERIMENT_NAME)),
+        (_Attribute(f"{PATH}/int-value"), _Filter.name_in(EXPERIMENT_NAME + "does-not-exist")),
     ],
 )
 def test_infer_attribute_types_in_sort_by_missing(client, executor, project, attribute, experiment_filter):
@@ -257,7 +257,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
 @pytest.mark.parametrize(
     "filter_before",
     [
-        Filter.eq(f"{PATH}/conflicting-type-int-str-value", 10),
+        _Filter.eq(f"{PATH}/conflicting-type-int-str-value", 10),
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types(
@@ -283,7 +283,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
 @pytest.mark.parametrize(
     "filter_before",
     [
-        Filter.eq(f"{PATH}/conflicting-type-int-float-value", 0.5),
+        _Filter.eq(f"{PATH}/conflicting-type-int-float-value", 0.5),
     ],
 )
 def test_infer_attribute_types_in_filter_conflicting_types_todo(
@@ -306,10 +306,10 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
 @pytest.mark.parametrize(
     "attribute_before,experiment_filter",
     [
-        (Attribute(f"{PATH}/conflicting-type-int-str-value"), None),
+        (_Attribute(f"{PATH}/conflicting-type-int-str-value"), None),
         (
-            Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
+            _Attribute(f"{PATH}/conflicting-type-int-str-value"),
+            _Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
         ),
     ],
 )
@@ -337,10 +337,10 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
 @pytest.mark.parametrize(
     "attribute_before,experiment_filter",
     [
-        (Attribute(f"{PATH}/conflicting-type-int-float-value"), None),
+        (_Attribute(f"{PATH}/conflicting-type-int-float-value"), None),
         (
-            Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
+            _Attribute(f"{PATH}/conflicting-type-int-float-value"),
+            _Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
         ),
     ],
 )
@@ -366,24 +366,24 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
     "attribute_before,experiment_filter,attribute_after",
     [
         (
-            Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            Filter.name_in(EXPERIMENT_NAME),
-            Attribute(f"{PATH}/conflicting-type-int-str-value", type="int"),
+            _Attribute(f"{PATH}/conflicting-type-int-str-value"),
+            _Filter.name_in(EXPERIMENT_NAME),
+            _Attribute(f"{PATH}/conflicting-type-int-str-value", type="int"),
         ),
         (
-            Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            Filter.name_in(EXPERIMENT_NAME_B),
-            Attribute(f"{PATH}/conflicting-type-int-str-value", type="string"),
+            _Attribute(f"{PATH}/conflicting-type-int-str-value"),
+            _Filter.name_in(EXPERIMENT_NAME_B),
+            _Attribute(f"{PATH}/conflicting-type-int-str-value", type="string"),
         ),
         (
-            Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            Filter.name_in(EXPERIMENT_NAME),
-            Attribute(f"{PATH}/conflicting-type-int-float-value", type="int"),
+            _Attribute(f"{PATH}/conflicting-type-int-float-value"),
+            _Filter.name_in(EXPERIMENT_NAME),
+            _Attribute(f"{PATH}/conflicting-type-int-float-value", type="int"),
         ),
         (
-            Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            Filter.name_in(EXPERIMENT_NAME_B),
-            Attribute(f"{PATH}/conflicting-type-int-float-value", type="float"),
+            _Attribute(f"{PATH}/conflicting-type-int-float-value"),
+            _Filter.name_in(EXPERIMENT_NAME_B),
+            _Attribute(f"{PATH}/conflicting-type-int-float-value", type="float"),
         ),
     ],
 )

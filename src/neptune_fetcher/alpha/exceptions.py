@@ -15,17 +15,17 @@
 # src/neptune_fetcher/alpha/exception.py
 
 from neptune_fetcher.exceptions import (
-    NeptuneError,
-    NeptuneWarning,
-    NeptuneUserError,
-    NeptuneProjectNotProvided,
-    NeptuneProjectInaccessible,
-    NeptuneApiTokenNotProvided,
-    NeptuneInvalidCredentialsError,
     AttributeTypeInferenceError,
     ConflictingAttributeTypes,
-    NeptuneUnexpectedResponseError,
+    NeptuneApiTokenNotProvided,
+    NeptuneError,
+    NeptuneInvalidCredentialsError,
+    NeptuneProjectInaccessible,
+    NeptuneProjectNotProvided,
     NeptuneRetryError,
+    NeptuneUnexpectedResponseError,
+    NeptuneUserError,
+    NeptuneWarning,
 )
 
 __all__ = [

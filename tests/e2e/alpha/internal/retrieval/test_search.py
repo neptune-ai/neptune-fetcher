@@ -9,11 +9,11 @@ from typing import Generator
 import pytest
 import pytz
 
-from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.alpha.filters import (
     Attribute,
     Filter,
 )
+from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.search import (

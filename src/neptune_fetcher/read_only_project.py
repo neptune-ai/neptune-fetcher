@@ -30,7 +30,6 @@ from typing import (
     Generator,
     Iterable,
     Iterator,
-    List,
     Literal,
     Optional,
     Tuple,
@@ -172,7 +171,7 @@ class ReadOnlyProject:
             yield {column: exp.attributes.get(column, None) for column in SYS_COLUMNS}
 
     def fetch_read_only_runs(
-        self, with_ids: Optional[List[str]] = None, custom_ids: Optional[List[str]] = None, eager_load_fields=True
+        self, with_ids: Optional[list[str]] = None, custom_ids: Optional[list[str]] = None, eager_load_fields=True
     ) -> Iterator[ReadOnlyRun]:
         """Lists runs of the project in the form of read-only runs.
 
@@ -207,7 +206,7 @@ class ReadOnlyProject:
                 )
 
     def fetch_read_only_experiments(
-        self, names: Optional[List[str]] = None, eager_load_fields=True
+        self, names: Optional[list[str]] = None, eager_load_fields=True
     ) -> Iterator[ReadOnlyRun]:
         """Lists experiments of the project in the form of read-only runs.
 
@@ -561,7 +560,7 @@ class ReadOnlyProject:
         return df
 
     def _fetch_columns_batch(
-        self, run_uuids: List[str], columns: Optional[Iterable[str]] = None, columns_regex: Optional[str] = None
+        self, run_uuids: list[str], columns: Optional[Iterable[str]] = None, columns_regex: Optional[str] = None
     ) -> Tuple[int, Dict[str, Dict[str, Any]]]:
         """
         Called as a worker function concurrently.
@@ -682,7 +681,7 @@ def _extract_value(attr: ProtoAttributeDTO) -> Any:
         return None
 
 
-def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> List[str]:
+def _ensure_default_columns(columns: Optional[list[str]], *, sort_by: str) -> list[str]:
     """
     Extend the columns to fetch to include the sorting column and sys/custom_run_id, if it's not already present.
     As a side effect, all columns will be unique.
@@ -700,7 +699,7 @@ def _ensure_default_columns(columns: Optional[List[str]], *, sort_by: str) -> Li
     return list(columns)
 
 
-def _to_pandas_df(run_uuids: List[str], items: Dict[str, Any], ensure_columns=None) -> DataFrame:
+def _to_pandas_df(run_uuids: list[str], items: Dict[str, Any], ensure_columns=None) -> DataFrame:
     """
     Convert the provided items into a pandas DataFrame, ensuring the order rows is the same as run_uuids.
     Any columns passed in `ensure_columns` will be present in the result as NA, even if not returned by the backend.
@@ -829,7 +828,7 @@ def _find_sort_type(backend, project_id, sort_by):
 
 def _batch_run_ids(
     runs: Generator[_AttributeContainer, None, None], *, batch_size: int
-) -> Generator[List[str], None, None]:
+) -> Generator[list[str], None, None]:
     """
     Consumes the `runs` generator, yielding lists of Run UUIDs. The length of a single list is limited by `batch_size`.
     """
@@ -854,7 +853,7 @@ def _make_leaderboard_nql(
     tags: Optional[Iterable[str]] = None,
     trashed: Optional[bool] = False,
     names_regex: Optional[str] = None,
-    names: Optional[List[str]] = None,
+    names: Optional[list[str]] = None,
     names_exclude_regex: Optional[Union[str, Iterable[str]]] = None,
     custom_id_regex: Optional[Union[str, Iterable[str]]] = None,
     is_run: bool = True,
@@ -1045,7 +1044,7 @@ def _verify_name_regex(collection_name: str, name_or_list: Optional[Union[str, I
 
 
 def _verify_string_collection(
-    collection: Optional[List[str]],
+    collection: Optional[list[str]],
     collection_name: str,
     max_elements_allowed: int,
     max_cumulative_length: int,
