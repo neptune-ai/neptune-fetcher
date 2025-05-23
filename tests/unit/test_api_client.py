@@ -11,7 +11,7 @@ from unittest.mock import (
     patch,
 )
 
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
     ProtoFloatPointValueDTO,
     ProtoFloatSeriesValuesDTO,
     ProtoFloatSeriesValuesResponseDTO,
@@ -25,7 +25,7 @@ from neptune_fetcher.fields import FloatPointValue
 
 @fixture
 def get_multiple_float_series_values_proto():
-    with patch("neptune_retrieval_api.api.default.get_multiple_float_series_values_proto.sync_detailed") as patched:
+    with patch("neptune_api.api.retrieval.get_multiple_float_series_values_proto.sync_detailed") as patched:
         yield patched
 
 
