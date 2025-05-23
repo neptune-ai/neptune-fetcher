@@ -16,7 +16,7 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.internal import env
-from tests.e2e.alpha.internal.data import (
+from tests.e2e.alpha.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     TEST_DATA,
