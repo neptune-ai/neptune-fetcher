@@ -54,8 +54,10 @@ def fetch_series_values(
         yield from []
         return
 
+    run_attribute_definitions = list(run_attribute_definitions)
+    width = len(str(len(run_attribute_definitions) - 1))
     request_id_to_run_attr_definition: dict[str, RunAttributeDefinition] = {
-        str(ix): pair for ix, pair in enumerate(run_attribute_definitions)
+        f"{ix:0{width}d}": pair for ix, pair in enumerate(run_attribute_definitions)
     }
 
     params: dict[str, Any] = {
@@ -126,34 +128,26 @@ def _make_new_series_page_params(
 ) -> Optional[dict[str, Any]]:
     if data is None:
         for request in params["requests"]:
-            if "searchAfter" in request:
-                del request["searchAfter"]
+            request.pop("searchAfter", None)
         return params
 
-    request_id_to_search_after_token = {}
-    for series in data.series:
-        if series.HasField("searchAfter") and series.searchAfter.finished:
-            continue
-        elif series.HasField("searchAfter") and series.searchAfter.token:
-            request_id_to_search_after_token[series.requestId] = series.searchAfter.token
-        else:
-            request_id_to_search_after_token[series.requestId] = None
-    if not request_id_to_search_after_token:
+    finished_requests = {
+        series.requestId for series in data.series if series.HasField("searchAfter") and series.searchAfter.finished
+    }
+    request_tokens = {
+        series.requestId: series.searchAfter.token
+        for series in data.series
+        if series.HasField("searchAfter") and series.searchAfter.token
+    }
+    new_requests = [
+        request | {"searchAfter": {"finished": False, "token": request_tokens[request["requestId"]]}}
+        if request["requestId"] in request_tokens
+        else request
+        for request in params["requests"]
+        if request["requestId"] not in finished_requests
+    ]
+    if not new_requests:
         return None
 
-    new_requests = []
-    for request in params["requests"]:
-        request_id = request["requestId"]
-        if request_id in request_id_to_search_after_token:
-            search_after_token = request_id_to_search_after_token[request_id]
-            if search_after_token is None:
-                if "searchAfter" in request:
-                    del request["searchAfter"]
-            else:
-                request["searchAfter"] = {
-                    "finished": False,
-                    "token": search_after_token,
-                }
-            new_requests.append(request)
     params["requests"] = new_requests
     return params
