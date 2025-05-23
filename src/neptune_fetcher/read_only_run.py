@@ -18,7 +18,6 @@ __all__ = ["ReadOnlyRun"]
 from typing import (
     TYPE_CHECKING,
     Generator,
-    List,
     Optional,
     Tuple,
     Union,
@@ -136,7 +135,7 @@ class ReadOnlyRun:
             }
             self._loaded_structure = True
 
-    def prefetch(self, paths: List[str]) -> None:
+    def prefetch(self, paths: list[str]) -> None:
         """Prefetches values of a list of fields and stores them in local cache.
 
         Args:
@@ -146,7 +145,7 @@ class ReadOnlyRun:
 
     def prefetch_series_values(
         self,
-        paths: List[str],
+        paths: list[str],
         use_threads: bool = False,
         progress_bar: bool = True,
         include_inherited: bool = True,

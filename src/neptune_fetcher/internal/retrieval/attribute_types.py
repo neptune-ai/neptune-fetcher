@@ -1,0 +1,128 @@
+#
+# Copyright (c) 2025, Neptune Labs Sp. z o.o.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import datetime
+from dataclasses import dataclass
+from typing import (
+    Any,
+    Optional,
+)
+
+from neptune_retrieval_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+    ProtoAttributeDTO,
+    ProtoFileRefAttributeDTO,
+    ProtoFloatSeriesAttributeDTO,
+    ProtoStringSeriesAttributeDTO,
+)
+
+from neptune_fetcher.exceptions import warn_unsupported_value_type
+
+ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file")
+FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
+STRING_SERIES_AGGREGATIONS = {"last"}
+ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
+TYPE_AGGREGATIONS = {
+    "float_series": FLOAT_SERIES_AGGREGATIONS,
+    "string_series": STRING_SERIES_AGGREGATIONS,
+}
+
+_ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
+    "float_series": "floatSeries",
+    "string_set": "stringSet",
+    "string_series": "stringSeries",
+    "file": "fileRef",
+}
+
+_ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.items()}
+
+
+def map_attribute_type_python_to_backend(_type: str) -> str:
+    return _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.get(_type, _type)
+
+
+def map_attribute_type_backend_to_python(_type: str) -> str:
+    return _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP.get(_type, _type)
+
+
+@dataclass(frozen=True)
+class FloatSeriesAggregations:
+    last: float
+    min: float
+    max: float
+    average: float
+    variance: float
+
+
+@dataclass(frozen=True)
+class StringSeriesAggregations:
+    last: str
+    last_step: float
+
+
+@dataclass(frozen=True)
+class FileProperties:
+    path: str
+    size_bytes: int
+    mime_type: str
+
+
+def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
+    if attr.type == "floatSeries":
+        return _extract_float_series_aggregations(attr.float_series_properties)
+    elif attr.type == "stringSeries":
+        return _extract_string_series_aggregations(attr.string_series_properties)
+    elif attr.type == "string":
+        return attr.string_properties.value
+    elif attr.type == "int":
+        return attr.int_properties.value
+    elif attr.type == "float":
+        return attr.float_properties.value
+    elif attr.type == "bool":
+        return attr.bool_properties.value
+    elif attr.type == "datetime":
+        return datetime.datetime.fromtimestamp(attr.datetime_properties.value / 1000, tz=datetime.timezone.utc)
+    elif attr.type == "stringSet":
+        return set(attr.string_set_properties.value)
+    elif attr.type == "fileRef":
+        return _extract_file_ref_properties(attr.file_ref_properties)
+    elif attr.type == "experimentState":
+        return None
+    else:
+        warn_unsupported_value_type(attr.type)
+        return None
+
+
+def _extract_float_series_aggregations(attr: ProtoFloatSeriesAttributeDTO) -> FloatSeriesAggregations:
+    return FloatSeriesAggregations(
+        last=attr.last,
+        min=attr.min,
+        max=attr.max,
+        average=attr.average,
+        variance=attr.variance,
+    )
+
+
+def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> StringSeriesAggregations:
+    return StringSeriesAggregations(
+        last=attr.last,
+        last_step=attr.last_step,
+    )
+
+
+def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> FileProperties:
+    return FileProperties(
+        path=attr.path,
+        size_bytes=attr.sizeBytes,
+        mime_type=attr.mimeType,
+    )

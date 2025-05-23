@@ -22,7 +22,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import (
     Dict,
-    List,
     Tuple,
     Union,
 )
@@ -72,7 +71,7 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         self._backend: ApiClient = backend
         self._container_id: str = container_id
 
-    def _fetch_missing_paths(self, paths: List[str]) -> None:
+    def _fetch_missing_paths(self, paths: list[str]) -> None:
         missed_paths = [path for path in paths if path not in self]
 
         if not missed_paths:
@@ -95,12 +94,12 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
             fetched = {attr.name: _extract_value(attr) for attr in data.attributes}
             self.update(fetched)
 
-    def prefetch(self, paths: List[str]) -> None:
+    def prefetch(self, paths: list[str]) -> None:
         self._fetch_missing_paths(paths)
 
     def prefetch_series_values(
         self,
-        paths: List[str],
+        paths: list[str],
         use_threads: bool,
         progress_bar: bool = False,
         include_inherited: bool = True,

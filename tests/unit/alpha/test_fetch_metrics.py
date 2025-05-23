@@ -1,6 +1,6 @@
 import pytest
 
-from neptune_fetcher.alpha.internal.composition.fetch_metrics import (
+from neptune_fetcher.internal.composition.fetch_metrics import (
     _validate_include_time,
     _validate_step_range,
     _validate_tail_limit,

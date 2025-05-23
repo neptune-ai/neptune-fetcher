@@ -2,13 +2,13 @@ import os
 
 import pytest
 
-from neptune_fetcher.alpha.internal import identifiers
-from neptune_fetcher.alpha.internal.env import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.env import (
     NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE,
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
 )
-from neptune_fetcher.alpha.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.alpha.internal.retrieval.split import (
+from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.retrieval.split import (
     split_sys_ids,
     split_sys_ids_attributes,
 )
