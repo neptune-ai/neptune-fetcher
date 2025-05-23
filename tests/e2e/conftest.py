@@ -20,8 +20,6 @@ from neptune_fetcher.util import (
     create_auth_api_client,
     get_config_and_token_urls,
 )
-
-# TODO: un-alphafy
 from tests.e2e.data import (
     NOW,
     PATH,
