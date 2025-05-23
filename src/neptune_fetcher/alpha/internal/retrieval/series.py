@@ -134,20 +134,23 @@ def _make_new_series_page_params(
     finished_requests = {
         series.requestId for series in data.series if series.HasField("searchAfter") and series.searchAfter.finished
     }
-    request_tokens = {
+    updated_request_tokens = {
         series.requestId: series.searchAfter.token
         for series in data.series
         if series.HasField("searchAfter") and series.searchAfter.token
     }
+    # if an attribute does not exist at all, the backend will keep returning an empty searchAfter for it
+    # so stop requesting when there has been no progress, even though some requests may still be unfinished
+    if not updated_request_tokens:
+        return None
+
     new_requests = [
-        request | {"searchAfter": {"finished": False, "token": request_tokens[request["requestId"]]}}
-        if request["requestId"] in request_tokens
+        request | {"searchAfter": {"finished": False, "token": updated_request_tokens[request["requestId"]]}}
+        if request["requestId"] in updated_request_tokens
         else request
         for request in params["requests"]
         if request["requestId"] not in finished_requests
     ]
-    if not new_requests:
-        return None
 
     params["requests"] = new_requests
     return params
