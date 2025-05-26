@@ -46,9 +46,13 @@ class NeptuneProjectNotProvided(NeptuneUserError):
             """
 {h1}NeptuneProjectNotProvided: The project name was not provided.{end}
 
-Make sure to specify the project name with `set_project()` function,
-by providing the `context` argument with `project` and `api_token` set to the function call,
-or with the `NEPTUNE_PROJECT` environment variable.
+Make sure to specify a valid project in one of the following ways:
+
+- Call the `set_project()` function
+- Create a Context with the project name and pass it to the `context` argument of the fetching method
+- Set the `NEPTUNE_PROJECT` environment variable
+
+For details, see https://docs-beta.neptune.ai/fetcher_setup
 """
         )
 
@@ -62,6 +66,8 @@ class NeptuneProjectInaccessible(NeptuneError):
 Ensure that:
 - the workspace and project names are correct
 - the account you're using has at least Viewer access to the project
+
+For details, see https://docs-beta.neptune.ai/project_access
 """
         )
 
@@ -96,7 +102,9 @@ Make sure to specify your Neptune credentials in one of the following ways:
 - Create a Context with the API token and project, then pass it to the `context` argument of the fetching method
 - Set the `NEPTUNE_API_TOKEN` and `NEPTUNE_PROJECT` environment variables
 
-For details, see https://docs-beta.neptune.ai/fetcher_setup
+For details, see:
+https://docs-beta.neptune.ai/fetcher_setup
+https://docs-beta.neptune.ai/project_access
 """
         )
 
@@ -107,8 +115,8 @@ class AttributeTypeInferenceError(NeptuneError):
             """
 {h1}AttributeTypeInferenceError: Failed to infer types for attributes [{attribute_names}]{end}
 
-The attribute types could not be determined. More than one attribute type fits the passed arguments.
-In order to resolve this, specify the attribute type explicitly:
+Neptune found the attribute name in multiple runs, but the attribute type is not the same across all runs.
+To resolve this ambiguity, specify the attribute type explicitly when constructing a filter:
     {python}
     fetch_experiments_table(
         experiments=Filter.eq(Attribute("metrics/m1", aggregation="max", type="float_series"), 1.2),
@@ -128,6 +136,8 @@ In order to resolve this, specify the attribute type explicitly:
         ...
     )
     {end}
+
+For details, see https://docs-beta.neptune.ai/attribute_types
 """,
             attribute_names=", ".join(attribute_names),
         )
@@ -139,10 +149,12 @@ class ConflictingAttributeTypes(NeptuneError):
             """
 {h1}ConflictingAttributeTypes: Multiple types detected for attributes [{attribute_names}]{end}
 
-Use {python}type_suffix_in_column_names=True{end} to append the type to the column name,
-and present each column separately.
+Neptune found the attribute name in multiple runs, but the attribute type is not the same across all runs.
 
-Alternatively, specify the attribute type explicitly using {python}AttributeFilter(..., type_in=[...]){end}.
+- To present each type as a separate column, use {python}type_suffix_in_column_names=True{end}.
+- Alternatively, specify the attribute type explicitly using {python}AttributeFilter(..., type_in=[...]){end}.
+
+For details, see https://docs-beta.neptune.ai/attribute_types
 """,
             attribute_names=", ".join(attribute_names),
         )
