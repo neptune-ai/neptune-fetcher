@@ -37,26 +37,31 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.alpha import filters as _filters
-from neptune_fetcher.alpha.internal import util as _util
-from neptune_fetcher.alpha.internal.composition import download_files as _download_files
-from neptune_fetcher.alpha.internal.composition import fetch_metrics as _fetch_metrics
-from neptune_fetcher.alpha.internal.composition import fetch_series as _fetch_series
-from neptune_fetcher.alpha.internal.composition import fetch_table as _fetch_table
-from neptune_fetcher.alpha.internal.composition import list_attributes as _list_attributes
-from neptune_fetcher.alpha.internal.composition import list_containers as _list_containers
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.alpha import filters
+from neptune_fetcher.alpha._internal import (
+    resolve_attributes_filter,
+    resolve_destination_path,
+    resolve_experiments_filter,
+    resolve_sort_by,
+)
+from neptune_fetcher.internal.composition import download_files as _download_files
+from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
+from neptune_fetcher.internal.composition import fetch_series as _fetch_series
+from neptune_fetcher.internal.composition import fetch_table as _fetch_table
+from neptune_fetcher.internal.composition import list_attributes as _list_attributes
+from neptune_fetcher.internal.composition import list_containers as _list_containers
+from neptune_fetcher.internal.context import (
     Context,
     get_context,
     set_api_token,
     set_context,
     set_project,
 )
-from neptune_fetcher.alpha.internal.retrieval import search as _search
+from neptune_fetcher.internal.retrieval import search as _search
 
 
 def list_experiments(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
+    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -68,14 +73,14 @@ def list_experiments(
         - a Filter object
     `context` - a Context object to be used; primarily useful for switching projects
     """
-    experiments = _util.resolve_experiments_filter(experiments)
+    _experiments = resolve_experiments_filter(experiments)
 
-    return _list_containers.list_containers(experiments, context, _search.ContainerType.EXPERIMENT)
+    return _list_containers.list_containers(_experiments, context, _search.ContainerType.EXPERIMENT)
 
 
 def list_attributes(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
     context: Optional[Context] = None,
 ) -> list[str]:
     """
@@ -96,17 +101,17 @@ def list_attributes(
     Returns a list of unique attribute names in experiments matching the filter.
     """
 
-    experiments = _util.resolve_experiments_filter(experiments)
-    attributes = _util.resolve_attributes_filter(attributes)
+    _experiments = resolve_experiments_filter(experiments)
+    _attributes = resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
-        experiments, attributes, context, container_type=_search.ContainerType.EXPERIMENT
+        _experiments, _attributes, context, container_type=_search.ContainerType.EXPERIMENT
     )
 
 
 def fetch_metrics(
-    experiments: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    experiments: Union[str, list[str], filters.Filter],
+    attributes: Union[str, list[str], filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
@@ -142,13 +147,13 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    experiments_ = _util.resolve_experiments_filter(experiments)
-    assert experiments_ is not None
-    attributes = _util.resolve_attributes_filter(attributes, forced_type=["float_series"])
+    _experiments = resolve_experiments_filter(experiments)
+    assert _experiments is not None
+    _attributes = resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
-        filter_=experiments_,
-        attributes=attributes,
+        filter_=_experiments,
+        attributes=_attributes,
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
@@ -161,9 +166,9 @@ def fetch_metrics(
 
 
 def fetch_experiments_table(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Union[str, list[str], _filters.AttributeFilter] = "^sys/name$",
-    sort_by: Union[str, _filters.Attribute] = _filters.Attribute("sys/creation_time", type="datetime"),
+    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    attributes: Union[str, list[str], filters.AttributeFilter] = "^sys/name$",
+    sort_by: Union[str, filters.Attribute] = filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
@@ -191,14 +196,14 @@ def fetch_experiments_table(
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
-    experiments = _util.resolve_experiments_filter(experiments)
-    attributes = _util.resolve_attributes_filter(attributes)
-    sort_by = _util.resolve_sort_by(sort_by)
+    _experiments = resolve_experiments_filter(experiments)
+    _attributes = resolve_attributes_filter(attributes)
+    _sort_by = resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
-        filter_=experiments,
-        attributes=attributes,
-        sort_by=sort_by,
+        filter_=_experiments,
+        attributes=_attributes,
+        sort_by=_sort_by,
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
@@ -208,8 +213,8 @@ def fetch_experiments_table(
 
 
 def fetch_series(
-    experiments: Union[str, list[str], _filters.Filter],
-    attributes: Union[str, list[str], _filters.AttributeFilter],
+    experiments: Union[str, list[str], filters.Filter],
+    attributes: Union[str, list[str], filters.AttributeFilter],
     *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -240,13 +245,13 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified experiments and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    experiments_ = _util.resolve_experiments_filter(experiments)
-    assert experiments_ is not None
-    attributes = _util.resolve_attributes_filter(attributes, forced_type=["string_series"])
+    _experiments = resolve_experiments_filter(experiments)
+    assert _experiments is not None
+    _attributes = resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
-        filter_=experiments_,
-        attributes=attributes,
+        filter_=_experiments,
+        attributes=_attributes,
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
@@ -257,8 +262,8 @@ def fetch_series(
 
 
 def download_files(
-    experiments: Optional[Union[str, list[str], _filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], _filters.AttributeFilter]] = None,
+    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
     *,
     destination: Optional[str] = None,
     context: Optional[Context] = None,
@@ -281,13 +286,13 @@ def download_files(
 
     Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
     """
-    experiments = _util.resolve_experiments_filter(experiments)
-    attributes = _util.resolve_attributes_filter(attributes, forced_type=["file"])
-    destination_path = _util.resolve_destination_path(destination)
+    _experiments = resolve_experiments_filter(experiments)
+    _attributes = resolve_attributes_filter(attributes, forced_type=["file"])
+    destination_path = resolve_destination_path(destination)
 
     return _download_files.download_files(
-        filter_=experiments,
-        attributes=attributes,
+        filter_=_experiments,
+        attributes=_attributes,
         destination=destination_path,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,

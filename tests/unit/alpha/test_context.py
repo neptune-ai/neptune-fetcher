@@ -18,12 +18,12 @@ from pytest import fixture
 
 import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.exceptions import (
+from neptune_fetcher.exceptions import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )
-from neptune_fetcher.alpha.internal import env
-from neptune_fetcher.alpha.internal.context import (
+from neptune_fetcher.internal import env
+from neptune_fetcher.internal.context import (
     get_context,
     validate_context,
 )
