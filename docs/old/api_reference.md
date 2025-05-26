@@ -121,7 +121,7 @@ __Parameters:__
 | `sort_by`         | `str`, optional       | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                           |
 | `ascending`       | `bool`, optional      | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                         |
 | `progress_bar`    | `bool`                | `True`              | Set to `False `to disable the download progress bar.                                                                                                                                                                                                                                                                 |
-| `query`           | `str`, optional       | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs. |
+| `query`           | `str`, optional       | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs-legacy.neptune.ai/usage/nql/) in the Neptune docs. |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched runs.
 
@@ -203,7 +203,7 @@ __Parameters__:
 | `sort_by`             | `str`, optional       | `sys/creation_time` | Name of the field to sort the results by. The field must represent a simple type (string, float, integer).                                                                                                                                                                                                           |
 | `ascending`           | `bool`, optional      | `False`             | Whether to sort the entries in ascending order of the sorting column values.                                                                                                                                                                                                                                         |
 | `progress_bar`        | `bool`                | `True`              | Set to `False `to disable the download progress bar.                                                                                                                                                                                                                                                                 |
-| `query`               | `str`, optional       | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs.neptune.ai/usage/nql/) in the Neptune docs. |
+| `query`               | `str`, optional       | `None`              | NQL query string. Example: `"(accuracy: float > 0.88) AND (loss: float < 0.2)"`. The query is applied on top of other criteria like, `custom_ids`, `tags` etc, using the logical AND operator. See examples below. For syntax, see [Neptune Query Language](https://docs-legacy.neptune.ai/usage/nql/) in the Neptune docs. |
 
 __Returns:__ `pandas.DataFrame`: A pandas DataFrame containing metadata of the fetched experiments.
 
@@ -594,6 +594,6 @@ groups = run["sys/group_tags"].fetch()
 ```
 
 
-[docs-metric-previews]: https://docs-beta.neptune.ai/metric_previews
-[fetcher-migration]: https://docs-beta.neptune.ai/fetcher_migration
-[sys-state]: https://docs.neptune.ai/api/sys/#state
+[docs-metric-previews]: https://docs.neptune.ai/metric_previews
+[fetcher-migration]: https://docs.neptune.ai/fetcher_migration
+[sys-state]: https://docs-legacy.neptune.ai/api/sys/#state

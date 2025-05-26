@@ -52,7 +52,7 @@ Make sure to specify a valid project in one of the following ways:
 - Create a Context with the project name and pass it to the `context` argument of the fetching method
 - Set the `NEPTUNE_PROJECT` environment variable
 
-For details, see https://docs-beta.neptune.ai/fetcher_setup
+For details, see https://docs.neptune.ai/fetcher_setup
 """
         )
 
@@ -67,7 +67,7 @@ Ensure that:
 - the workspace and project names are correct
 - the account you're using has at least Viewer access to the project
 
-For details, see https://docs-beta.neptune.ai/project_access
+For details, see https://docs.neptune.ai/project_access
 """
         )
 
@@ -84,7 +84,7 @@ Make sure to specify a valid token in one of the following ways:
 - Create a Context with the API token and pass it to the `context` argument of the fetching method
 - Set the `NEPTUNE_API_TOKEN` environment variable
 
-For details, see https://docs-beta.neptune.ai/fetcher_setup
+For details, see https://docs.neptune.ai/fetcher_setup
 """
         )
 
@@ -103,8 +103,8 @@ Make sure to specify your Neptune credentials in one of the following ways:
 - Set the `NEPTUNE_API_TOKEN` and `NEPTUNE_PROJECT` environment variables
 
 For details, see:
-https://docs-beta.neptune.ai/fetcher_setup
-https://docs-beta.neptune.ai/project_access
+https://docs.neptune.ai/fetcher_setup
+https://docs.neptune.ai/project_access
 """
         )
 
@@ -137,7 +137,7 @@ To resolve this ambiguity, specify the attribute type explicitly when constructi
     )
     {end}
 
-For details, see https://docs-beta.neptune.ai/attribute_types
+For details, see https://docs.neptune.ai/attribute_types
 """,
             attribute_names=", ".join(attribute_names),
         )
@@ -154,7 +154,7 @@ Neptune found the attribute name in multiple runs, but the attribute type is not
 - To present each type as a separate column, use {python}type_suffix_in_column_names=True{end}.
 - Alternatively, specify the attribute type explicitly using {python}AttributeFilter(..., type_in=[...]){end}.
 
-For details, see https://docs-beta.neptune.ai/attribute_types
+For details, see https://docs.neptune.ai/attribute_types
 """,
             attribute_names=", ".join(attribute_names),
         )
