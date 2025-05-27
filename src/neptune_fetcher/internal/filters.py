@@ -62,7 +62,7 @@ class _AttributeFilter(_BaseAttributeFilter):
         type_in (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
         "string_series", "file"]]):
             A list of allowed attribute types. Defaults to all available types.
-            For a reference, see: https://docs-beta.neptune.ai/attribute_types
+            For a reference, see: https://docs.neptune.ai/attribute_types
         name_matches_all (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
             name must match. If `None`, this filter is not applied.
         name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
@@ -126,7 +126,7 @@ class _Attribute:
         type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
             Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
             that have the same name but are of a different type.
-            For a reference, see: https://docs-beta.neptune.ai/attribute_types
+            For a reference, see: https://docs.neptune.ai/attribute_types
 
     Example:
 
