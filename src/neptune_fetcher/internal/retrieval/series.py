@@ -130,6 +130,15 @@ def _make_new_series_page_params(
             request.pop("searchAfter", None)
         return params
 
+    # series does not exist: series is missing from the response
+    # series finished: series.HasField("searchAfter") == True, series.searchAfter.finished == True,
+    #   series.searchAfter.token == 'nonempty'
+    # series sent partially: series.HasField("searchAfter") == True, series.searchAfter.finished == False,
+    #   series.searchAfter.token == 'nonempty'
+    # series exists, but is outside the current page: series.HasField("searchAfter") == False
+    # if an attribute does not exist at all, the backend will keep returning an empty searchAfter for it
+    # so we stop requesting when there has been no progress, even though some requests may still be unfinished
+    existing_series = {series.requestId for series in data.series}
     finished_requests = {
         series.requestId for series in data.series if series.HasField("searchAfter") and series.searchAfter.finished
     }
@@ -139,21 +148,13 @@ def _make_new_series_page_params(
         if series.HasField("searchAfter")
     }
 
-    # series does not exist: series.HasField("searchAfter") == False
-    # series finished: series.HasField("searchAfter") == True, series.searchAfter.finished == True,
-    #   series.searchAfter.token == 'nonempty'
-    # series sent partially: series.HasField("searchAfter") == True, series.searchAfter.finished == False,
-    #   series.searchAfter.token == 'nonempty'
-    # series exists, but is outside the current page: series.HasField("searchAfter") == False
-    # if an attribute does not exist at all, the backend will keep returning an empty searchAfter for it
-    # so we stop requesting when there has been no progress, even though some requests may still be unfinished
     if not updated_request_tokens:
         return None
 
     new_requests = [
         request | updated_request_tokens.get(request["requestId"], {"searchAfter": UNSET})
         for request in params["requests"]
-        if request["requestId"] not in finished_requests
+        if request["requestId"] in existing_series and request["requestId"] not in finished_requests
     ]
 
     params["requests"] = new_requests
