@@ -238,7 +238,7 @@ def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
     assert len(df) == len(all_run_ids + all_experiment_ids)
     # All columns that are not system columns: 10 * config/* + 10 * metrics/* + 20 unique metrics * 12 runs
     assert (
-        len([col for col in df.columns if not col.startswith("sys/") and not col.startswith("monitoring/")]) == 280
+        len([col for col in df.columns if not col.startswith("sys/") and not col.startswith("runtime/")]) == 280
     ), f"{df.columns=}"
 
     for i, (_, row) in enumerate(df.iterrows(), start=1):
@@ -247,7 +247,7 @@ def test__full_data_consistency(project, all_run_ids, all_experiment_ids):
 
             if column.startswith("sys/"):
                 _validate_sys_attr(row, i, column, value)
-            elif column.startswith("monitoring/"):
+            elif column.startswith("runtime/"):
                 pass
             elif "unique" in column:
                 if isinstance(value, str):
