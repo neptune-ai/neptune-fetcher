@@ -55,9 +55,9 @@ def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> Au
             return client
 
         credentials = Credentials.from_api_key(api_key=context.api_token)
-        config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
+        config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies, api_version="v1")
         client = create_auth_api_client(
-            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies
+            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies, api_version="v1"
         )
 
         _cache[hash_key] = client
