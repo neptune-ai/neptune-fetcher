@@ -23,7 +23,7 @@ from typing import (
 import azure.core.exceptions
 from azure.storage.blob import BlobClient
 from neptune_api.client import AuthenticatedClient
-from neptune_storage_api.api import storagebridge
+from neptune_storage_api.api.storagebridge import signed_url
 from neptune_storage_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
@@ -57,7 +57,7 @@ def fetch_signed_urls(
         ]
     )
 
-    response = util.backoff_retry(storagebridge.signed_url.sync_detailed, client=client, body=body)
+    response = util.backoff_retry(signed_url.sync_detailed, client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
 
