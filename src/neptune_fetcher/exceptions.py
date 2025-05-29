@@ -72,6 +72,16 @@ For details, see https://docs.neptune.ai/project_access
         )
 
 
+class NeptuneProjectInvalidName(NeptuneUserError):
+    def __init__(self, project: str) -> None:
+        super().__init__(
+            """
+{h1}NeptuneProjectInvalidName: Project name {project} is invalid.{end}
+""",
+            project=project,
+        )
+
+
 class NeptuneApiTokenNotProvided(NeptuneUserError):
     def __init__(self) -> None:
         super().__init__(

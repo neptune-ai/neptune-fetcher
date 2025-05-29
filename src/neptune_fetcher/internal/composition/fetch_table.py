@@ -62,9 +62,9 @@ def fetch_table(
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
 
-    valid_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(valid_context)
-    project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
+    valid_context = _context.get_valid_context(context)
+    client = _client.get_client(valid_context.api_token)
+    project = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,

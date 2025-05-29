@@ -16,7 +16,6 @@ from typing import Optional
 
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import context as _context
-from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
@@ -32,9 +31,9 @@ def list_containers(
     context: Optional[_context.Context],
     container_type: search.ContainerType,
 ) -> list[str]:
-    validated_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(validated_context)
-    project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
+    valid_context = _context.get_valid_context(context)
+    client = _client.get_client(valid_context.api_token)
+    project_identifier = valid_context.project_identifier
 
     with (
         concurrency.create_thread_pool_executor() as executor,
