@@ -1,4 +1,3 @@
-import itertools as it
 import os
 from datetime import timedelta
 
@@ -9,6 +8,7 @@ from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,
 )
+from tests.e2e.conftest import extract_pages
 from tests.e2e.data import (
     NOW,
     STRING_SERIES_PATHS,
@@ -23,7 +23,7 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
     run_definition = RunAttributeDefinition(experiment_identifier, AttributeDefinition("does-not-exist", "string"))
 
     #  when
-    series = _extract_pages(
+    series = extract_pages(
         fetch_series_values(
             client,
             [run_definition],
@@ -42,7 +42,7 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     )
 
     #  when
-    series = _extract_pages(
+    series = extract_pages(
         fetch_series_values(
             client,
             [run_definition],
@@ -78,7 +78,7 @@ def test_fetch_series_values_single_series_stop_range(
     )
 
     #  when
-    series = _extract_pages(
+    series = extract_pages(
         fetch_series_values(client, [run_definition], include_inherited=False, step_range=step_range)
     )
 
@@ -103,7 +103,7 @@ def test_fetch_series_values_single_series_tail_limit(client, project, experimen
     )
 
     #  when
-    series = _extract_pages(
+    series = extract_pages(
         fetch_series_values(client, [run_definition], include_inherited=False, tail_limit=tail_limit)
     )
 
@@ -118,7 +118,3 @@ def test_fetch_series_values_single_series_tail_limit(client, project, experimen
             )
         ]
         assert series == [(run_definition, expected)]
-
-
-def _extract_pages(generator):
-    return list(it.chain.from_iterable(i.items for i in generator))
