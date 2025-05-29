@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
     timezone,
 )
-from typing import Generator
 
 import numpy as np
 import pandas as pd
@@ -32,7 +31,10 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
     StringSeriesAggregations,
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
-from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
+from neptune_fetcher.internal.retrieval.metrics import (
+    AttributePathInRun,
+    FloatPointValue,
+)
 from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
@@ -249,20 +251,28 @@ STEPS = 10
 
 def _generate_float_point_values(
     experiments: int, paths: int, steps: int, preview: bool
-) -> Generator[FloatPointValue, None, None]:
+) -> dict[AttributePathInRun, list[FloatPointValue]]:
+    result = {}
+
     for experiment in range(experiments):
         for path in range(paths):
+            attribute_run = AttributePathInRun(
+                RunIdentifier(ProjectIdentifier("foo/bar"), SysId(f"sysid{experiment}")), f"path{path}"
+            )
+            points = result.setdefault(attribute_run, [])
+
             for step in range(steps):
                 timestamp = datetime(2023, 1, 1, 0, 0, 0, 0, timezone.utc) + timedelta(seconds=step)
-                yield (
-                    f"exp{experiment}",
-                    f"path{path}",
-                    timestamp.timestamp(),
-                    float(step),
-                    float(step) * 100,
-                    preview,
-                    1.0 - (float(step) / 1000.0),
+                points.append(
+                    (
+                        timestamp.timestamp(),
+                        float(step),
+                        float(step) * 100,
+                        preview,
+                        1.0 - (float(step) / 1000.0),
+                    )
                 )
+    return result
 
 
 def _format_path_name(path: str, type_suffix_in_column_names: bool) -> str:
@@ -275,11 +285,13 @@ def _make_timestamp(year: int, month: int, day: int) -> float:
 
 @pytest.mark.parametrize("include_preview", [False, True])
 def test_create_metrics_dataframe_shape(include_preview):
-    float_point_values = list(_generate_float_point_values(EXPERIMENTS, PATHS, STEPS, include_preview))
+    float_point_values = _generate_float_point_values(EXPERIMENTS, PATHS, STEPS, include_preview)
+    sys_id_label_mapping = {SysId(f"sysid{experiment}"): f"exp{experiment}" for experiment in range(EXPERIMENTS)}
 
     """Test the creation of a flat DataFrame from float point values."""
     df = create_metrics_dataframe(
-        float_point_values,
+        metrics_data=float_point_values,
+        sys_id_label_mapping=sys_id_label_mapping,
         include_point_previews=include_preview,
         type_suffix_in_column_names=False,
         index_column_name="experiment",
@@ -293,7 +305,7 @@ def test_create_metrics_dataframe_shape(include_preview):
     assert df.shape[0] == num_expected_rows, f"DataFrame should have {num_expected_rows} rows"
 
     # Check the columns of the DataFrame
-    all_paths = set(fp[1] for fp in float_point_values)
+    all_paths = {key.attribute_path for key in float_point_values.keys()}
     if not include_preview:
         expected_columns = all_paths
     else:
@@ -315,14 +327,25 @@ def test_create_metrics_dataframe_shape(include_preview):
 @pytest.mark.parametrize("include_preview", [True, False])
 def test_create_metrics_dataframe_with_absolute_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
-    data = [
-        ("exp1", "path1", _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
-        ("exp1", "path2", _make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
-        ("exp2", "path1", _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
-    ]
+    data = {
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path1"): [
+            (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path2"): [
+            (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), "path1"): [
+            (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
+        ],
+    }
+    sys_id_label_mapping = {
+        SysId("sysid1"): "exp1",
+        SysId("sysid2"): "exp2",
+    }
 
     df = create_metrics_dataframe(
-        data,
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
         timestamp_column_name="absolute_time",
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
@@ -413,14 +436,25 @@ def test_create_series_dataframe_with_absolute_timestamp():
 @pytest.mark.parametrize("include_preview", [True, False])
 def test_create_metrics_dataframe_without_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
-    data = [
-        ("exp1", "path1", _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
-        ("exp1", "path2", _make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
-        ("exp2", "path1", _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
-    ]
+    data = {
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path1"): [
+            (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path2"): [
+            (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), "path1"): [
+            (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
+        ],
+    }
+    sys_id_label_mapping = {
+        SysId("sysid1"): "exp1",
+        SysId("sysid2"): "exp2",
+    }
 
     df = create_metrics_dataframe(
-        data,
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
         index_column_name="experiment",
@@ -462,7 +496,8 @@ def test_create_empty_metrics_dataframe(
 
     # When
     df = create_metrics_dataframe(
-        [],
+        metrics_data={},
+        sys_id_label_mapping={},
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
         timestamp_column_name=timestamp_column_name,
@@ -527,14 +562,25 @@ def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
     path: str, type_suffix_in_column_names: bool, include_preview: bool, timestamp_column_name: str
 ):
     # Given
-    data = [
-        ("exp1", path, _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
-        ("exp1", "other_path", _make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
-        ("exp2", path, _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
-    ]
+    data = {
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), path): [
+            (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), path): [
+            (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "other_path"): [
+            (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
+        ],
+    }
+    sys_id_label_mapping = {
+        SysId("sysid1"): "exp1",
+        SysId("sysid2"): "exp2",
+    }
 
     df = create_metrics_dataframe(
-        data,
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
         timestamp_column_name=timestamp_column_name,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_preview,
@@ -584,14 +630,25 @@ def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str, type_suffix_in_column_names: bool):
     # Given
-    data = [
-        ("exp1", path, _make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
-        ("exp1", "other_path", _make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
-        ("exp2", path, _make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
-    ]
+    data = {
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), path): [
+            (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), path): [
+            (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
+        ],
+        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "other_path"): [
+            (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
+        ],
+    }
+    sys_id_label_mapping = {
+        SysId("sysid1"): "exp1",
+        SysId("sysid2"): "exp2",
+    }
 
     df = create_metrics_dataframe(
-        data,
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
         index_column_name="experiment",
