@@ -7,10 +7,12 @@ from datetime import (
     datetime,
     timezone,
 )
+from pathlib import Path
 from typing import Any
 
 import pytest
 from _pytest.outcomes import Failed
+from filelock import FileLock
 from neptune_api import AuthenticatedClient
 from pytest import fixture
 
@@ -54,15 +56,17 @@ def random_series(length=10, start_step=0):
 
 @fixture(scope="session")
 def new_project_id(client: AuthenticatedClient):
-    project_name = generate_project_name(NEPTUNE_E2E_REUSE_PROJECT)
-    if NEPTUNE_E2E_REUSE_PROJECT and project_exists(client, NEPTUNE_E2E_WORKSPACE, project_name):
-        return f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
+    # Use a file lock to ensure that only one test session can create a project at a time to avoid 409 Conflict errors
+    with FileLock(Path.home() / "neptune_e2e.lock"):
+        project_name = generate_project_name(NEPTUNE_E2E_REUSE_PROJECT)
+        if NEPTUNE_E2E_REUSE_PROJECT and project_exists(client, NEPTUNE_E2E_WORKSPACE, project_name):
+            return f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
 
-    create_project(client, project_name, NEPTUNE_E2E_WORKSPACE)
+        create_project(client, project_name, NEPTUNE_E2E_WORKSPACE)
 
-    project_id = f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
-    data.log_runs(project_id, ALL_STATIC_RUNS)
-    return project_id
+        project_id = f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
+        data.log_runs(project_id, ALL_STATIC_RUNS)
+        return project_id
 
 
 @fixture(scope="session")
