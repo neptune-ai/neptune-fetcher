@@ -9,7 +9,7 @@ from neptune_fetcher import (
     ReadOnlyRun,
 )
 
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT_PREPOPULATED")
 
 
 @pytest.mark.parametrize("limit", [1, 2, 6, 12, 1000])

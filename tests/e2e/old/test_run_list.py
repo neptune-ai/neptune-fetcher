@@ -1,6 +1,6 @@
 import os
 
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT_PREPOPULATED")
 
 
 def test__list_runs(project, all_run_ids, all_experiment_ids, sys_columns_set):
