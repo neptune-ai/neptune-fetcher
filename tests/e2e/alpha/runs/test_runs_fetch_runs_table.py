@@ -1,3 +1,4 @@
+import os
 from datetime import (
     datetime,
     timezone,
@@ -14,6 +15,8 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(

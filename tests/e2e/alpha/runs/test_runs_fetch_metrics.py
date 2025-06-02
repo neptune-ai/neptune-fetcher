@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import pytest
 
@@ -8,6 +10,8 @@ from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,
 )
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(
