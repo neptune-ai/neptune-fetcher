@@ -31,9 +31,10 @@ def list_containers(
     filter_: Optional[_Filter],
     context: Optional[_context.Context],
     container_type: search.ContainerType,
+    api_version: str,
 ) -> list[str]:
     validated_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(validated_context)
+    client = _client.get_client(context=validated_context, api_version=api_version)
     project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
     with (

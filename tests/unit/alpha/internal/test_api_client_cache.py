@@ -23,10 +23,13 @@ from unittest.mock import (
 from pytest import fixture
 
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.internal.client import (
-    clear_cache,
-    get_client,
-)
+from neptune_fetcher.internal.client import clear_cache
+from neptune_fetcher.internal.client import get_client as _get_client
+
+
+def get_client(context: Context, proxies: dict = None):
+    return _get_client(context=context, proxies=proxies, api_version="test")
+
 
 # Caching logic being tested: only API token and proxies are used as part of the cache key. Projects don't matter.
 

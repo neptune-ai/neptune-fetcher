@@ -41,7 +41,7 @@ _cache: dict[int, AuthenticatedClient] = {}
 _lock: threading.RLock = threading.RLock()
 
 
-def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
+def get_client(context: Context, api_version: str, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
     hash_key = hash((context.api_token, _dict_to_hashable(proxies)))
 
     # We hold the lock during the entire client creation process, including networking.
@@ -55,9 +55,15 @@ def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> Au
             return client
 
         credentials = Credentials.from_api_key(api_key=context.api_token)
-        config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies, api_version="v1")
+        config, token_urls = get_config_and_token_urls(
+            credentials=credentials, proxies=proxies, api_version=api_version
+        )
         client = create_auth_api_client(
-            credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies, api_version="v1"
+            credentials=credentials,
+            config=config,
+            token_refreshing_urls=token_urls,
+            proxies=proxies,
+            api_version=api_version,
         )
 
         _cache[hash_key] = client

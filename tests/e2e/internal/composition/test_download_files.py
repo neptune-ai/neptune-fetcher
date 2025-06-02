@@ -18,6 +18,7 @@ from tests.e2e.data import (
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = TEST_DATA.experiment_names[0]
+_API_VERSION = "test"
 
 
 @pytest.fixture
@@ -34,6 +35,7 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
+        api_version=_API_VERSION,
     )
 
     # then
@@ -59,6 +61,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
             destination=temp_dir,
             context=None,
             container_type=ContainerType.EXPERIMENT,
+            api_version=_API_VERSION,
         )
 
     os.chmod(temp_dir, 0o755)  # Reset permissions
@@ -72,6 +75,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
+        api_version=_API_VERSION,
     )
 
     # then
@@ -101,6 +105,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,
+        api_version=_API_VERSION,
     )
 
     # then
@@ -140,4 +145,5 @@ def test_download_files_destination_a_file(client, project, experiment_identifie
             destination=destination,
             context=None,
             container_type=ContainerType.EXPERIMENT,
+            api_version=_API_VERSION,
         )
