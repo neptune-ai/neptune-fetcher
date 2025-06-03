@@ -8,4 +8,4 @@ pytest-retry
 pytest-timeout
 pytest-xdist
 icecream
-neptune-scale==0.13.0b0
+neptune-scale==0.13.1b0
