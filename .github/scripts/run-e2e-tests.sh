@@ -38,13 +38,13 @@ cleanup() {
 trap cleanup SIGINT SIGTERM EXIT ERR
 
 run_tests() {
-  export NEPTUNE_PROJECT="$NEPTUNE_WORKSPACE/$PROJECT"
+  export NEPTUNE_E2E_PROJECT_PREPOPULATED="$NEPTUNE_WORKSPACE/$PROJECT"
 
-  echo "Creating project $NEPTUNE_PROJECT"
+  echo "Creating project $NEPTUNE_E2E_PROJECT_PREPOPULATED"
   python .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
 
   echo "Preparing test data"
-  python tests/populate_projects.py
+  NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" python tests/populate_projects.py
 
   echo "Running tests..."
   pytest --junitxml="test-results/test-e2e.xml" tests/e2e

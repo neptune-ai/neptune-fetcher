@@ -2,7 +2,7 @@ import os
 
 from neptune_fetcher import ReadOnlyRun
 
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT_PREPOPULATED")
 
 
 def test__eager_loading_structure(project, all_experiment_ids):

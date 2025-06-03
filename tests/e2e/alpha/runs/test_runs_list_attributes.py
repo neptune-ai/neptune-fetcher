@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 import neptune_fetcher.alpha.runs as runs
@@ -11,6 +13,8 @@ from tests.e2e.alpha.generator import (
     ALL_STATIC_RUNS,
     LINEAR_HISTORY_TREE,
 )
+
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(

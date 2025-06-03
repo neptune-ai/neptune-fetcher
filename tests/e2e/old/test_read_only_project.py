@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_FIXED_PROJECT")
+NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT_PREPOPULATED")
 
 
 @pytest.mark.parametrize("eager_load_fields", [True, False])

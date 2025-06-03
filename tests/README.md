@@ -20,7 +20,7 @@ The tests that rely on this data are:
 ## Environment variables
 
 * `NEPTUNE_API_TOKEN` - API token to use
-* `NEPTUNE_E2E_FIXED_PROJECT` - project name to use for tests that require a project
+* `NEPTUNE_E2E_PROJECT_PREPOPULATED` - project name to use for tests that require a project
   with fixed data populated by `populate_projects.py` and **do not** populate the
   project during execution. The test runner script creates a temporary project for
   that purpose. If not set, `NEPTUNE_PROJECT` is used.
