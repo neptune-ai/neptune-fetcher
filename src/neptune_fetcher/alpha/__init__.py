@@ -39,6 +39,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters
 from neptune_fetcher.alpha._internal import (
+    get_default_project_identifier,
     resolve_attributes_filter,
     resolve_destination_path,
     resolve_experiments_filter,
@@ -75,7 +76,12 @@ def list_experiments(
     """
     _experiments = resolve_experiments_filter(experiments)
 
-    return _list_containers.list_containers(_experiments, context, _search.ContainerType.EXPERIMENT)
+    return _list_containers.list_containers(
+        project_identifier=get_default_project_identifier(context),
+        filter_=_experiments,
+        context=context,
+        container_type=_search.ContainerType.EXPERIMENT,
+    )
 
 
 def list_attributes(
@@ -103,9 +109,14 @@ def list_attributes(
 
     _experiments = resolve_experiments_filter(experiments)
     _attributes = resolve_attributes_filter(attributes)
+    project_identifier = get_default_project_identifier(context)
 
     return _list_attributes.list_attributes(
-        _experiments, _attributes, context, container_type=_search.ContainerType.EXPERIMENT
+        project_identifier=project_identifier,
+        filter_=_experiments,
+        attributes=_attributes,
+        context=context,
+        container_type=_search.ContainerType.EXPERIMENT,
     )
 
 
@@ -150,8 +161,10 @@ def fetch_metrics(
     _experiments = resolve_experiments_filter(experiments)
     assert _experiments is not None
     _attributes = resolve_attributes_filter(attributes, forced_type=["float_series"])
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_metrics.fetch_metrics(
+        project_identifier=project_identifier,
         filter_=_experiments,
         attributes=_attributes,
         include_time=include_time,
@@ -199,8 +212,10 @@ def fetch_experiments_table(
     _experiments = resolve_experiments_filter(experiments)
     _attributes = resolve_attributes_filter(attributes)
     _sort_by = resolve_sort_by(sort_by)
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_table.fetch_table(
+        project_identifier=project_identifier,
         filter_=_experiments,
         attributes=_attributes,
         sort_by=_sort_by,
@@ -248,8 +263,10 @@ def fetch_series(
     _experiments = resolve_experiments_filter(experiments)
     assert _experiments is not None
     _attributes = resolve_attributes_filter(attributes, forced_type=["string_series"])
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_series.fetch_series(
+        project_identifier=project_identifier,
         filter_=_experiments,
         attributes=_attributes,
         include_time=include_time,
@@ -289,8 +306,10 @@ def download_files(
     _experiments = resolve_experiments_filter(experiments)
     _attributes = resolve_attributes_filter(attributes, forced_type=["file"])
     destination_path = resolve_destination_path(destination)
+    project_identifier = get_default_project_identifier(context)
 
     return _download_files.download_files(
+        project_identifier=project_identifier,
         filter_=_experiments,
         attributes=_attributes,
         destination=destination_path,

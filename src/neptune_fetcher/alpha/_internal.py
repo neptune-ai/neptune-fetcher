@@ -25,6 +25,12 @@ from typing import (
 
 from neptune_fetcher.alpha import filters
 from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.internal.context import (
+    Context,
+    get_context,
+    validate_context,
+)
+from neptune_fetcher.internal.identifiers import ProjectIdentifier
 
 
 def resolve_experiments_filter(
@@ -113,3 +119,15 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
     raise ValueError(
         f"Invalid type for `runs` filter. Expected str, list[str], or Filter object, but got {type(runs)}."
     )
+
+
+def get_default_project_identifier(context: Optional[Context] = None) -> ProjectIdentifier:
+    """
+    Returns the default project name from the current context.
+    If no context is set, it returns 'default'.
+    """
+    valid_context = validate_context(context or get_context())
+    project = valid_context.project
+    if not project:
+        raise ValueError("No project is set in the context. Please set a project before calling this function.")
+    return ProjectIdentifier(project)
