@@ -8,5 +8,4 @@ pytest-retry
 pytest-timeout
 pytest-xdist
 icecream
-neptune-scale @ git+https://github.com/neptune-ai/neptune-client-scale.git@dev/single-package-neptune-api
-neptune-api @ git+https://github.com/neptune-ai/neptune-api.git@dev/single-package
+neptune-scale==0.14.1b0
