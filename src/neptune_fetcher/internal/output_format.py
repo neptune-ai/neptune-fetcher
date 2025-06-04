@@ -200,12 +200,12 @@ def create_metrics_dataframe(
     """
 
     path_mapping: dict[str, int] = {}
-    experiment_mapping: dict[str, int] = {}
+    sys_id_mapping: dict[str, int] = {}
     label_mapping: list[str] = []
 
     for run_attr_definition in metrics_data:
-        if run_attr_definition.run_identifier.sys_id not in experiment_mapping:
-            experiment_mapping[run_attr_definition.run_identifier.sys_id] = len(experiment_mapping)
+        if run_attr_definition.run_identifier.sys_id not in sys_id_mapping:
+            sys_id_mapping[run_attr_definition.run_identifier.sys_id] = len(sys_id_mapping)
             label_mapping.append(sys_id_label_mapping[run_attr_definition.run_identifier.sys_id])
 
         if run_attr_definition.attribute_path not in path_mapping:
@@ -213,12 +213,12 @@ def create_metrics_dataframe(
 
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, points in metrics_data.items():
-            exp_category = experiment_mapping[attribute.run_identifier.sys_id]
+            exp_category = sys_id_mapping[attribute.run_identifier.sys_id]
             path_category = path_mapping[attribute.attribute_path]
 
             for point in points:
-                # Only include columns that we know we need. Note that the order of must match the
-                # the `types` list below.
+                # Only include columns that we know we need. Note that the list of columns must match the
+                # the list of `types` below.
                 head = (
                     exp_category,
                     path_category,

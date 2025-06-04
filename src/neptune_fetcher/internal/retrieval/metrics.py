@@ -70,8 +70,14 @@ def fetch_multiple_series_values(
     if not run_attribute_definitions:
         return {}
 
+    assert len(run_attribute_definitions) <= TOTAL_POINT_LIMIT, (
+        "The number of requested attributes exceeds the maximum limit of "
+        f"{TOTAL_POINT_LIMIT}. Please reduce the number of attributes."
+    )
+
+    width = len(str(len(run_attribute_definitions) - 1))
     request_id_to_attribute: dict[str, AttributePathInRun] = {
-        f"{i}": attr for i, attr in enumerate(run_attribute_definitions)
+        f"{i:0{width}d}": attr for i, attr in enumerate(run_attribute_definitions)
     }
 
     params: dict[str, Any] = {
@@ -123,7 +129,9 @@ def _fetch_metrics_page(
 ) -> ProtoFloatSeriesValuesResponseDTO:
     body = FloatTimeSeriesValuesRequest.from_dict(params)
 
-    response = get_multiple_float_series_values_proto.sync_detailed(client=client, body=body)
+    response = util.backoff_retry(
+        lambda: get_multiple_float_series_values_proto.sync_detailed(client=client, body=body)
+    )
 
     return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
