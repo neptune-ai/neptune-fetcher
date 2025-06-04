@@ -59,8 +59,6 @@ from neptune_fetcher.internal.context import (
 )
 from neptune_fetcher.internal.retrieval import search as _search
 
-_API_VERSION = "alpha"
-
 
 def list_experiments(
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
@@ -77,9 +75,7 @@ def list_experiments(
     """
     _experiments = resolve_experiments_filter(experiments)
 
-    return _list_containers.list_containers(
-        _experiments, context, _search.ContainerType.EXPERIMENT, api_version=_API_VERSION
-    )
+    return _list_containers.list_containers(_experiments, context, _search.ContainerType.EXPERIMENT)
 
 
 def list_attributes(
@@ -109,7 +105,7 @@ def list_attributes(
     _attributes = resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
-        _experiments, _attributes, context, container_type=_search.ContainerType.EXPERIMENT, api_version=_API_VERSION
+        _experiments, _attributes, context, container_type=_search.ContainerType.EXPERIMENT
     )
 
 
@@ -166,7 +162,6 @@ def fetch_metrics(
         include_point_previews=include_point_previews,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
-        api_version=_API_VERSION,
     )
 
 
@@ -214,7 +209,6 @@ def fetch_experiments_table(
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
-        api_version=_API_VERSION,
     )
 
 
@@ -264,7 +258,6 @@ def fetch_series(
         tail_limit=tail_limit,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
-        api_version=_API_VERSION,
     )
 
 
@@ -303,5 +296,4 @@ def download_files(
         destination=destination_path,
         context=context,
         container_type=_search.ContainerType.EXPERIMENT,
-        api_version=_API_VERSION,
     )

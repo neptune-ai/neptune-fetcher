@@ -47,8 +47,6 @@ from neptune_fetcher.internal.composition import list_attributes as _list_attrib
 from neptune_fetcher.internal.composition import list_containers as _list_containers
 from neptune_fetcher.internal.retrieval import search as _search
 
-_API_VERSION = "alpha"
-
 
 def list_runs(
     runs: Optional[Union[str, list[str], filters.Filter]] = None,
@@ -65,7 +63,7 @@ def list_runs(
     """
     _runs = resolve_runs_filter(runs)
 
-    return _list_containers.list_containers(_runs, context, _search.ContainerType.RUN, api_version=_API_VERSION)
+    return _list_containers.list_containers(_runs, context, _search.ContainerType.RUN)
 
 
 def list_attributes(
@@ -93,9 +91,7 @@ def list_attributes(
     _runs = resolve_runs_filter(runs)
     _attributes = resolve_attributes_filter(attributes)
 
-    return _list_attributes.list_attributes(
-        _runs, _attributes, context, container_type=_search.ContainerType.RUN, api_version=_API_VERSION
-    )
+    return _list_attributes.list_attributes(_runs, _attributes, context, container_type=_search.ContainerType.RUN)
 
 
 def fetch_metrics(
@@ -151,7 +147,6 @@ def fetch_metrics(
         include_point_previews=include_point_previews,
         context=context,
         container_type=_search.ContainerType.RUN,
-        api_version=_API_VERSION,
     )
 
 
@@ -199,7 +194,6 @@ def fetch_runs_table(
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=context,
         container_type=_search.ContainerType.RUN,
-        api_version=_API_VERSION,
     )
 
 
@@ -249,7 +243,6 @@ def fetch_series(
         tail_limit=tail_limit,
         context=context,
         container_type=_search.ContainerType.RUN,
-        api_version=_API_VERSION,
     )
 
 
@@ -288,5 +281,4 @@ def download_files(
         destination=destination_path,
         context=context,
         container_type=_search.ContainerType.RUN,
-        api_version=_API_VERSION,
     )

@@ -138,7 +138,7 @@ def _wrap_httpx_json_response(httpx_response: httpx.Response) -> Response:
 
 
 def get_config_and_token_urls(
-    *, credentials: Credentials, proxies: Optional[Dict[str, str]], api_version: str = "v1"
+    *, credentials: Credentials, proxies: Optional[Dict[str, str]]
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
     timeout = httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS)
     with Client(
@@ -146,7 +146,7 @@ def get_config_and_token_urls(
         httpx_args={"mounts": proxies},
         verify_ssl=NEPTUNE_VERIFY_SSL,
         timeout=timeout,
-        headers={"User-Agent": _generate_user_agent(api_version)},
+        headers={"User-Agent": _generate_user_agent()},
     ) as client:
         try:
             config_response = backoff_retry(lambda: get_client_config.sync_detailed(client=client))
@@ -168,7 +168,6 @@ def create_auth_api_client(
     config: ClientConfig,
     token_refreshing_urls: TokenRefreshingURLs,
     proxies: Optional[Dict[str, str]],
-    api_version: str,
 ) -> AuthenticatedClient:
     return AuthenticatedClient(
         base_url=credentials.base_url,
@@ -179,18 +178,17 @@ def create_auth_api_client(
         verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
         timeout=httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS),
-        headers={"User-Agent": _generate_user_agent(api_version)},
+        headers={"User-Agent": _generate_user_agent()},
     )
 
 
-def _generate_user_agent(api_version: str) -> str:
+def _generate_user_agent() -> str:
     import platform
     from importlib.metadata import version
 
     package_name = "neptune-fetcher"
     package_version = "unknown"
     additional_metadata = {
-        "py-api": api_version,
         "neptune-api": "unknown",
         "python": "unknown",
         "os": "unknown",

@@ -54,10 +54,9 @@ def download_files(
     destination: pathlib.Path,
     context: Optional[Context],
     container_type: ContainerType,
-    api_version: str,
 ) -> pd.DataFrame:
     valid_context = validate_context(context or get_context())
-    client = _client.get_client(context=valid_context, api_version=api_version)
+    client = _client.get_client(context=valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     _ensure_write_access(destination)

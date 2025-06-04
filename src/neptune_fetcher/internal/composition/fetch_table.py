@@ -58,13 +58,12 @@ def fetch_table(
     type_suffix_in_column_names: bool,
     context: Optional[_context.Context],
     container_type: search.ContainerType,
-    api_version: str,
 ) -> pd.DataFrame:
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
 
     valid_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(context=valid_context, api_version=api_version)
+    client = _client.get_client(context=valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (

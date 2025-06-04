@@ -49,10 +49,9 @@ def list_attributes(
     attributes: _AttributeFilter,
     context: Optional[Context],
     container_type: search.ContainerType,
-    api_version: str,
 ) -> list[str]:
     valid_context = validate_context(context or get_context())
-    client = _client.get_client(context=valid_context, api_version=api_version)
+    client = _client.get_client(context=valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (

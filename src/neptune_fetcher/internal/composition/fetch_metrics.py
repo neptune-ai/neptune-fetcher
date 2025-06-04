@@ -74,14 +74,13 @@ def fetch_metrics(
     include_point_previews: bool,
     context: Optional[Context],
     container_type: ContainerType,
-    api_version: str,
 ) -> pd.DataFrame:
     _validate_step_range(step_range)
     _validate_tail_limit(tail_limit)
     _validate_include_time(include_time)
 
     valid_context = validate_context(context or get_context())
-    client = get_client(context=valid_context, api_version=api_version)
+    client = get_client(context=valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
