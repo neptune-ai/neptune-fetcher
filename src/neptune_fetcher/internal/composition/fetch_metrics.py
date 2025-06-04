@@ -49,9 +49,7 @@ from neptune_fetcher.internal.retrieval import (
     split,
     util,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.internal.retrieval.metrics import (
-    AttributePathInRun,
     FloatPointValue,
     fetch_multiple_series_values,
 )
@@ -167,10 +165,12 @@ def _fetch_metrics(
     include_point_previews: bool,
     tail_limit: Optional[int],
     container_type: ContainerType,
-) -> tuple[dict[AttributePathInRun, list[FloatPointValue]], dict[identifiers.SysId, str]]:  # pd.DataFrame:
+) -> tuple[
+    dict[identifiers.RunAttributeDefinition, list[FloatPointValue]], dict[identifiers.SysId, str]
+]:  # pd.DataFrame:
     def fetch_values(
-        exp_paths: list[AttributePathInRun],
-    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
+        exp_paths: list[identifiers.RunAttributeDefinition],
+    ) -> tuple[list[concurrent.futures.Future], dict[identifiers.RunAttributeDefinition, list[FloatPointValue]]]:
         _series = fetch_multiple_series_values(
             client,
             run_attribute_definitions=exp_paths,
@@ -183,8 +183,8 @@ def _fetch_metrics(
 
     def process_definitions(
         _sys_ids: Iterable[identifiers.SysId],
-        _definitions: Generator[util.Page[AttributeDefinition], None, None],
-    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
+        _definitions: Generator[util.Page[identifiers.AttributeDefinition], None, None],
+    ) -> tuple[list[concurrent.futures.Future], dict[identifiers.RunAttributeDefinition, list[FloatPointValue]]]:
         definitions_page = next(_definitions, None)
         _futures = []
 
@@ -194,19 +194,19 @@ def _fetch_metrics(
             paths = definitions_page.items
 
             exp_paths = [
-                AttributePathInRun(RunIdentifier(project_identifier, sys_id), _path.name)
+                identifiers.RunAttributeDefinition(RunIdentifier(project_identifier, sys_id), _path)
                 for sys_id, _path in it.product(_sys_ids, paths)
                 if _path.type == "float_series"
             ]
 
-            for batch in split_series_attributes(items=exp_paths, get_path=lambda r: r.attribute_path):
+            for batch in split_series_attributes(items=exp_paths, get_path=lambda r: r.attribute_definition.name):
                 _futures.append(executor.submit(fetch_values, batch))
 
         return _futures, {}
 
     def process_sys_ids(
         sys_ids_generator: Generator[list[identifiers.SysId], None, None],
-    ) -> tuple[list[concurrent.futures.Future], dict[AttributePathInRun, list[FloatPointValue]]]:
+    ) -> tuple[list[concurrent.futures.Future], dict[identifiers.RunAttributeDefinition, list[FloatPointValue]]]:
         sys_ids = next(sys_ids_generator, None)
         _futures = []
 
@@ -242,7 +242,7 @@ def _fetch_metrics(
 
     futures = {executor.submit(lambda: process_sys_ids(go_fetch_sys_attrs()))}
 
-    metrics_data: dict[AttributePathInRun, list[FloatPointValue]] = {}
+    metrics_data: dict[identifiers.RunAttributeDefinition, list[FloatPointValue]] = {}
 
     while futures:
         done, not_done = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)

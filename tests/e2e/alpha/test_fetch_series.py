@@ -21,15 +21,13 @@ from neptune_fetcher.alpha.filters import (
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
+    RunAttributeDefinition,
     RunIdentifier,
     SysId,
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.internal.retrieval.series import (
-    RunAttributeDefinition,
-    StringSeriesValue,
-)
+from neptune_fetcher.internal.retrieval.series import StringSeriesValue
 from tests.e2e.data import (
     NOW,
     NUMBER_OF_STEPS,

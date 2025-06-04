@@ -14,7 +14,9 @@ from pandas._testing import assert_frame_equal
 from neptune_fetcher.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
     ProjectIdentifier,
+    RunAttributeDefinition,
     RunIdentifier,
     SysId,
 )
@@ -24,21 +26,14 @@ from neptune_fetcher.internal.output_format import (
     create_metrics_dataframe,
     create_series_dataframe,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FileProperties,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
-from neptune_fetcher.internal.retrieval.metrics import (
-    AttributePathInRun,
-    FloatPointValue,
-)
-from neptune_fetcher.internal.retrieval.series import (
-    RunAttributeDefinition,
-    StringSeriesValue,
-)
+from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
+from neptune_fetcher.internal.retrieval.series import StringSeriesValue
 
 EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -251,13 +246,14 @@ STEPS = 10
 
 def _generate_float_point_values(
     experiments: int, paths: int, steps: int, preview: bool
-) -> dict[AttributePathInRun, list[FloatPointValue]]:
+) -> dict[RunAttributeDefinition, list[FloatPointValue]]:
     result = {}
 
     for experiment in range(experiments):
         for path in range(paths):
-            attribute_run = AttributePathInRun(
-                RunIdentifier(ProjectIdentifier("foo/bar"), SysId(f"sysid{experiment}")), f"path{path}"
+            attribute_run = RunAttributeDefinition(
+                RunIdentifier(ProjectIdentifier("foo/bar"), SysId(f"sysid{experiment}")),
+                AttributeDefinition(f"path{path}", "float_series"),
             )
             points = result.setdefault(attribute_run, [])
 
@@ -305,7 +301,7 @@ def test_create_metrics_dataframe_shape(include_preview):
     assert df.shape[0] == num_expected_rows, f"DataFrame should have {num_expected_rows} rows"
 
     # Check the columns of the DataFrame
-    all_paths = {key.attribute_path for key in float_point_values.keys()}
+    all_paths = {key.attribute_definition.name for key in float_point_values.keys()}
     if not include_preview:
         expected_columns = all_paths
     else:
@@ -328,13 +324,19 @@ def test_create_metrics_dataframe_shape(include_preview):
 def test_create_metrics_dataframe_with_absolute_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
     data = {
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path1"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path1", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path2"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path2", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), "path1"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), AttributeDefinition("path1", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
         ],
     }
@@ -437,13 +439,19 @@ def test_create_series_dataframe_with_absolute_timestamp():
 def test_create_metrics_dataframe_without_timestamp(type_suffix_in_column_names: bool, include_preview: bool):
     # Given
     data = {
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path1"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path1", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "path2"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path2", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), "path1"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), AttributeDefinition("path1", "float_series")
+        ): [
             (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
         ],
     }
@@ -563,13 +571,20 @@ def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
 ):
     # Given
     data = {
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), path): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition(path, "float_series")
+        ): [
             (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), path): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), AttributeDefinition(path, "float_series")
+        ): [
             (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "other_path"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")),
+            AttributeDefinition("other_path", "float_series"),
+        ): [
             (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
         ],
     }
@@ -631,13 +646,20 @@ def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
 def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str, type_suffix_in_column_names: bool):
     # Given
     data = {
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), path): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition(path, "float_series")
+        ): [
             (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), path): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid2")), AttributeDefinition(path, "float_series")
+        ): [
             (_make_timestamp(2023, 1, 2), 1, 30.0, True, 0.5),
         ],
-        AttributePathInRun(RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), "other_path"): [
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")),
+            AttributeDefinition("other_path", "float_series"),
+        ): [
             (_make_timestamp(2023, 1, 3), 2, 20.0, False, 1.0),
         ],
     }

@@ -31,7 +31,6 @@ from neptune_fetcher.internal import (
     identifiers,
 )
 from neptune_fetcher.internal.retrieval import util
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
@@ -40,7 +39,7 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 
 @dataclass(frozen=True)
 class AttributeValue:
-    attribute_definition: AttributeDefinition
+    attribute_definition: identifiers.AttributeDefinition
     value: Any
     run_identifier: identifiers.RunIdentifier
 
@@ -49,10 +48,10 @@ def fetch_attribute_values(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     run_identifiers: Iterable[identifiers.RunIdentifier],
-    attribute_definitions: Iterable[AttributeDefinition],
+    attribute_definitions: Iterable[identifiers.AttributeDefinition],
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeValue], None, None]:
-    attribute_definitions_set: set[AttributeDefinition] = set(attribute_definitions)
+    attribute_definitions_set: set[identifiers.AttributeDefinition] = set(attribute_definitions)
     experiments = [str(e) for e in run_identifiers]
 
     if not attribute_definitions_set or not run_identifiers:
@@ -94,7 +93,7 @@ def _fetch_attribute_values_page(
 
 def _process_attribute_values_page(
     data: ProtoQueryAttributesResultDTO,
-    attribute_definitions_set: set[AttributeDefinition],
+    attribute_definitions_set: set[identifiers.AttributeDefinition],
     project_identifier: identifiers.ProjectIdentifier,
 ) -> util.Page[AttributeValue]:
     items = []
@@ -104,7 +103,9 @@ def _process_attribute_values_page(
         )
 
         for attr in entry.attributes:
-            attr_definition = AttributeDefinition(name=attr.name, type=map_attribute_type_backend_to_python(attr.type))
+            attr_definition = identifiers.AttributeDefinition(
+                name=attr.name, type=map_attribute_type_backend_to_python(attr.type)
+            )
             if attr_definition not in attribute_definitions_set:
                 continue
 

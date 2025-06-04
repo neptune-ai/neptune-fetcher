@@ -20,15 +20,14 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
     ProjectIdentifier,
+    RunAttributeDefinition,
     RunIdentifier,
     SysId,
 )
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.internal.retrieval.metrics import (
-    AttributePathInRun,
-    FloatPointValue,
-)
+from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
 from tests.e2e.data import (
     NOW,
     PATH,
@@ -47,7 +46,7 @@ def create_expected_data(
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
-    metrics_data: dict[AttributePathInRun, list[FloatPointValue]] = {}
+    metrics_data: dict[RunAttributeDefinition, list[FloatPointValue]] = {}
     sys_id_label_mapping: dict[SysId, str] = {SysId(experiment.name): experiment.name for experiment in experiments}
 
     columns = set()
@@ -77,7 +76,10 @@ def create_expected_data(
                     )
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
 
-            attribute_run = AttributePathInRun(RunIdentifier(ProjectIdentifier(project), SysId(experiment.name)), path)
+            attribute_run = RunAttributeDefinition(
+                RunIdentifier(ProjectIdentifier(project), SysId(experiment.name)),
+                AttributeDefinition(path, "float_series"),
+            )
             metrics_data.setdefault(attribute_run, []).extend(limited)
 
     df = create_metrics_dataframe(

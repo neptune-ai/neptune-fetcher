@@ -15,7 +15,6 @@
 import functools as ft
 import itertools as it
 import re
-from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
@@ -30,13 +29,6 @@ from neptune_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )
-
-
-@dataclass(frozen=True)
-class AttributeDefinition:
-    name: str
-    type: str
-
 
 # The following imports need to go after the AttributeDefinition to avoid circular imports, thus the noqa
 import neptune_fetcher.internal.filters as filters  # noqa: E402
@@ -65,7 +57,7 @@ def fetch_attribute_definitions_single_filter(
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters._AttributeFilter,
     batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
-) -> Generator[util.Page[AttributeDefinition], None, None]:
+) -> Generator[util.Page[identifiers.AttributeDefinition], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),
         "attributeNameFilter": dict(),
@@ -122,10 +114,10 @@ def _fetch_attribute_definitions_page(
 
 def _process_attribute_definitions_page(
     data: QueryAttributeDefinitionsResultDTO,
-) -> util.Page[AttributeDefinition]:
+) -> util.Page[identifiers.AttributeDefinition]:
     items = []
     for entry in data.entries:
-        item = AttributeDefinition(
+        item = identifiers.AttributeDefinition(
             name=entry.name,
             type=types.map_attribute_type_backend_to_python(str(entry.type)),
         )

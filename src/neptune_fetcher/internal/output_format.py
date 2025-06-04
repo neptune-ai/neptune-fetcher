@@ -27,11 +27,9 @@ import pandas as pd
 from neptune_fetcher.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.retrieval import (
-    attribute_definitions,
     metrics,
     series,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
@@ -58,7 +56,7 @@ __all__ = (
 
 def convert_table_to_dataframe(
     table_data: dict[str, list[AttributeValue]],
-    selected_aggregations: dict[AttributeDefinition, set[str]],
+    selected_aggregations: dict[identifiers.AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
@@ -162,7 +160,7 @@ def convert_table_to_dataframe(
 
 
 def create_metrics_dataframe(
-    metrics_data: dict[metrics.AttributePathInRun, list[metrics.FloatPointValue]],
+    metrics_data: dict[identifiers.RunAttributeDefinition, list[metrics.FloatPointValue]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     *,
     type_suffix_in_column_names: bool,
@@ -208,13 +206,13 @@ def create_metrics_dataframe(
             sys_id_mapping[run_attr_definition.run_identifier.sys_id] = len(sys_id_mapping)
             label_mapping.append(sys_id_label_mapping[run_attr_definition.run_identifier.sys_id])
 
-        if run_attr_definition.attribute_path not in path_mapping:
-            path_mapping[run_attr_definition.attribute_path] = len(path_mapping)
+        if run_attr_definition.attribute_definition.name not in path_mapping:
+            path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, points in metrics_data.items():
             exp_category = sys_id_mapping[attribute.run_identifier.sys_id]
-            path_category = path_mapping[attribute.attribute_path]
+            path_category = path_mapping[attribute.attribute_definition.name]
 
             for point in points:
                 # Only include columns that we know we need. Note that the list of columns must match the
@@ -269,7 +267,7 @@ def create_metrics_dataframe(
 
 
 def create_series_dataframe(
-    series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]],
+    series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str,
     timestamp_column_name: Optional[str],
@@ -377,9 +375,7 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[
-        tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, Optional[pathlib.Path]]
-    ],
+    files_data: list[tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:

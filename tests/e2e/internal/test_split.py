@@ -8,20 +8,18 @@ from neptune_fetcher.exceptions import (
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import (
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.identifiers import (
     AttributeDefinition,
-    fetch_attribute_definitions_single_filter,
+    RunAttributeDefinition,
 )
+from neptune_fetcher.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
 from neptune_fetcher.internal.retrieval.attribute_values import (
     AttributeValue,
     fetch_attribute_values,
 )
-from neptune_fetcher.internal.retrieval.metrics import (
-    AttributePathInRun,
-    fetch_multiple_series_values,
-)
+from neptune_fetcher.internal.retrieval.metrics import fetch_multiple_series_values
 from neptune_fetcher.internal.retrieval.series import (
-    RunAttributeDefinition,
     StringSeriesValue,
     fetch_series_values,
 )
@@ -256,7 +254,7 @@ def test_fetch_float_series_values_retrieval(client, project, experiment_identif
     exp_identifiers = experiment_identifiers[:exp_limit]
     attribute_data = dict(list(LONG_PATH_METRICS.items())[:attr_limit])
     attribute_definitions = [
-        AttributePathInRun(run_identifier=exp, run_label=exp.sys_id, attribute_path=key)
+        RunAttributeDefinition(run_identifier=exp, attribute_definition=AttributeDefinition(key, "float_series"))
         for exp in exp_identifiers
         for key in attribute_data
     ]
@@ -279,12 +277,15 @@ def test_fetch_float_series_values_retrieval(client, project, experiment_identif
     # then
     if success:
         expected_values = {
-            (exp.sys_id, key, int(NOW.timestamp() * 1000), 1.0, value, False, 1.0)
+            RunAttributeDefinition(
+                run_identifier=identifiers.RunIdentifier(project.project_identifier, exp.sys_id),
+                attribute_definition=identifiers.AttributeDefinition(key, "float_series"),
+            ): [(int(NOW.timestamp() * 1000), 1.0, value, False, 1.0)]
             for exp in exp_identifiers
             for key, value in attribute_data.items()
         }
         assert thrown_e is None
-        assert set(result) == expected_values
+        assert result == expected_values
     else:
         assert result is None
         assert thrown_e is not None

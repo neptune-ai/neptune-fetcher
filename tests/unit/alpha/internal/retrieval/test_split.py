@@ -6,7 +6,7 @@ from neptune_fetcher.internal.env import (
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
     NEPTUNE_FETCHER_SERIES_BATCH_SIZE,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.identifiers import AttributeDefinition
 from neptune_fetcher.internal.retrieval.split import (
     split_series_attributes,
     split_sys_ids,

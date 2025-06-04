@@ -7,7 +7,6 @@ import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.internal.retrieval.metrics import AttributePathInRun
 from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,
@@ -229,9 +228,9 @@ def test_fetch_run_metrics(
 def create_expected_data(project, expected_metrics, include_time: str, type_suffix_in_column_names):
     data = {}
     for (run, metric_name), values in expected_metrics.items():
-        attribute_run = AttributePathInRun(
+        attribute_run = identifiers.RunAttributeDefinition(
             run_identifier=identifiers.RunIdentifier(project_identifier=project, sys_id=identifiers.SysId(run)),
-            attribute_path=metric_name,
+            attribute_definition=identifiers.AttributeDefinition(name=metric_name, type="float_series"),
         )
         rows = data.setdefault(attribute_run, [])
 

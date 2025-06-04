@@ -15,7 +15,6 @@
 
 import functools as ft
 import logging
-from dataclasses import dataclass
 from typing import (
     Any,
     Optional,
@@ -53,20 +52,14 @@ FloatPointValue = tuple[float, float, float, bool, float]
 TOTAL_POINT_LIMIT: int = 1_000_000
 
 
-@dataclass(frozen=True)
-class AttributePathInRun:
-    run_identifier: identifiers.RunIdentifier
-    attribute_path: str
-
-
 def fetch_multiple_series_values(
     client: AuthenticatedClient,
-    run_attribute_definitions: list[AttributePathInRun],
+    run_attribute_definitions: list[identifiers.RunAttributeDefinition],
     include_inherited: bool,
     include_preview: bool,
     step_range: tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> dict[AttributePathInRun, list[FloatPointValue]]:
+) -> dict[identifiers.RunAttributeDefinition, list[FloatPointValue]]:
     if not run_attribute_definitions:
         return {}
 
@@ -76,7 +69,7 @@ def fetch_multiple_series_values(
     )
 
     width = len(str(len(run_attribute_definitions) - 1))
-    request_id_to_attribute: dict[str, AttributePathInRun] = {
+    request_id_to_attribute: dict[str, identifiers.RunAttributeDefinition] = {
         f"{i:0{width}d}": attr for i, attr in enumerate(run_attribute_definitions)
     }
 
@@ -89,7 +82,7 @@ def fetch_multiple_series_values(
                         "identifier": str(run_attribute.run_identifier),
                         "type": "experiment",
                     },
-                    "attribute": run_attribute.attribute_path,
+                    "attribute": run_attribute.attribute_definition.name,
                     "lineage": "FULL" if include_inherited else "NONE",
                     "includePreview": include_preview,
                 },
@@ -100,7 +93,7 @@ def fetch_multiple_series_values(
         "order": "ascending" if not tail_limit else "descending",
     }
 
-    results: dict[AttributePathInRun, list[FloatPointValue]] = {
+    results: dict[identifiers.RunAttributeDefinition, list[FloatPointValue]] = {
         run_attribute: [] for run_attribute in run_attribute_definitions
     }
 
@@ -138,8 +131,8 @@ def _fetch_metrics_page(
 
 def _process_metrics_page(
     data: ProtoFloatSeriesValuesResponseDTO,
-    request_id_to_attribute: dict[str, AttributePathInRun],
-) -> util.Page[tuple[AttributePathInRun, list[FloatPointValue]]]:
+    request_id_to_attribute: dict[str, identifiers.RunAttributeDefinition],
+) -> util.Page[tuple[identifiers.RunAttributeDefinition, list[FloatPointValue]]]:
     result = {}
     for series in data.series:
         run_attribute = request_id_to_attribute[series.requestId]
@@ -159,9 +152,9 @@ def _process_metrics_page(
 def _make_new_metrics_page_params(
     params: dict[str, Any],
     data: Optional[ProtoFloatSeriesValuesResponseDTO],
-    request_id_to_attribute: dict[str, AttributePathInRun],
+    request_id_to_attribute: dict[str, identifiers.RunAttributeDefinition],
     tail_limit: Optional[int],
-    partial_results: dict[AttributePathInRun, list[FloatPointValue]],
+    partial_results: dict[identifiers.RunAttributeDefinition, list[FloatPointValue]],
 ) -> Optional[dict[str, Any]]:
     if data is None:
         for request in params["requests"]:
