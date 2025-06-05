@@ -45,14 +45,15 @@ from neptune_fetcher.internal.retrieval import (
 
 
 def list_attributes(
+    *,
+    project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[_Filter],
     attributes: _AttributeFilter,
-    context: Optional[Context],
+    context: Optional[Context] = None,
     container_type: search.ContainerType,
 ) -> list[str]:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
         concurrency.create_thread_pool_executor() as executor,

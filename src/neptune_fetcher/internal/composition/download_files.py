@@ -49,6 +49,8 @@ from neptune_fetcher.internal.retrieval.search import ContainerType
 
 
 def download_files(
+    *,
+    project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[_Filter],
     attributes: _AttributeFilter,
     destination: pathlib.Path,
@@ -57,7 +59,6 @@ def download_files(
 ) -> pd.DataFrame:
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
-    project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     _ensure_write_access(destination)
 
@@ -67,7 +68,7 @@ def download_files(
     ):
         type_inference.infer_attribute_types_in_filter(
             client=client,
-            project_identifier=project,
+            project_identifier=project_identifier,
             filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -84,7 +85,7 @@ def download_files(
         def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
             for page in search.fetch_sys_id_labels(container_type)(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 filter_=filter_,
             ):
                 sys_ids = []
@@ -98,14 +99,14 @@ def download_files(
             executor=executor,
             downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
                 downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
                     client=client,
-                    project_identifier=project,
+                    project_identifier=project_identifier,
                     executor=executor,
                     sys_ids=sys_ids_split,
                     attribute_definitions=definitions_page.items,
@@ -116,7 +117,7 @@ def download_files(
                                 values_page.items,
                                 files.fetch_signed_urls(
                                     client=client,
-                                    project_identifier=project,
+                                    project_identifier=project_identifier,
                                     file_paths=[value.value.path for value in values_page.items],
                                 ),
                             )
@@ -128,7 +129,7 @@ def download_files(
                                 run_file_tuple[0].attribute_definition,
                                 files.download_file_retry(
                                     client=client,
-                                    project_identifier=project,
+                                    project_identifier=project_identifier,
                                     signed_file=run_file_tuple[1],
                                     target_path=files.create_target_path(
                                         destination=destination,

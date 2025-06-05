@@ -33,6 +33,7 @@ import pandas as _pandas
 
 from neptune_fetcher.alpha import filters
 from neptune_fetcher.alpha._internal import (
+    get_default_project_identifier,
     resolve_attributes_filter,
     resolve_destination_path,
     resolve_runs_filter,
@@ -62,8 +63,14 @@ def list_runs(
     `context` - a Context object to be used; primarily useful for switching projects
     """
     _runs = resolve_runs_filter(runs)
+    project_identifier = get_default_project_identifier(context)
 
-    return _list_containers.list_containers(_runs, context, _search.ContainerType.RUN)
+    return _list_containers.list_containers(
+        project_identifier=project_identifier,
+        filter_=_runs,
+        context=context,
+        container_type=_search.ContainerType.RUN,
+    )
 
 
 def list_attributes(
@@ -90,8 +97,15 @@ def list_attributes(
     """
     _runs = resolve_runs_filter(runs)
     _attributes = resolve_attributes_filter(attributes)
+    project_identifier = get_default_project_identifier(context)
 
-    return _list_attributes.list_attributes(_runs, _attributes, context, container_type=_search.ContainerType.RUN)
+    return _list_attributes.list_attributes(
+        project_identifier=project_identifier,
+        filter_=_runs,
+        attributes=_attributes,
+        context=context,
+        container_type=_search.ContainerType.RUN,
+    )
 
 
 def fetch_metrics(
@@ -135,8 +149,10 @@ def fetch_metrics(
     _runs = resolve_runs_filter(runs)
     assert _runs is not None
     _attributes = resolve_attributes_filter(attributes, forced_type=["float_series"])
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_metrics.fetch_metrics(
+        project_identifier=project_identifier,
         filter_=_runs,
         attributes=_attributes,
         include_time=include_time,
@@ -184,8 +200,10 @@ def fetch_runs_table(
     _runs = resolve_runs_filter(runs)
     _attributes = resolve_attributes_filter(attributes)
     _sort_by = resolve_sort_by(sort_by)
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_table.fetch_table(
+        project_identifier=project_identifier,
         filter_=_runs,
         attributes=_attributes,
         sort_by=_sort_by,
@@ -233,8 +251,10 @@ def fetch_series(
     _runs = resolve_runs_filter(runs)
     assert _runs is not None
     _attributes = resolve_attributes_filter(attributes, forced_type=["string_series"])
+    project_identifier = get_default_project_identifier(context)
 
     return _fetch_series.fetch_series(
+        project_identifier=project_identifier,
         filter_=_runs,
         attributes=_attributes,
         include_time=include_time,
@@ -274,8 +294,10 @@ def download_files(
     _runs = resolve_runs_filter(runs)
     _attributes = resolve_attributes_filter(attributes, forced_type=["file"])
     destination_path = resolve_destination_path(destination)
+    project_identifier = get_default_project_identifier(context)
 
     return _download_files.download_files(
+        project_identifier=project_identifier,
         filter_=_runs,
         attributes=_attributes,
         destination=destination_path,

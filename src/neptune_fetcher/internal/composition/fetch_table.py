@@ -39,6 +39,7 @@ from neptune_fetcher.internal.filters import (
     _AttributeFilter,
     _Filter,
 )
+from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.internal.retrieval import (
@@ -50,13 +51,15 @@ __all__ = ("fetch_table",)
 
 
 def fetch_table(
+    *,
+    project_identifier: ProjectIdentifier,
     filter_: Optional[_Filter],
     attributes: _AttributeFilter,
     sort_by: _Attribute,
     sort_direction: Literal["asc", "desc"],
     limit: Optional[int],
     type_suffix_in_column_names: bool,
-    context: Optional[_context.Context],
+    context: Optional[_context.Context] = None,
     container_type: search.ContainerType,
 ) -> pd.DataFrame:
     _validate_limit(limit)
@@ -64,7 +67,6 @@ def fetch_table(
 
     valid_context = _context.validate_context(context or _context.get_context())
     client = _client.get_client(context=valid_context)
-    project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -73,7 +75,7 @@ def fetch_table(
 
         type_inference.infer_attribute_types_in_filter(
             client=client,
-            project_identifier=project,
+            project_identifier=project_identifier,
             filter_=filter_,
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -82,7 +84,7 @@ def fetch_table(
 
         type_inference.infer_attribute_types_in_sort_by(
             client=client,
-            project_identifier=project,
+            project_identifier=project_identifier,
             filter_=filter_,
             sort_by=sort_by,
             executor=executor,
@@ -97,7 +99,7 @@ def fetch_table(
         def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
             for page in search.fetch_sys_id_labels(container_type)(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 filter_=filter_,
                 sort_by=sort_by,
                 sort_direction=_sort_direction,
@@ -115,7 +117,7 @@ def fetch_table(
             executor=executor,
             downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
-                project_identifier=project,
+                project_identifier=project_identifier,
                 attribute_filter=attributes,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
@@ -125,7 +127,7 @@ def fetch_table(
                     downstreams=[
                         lambda: _components.fetch_attribute_values_split(
                             client=client,
-                            project_identifier=project,
+                            project_identifier=project_identifier,
                             executor=executor,
                             sys_ids=sys_ids_split,
                             attribute_definitions=definitions_page.items,

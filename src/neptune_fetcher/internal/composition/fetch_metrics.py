@@ -64,6 +64,8 @@ from neptune_fetcher.internal.retrieval.split import split_series_attributes
 
 
 def fetch_metrics(
+    *,
+    project_identifier: identifiers.ProjectIdentifier,
     filter_: _Filter,
     attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
@@ -72,7 +74,7 @@ def fetch_metrics(
     tail_limit: Optional[int],
     type_suffix_in_column_names: bool,
     include_point_previews: bool,
-    context: Optional[Context],
+    context: Optional[Context] = None,
     container_type: ContainerType,
 ) -> pd.DataFrame:
     _validate_step_range(step_range)
@@ -81,7 +83,6 @@ def fetch_metrics(
 
     valid_context = validate_context(context or get_context())
     client = get_client(context=valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -100,7 +101,7 @@ def fetch_metrics(
             filter_=filter_,
             attributes=attributes,
             client=client,
-            project=project_identifier,
+            project_identifier=project_identifier,
             step_range=step_range,
             lineage_to_the_root=lineage_to_the_root,
             include_point_previews=include_point_previews,
@@ -158,7 +159,7 @@ def _fetch_flat_dataframe_metrics(
     filter_: _Filter,
     attributes: _AttributeFilter,
     client: AuthenticatedClient,
-    project: identifiers.ProjectIdentifier,
+    project_identifier: identifiers.ProjectIdentifier,
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     step_range: Tuple[Optional[float], Optional[float]],
@@ -193,7 +194,7 @@ def _fetch_flat_dataframe_metrics(
 
             product = it.product(_sys_id_to_labels.items(), paths)
             exp_paths = [
-                AttributePathInRun(ExpId(project, sys_id), label, _path.name)
+                AttributePathInRun(ExpId(project_identifier, sys_id), label, _path.name)
                 for (sys_id, label), _path in product
                 if _path.type == "float_series"
             ]
@@ -215,11 +216,13 @@ def _fetch_flat_dataframe_metrics(
             sys_ids = list(sys_id_to_labels.keys())
 
             for sys_ids_split in split.split_sys_ids(sys_ids):
-                run_identifiers_split = [identifiers.RunIdentifier(project, sys_id) for sys_id in sys_ids_split]
+                run_identifiers_split = [
+                    identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split
+                ]
                 sys_id_to_labels_split = {sys_id: sys_id_to_labels[sys_id] for sys_id in sys_ids_split}
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
-                    project_identifiers=[project],
+                    project_identifiers=[project_identifier],
                     run_identifiers=run_identifiers_split,
                     attribute_filter=attributes,
                     executor=fetch_attribute_definitions_executor,
@@ -229,7 +232,7 @@ def _fetch_flat_dataframe_metrics(
         return _futures, []
 
     def fetch_sys_ids_labels() -> Generator[dict[identifiers.SysId, str], None, None]:
-        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project, filter_)
+        sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
         return ({run.sys_id: run.label for run in page.items} for page in sys_attr_pages)
 
     def _start() -> Iterable[FloatPointValue]:

@@ -16,25 +16,27 @@ from typing import Optional
 
 from neptune_fetcher.internal import client as _client
 from neptune_fetcher.internal import context as _context
-from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
 )
 from neptune_fetcher.internal.filters import _Filter
+from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.internal.retrieval import search
 
 __all__ = ("list_containers",)
 
 
 def list_containers(
+    *,
+    project_identifier: ProjectIdentifier,
     filter_: Optional[_Filter],
-    context: Optional[_context.Context],
+    context: Optional[_context.Context] = None,
     container_type: search.ContainerType,
 ) -> list[str]:
     validated_context = _context.validate_context(context or _context.get_context())
     client = _client.get_client(context=validated_context)
-    project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
+    client = _client.get_client(validated_context)
 
     with (
         concurrency.create_thread_pool_executor() as executor,

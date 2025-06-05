@@ -37,6 +37,7 @@ from neptune_fetcher.internal.filters import (
     _AttributeFilter,
     _Filter,
 )
+from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval import (
     search,
@@ -50,13 +51,15 @@ __all__ = ("fetch_series",)
 
 
 def fetch_series(
+    *,
+    project_identifier: ProjectIdentifier,
     filter_: _Filter,
     attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
     tail_limit: Optional[int],
-    context: Optional[Context],
+    context: Optional[Context] = None,
     container_type: ContainerType,
 ) -> pd.DataFrame:
     _validate_step_range(step_range)
@@ -65,7 +68,6 @@ def fetch_series(
 
     valid_context = validate_context(context or get_context())
     client = get_client(context=valid_context)
-    project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
         concurrency.create_thread_pool_executor() as executor,

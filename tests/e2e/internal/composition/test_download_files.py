@@ -29,6 +29,7 @@ def temp_dir():
 def test_download_files_missing(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
+        project_identifier=project.project_identifier,
         filter_=_Filter.name_in(EXPERIMENT_NAME),
         attributes=_AttributeFilter(name_eq=[f"{PATH}/files/object-does-not-exist"]),
         destination=temp_dir,
@@ -54,6 +55,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
 
     with pytest.raises(PermissionError):
         download_files(
+            project_identifier=project.project_identifier,
             filter_=_Filter.name_in(EXPERIMENT_NAME),
             attributes=_AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
             destination=temp_dir,
@@ -67,6 +69,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
 def test_download_files_single(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
+        project_identifier=project.project_identifier,
         filter_=_Filter.name_in(EXPERIMENT_NAME),
         attributes=_AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
@@ -96,6 +99,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
 def test_download_files_multiple(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
+        project_identifier=project.project_identifier,
         filter_=_Filter.name_in(EXPERIMENT_NAME),
         attributes=_AttributeFilter(name_eq=[f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt"]),
         destination=temp_dir,
@@ -135,6 +139,7 @@ def test_download_files_destination_a_file(client, project, experiment_identifie
 
     with pytest.raises(NotADirectoryError):
         download_files(
+            project_identifier=project.project_identifier,
             filter_=_Filter.name_in(EXPERIMENT_NAME),
             attributes=_AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
             destination=destination,
