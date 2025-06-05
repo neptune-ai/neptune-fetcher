@@ -19,10 +19,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(
-    "runs_filter, attributes_filter, expected_attributes",
+    "runs_filter, where_filter, attributes_filter, expected_attributes",
     [
         (
             r"^linear_history_root$",
+            None,
             r".*-value$",
             {
                 "run": ["linear_history_root"],
@@ -35,6 +36,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             "^non_exist$",
+            None,
             "^foo0$",
             {
                 "run": [],
@@ -42,6 +44,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"^linear_history_root$",
+            None,
             r"^foo.*$",
             {
                 "run": ["linear_history_root"],
@@ -51,6 +54,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"^linear_history_root$",
+            None,
             AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
             {
                 "run": ["linear_history_root"],
@@ -63,6 +67,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             "^linear_history_root$",
+            None,
             AttributeFilter(name_matches_all="foo0$", aggregations=["last", "min", "max", "average", "variance"])
             | AttributeFilter(name_matches_all=".*-value$"),
             {
@@ -81,6 +86,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"^linear_history_root$|^linear_history_fork2$",
+            None,
             AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
@@ -95,6 +101,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             ["linear_history_root", "linear_history_fork2"],
+            None,
             AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
@@ -109,6 +116,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"forked_history_root|forked_history_fork1",
+            None,
             r".*-value$",
             {
                 "run": ["forked_history_root", "forked_history_fork1"],
@@ -123,6 +131,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             },
         ),
         (
+            None,
             Filter.matches_all("sys/custom_run_id", r"forked_history_root|forked_history_fork1"),
             r".*-value$",
             {
@@ -138,6 +147,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             },
         ),
         (
+            None,
             Filter.eq("sys/name", "exp_with_linear_history"),
             # matches runs with experiment_name 'exp_with_linear_history'
             r".*-value$",
@@ -155,6 +165,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             },
         ),
         (
+            None,
             Filter.exists(Attribute("str-value", type="string")),  # matches runs that have config 'str-value'
             r".*-value$",
             {
@@ -186,6 +197,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 def test_fetch_runs_table(
     new_project_id,
     runs_filter,
+    where_filter,
     attributes_filter,
     expected_attributes,
     type_suffix_in_column_names: bool,
@@ -193,6 +205,7 @@ def test_fetch_runs_table(
     df = runs.fetch_runs_table(
         project=new_project_id,
         runs=runs_filter,
+        where=where_filter,
         attributes=attributes_filter,
         sort_by=Attribute("sys/custom_run_id", type="string"),
         sort_direction="desc",

@@ -90,11 +90,11 @@ def create_expected_data(
     "arg_attributes", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
 )
 @pytest.mark.parametrize(
-    "arg_experiments",
+    "arg_experiments, arg_where",
     [
-        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        [exp.name for exp in TEST_DATA.experiments[:3]],
+        (None, Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]])),
+        (f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}", None),
+        ([exp.name for exp in TEST_DATA.experiments[:3]], None),
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
@@ -105,12 +105,14 @@ def test__fetch_metrics_unique(
     tail_limit,
     include_time,
     arg_experiments,
+    arg_where,
     arg_attributes,
 ):
     experiments = TEST_DATA.experiments[:3]
 
     result = fetch_metrics(
         experiments=arg_experiments,
+        where=arg_where,
         attributes=arg_attributes,
         type_suffix_in_column_names=type_suffix_in_column_names,
         step_range=step_range,
@@ -119,11 +121,11 @@ def test__fetch_metrics_unique(
         project=project.project_identifier,
     )
 
-    expected, columns, filtered_exps = create_expected_data(
+    expected, columns, filtred_exps = create_expected_data(
         experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
     )
 
     pd.testing.assert_frame_equal(result, expected)
     assert result.columns.tolist() == columns
     assert result.index.names == ["experiment", "step"]
-    assert {t[0] for t in result.index.tolist()} == filtered_exps
+    assert {t[0] for t in result.index.tolist()} == filtred_exps

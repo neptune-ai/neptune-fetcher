@@ -27,7 +27,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 @pytest.mark.parametrize("sort_direction", ["asc", "desc"])
 def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     df = fetch_experiments_table(
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
+        where=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction=sort_direction,
         project=project.project_identifier,
@@ -46,15 +46,16 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
 
 
 @pytest.mark.parametrize(
-    "arg_experiments",
+    "arg_experiments, arg_where",
     [
-        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        [TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)],
-        Filter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
+        (f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}", None),
+        ([TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)], None),
+        (None, Filter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2))),
         (
+            None,
             Filter.name_eq(TEST_DATA.exp_name(0))
             | Filter.name_eq(TEST_DATA.exp_name(1))
-            | Filter.name_eq(TEST_DATA.exp_name(2))
+            | Filter.name_eq(TEST_DATA.exp_name(2)),
         ),
     ],
 )
@@ -78,6 +79,7 @@ def test__fetch_experiments_table_with_attributes_filter(
     project,
     run_with_attributes,
     arg_experiments,
+    arg_where,
     arg_attributes,
     type_suffix_in_column_names,
 ):
@@ -85,6 +87,7 @@ def test__fetch_experiments_table_with_attributes_filter(
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         experiments=arg_experiments,
+        where=arg_where,
         attributes=arg_attributes,
         type_suffix_in_column_names=type_suffix_in_column_names,
         project=project.project_identifier,
@@ -124,7 +127,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        where=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -180,7 +183,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        where=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -214,7 +217,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggreg
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        where=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -240,7 +243,7 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        where=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -269,21 +272,22 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
 
 
 @pytest.mark.parametrize(
-    "arg_experiments, expected_subset",
+    "arg_experiments, arg_where, expected_subset",
     [
-        (None, TEST_DATA.experiment_names),
-        (".*", TEST_DATA.experiment_names),
-        ("", TEST_DATA.experiment_names),
-        ("test_alpha", TEST_DATA.experiment_names),
-        (Filter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
+        (None, None, TEST_DATA.experiment_names),
+        (".*", None, TEST_DATA.experiment_names),
+        ("", None, TEST_DATA.experiment_names),
+        ("test_alpha", None, TEST_DATA.experiment_names),
+        (None, Filter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
     ],
 )
-def test_list_experiments_with_regex_and_filters_matching_all(project, arg_experiments, expected_subset):
+def test_list_experiments_with_regex_and_filters_matching_all(project, arg_experiments, arg_where, expected_subset):
     """We need to check if expected names are a subset of all names returned, as
     the test data could contain other experiments"""
     names = list_experiments(
         project=project.project_identifier,
         experiments=arg_experiments,
+        where=arg_where,
     )
     assert set(expected_subset) <= set(names)
 
@@ -312,16 +316,18 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
 
 
 @pytest.mark.parametrize(
-    "arg_experiments, expected",
+    "arg_experiments, arg_where, expected",
     [
-        (Filter.eq(Attribute("sys/name", type="string"), ""), []),
-        (Filter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
+        (None, Filter.eq(Attribute("sys/name", type="string"), ""), []),
+        (None, Filter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
         (
+            None,
             Filter.matches_all(Attribute("sys/name", type="string"), [f"alpha.*{TEST_DATA_VERSION}", "_3"]),
             [f"test_alpha_3" f"_{TEST_DATA_VERSION}"],
         ),
-        (TEST_DATA.experiment_names, TEST_DATA.experiment_names),
+        (TEST_DATA.experiment_names, None, TEST_DATA.experiment_names),
         (
+            None,
             Filter.matches_none(Attribute("sys/name", type="string"), ["alpha_3", "alpha_4", "alpha_5"])
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [
@@ -330,13 +336,15 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
                 f"test_alpha_2_{TEST_DATA_VERSION}",
             ],
         ),
-        (Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_123"), []),
+        (None, Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_123"), []),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             (
                 Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
                 | Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
@@ -345,30 +353,35 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             [f"test_alpha_1_{TEST_DATA_VERSION}", f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             Filter.ne(Attribute(f"{PATH}/str-value", type="string"), "hello_1")
             & Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_2")
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
-        (Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 12345), []),
+        (None, Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 12345), []),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [f"test_alpha_2_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 2)
             | Filter.eq(Attribute(f"{PATH}/int-value", type="int"), 3)
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [f"test_alpha_2_{TEST_DATA_VERSION}", f"test_alpha_3_{TEST_DATA_VERSION}"],
         ),
-        (Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 1.2345), []),
+        (None, Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 1.2345), []),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/float-value", type="float"), 3)
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [f"test_alpha_3_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False)
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [
@@ -378,6 +391,7 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             ],
         ),
         (
+            None,
             Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), True)
             & Filter.matches_all(Attribute("sys/name", type="string"), f"test_alpha_[0-9]_{TEST_DATA_VERSION}"),
             [
@@ -386,17 +400,20 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
                 f"test_alpha_4_{TEST_DATA_VERSION}",
             ],
         ),
-        (Filter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
+        (None, Filter.gt(Attribute(f"{PATH}/datetime-value", type="datetime"), datetime.now()), []),
         (
+            None,
             Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "no-such-string"),
             [],
         ),
         (
+            None,
             Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-1-0", "string-1-1"])
             & Filter.matches_all(Attribute("sys/name", type="string"), TEST_DATA_VERSION),
             [f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             (
                 Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-1-0")
                 | Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0")
@@ -405,6 +422,7 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             [f"test_alpha_0_{TEST_DATA_VERSION}", f"test_alpha_1_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             Filter.contains_none(
                 Attribute(f"{PATH}/string_set-value", type="string_set"),
                 ["string-1-0", "string-2-0", "string-3-0"],
@@ -417,6 +435,7 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             ],
         ),
         (
+            None,
             Filter.contains_none(
                 Attribute(f"{PATH}/string_set-value", type="string_set"),
                 ["string-1-0", "string-2-0", "string-3-0"],
@@ -426,19 +445,22 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
         (
+            None,
             Filter.eq(Attribute("sys/name", type="string"), f"test_alpha_0_{TEST_DATA_VERSION}"),
             [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
         # (     TODO - FILE nto supported in nql
+        #     None,
         #     Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),
         #     [f"test_experiment_0_{TEST_DATA_VERSION}"],
         # ),
     ],
 )
-def test_list_experiments_with_filter_matching_some(project, arg_experiments, expected):
+def test_list_experiments_with_filter_matching_some(project, arg_experiments, arg_where, expected):
     names = list_experiments(
         project=project.project_identifier,
         experiments=arg_experiments,
+        where=arg_where,
     )
     assert set(names) == set(expected)
     assert len(names) == len(expected)
