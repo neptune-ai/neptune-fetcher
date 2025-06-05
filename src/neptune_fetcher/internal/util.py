@@ -28,6 +28,13 @@ def _validate_string_or_string_list(value: Optional[Union[str, list[str]]], fiel
             raise ValueError(f"{field_name} must be a string or list of strings")
 
 
+def _validate_string_list(value: Optional[list[str]], field_name: str) -> None:
+    """Validate that a value is either None or a list of strings."""
+    if value is not None:
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            raise ValueError(f"{field_name} must be a list of strings")
+
+
 def _validate_list_of_allowed_values(value: list[str], allowed_values: set[str], field_name: str) -> None:
     """Validate that a value is a list containing only allowed values."""
     if not isinstance(value, list) or not all(isinstance(v, str) and v in allowed_values for v in value):

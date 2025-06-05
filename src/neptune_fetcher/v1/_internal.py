@@ -24,12 +24,14 @@ from typing import (
 )
 
 from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.internal import pattern as _pattern
 from neptune_fetcher.internal.context import (
     Context,
     get_context,
     validate_context,
 )
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
+from neptune_fetcher.internal.retrieval import attribute_types as types
 from neptune_fetcher.v1 import filters
 
 
@@ -37,9 +39,9 @@ def resolve_experiments_filter(
     experiments: Optional[Union[str, list[str], filters.Filter]],
 ) -> Optional[_filters._Filter]:
     if isinstance(experiments, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/name", type="string"), experiments)
+        return filters.Filter.name(experiments)._to_internal()
     if isinstance(experiments, list):
-        return _filters._Filter.name_in(*experiments)
+        return filters.Filter.name_in(*experiments)._to_internal()
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
     if experiments is None:
@@ -53,16 +55,19 @@ def resolve_experiments_filter(
 def resolve_attributes_filter(
     # TODO: this function also accepts filters._AlternateAttributeFilter, but this is not fully tested...
     # see test_list_attributes_with_attribute_filter with "Combined filters" input
+    # Note: it will fail for an Alternative if forced_type is provided...
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
     forced_type: Optional[list[filters.ATTRIBUTE_LITERAL]] = None,
 ) -> _filters._AttributeFilter:
     if forced_type is None:
         if attributes is None:
-            return _filters._AttributeFilter()
+            return filters.AttributeFilter()._to_internal()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes)
+            return _pattern.build_extended_regex_attribute_filter(
+                attributes, type_in=list(types.ALL_TYPES)  # type: ignore
+            )
         if isinstance(attributes, list):
-            return _filters._AttributeFilter(name_eq=attributes)
+            return filters.AttributeFilter(name_eq=attributes)._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
@@ -71,15 +76,16 @@ def resolve_attributes_filter(
         )
     else:
         if attributes is None:
-            return _filters._AttributeFilter(type_in=forced_type)
+            return filters.AttributeFilter(type_in=forced_type)._to_internal()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes, type_in=forced_type)
+            return _pattern.build_extended_regex_attribute_filter(attributes, type_in=forced_type)
         if isinstance(attributes, list):
-            return _filters._AttributeFilter(name_eq=attributes, type_in=forced_type)
+            return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
         if isinstance(attributes, filters.AttributeFilter):
             modified_attributes = filters.AttributeFilter(
                 name_eq=attributes.name_eq,
                 name_matches_all=attributes.name_matches_all,
+                name_matches_none=attributes.name_matches_none,
                 type_in=forced_type,
                 aggregations=attributes.aggregations,
             )
@@ -107,11 +113,13 @@ def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
 
 def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
     if isinstance(runs, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs)
+        return filters.Filter.matches(
+            filters.Attribute("sys/custom_run_id", type="string"), pattern=runs
+        )._to_internal()
     if isinstance(runs, list):
-        return _filters._Filter.any(
-            *[_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
-        )
+        return filters.Filter.any(
+            *[filters.Filter.eq(filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )._to_internal()
     if isinstance(runs, filters.Filter):
         return runs._to_internal()
     if runs is None:
