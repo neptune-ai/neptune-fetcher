@@ -3,13 +3,12 @@ import os
 import pytest
 
 import neptune_fetcher.v1.runs as runs
-from neptune_fetcher.v1 import Context
 from neptune_fetcher.v1.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
-from tests.e2e.v1.generator import (
+from tests.e2e.alpha.generator import (
     ALL_STATIC_RUNS,
     LINEAR_HISTORY_TREE,
 )
@@ -18,7 +17,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(
-    "filter_, expected",
+    "arg_runs, expected",
     [
         (".*", ALL_STATIC_RUNS),
         (None, ALL_STATIC_RUNS),
@@ -30,8 +29,12 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         (Filter.eq(Attribute(name="linear-history", type="bool"), True), LINEAR_HISTORY_TREE),
     ],
 )
-def test_list_attributes(new_project_context: Context, filter_, expected):
-    attributes = runs.list_attributes(filter_, None, context=new_project_context)
+def test_list_attributes(new_project_id, arg_runs, expected):
+    attributes = runs.list_attributes(
+        project=new_project_id,
+        runs=arg_runs,
+        attributes=None,
+    )
     expected = set.union(*[r.attributes() for r in expected])
 
     assert _filter_out_sys(attributes) == expected
@@ -66,9 +69,11 @@ def test_list_attributes(new_project_context: Context, filter_, expected):
         ),
     ],
 )
-def test_list_attributes_with_attribute_filter(new_project_context: Context, _attr_filter, expected):
+def test_list_attributes_with_attribute_filter(new_project_id, _attr_filter, expected):
     attributes = runs.list_attributes(
-        "^forked_history_root$|^forked_history_fork1$", _attr_filter, context=new_project_context
+        project=new_project_id,
+        runs="^forked_history_root$|^forked_history_fork1$",
+        attributes=_attr_filter,
     )
 
     assert _filter_out_sys(attributes) == expected

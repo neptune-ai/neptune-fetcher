@@ -5,8 +5,7 @@ import pytest
 
 import neptune_fetcher.v1.runs as runs
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.v1 import Context
-from tests.e2e.v1.generator import (
+from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,
 )
@@ -193,7 +192,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_time", ["absolute", None])
 def test_fetch_run_metrics(
-    new_project_context: Context,
+    new_project_id,
     runs_filter,
     attributes_filter,
     expected_metrics,
@@ -204,9 +203,9 @@ def test_fetch_run_metrics(
     lineage_to_the_root: bool,
 ):
     df = runs.fetch_metrics(
+        project=new_project_id,
         runs=runs_filter,
         attributes=attributes_filter,
-        context=new_project_context,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_time=include_time,
         tail_limit=tail_limit,

@@ -17,18 +17,13 @@
 # This module contains utility functions to resolve parameters to public functions from neptune_fetcher.v1
 # and translates them to internal objects like _Filter and _Attribute that are used in the internal API.
 
-import pathlib
 from typing import (
     Optional,
     Union,
 )
 
 from neptune_fetcher.internal import filters as _filters
-from neptune_fetcher.internal.context import (
-    Context,
-    get_context,
-    validate_context,
-)
+from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.v1 import filters
 
@@ -66,7 +61,7 @@ def resolve_attributes_filter(
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
+            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
             f"{type(attributes)}."
         )
     else:
@@ -85,7 +80,7 @@ def resolve_attributes_filter(
             )
             return modified_attributes._to_internal()
         raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
+            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
             f"{type(attributes)}."
         )
 
@@ -96,13 +91,6 @@ def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribu
     if isinstance(sort_by, filters.Attribute):
         return sort_by._to_internal()
     raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
-
-
-def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
-    if destination is None:
-        return pathlib.Path.cwd()
-    else:
-        return pathlib.Path(destination).resolve()
 
 
 def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
@@ -121,13 +109,14 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
     )
 
 
-def get_default_project_identifier(context: Optional[Context] = None) -> ProjectIdentifier:
+def get_default_project_identifier(project: str = None) -> ProjectIdentifier:
     """
-    Returns the default project name from the current context.
-    If no context is set, it returns 'default'.
+    Pass through the project name from the argument if set, otherwise, get one from env.
     """
-    valid_context = validate_context(context or get_context())
-    project = valid_context.project
+    if not project:
+        project = get_context().project
+
     if not project:
         raise ValueError("No project is set in the context. Please set a project before calling this function.")
+
     return ProjectIdentifier(project)

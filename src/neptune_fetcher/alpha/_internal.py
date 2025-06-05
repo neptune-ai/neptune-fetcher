@@ -24,6 +24,7 @@ from typing import (
 )
 
 from neptune_fetcher.alpha import filters
+from neptune_fetcher.exceptions import NeptuneProjectNotProvided
 from neptune_fetcher.internal import filters as _filters
 from neptune_fetcher.internal.context import (
     Context,
@@ -126,8 +127,8 @@ def get_default_project_identifier(context: Optional[Context] = None) -> Project
     Returns the default project name from the current context.
     If no context is set, it returns 'default'.
     """
-    valid_context = validate_context(context or get_context())
+    valid_context = validate_context(context or get_context(), validate_project=True)
     project = valid_context.project
     if not project:
-        raise ValueError("No project is set in the context. Please set a project before calling this function.")
+        raise NeptuneProjectNotProvided()
     return ProjectIdentifier(project)

@@ -14,7 +14,6 @@ import pandas as pd
 import pytest
 
 from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import (
     RunIdentifier,
     SysId,
@@ -101,30 +100,36 @@ def create_expected_data(
 @pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
-    "attr_filter", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]), ".*/metrics/.*"]
+    "arg_attributes", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]), ".*/metrics/.*"]
 )
 @pytest.mark.parametrize(
-    "exp_filter",
+    "arg_experiments",
     [
-        lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
+        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])
 def test__fetch_series(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
+    project,
+    type_suffix_in_column_names,
+    step_range,
+    tail_limit,
+    include_time,
+    arg_experiments,
+    arg_attributes,
 ):
     experiments = TEST_DATA.experiments[:3]
 
     result = fetch_series(
-        experiments=exp_filter(),
-        attributes=attr_filter,
+        experiments=arg_experiments,
+        attributes=arg_attributes,
         include_time=include_time,
         step_range=step_range,
         tail_limit=tail_limit,
         lineage_to_the_root=True,
-        context=get_context().with_project(project.project_identifier),
+        project=project.project_identifier,
     )
 
     expected, columns, filtered_exps = create_expected_data(experiments, include_time, step_range, tail_limit)

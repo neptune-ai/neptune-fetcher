@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.v1 import fetch_metrics
 from neptune_fetcher.v1.filters import (
@@ -88,37 +87,43 @@ def create_expected_data(
 @pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
-    "attr_filter", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
+    "arg_attributes", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
 )
 @pytest.mark.parametrize(
-    "exp_filter",
+    "arg_experiments",
     [
-        lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
+        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
 def test__fetch_metrics_unique(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
+    project,
+    type_suffix_in_column_names,
+    step_range,
+    tail_limit,
+    include_time,
+    arg_experiments,
+    arg_attributes,
 ):
     experiments = TEST_DATA.experiments[:3]
 
     result = fetch_metrics(
-        experiments=exp_filter(),
-        attributes=attr_filter,
+        experiments=arg_experiments,
+        attributes=arg_attributes,
         type_suffix_in_column_names=type_suffix_in_column_names,
         step_range=step_range,
         tail_limit=tail_limit,
         include_time=include_time,
-        context=get_context().with_project(project.project_identifier),
+        project=project.project_identifier,
     )
 
-    expected, columns, filtred_exps = create_expected_data(
+    expected, columns, filtered_exps = create_expected_data(
         experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
     )
 
     pd.testing.assert_frame_equal(result, expected)
     assert result.columns.tolist() == columns
     assert result.index.names == ["experiment", "step"]
-    assert {t[0] for t in result.index.tolist()} == filtred_exps
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
