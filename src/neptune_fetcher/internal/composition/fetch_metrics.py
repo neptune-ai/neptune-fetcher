@@ -214,7 +214,9 @@ def _fetch_metrics(
             _futures.append(executor.submit(process_sys_ids, sys_ids_generator))
 
             for sys_ids_split in split.split_sys_ids(sys_ids):
-                run_identifiers_split = [identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split]
+                run_identifiers_split = [
+                    identifiers.RunIdentifier(project_identifier, sys_id) for sys_id in sys_ids_split
+                ]
                 definitions_generator = fetch_attribute_definitions(
                     client=client,
                     project_identifiers=[project_identifier],
