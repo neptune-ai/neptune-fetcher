@@ -29,20 +29,45 @@ from neptune_fetcher.v1 import filters
 
 
 def resolve_experiments_filter(
-    experiments: Optional[Union[str, list[str], filters.Filter]],
+    experiments: Optional[Union[str, list[str]]],
+    where: Optional[Union[filters.Filter, list[filters.Filter]]],
 ) -> Optional[_filters._Filter]:
+    fs = []
+
     if isinstance(experiments, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/name", type="string"), experiments)
-    if isinstance(experiments, list):
-        return _filters._Filter.name_in(*experiments)
-    if isinstance(experiments, filters.Filter):
-        return experiments._to_internal()
-    if experiments is None:
+        fs.append(_filters._Filter.matches_all(_filters._Attribute("sys/name", type="string"), experiments))
+    elif isinstance(experiments, list):
+        fs.append(_filters._Filter.name_in(*experiments))
+    elif experiments is None:
+        pass
+    else:
+        raise ValueError(
+            "Invalid type for `experiments` filter. Expected str, list of str, but got " f"{type(experiments)}."
+        )
+
+    if isinstance(where, filters.Filter):
+        fs.append(where._to_internal())
+    elif isinstance(where, list):
+        for w in where:
+            if isinstance(w, filters.Filter):
+                fs.append(w._to_internal())
+            else:
+                raise ValueError(
+                    "Invalid type for `where` filter. Expected Filter object or list of Filter objects, but got "
+                    f"{type(w)}."
+                )
+    elif where is None:
+        pass
+    else:
+        raise ValueError(
+            "Invalid type for `where` filter. Expected Filter object or list of Filter objects, but got "
+            f"{type(where)}."
+        )
+
+    if len(fs) == 0:
         return None
-    raise ValueError(
-        "Invalid type for experiments filter. Expected str, list of str, or Filter object, but got "
-        f"{type(experiments)}."
-    )
+
+    return _filters._Filter.all(*fs)
 
 
 def resolve_attributes_filter(
@@ -93,20 +118,49 @@ def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribu
     raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
 
 
-def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
+def resolve_runs_filter(
+    runs: Optional[Union[str, list[str]]],
+    where: Optional[Union[filters.Filter, list[filters.Filter]]],
+) -> Optional[_filters._Filter]:
+    fs = []
     if isinstance(runs, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs)
-    if isinstance(runs, list):
-        return _filters._Filter.any(
-            *[_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        fs.append(_filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs))
+    elif isinstance(runs, list):
+        fs.append(
+            _filters._Filter.any(
+                *[
+                    _filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run)
+                    for run in runs
+                ]
+            )
         )
-    if isinstance(runs, filters.Filter):
-        return runs._to_internal()
-    if runs is None:
+    elif runs is None:
+        pass
+    else:
+        raise ValueError(f"Invalid type for `runs` filter. Expected str, list[str], but got {type(runs)}.")
+
+    if isinstance(where, filters.Filter):
+        fs.append(where._to_internal())
+    elif isinstance(where, list):
+        for w in where:
+            if isinstance(w, filters.Filter):
+                fs.append(w._to_internal())
+            else:
+                raise ValueError(
+                    "Invalid type for `where` filter. "
+                    f"Expected Filter object or list of Filter objects, but got {type(w)}."
+                )
+    elif where is None:
+        pass
+    else:
+        raise ValueError(
+            f"Invalid type for `where` filter. Expected Filter object or list of Filter objects, but got {type(where)}."
+        )
+
+    if len(fs) == 0:
         return None
-    raise ValueError(
-        f"Invalid type for `runs` filter. Expected str, list[str], or Filter object, but got {type(runs)}."
-    )
+
+    return _filters._Filter.all(*fs)
 
 
 def get_default_project_identifier(project: str = None) -> ProjectIdentifier:

@@ -17,22 +17,23 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 @pytest.mark.parametrize(
-    "arg_runs, expected",
+    "arg_runs, arg_where, expected",
     [
-        (".*", ALL_STATIC_RUNS),
-        (None, ALL_STATIC_RUNS),
-        (Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]), ALL_STATIC_RUNS),
-        ([run.custom_run_id for run in ALL_STATIC_RUNS], ALL_STATIC_RUNS),
-        ("linear.*", LINEAR_HISTORY_TREE),
-        (Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]), LINEAR_HISTORY_TREE),
-        (Filter.eq("linear-history", True), LINEAR_HISTORY_TREE),
-        (Filter.eq(Attribute(name="linear-history", type="bool"), True), LINEAR_HISTORY_TREE),
+        (".*", None, ALL_STATIC_RUNS),
+        (None, None, ALL_STATIC_RUNS),
+        (None, Filter.name_in(*[run.experiment_name for run in ALL_STATIC_RUNS]), ALL_STATIC_RUNS),
+        ([run.custom_run_id for run in ALL_STATIC_RUNS], None, ALL_STATIC_RUNS),
+        ("linear.*", None, LINEAR_HISTORY_TREE),
+        (None, Filter.name_in(*[run.experiment_name for run in LINEAR_HISTORY_TREE]), LINEAR_HISTORY_TREE),
+        (None, Filter.eq("linear-history", True), LINEAR_HISTORY_TREE),
+        (None, Filter.eq(Attribute(name="linear-history", type="bool"), True), LINEAR_HISTORY_TREE),
     ],
 )
-def test_list_attributes(new_project_id, arg_runs, expected):
+def test_list_attributes(new_project_id, arg_runs, arg_where, expected):
     attributes = runs.list_attributes(
         project=new_project_id,
         runs=arg_runs,
+        where=arg_where,
         attributes=None,
     )
     expected = set.union(*[r.attributes() for r in expected])

@@ -103,11 +103,11 @@ def create_expected_data(
     "arg_attributes", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]), ".*/metrics/.*"]
 )
 @pytest.mark.parametrize(
-    "arg_experiments",
+    "arg_experiments, arg_where",
     [
-        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        [exp.name for exp in TEST_DATA.experiments[:3]],
+        (None, Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]])),
+        (f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}", None),
+        ([exp.name for exp in TEST_DATA.experiments[:3]], None),
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])
@@ -118,12 +118,14 @@ def test__fetch_series(
     tail_limit,
     include_time,
     arg_experiments,
+    arg_where,
     arg_attributes,
 ):
     experiments = TEST_DATA.experiments[:3]
 
     result = fetch_series(
         experiments=arg_experiments,
+        where=arg_where,
         attributes=arg_attributes,
         include_time=include_time,
         step_range=step_range,

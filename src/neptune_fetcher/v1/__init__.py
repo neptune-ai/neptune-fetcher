@@ -51,7 +51,8 @@ from neptune_fetcher.v1._internal import (
 def list_experiments(
     *,
     project: Optional[str] = None,
-    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    experiments: Optional[Union[str, list[str]]] = None,
+    where: Optional[filters.Filter] = None,
 ) -> list[str]:
     """
      Returns a list of experiment names in a project.
@@ -59,11 +60,11 @@ def list_experiments(
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
+        - a regex that the experiment name must match
+    `where` - a Filter object specifying additional conditions to filter experiments
     """
     project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    experiments_filter = resolve_experiments_filter(experiments, where)
 
     return _list_containers.list_containers(
         project_identifier=project_identifier,
@@ -75,7 +76,8 @@ def list_experiments(
 def list_attributes(
     *,
     project: Optional[str] = None,
-    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    experiments: Optional[Union[str, list[str]]] = None,
+    where: Optional[filters.Filter] = None,
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
 ) -> list[str]:
     """
@@ -83,10 +85,9 @@ def list_attributes(
     Optionally filter by experiments and attributes.
 
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying experiments to which the attributes belong
+    `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
+        - a regex that the experiment name must match
     `where` - a Filter object specifying additional conditions to filter experiments
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -99,7 +100,7 @@ def list_attributes(
     """
 
     project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    experiments_filter = resolve_experiments_filter(experiments, where)
     attributes_filter = resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
@@ -113,7 +114,8 @@ def list_attributes(
 def fetch_metrics(
     *,
     project: Optional[str] = None,
-    experiments: Union[str, list[str], filters.Filter],
+    experiments: Union[str, list[str]],
+    where: Optional[filters.Filter] = None,
     attributes: Union[str, list[str], filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -128,8 +130,7 @@ def fetch_metrics(
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
+        - a regex that the experiment name must match
     `where` - a Filter object specifying additional conditions to filter experiments
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -152,7 +153,7 @@ def fetch_metrics(
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
     project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    experiments_filter = resolve_experiments_filter(experiments, where)
     attributes_filter = resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
@@ -172,7 +173,8 @@ def fetch_metrics(
 def fetch_experiments_table(
     *,
     project: Optional[str] = None,
-    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
+    experiments: Optional[Union[str, list[str]]] = None,
+    where: Optional[filters.Filter] = None,
     attributes: Union[str, list[str], filters.AttributeFilter] = "^sys/name$",
     sort_by: Union[str, filters.Attribute] = filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
@@ -181,10 +183,9 @@ def fetch_experiments_table(
 ) -> _pandas.DataFrame:
     """
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying which experiments to include in the table
+    `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
+        - a regex that the experiment name must match
     `where` - a Filter object specifying additional conditions to filter experiments
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -205,7 +206,7 @@ def fetch_experiments_table(
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
     project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    experiments_filter = resolve_experiments_filter(experiments, where)
     attributes_filter = resolve_attributes_filter(attributes)
     sort_by = resolve_sort_by(sort_by)
 
@@ -224,7 +225,8 @@ def fetch_experiments_table(
 def fetch_series(
     *,
     project: Optional[str] = None,
-    experiments: Union[str, list[str], filters.Filter],
+    experiments: Union[str, list[str]],
+    where: Optional[filters.Filter] = None,
     attributes: Union[str, list[str], filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
@@ -239,8 +241,7 @@ def fetch_series(
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object for more complex filtering
+        - a regex that the experiment name must match
     `where` - a Filter object specifying additional conditions to filter experiments
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
@@ -259,7 +260,7 @@ def fetch_series(
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
     project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    experiments_filter = resolve_experiments_filter(experiments, where)
     attributes_filter = resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
