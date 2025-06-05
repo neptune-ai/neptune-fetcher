@@ -5,7 +5,7 @@ import pytest
 
 import neptune_fetcher.v1.runs as runs
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from tests.e2e.alpha.generator import (
+from tests.e2e.v1.generator import (
     RUN_BY_ID,
     timestamp_for_step,
 )

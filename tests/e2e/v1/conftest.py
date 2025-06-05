@@ -2,6 +2,7 @@ import hashlib
 import os
 import platform
 import random
+import tempfile
 import uuid
 from datetime import (
     datetime,
@@ -10,13 +11,13 @@ from datetime import (
 from pathlib import Path
 from typing import Any
 
+import filelock
 from _pytest.outcomes import Failed
-from filelock import FileLock
 from neptune_api import AuthenticatedClient
 from pytest import fixture
 
-import tests.e2e.alpha.generator as data
-from tests.e2e.alpha.generator import ALL_STATIC_RUNS
+import tests.e2e.v1.generator as data
+from tests.e2e.v1.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
 NEPTUNE_E2E_REUSE_PROJECT = os.environ.get("NEPTUNE_E2E_REUSE_PROJECT", "False").lower() in {"true", "1"}
@@ -47,16 +48,23 @@ def random_series(length=10, start_step=0):
 @fixture(scope="session")
 def new_project_id(client: AuthenticatedClient):
     # Use a file lock to ensure that only one test session can create a project at a time to avoid 409 Conflict errors
-    with FileLock(Path.home() / "neptune_e2e_v1.lock"):
-        project_name = generate_project_name(NEPTUNE_E2E_REUSE_PROJECT)
-        if NEPTUNE_E2E_REUSE_PROJECT and project_exists(client, NEPTUNE_E2E_WORKSPACE, project_name):
-            return f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
+    # TODO: account for the case where the file is owned by another user or otherwise not writable
+    # TODO: Append a suffix (user id / user name), try path in HOME and project root
+    lockfile_path = Path(tempfile.gettempdir()) / "neptune_e2e.lock"
 
-        create_project(client, project_name, NEPTUNE_E2E_WORKSPACE)
+    try:
+        with filelock.FileLock(lockfile_path, timeout=300):
+            project_name = generate_project_name(NEPTUNE_E2E_REUSE_PROJECT)
+            if NEPTUNE_E2E_REUSE_PROJECT and project_exists(client, NEPTUNE_E2E_WORKSPACE, project_name):
+                return f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
 
-        project_id = f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
-        data.log_runs(project_id, ALL_STATIC_RUNS)
-        return project_id
+            create_project(client, project_name, NEPTUNE_E2E_WORKSPACE)
+
+            project_id = f"{NEPTUNE_E2E_WORKSPACE}/{project_name}"
+            data.log_runs(project_id, ALL_STATIC_RUNS)
+            return project_id
+    except filelock.Timeout:
+        raise RuntimeError("Timeout while trying to create a new project. Another test session might be creating it.")
 
 
 def create_project(client, project_name, workspace):
