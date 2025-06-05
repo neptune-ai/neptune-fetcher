@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-# This module contains utility functions to resolve parameters to public functions from neptune_fetcher.alpha
+# This module contains utility functions to resolve parameters to public functions from neptune_fetcher.v1
 # and translates them to internal objects like _Filter and _Attribute that are used in the internal API.
 
 import pathlib
@@ -23,7 +23,6 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.alpha import filters
 from neptune_fetcher.internal import filters as _filters
 from neptune_fetcher.internal.context import (
     Context,
@@ -31,6 +30,7 @@ from neptune_fetcher.internal.context import (
     validate_context,
 )
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
+from neptune_fetcher.v1 import filters
 
 
 def resolve_experiments_filter(

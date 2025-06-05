@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import neptune_fetcher.alpha.runs as runs
-from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.filters import (
+import neptune_fetcher.v1.runs as runs
+from neptune_fetcher.v1 import Context
+from neptune_fetcher.v1.filters import (
     Attribute,
     AttributeFilter,
     Filter,

@@ -2,13 +2,13 @@ import os
 
 import pytest
 
-import neptune_fetcher.alpha.runs as runs
-from neptune_fetcher.alpha import Context
-from neptune_fetcher.alpha.filters import (
+import neptune_fetcher.v1.runs as runs
+from neptune_fetcher.v1 import Context
+from neptune_fetcher.v1.filters import (
     Attribute,
     Filter,
 )
-from tests.e2e.alpha.generator import (
+from tests.e2e.v1.generator import (
     ALL_STATIC_RUNS,
     LINEAR_HISTORY_TREE,
 )

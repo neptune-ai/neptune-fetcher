@@ -17,12 +17,12 @@ from _pytest.outcomes import Failed
 from neptune_api import AuthenticatedClient
 from pytest import fixture
 
-import tests.e2e.alpha.generator as data
-from neptune_fetcher.alpha import (
+import tests.e2e.v1.generator as data
+from neptune_fetcher.v1 import (
     get_context,
     set_project,
 )
-from tests.e2e.alpha.generator import ALL_STATIC_RUNS
+from tests.e2e.v1.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
 NEPTUNE_E2E_REUSE_PROJECT = os.environ.get("NEPTUNE_E2E_REUSE_PROJECT", "False").lower() in {"true", "1"}

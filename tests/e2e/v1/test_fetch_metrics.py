@@ -13,13 +13,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.alpha import fetch_metrics
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.internal.context import get_context
+from neptune_fetcher.internal.output_format import create_metrics_dataframe
+from neptune_fetcher.v1 import fetch_metrics
+from neptune_fetcher.v1.filters import (
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.internal.context import get_context
-from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from tests.e2e.data import (
     NOW,
     PATH,

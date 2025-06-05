@@ -13,11 +13,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.alpha import fetch_series
-from neptune_fetcher.alpha.filters import (
-    AttributeFilter,
-    Filter,
-)
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import (
@@ -29,6 +24,11 @@ from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDe
 from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     StringSeriesValue,
+)
+from neptune_fetcher.v1 import fetch_series
+from neptune_fetcher.v1.filters import (
+    AttributeFilter,
+    Filter,
 )
 from tests.e2e.data import (
     NOW,

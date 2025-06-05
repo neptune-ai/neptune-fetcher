@@ -37,14 +37,6 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.alpha import filters
-from neptune_fetcher.alpha._internal import (
-    get_default_project_identifier,
-    resolve_attributes_filter,
-    resolve_destination_path,
-    resolve_experiments_filter,
-    resolve_sort_by,
-)
 from neptune_fetcher.internal.composition import download_files as _download_files
 from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.internal.composition import fetch_series as _fetch_series
@@ -59,6 +51,14 @@ from neptune_fetcher.internal.context import (
     set_project,
 )
 from neptune_fetcher.internal.retrieval import search as _search
+from neptune_fetcher.v1 import filters
+from neptune_fetcher.v1._internal import (
+    get_default_project_identifier,
+    resolve_attributes_filter,
+    resolve_destination_path,
+    resolve_experiments_filter,
+    resolve_sort_by,
+)
 
 
 def list_experiments(

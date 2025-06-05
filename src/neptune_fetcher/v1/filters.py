@@ -80,8 +80,8 @@ class AttributeFilter(BaseAttributeFilter):
     Example:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import AttributeFilter
+    import neptune_fetcher.v1 as npt
+    from neptune_fetcher.v1.filters import AttributeFilter
 
 
     loss_avg_and_var = AttributeFilter(
@@ -153,8 +153,8 @@ class Attribute:
     Select a metric and pick variance as the aggregation:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Attribute, Filter
+    import neptune_fetcher.v1 as npt
+    from neptune_fetcher.v1.filters import Attribute, Filter
 
 
     val_loss_variance = Attribute(
@@ -225,8 +225,8 @@ class Filter(ABC):
     Examples:
 
     ```
-    import neptune_fetcher.alpha as npt
-    from neptune_fetcher.alpha.filters import Filter
+    import neptune_fetcher.v1 as npt
+    from neptune_fetcher.v1.filters import Filter
 
     # Fetch metadata from specific experiments
     specific_experiments = Filter.name_in("flying-123", "swimming-77")

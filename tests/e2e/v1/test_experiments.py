@@ -5,17 +5,17 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from neptune_fetcher.alpha import (
+from neptune_fetcher.internal import env
+from neptune_fetcher.v1 import (
     Context,
     fetch_experiments_table,
     list_experiments,
 )
-from neptune_fetcher.alpha.filters import (
+from neptune_fetcher.v1.filters import (
     Attribute,
     AttributeFilter,
     Filter,
 )
-from neptune_fetcher.internal import env
 from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
     PATH,
