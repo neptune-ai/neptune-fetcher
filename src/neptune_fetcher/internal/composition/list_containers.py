@@ -33,7 +33,7 @@ def list_containers(
     container_type: search.ContainerType,
 ) -> list[str]:
     validated_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(validated_context)
+    client = _client.get_client(context=validated_context)
     project_identifier = identifiers.ProjectIdentifier(validated_context.project)  # type: ignore
 
     with (

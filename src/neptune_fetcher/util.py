@@ -142,7 +142,11 @@ def get_config_and_token_urls(
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
     timeout = httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS)
     with Client(
-        base_url=credentials.base_url, httpx_args={"mounts": proxies}, verify_ssl=NEPTUNE_VERIFY_SSL, timeout=timeout
+        base_url=credentials.base_url,
+        httpx_args={"mounts": proxies},
+        verify_ssl=NEPTUNE_VERIFY_SSL,
+        timeout=timeout,
+        headers={"User-Agent": _generate_user_agent()},
     ) as client:
         try:
             config_response = backoff_retry(lambda: get_client_config.sync_detailed(client=client))
@@ -174,7 +178,34 @@ def create_auth_api_client(
         verify_ssl=NEPTUNE_VERIFY_SSL,
         httpx_args={"mounts": proxies, "http2": False},
         timeout=httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS),
+        headers={"User-Agent": _generate_user_agent()},
     )
+
+
+_ILLEGAL_CHARS = str.maketrans({c: "_" for c in " ();/"})
+
+
+def _generate_user_agent() -> str:
+    import platform
+    from importlib.metadata import version
+
+    def sanitize(value: Callable[[], str]) -> str:
+        try:
+            result = value()
+            return result.translate(_ILLEGAL_CHARS)
+        except Exception:
+            return "unknown"
+
+    package_name = "neptune-fetcher"
+    package_version = sanitize(lambda: version(package_name))
+    additional_metadata = {
+        "neptune-api": sanitize(lambda: version("neptune-api")),
+        "python": sanitize(platform.python_version),
+        "os": sanitize(platform.system),
+    }
+
+    additional_metadata_str = "; ".join(f"{k}={v}" for k, v in additional_metadata.items())
+    return f"{package_name}/{package_version} ({additional_metadata_str})"
 
 
 def batched_paths(paths: list[str], batch_size: int, query_size_limit: int) -> list[list[str]]:

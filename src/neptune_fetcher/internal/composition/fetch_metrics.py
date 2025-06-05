@@ -80,7 +80,7 @@ def fetch_metrics(
     _validate_include_time(include_time)
 
     valid_context = validate_context(context or get_context())
-    client = get_client(valid_context)
+    client = get_client(context=valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (

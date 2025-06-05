@@ -63,7 +63,7 @@ def fetch_table(
     _sort_direction = _validate_sort_direction(sort_direction)
 
     valid_context = _context.validate_context(context or _context.get_context())
-    client = _client.get_client(valid_context)
+    client = _client.get_client(context=valid_context)
     project = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (

@@ -51,7 +51,7 @@ def list_attributes(
     container_type: search.ContainerType,
 ) -> list[str]:
     valid_context = validate_context(context or get_context())
-    client = _client.get_client(valid_context)
+    client = _client.get_client(context=valid_context)
     project_identifier = identifiers.ProjectIdentifier(valid_context.project)  # type: ignore
 
     with (
