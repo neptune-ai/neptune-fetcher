@@ -24,9 +24,9 @@ from typing import (
     Union,
 )
 
+from neptune_api.api.retrieval import get_multiple_float_series_values_proto
 from neptune_api.client import AuthenticatedClient
-from neptune_retrieval_api.api.default import get_multiple_float_series_values_proto
-from neptune_retrieval_api.models import (
+from neptune_api.models import (
     AttributesHolderIdentifier,
     FloatTimeSeriesValuesRequest,
     FloatTimeSeriesValuesRequestOrder,
@@ -35,7 +35,7 @@ from neptune_retrieval_api.models import (
     TimeSeries,
     TimeSeriesLineage,
 )
-from neptune_retrieval_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.retrieval import util

@@ -31,7 +31,7 @@ from typing import (
 import httpx
 from neptune_api import AuthenticatedClient
 from neptune_api.errors import ApiKeyRejectedError
-from neptune_retrieval_api.types import Response
+from neptune_api.types import Response
 
 from neptune_fetcher import exceptions
 from neptune_fetcher.exceptions import (
