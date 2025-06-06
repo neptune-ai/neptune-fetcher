@@ -110,10 +110,10 @@ def set_context(context: Optional[Context] = None) -> Context:
         return _context
 
 
-def validate_context(context: Optional[Context] = None) -> Context:
+def validate_context(context: Optional[Context] = None, validate_project: bool = False) -> Context:
     assert context is not None, "Context should have been set on import"
 
-    if context.project is None:
+    if validate_project and context.project is None:
         raise NeptuneProjectNotProvided()
     if context.api_token is None:
         raise NeptuneApiTokenNotProvided()
