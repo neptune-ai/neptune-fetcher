@@ -27,6 +27,7 @@ from typing import (
 )
 
 from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.internal import pattern as _pattern
 from neptune_fetcher.internal.retrieval import attribute_types as types
 from neptune_fetcher.internal.util import (
     _validate_allowed_value,
@@ -175,18 +176,6 @@ class Attribute:
         _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
         _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
 
-    def to_query(self) -> str:
-        query = f"`{self.name}`"
-
-        if self.type is not None:
-            _type = types.map_attribute_type_python_to_backend(self.type)
-            query += f":{_type}"
-
-        if self.aggregation is not None:
-            query = f"{self.aggregation}({query})"
-
-        return query
-
     def _to_internal(self) -> _filters._Attribute:
         return _filters._Attribute(
             name=self.name,
@@ -195,10 +184,10 @@ class Attribute:
         )
 
     def __str__(self) -> str:
-        return self.to_query()
+        return self._to_internal().to_query()
 
 
-class Filter(ABC):
+class Filter:
     """Filter used to specify criteria when fetching experiments or runs.
 
     Examples of filters:
@@ -243,48 +232,65 @@ class Filter(ABC):
     ```
     """
 
+    def __init__(self, internal: _filters._Filter) -> None:
+        self._internal = internal
+
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="==", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator="==", attribute=attribute._to_internal(), value=value))
 
     @staticmethod
     def ne(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="!=", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator="!=", attribute=attribute._to_internal(), value=value))
 
     @staticmethod
     def gt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator=">", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator=">", attribute=attribute._to_internal(), value=value))
 
     @staticmethod
     def ge(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator=">=", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator=">=", attribute=attribute._to_internal(), value=value))
 
     @staticmethod
     def lt(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="<", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator="<", attribute=attribute._to_internal(), value=value))
 
     @staticmethod
     def le(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributeValuePredicate(operator="<=", attribute=attribute, value=value)
+        return Filter(_filters._AttributeValuePredicate(operator="<=", attribute=attribute._to_internal(), value=value))
+
+    @staticmethod
+    def matches(attribute: Union[str, Attribute], pattern: str) -> "Filter":
+        if isinstance(attribute, str):
+            attribute = Attribute(name=attribute)
+
+        return Filter(
+            _pattern.build_extended_regex_filter(
+                attribute=attribute._to_internal(),
+                pattern=pattern,
+            )
+        )
 
     @staticmethod
     def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
-            return _AttributeValuePredicate(operator="MATCHES", attribute=attribute, value=regex)
+            return Filter(
+                _filters._AttributeValuePredicate(operator="MATCHES", attribute=attribute._to_internal(), value=regex)
+            )
         else:
             filters = [Filter.matches_all(attribute, r) for r in regex]
             return Filter.all(*filters)
@@ -294,7 +300,11 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(regex, str):
-            return _AttributeValuePredicate(operator="NOT MATCHES", attribute=attribute, value=regex)
+            return Filter(
+                _filters._AttributeValuePredicate(
+                    operator="NOT MATCHES", attribute=attribute._to_internal(), value=regex
+                )
+            )
         else:
             filters = [Filter.matches_none(attribute, r) for r in regex]
             return Filter.all(*filters)
@@ -304,7 +314,9 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
-            return _AttributeValuePredicate(operator="CONTAINS", attribute=attribute, value=value)
+            return Filter(
+                _filters._AttributeValuePredicate(operator="CONTAINS", attribute=attribute._to_internal(), value=value)
+            )
         else:
             filters = [Filter.contains_all(attribute, v) for v in value]
             return Filter.all(*filters)
@@ -314,7 +326,11 @@ class Filter(ABC):
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
         if isinstance(value, str):
-            return _AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute, value=value)
+            return Filter(
+                _filters._AttributeValuePredicate(
+                    operator="NOT CONTAINS", attribute=attribute._to_internal(), value=value
+                )
+            )
         else:
             filters = [Filter.contains_none(attribute, v) for v in value]
             return Filter.all(*filters)
@@ -323,19 +339,19 @@ class Filter(ABC):
     def exists(attribute: Union[str, Attribute]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        return _AttributePredicate(postfix_operator="EXISTS", attribute=attribute)
+        return Filter(_filters._AttributePredicate(postfix_operator="EXISTS", attribute=attribute._to_internal()))
 
     @staticmethod
     def all(*filters: "Filter") -> "Filter":
-        return _AssociativeOperator(operator="AND", filters=filters)
+        return Filter(_filters._AssociativeOperator(operator="AND", filters=[f._to_internal() for f in filters]))
 
     @staticmethod
     def any(*filters: "Filter") -> "Filter":
-        return _AssociativeOperator(operator="OR", filters=filters)
+        return Filter(_filters._AssociativeOperator(operator="OR", filters=[f._to_internal() for f in filters]))
 
     @staticmethod
     def negate(filter_: "Filter") -> "Filter":
-        return _PrefixOperator(operator="NOT", filter_=filter_)
+        return Filter(_filters._PrefixOperator(operator="NOT", filter_=filter_._to_internal()))
 
     def __and__(self, other: "Filter") -> "Filter":
         return self.all(self, other)
@@ -345,6 +361,14 @@ class Filter(ABC):
 
     def __invert__(self) -> "Filter":
         return self.negate(self)
+
+    @staticmethod
+    def name(name: Union[str, list[str]]) -> "Filter":
+        if isinstance(name, str):
+            name_attribute = Attribute(name="sys/name", type="string")
+            return Filter.matches(name_attribute, name)
+        else:
+            return Filter.name_in(*name)
 
     @staticmethod
     def name_eq(name: str) -> "Filter":
@@ -359,90 +383,8 @@ class Filter(ABC):
             filters = [Filter.name_eq(name) for name in names]
             return Filter.any(*filters)
 
-    @abc.abstractmethod
-    def to_query(self) -> str:
-        ...
-
-    @abc.abstractmethod
     def _to_internal(self) -> _filters._Filter:
-        ...
+        return self._internal
 
     def __str__(self) -> str:
-        return self.to_query()
-
-
-@dataclass
-class _AttributeValuePredicate(Filter):
-    operator: Literal["==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"]
-    attribute: Attribute
-    value: Union[bool, int, float, str, datetime]
-
-    def __post_init__(self) -> None:
-        allowed_operators = {"==", "!=", ">", ">=", "<", "<=", "MATCHES", "NOT MATCHES", "CONTAINS", "NOT CONTAINS"}
-        _validate_allowed_value(self.operator, allowed_operators, "operator")
-
-        if not isinstance(self.value, (bool, int, float, str, datetime)):
-            raise TypeError(f"Invalid value type: {type(self.value).__name__}. Expected int, float, str, or datetime.")
-
-    def to_query(self) -> str:
-        return f"{self.attribute} {self.operator} {self._right_query()}"
-
-    def _right_query(self) -> str:
-        if isinstance(self.value, datetime):
-            return f'"{self.value.astimezone().isoformat()}"'
-        value = str(self.value)
-        value = value.replace("\\", r"\\").replace('"', r"\"")
-        return f'"{value}"'
-
-    def _to_internal(self) -> _filters._Filter:
-        return _filters._AttributeValuePredicate(
-            operator=self.operator,
-            attribute=self.attribute._to_internal(),
-            value=self.value,
-        )
-
-
-@dataclass
-class _AttributePredicate(Filter):
-    postfix_operator: Literal["EXISTS"]
-    attribute: Attribute
-
-    def to_query(self) -> str:
-        return f"{self.attribute} {self.postfix_operator}"
-
-    def _to_internal(self) -> _filters._Filter:
-        return _filters._AttributePredicate(
-            postfix_operator=self.postfix_operator,
-            attribute=self.attribute._to_internal(),
-        )
-
-
-@dataclass
-class _AssociativeOperator(Filter):
-    operator: Literal["AND", "OR"]
-    filters: Iterable[Filter]
-
-    def to_query(self) -> str:
-        filter_queries = [f"({child})" for child in self.filters]
-        return f" {self.operator} ".join(filter_queries)
-
-    def _to_internal(self) -> _filters._Filter:
-        return _filters._AssociativeOperator(
-            operator=self.operator,
-            filters=[f._to_internal() for f in self.filters],
-        )
-
-
-@dataclass
-class _PrefixOperator(Filter):
-    operator: Literal["NOT"]
-    filter_: Filter
-
-    def to_query(self) -> str:
-        return f"{self.operator} ({self.filter_})"
-
-    def _to_internal(self) -> _filters._Filter:
-        return _filters._PrefixOperator(
-            operator=self.operator,
-            filter_=self.filter_._to_internal(),
-        )
+        return self._to_internal().to_query()

@@ -9,7 +9,10 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
-from neptune_fetcher.internal.filters import _AttributeFilter
+from neptune_fetcher.internal.filters import (
+    _AttributeFilter,
+    _AttributeNameFilter,
+)
 from neptune_fetcher.internal.identifiers import (
     ProjectIdentifier,
     RunIdentifier,
@@ -267,6 +270,96 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
     assert_items_equal(
         attributes,
         [
+            AttributeDefinition("sys/creation_time", "datetime"),
+            AttributeDefinition("sys/ping_time", "datetime"),
+        ],
+    )
+
+
+def test_fetch_attribute_definitions_regex_must_match_any_empty(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = _AttributeFilter(type_in=["datetime"], must_match_any=[])
+    attributes = extract_pages(
+        fetch_attribute_definitions_single_filter(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+        )
+    )
+
+    # then
+    assert_items_equal(
+        attributes,
+        [],
+    )
+
+
+def test_fetch_attribute_definitions_regex_must_match_any_single(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = _AttributeFilter(
+        type_in=["datetime"],
+        must_match_any=[
+            _AttributeNameFilter(
+                must_match_regexes=["sys/.*_time"],
+            ),
+            _AttributeNameFilter(),
+        ],
+    )
+    attributes = extract_pages(
+        fetch_attribute_definitions_single_filter(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+        )
+    )
+
+    # then
+    assert_items_equal(
+        attributes,
+        [
+            AttributeDefinition("sys/creation_time", "datetime"),
+            AttributeDefinition("sys/modification_time", "datetime"),
+            AttributeDefinition("sys/ping_time", "datetime"),
+        ],
+    )
+
+
+def test_fetch_attribute_definitions_regex_must_match_any_multiple(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    attribute_filter = _AttributeFilter(
+        type_in=["string", "datetime"],
+        must_match_any=[
+            _AttributeNameFilter(must_match_regexes=["sys/.*_time"], must_not_match_regexes=["modification"]),
+            _AttributeNameFilter(
+                must_match_regexes=["sys/name"],
+            ),
+        ],
+    )
+    attributes = extract_pages(
+        fetch_attribute_definitions_single_filter(
+            client,
+            [project_identifier],
+            [experiment_identifier],
+            attribute_filter=attribute_filter,
+        )
+    )
+
+    # then
+    assert_items_equal(
+        attributes,
+        [
+            AttributeDefinition("sys/name", "string"),
             AttributeDefinition("sys/creation_time", "datetime"),
             AttributeDefinition("sys/ping_time", "datetime"),
         ],
