@@ -101,7 +101,7 @@ def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filte
         "unknown",
         ".*unknown.*",
         "sys/abcdef",
-        " ",
+        "\\x20",
         AttributeFilter(name_eq=".*"),
         AttributeFilter(name_matches_all="unknown"),
     ),
