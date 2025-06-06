@@ -494,6 +494,46 @@ def test_create_metrics_dataframe_without_timestamp(type_suffix_in_column_names:
     pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
 
 
+def test_create_metrics_dataframe_random_order():
+    # Given
+    data = {
+        RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path1", "float_series")
+        ): [
+            (_make_timestamp(2023, 1, 1), 3, 30.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 2, 20.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 1, 10.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 5, 50.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 4, 40.0, False, 1.0),
+        ],
+    }
+    sys_id_label_mapping = {
+        SysId("sysid1"): "exp1",
+    }
+
+    df = create_metrics_dataframe(
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
+        type_suffix_in_column_names=False,
+        include_point_previews=False,
+        index_column_name="experiment",
+    )
+
+    # Then
+    expected = {
+        "path1": [10.0, 20.0, 30.0, 40.0, 50.0],
+    }
+
+    expected_df = pd.DataFrame(
+        dict(sorted(expected.items())),
+        index=pd.MultiIndex.from_tuples(
+            [("exp1", 1.0), ("exp1", 2.0), ("exp1", 3.0), ("exp1", 4.0), ("exp1", 5.0)], names=["experiment", "step"]
+        ),
+    )
+
+    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+
+
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("include_preview", [True, False])
 @pytest.mark.parametrize("timestamp_column_name", [None, "absolute"])
