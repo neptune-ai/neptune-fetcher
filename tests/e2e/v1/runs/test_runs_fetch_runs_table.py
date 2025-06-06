@@ -9,7 +9,6 @@ import pandas as pd
 import pytest
 
 import neptune_fetcher.v1.runs as runs
-from neptune_fetcher.v1 import Context
 from neptune_fetcher.v1.filters import (
     Attribute,
     AttributeFilter,
@@ -185,18 +184,18 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 def test_fetch_runs_table(
-    new_project_context: Context,
+    new_project_id,
     runs_filter,
     attributes_filter,
     expected_attributes,
     type_suffix_in_column_names: bool,
 ):
     df = runs.fetch_runs_table(
+        project=new_project_id,
         runs=runs_filter,
         attributes=attributes_filter,
         sort_by=Attribute("sys/custom_run_id", type="string"),
         sort_direction="desc",
-        context=new_project_context,
         type_suffix_in_column_names=type_suffix_in_column_names,
     )
 

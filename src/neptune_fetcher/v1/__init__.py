@@ -15,17 +15,12 @@
 #
 
 __all__ = [
-    "Context",
-    "get_context",
     "set_api_token",
-    "set_context",
-    "set_project",
     "list_experiments",
     "list_attributes",
     "fetch_experiments_table",
     "fetch_metrics",
     "fetch_series",
-    "download_files",
 ]
 
 from typing import (
@@ -37,61 +32,57 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.internal.composition import download_files as _download_files
 from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_fetcher.internal.composition import fetch_series as _fetch_series
 from neptune_fetcher.internal.composition import fetch_table as _fetch_table
 from neptune_fetcher.internal.composition import list_attributes as _list_attributes
 from neptune_fetcher.internal.composition import list_containers as _list_containers
-from neptune_fetcher.internal.context import (
-    Context,
-    get_context,
-    set_api_token,
-    set_context,
-    set_project,
-)
+from neptune_fetcher.internal.context import set_api_token
 from neptune_fetcher.internal.retrieval import search as _search
 from neptune_fetcher.v1 import filters
 from neptune_fetcher.v1._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
-    resolve_destination_path,
     resolve_experiments_filter,
     resolve_sort_by,
 )
 
 
 def list_experiments(
+    *,
+    project: Optional[str] = None,
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
-    context: Optional[Context] = None,
 ) -> list[str]:
     """
      Returns a list of experiment names in a project.
 
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
         - a Filter object
-    `context` - a Context object to be used; primarily useful for switching projects
     """
-    _experiments = resolve_experiments_filter(experiments)
+    project_identifier = get_default_project_identifier(project)
+    experiments_filter = resolve_experiments_filter(experiments)
 
     return _list_containers.list_containers(
-        project_identifier=get_default_project_identifier(context),
-        filter_=_experiments,
-        context=context,
+        project_identifier=project_identifier,
+        filter_=experiments_filter,
         container_type=_search.ContainerType.EXPERIMENT,
     )
 
 
 def list_attributes(
+    *,
+    project: Optional[str] = None,
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
-    context: Optional[Context] = None,
 ) -> list[str]:
     """
     List attributes' names in project.
     Optionally filter by experiments and attributes.
+
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying experiments to which the attributes belong
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
@@ -102,25 +93,25 @@ def list_attributes(
         - an AttributeFilter object;
             If `AttributeFilter.aggregations` is set, an exception will be raised as they're
             not supported in this function.
-    `context` - a Context object to be used; primarily useful for switching projects
 
     Returns a list of unique attribute names in experiments matching the filter.
     """
 
-    _experiments = resolve_experiments_filter(experiments)
-    _attributes = resolve_attributes_filter(attributes)
-    project_identifier = get_default_project_identifier(context)
+    project_identifier = get_default_project_identifier(project)
+    experiments_filter = resolve_experiments_filter(experiments)
+    attributes_filter = resolve_attributes_filter(attributes)
 
     return _list_attributes.list_attributes(
         project_identifier=project_identifier,
-        filter_=_experiments,
-        attributes=_attributes,
-        context=context,
+        filter_=experiments_filter,
+        attributes=attributes_filter,
         container_type=_search.ContainerType.EXPERIMENT,
     )
 
 
 def fetch_metrics(
+    *,
+    project: Optional[str] = None,
     experiments: Union[str, list[str], filters.Filter],
     attributes: Union[str, list[str], filters.AttributeFilter],
     include_time: Optional[Literal["absolute"]] = None,
@@ -129,11 +120,11 @@ def fetch_metrics(
     tail_limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
     include_point_previews: bool = False,
-    context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
     """
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
@@ -158,36 +149,36 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    _experiments = resolve_experiments_filter(experiments)
-    assert _experiments is not None
-    _attributes = resolve_attributes_filter(attributes, forced_type=["float_series"])
-    project_identifier = get_default_project_identifier(context)
+    project_identifier = get_default_project_identifier(project)
+    experiments_filter = resolve_experiments_filter(experiments)
+    attributes_filter = resolve_attributes_filter(attributes, forced_type=["float_series"])
 
     return _fetch_metrics.fetch_metrics(
         project_identifier=project_identifier,
-        filter_=_experiments,
-        attributes=_attributes,
+        filter_=experiments_filter,
+        attributes=attributes_filter,
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=include_point_previews,
-        context=context,
         container_type=_search.ContainerType.EXPERIMENT,
     )
 
 
 def fetch_experiments_table(
+    *,
+    project: Optional[str] = None,
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
     attributes: Union[str, list[str], filters.AttributeFilter] = "^sys/name$",
     sort_by: Union[str, filters.Attribute] = filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
-    context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
     """
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include in the table
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
@@ -195,61 +186,60 @@ def fetch_experiments_table(
     `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
-        - an AttributeFilter object
+        - an AttributeFilter object;
     `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
     `sort_direction` - 'asc' or 'desc'
     `limit` - maximum number of experiments to return; by default all experiments are returned.
     `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
-    `context` - a Context object to be used; primarily useful for switching projects
 
     Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
     aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
     the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
     In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
     """
-    _experiments = resolve_experiments_filter(experiments)
-    _attributes = resolve_attributes_filter(attributes)
-    _sort_by = resolve_sort_by(sort_by)
-    project_identifier = get_default_project_identifier(context)
+    project_identifier = get_default_project_identifier(project)
+    experiments_filter = resolve_experiments_filter(experiments)
+    attributes_filter = resolve_attributes_filter(attributes)
+    sort_by = resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
         project_identifier=project_identifier,
-        filter_=_experiments,
-        attributes=_attributes,
-        sort_by=_sort_by,
+        filter_=experiments_filter,
+        attributes=attributes_filter,
+        sort_by=sort_by,
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
-        context=context,
         container_type=_search.ContainerType.EXPERIMENT,
     )
 
 
 def fetch_series(
+    *,
+    project: Optional[str] = None,
     experiments: Union[str, list[str], filters.Filter],
     attributes: Union[str, list[str], filters.AttributeFilter],
-    *,
     include_time: Optional[Literal["absolute"]] = None,
     step_range: Tuple[Optional[float], Optional[float]] = (None, None),
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
-    context: Optional[Context] = None,
 ) -> _pandas.DataFrame:
     """
     Fetches raw values for string series from selected experiments.
 
     Currently only supports attributes of type string_series.
 
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
         - a Filter object for more complex filtering
-    `attributes` - a filter specifying which attributes to include
+    `attributes` - a filter specifying which attributes to include in the table
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
-        - an AttributeFilter object
+        - an AttributeFilter object;
     `include_time` - whether to include absolute timestamp
     `step_range` - tuple specifying the range of steps to include; can represent an open interval
     `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
@@ -260,59 +250,17 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified experiments and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    _experiments = resolve_experiments_filter(experiments)
-    assert _experiments is not None
-    _attributes = resolve_attributes_filter(attributes, forced_type=["string_series"])
-    project_identifier = get_default_project_identifier(context)
+    project_identifier = get_default_project_identifier(project)
+    experiments_filter = resolve_experiments_filter(experiments)
+    attributes_filter = resolve_attributes_filter(attributes, forced_type=["string_series"])
 
     return _fetch_series.fetch_series(
         project_identifier=project_identifier,
-        filter_=_experiments,
-        attributes=_attributes,
+        filter_=experiments_filter,
+        attributes=attributes_filter,
         include_time=include_time,
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
-        context=context,
-        container_type=_search.ContainerType.EXPERIMENT,
-    )
-
-
-def download_files(
-    experiments: Optional[Union[str, list[str], filters.Filter]] = None,
-    attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
-    *,
-    destination: Optional[str] = None,
-    context: Optional[Context] = None,
-) -> _pandas.DataFrame:
-    """
-    Downloads files associated with selected experiments and attributes.
-
-    `experiments` - a filter specifying which experiments to include in the table
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object
-    `destination`: the directory where files will be downloaded.
-        - If `None`, the current working directory (CWD) is used as the default.
-        - The path can be relative or absolute.
-    `context` - a Context object to be used; primarily useful for switching projects
-
-    Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
-    """
-    _experiments = resolve_experiments_filter(experiments)
-    _attributes = resolve_attributes_filter(attributes, forced_type=["file"])
-    destination_path = resolve_destination_path(destination)
-    project_identifier = get_default_project_identifier(context)
-
-    return _download_files.download_files(
-        project_identifier=project_identifier,
-        filter_=_experiments,
-        attributes=_attributes,
-        destination=destination_path,
-        context=context,
         container_type=_search.ContainerType.EXPERIMENT,
     )

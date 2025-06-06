@@ -19,7 +19,6 @@ from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDe
 from neptune_fetcher.internal.retrieval.metrics import AttributePathInRun
 from neptune_fetcher.internal.retrieval.search import ExperimentSysAttrs
 from neptune_fetcher.internal.retrieval.series import RunAttributeDefinition
-from neptune_fetcher.v1 import Context
 from neptune_fetcher.v1.filters import AttributeFilter
 
 
@@ -40,7 +39,6 @@ from neptune_fetcher.v1.filters import AttributeFilter
 def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
-    context = Context(project=project, api_token="irrelevant")
     sys_ids = [SysId(f"{i:0{sys_id_length}d}") for i in range(exp_count)]
 
     # when
@@ -54,7 +52,11 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
         get_client.return_value = None
         fetch_sys_ids.return_value = iter([util.Page(sys_ids)])
 
-        npt.list_attributes(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
+        npt.list_attributes(
+            project=project,
+            experiments="ignored",
+            attributes=AttributeFilter(name_eq="ignored"),
+        )
 
     # then
     call_sizes = Counter(
@@ -103,7 +105,6 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
 def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
-    context = Context(project=project, api_token="irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -143,7 +144,9 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
         fetch_attribute_values.return_value = iter([])
 
         npt.fetch_experiments_table(
-            experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context
+            project=project,
+            experiments="ignored",
+            attributes=AttributeFilter(name_eq="ignored"),
         )
 
     # then
@@ -190,7 +193,6 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
 def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
-    context = Context(project=project, api_token="irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -219,7 +221,11 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
         fetch_attribute_definitions_single_filter.side_effect = lambda **kwargs: iter([util.Page(attributes)])
         fetch_series_values.return_value = iter([])
 
-        npt.fetch_series(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
+        npt.fetch_series(
+            project=project,
+            experiments="ignored",
+            attributes=AttributeFilter(name_eq="ignored"),
+        )
 
     # then
     call_sizes = Counter(
@@ -263,7 +269,6 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
 def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
-    context = Context(project=project, api_token="irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -295,7 +300,11 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         fetch_attribute_definitions_single_filter.side_effect = lambda **kwargs: iter([util.Page(attributes)])
         fetch_multiple_series_values.return_value = iter([])
 
-        npt.fetch_metrics(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
+        npt.fetch_metrics(
+            project=project,
+            experiments="ignored",
+            attributes=AttributeFilter(name_eq="ignored"),
+        )
 
     # then
     call_sizes = Counter(

@@ -18,15 +18,8 @@ from pytest import fixture
 
 import neptune_fetcher.alpha as npt
 from neptune_fetcher.alpha import Context
-from neptune_fetcher.exceptions import (
-    NeptuneApiTokenNotProvided,
-    NeptuneProjectNotProvided,
-)
 from neptune_fetcher.internal import env
-from neptune_fetcher.internal.context import (
-    get_context,
-    validate_context,
-)
+from neptune_fetcher.internal.context import get_context
 
 
 @fixture
@@ -125,14 +118,3 @@ def test_context_from_envs(monkeypatch):
     ctx = npt.set_context()
     assert ctx.project is None
     assert ctx.api_token == "another_token"
-
-
-def test_validate_context():
-    with pytest.raises(NeptuneProjectNotProvided):
-        validate_context(Context())
-
-    with pytest.raises(NeptuneApiTokenNotProvided):
-        validate_context(Context(project="foo"))
-
-    with pytest.raises(NeptuneProjectNotProvided):
-        validate_context(Context(api_token="bar"))

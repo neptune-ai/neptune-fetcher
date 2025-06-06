@@ -30,17 +30,17 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
 
 
 @pytest.mark.parametrize(
-    "experiment_filter",
+    "arg_experiments",
     (
         EXPERIMENTS_IN_THIS_TEST,
         TEST_DATA.experiment_names,
-        rf"test_alpha_[0-9]+_{TEST_DATA_VERSION}",
+        f"test_alpha_[0-9]+_{TEST_DATA_VERSION}",
         ".*",
         None,
     ),
 )
 @pytest.mark.parametrize(
-    "attribute_filter, expected",
+    "arg_attributes, expected",
     [
         (PATH, TEST_DATA.all_attribute_names),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
@@ -72,9 +72,14 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
     ],
 )
 def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys(
-    attribute_filter, expected, experiment_filter
+    arg_experiments, arg_attributes, expected
 ):
-    attributes = _drop_sys_attr_names(list_attributes(attributes=attribute_filter, experiments=experiment_filter))
+    attributes = _drop_sys_attr_names(
+        list_attributes(
+            experiments=arg_experiments,
+            attributes=arg_attributes,
+        )
+    )
     assert set(attributes) == set(expected)
     assert len(attributes) == len(expected)
 
@@ -112,65 +117,68 @@ def test_list_attributes_unknown_name(filter_):
 
 
 @pytest.mark.parametrize(
-    "attribute_filter, experiment_filter, expected",
+    "arg_experiments, arg_attributes, expected",
     [
-        (r"unique-value-[0-2]", EXPERIMENTS_IN_THIS_TEST, {f"{PATH}/unique-value-{i}" for i in range(3)}),
+        (EXPERIMENTS_IN_THIS_TEST, r"unique-value-[0-2]", {f"{PATH}/unique-value-{i}" for i in range(3)}),
         (
-            rf"{PATH}/unique-value-[0-2]",
             f"test_alpha_.*_{TEST_DATA_VERSION}",
+            rf"{PATH}/unique-value-[0-2]",
             {f"{PATH}/unique-value-{i}" for i in range(3)},
         ),
         (
-            rf"{PATH}/unique-value-.*",
             rf"test_alpha_(0|2)_{TEST_DATA_VERSION}",
+            rf"{PATH}/unique-value-.*",
             {f"{PATH}/unique-value-0", f"{PATH}/unique-value-2"},
         ),
         (
-            rf"{PATH}/unique-value-.*",
             Filter.contains_all(Attribute(f"{PATH}/string_set-value", type="string_set"), "string-0-0"),
+            rf"{PATH}/unique-value-.*",
             {f"{PATH}/unique-value-0"},
         ),
         (
-            rf"{PATH}/unique-value-.*",
             Filter.contains_none(
                 Attribute(f"{PATH}/string_set-value", type="string_set"), ["string-0-0", "string-1-0", "string-4-0"]
             ),
+            rf"{PATH}/unique-value-.*",
             {f"{PATH}/unique-value-{i}" for i in (2, 3, 5)},
         ),
         (
-            [f"{PATH}/int-value", f"{PATH}/float-value"],
             TEST_DATA.experiment_names,
+            [f"{PATH}/int-value", f"{PATH}/float-value"],
             {f"{PATH}/int-value", f"{PATH}/float-value"},
         ),
         (
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
             Filter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
-            [],
-        ),
-        (
             AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
-            Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
             [],
         ),
         (
-            f"{PATH}/unique-value",
+            Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
+            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            [],
+        ),
+        (
             Filter.lt(Attribute(f"{PATH}/int-value", type="int"), 3) & EXPERIMENTS_IN_THIS_TEST,
+            f"{PATH}/unique-value",
             {f"{PATH}/unique-value-{i}" for i in range(3)},
         ),
         (
-            f"{PATH}/unique-value",
             Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
+            f"{PATH}/unique-value",
             {f"{PATH}/unique-value-{i}" for i in (1, 3, 5)},
         ),
         (
-            f"{PATH}/unique-value",
             Filter.eq(Attribute(f"{PATH}/bool-value", type="bool"), False) & EXPERIMENTS_IN_THIS_TEST,
+            f"{PATH}/unique-value",
             {f"{PATH}/unique-value-{i}" for i in (1, 3, 5)},
         ),
     ],
 )
-def test_list_attributes_depending_on_values_in_experiments(attribute_filter, experiment_filter, expected):
-    attributes = list_attributes(attributes=attribute_filter, experiments=experiment_filter)
+def test_list_attributes_depending_on_values_in_experiments(arg_experiments, arg_attributes, expected):
+    attributes = list_attributes(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+    )
     assert set(attributes) == set(expected)
     assert len(attributes) == len(expected)
 

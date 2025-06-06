@@ -5,9 +5,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from neptune_fetcher.internal import env
 from neptune_fetcher.v1 import (
-    Context,
     fetch_experiments_table,
     list_experiments,
 )
@@ -32,7 +30,7 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
         experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction=sort_direction,
-        context=_context(project),
+        project=project.project_identifier,
     )
 
     experiments = [experiment.name for experiment in TEST_DATA.experiments]
@@ -48,18 +46,20 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
 
 
 @pytest.mark.parametrize(
-    "experiment_filter",
+    "arg_experiments",
     [
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
         [TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)],
         Filter.name_in(TEST_DATA.exp_name(0), TEST_DATA.exp_name(1), TEST_DATA.exp_name(2)),
-        Filter.name_eq(TEST_DATA.exp_name(0))
-        | Filter.name_eq(TEST_DATA.exp_name(1))
-        | Filter.name_eq(TEST_DATA.exp_name(2)),
+        (
+            Filter.name_eq(TEST_DATA.exp_name(0))
+            | Filter.name_eq(TEST_DATA.exp_name(1))
+            | Filter.name_eq(TEST_DATA.exp_name(2))
+        ),
     ],
 )
 @pytest.mark.parametrize(
-    "attr_filter",
+    "arg_attributes",
     [
         f"{PATH}/int-value|{PATH}/float-value|{PATH}/metrics/step",
         [f"{PATH}/int-value", f"{PATH}/float-value", f"{PATH}/metrics/step"],
@@ -75,15 +75,19 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
 )
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 def test__fetch_experiments_table_with_attributes_filter(
-    project, run_with_attributes, attr_filter, experiment_filter, type_suffix_in_column_names
+    project,
+    run_with_attributes,
+    arg_experiments,
+    arg_attributes,
+    type_suffix_in_column_names,
 ):
     df = fetch_experiments_table(
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
-        experiments=experiment_filter,
-        attributes=attr_filter,
+        experiments=arg_experiments,
+        attributes=arg_attributes,
         type_suffix_in_column_names=type_suffix_in_column_names,
-        context=_context(project),
+        project=project.project_identifier,
     )
 
     def suffix(name):
@@ -119,12 +123,12 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
-        context=_context(project),
     )
 
     suffix = ":float_series" if type_suffix_in_column_names else ""
@@ -175,12 +179,12 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
-        context=_context(project),
     )
 
     suffix = ":string_series" if type_suffix_in_column_names else ""
@@ -209,12 +213,12 @@ def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggreg
     project, run_with_attributes, attr_filter
 ):
     df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
         attributes=attr_filter,
         type_suffix_in_column_names=True,
-        context=_context(project),
     )
     assert df.empty
 
@@ -235,12 +239,12 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
-        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
         attributes=attr_filter,
         type_suffix_in_column_names=type_suffix_in_column_names,
-        context=_context(project),
     )
 
     suffix = ":float_series" if type_suffix_in_column_names else ""
@@ -264,12 +268,8 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
     assert df[expected.columns].columns.equals(expected.columns)
 
 
-def _context(project):
-    return Context(project=project.project_identifier, api_token=env.NEPTUNE_API_TOKEN.get())
-
-
 @pytest.mark.parametrize(
-    "regex, expected_subset",
+    "arg_experiments, expected_subset",
     [
         (None, TEST_DATA.experiment_names),
         (".*", TEST_DATA.experiment_names),
@@ -278,10 +278,13 @@ def _context(project):
         (Filter.matches_all(Attribute("sys/name", type="string"), ".*"), TEST_DATA.experiment_names),
     ],
 )
-def test_list_experiments_with_regex_and_filters_matching_all(project, regex, expected_subset):
+def test_list_experiments_with_regex_and_filters_matching_all(project, arg_experiments, expected_subset):
     """We need to check if expected names are a subset of all names returned, as
     the test data could contain other experiments"""
-    names = list_experiments(regex, context=_context(project))
+    names = list_experiments(
+        project=project.project_identifier,
+        experiments=arg_experiments,
+    )
     assert set(expected_subset) <= set(names)
 
 
@@ -300,13 +303,16 @@ def test_list_experiments_with_regex_and_filters_matching_all(project, regex, ex
 def test_list_experiments_with_regex_matching_some(project, regex, expected):
     """This check is more strict than test_list_experiments_with_regex_matching_all, as we are able
     to predict the exact output because of the filtering applied"""
-    names = list_experiments(regex, context=_context(project))
+    names = list_experiments(
+        project=project.project_identifier,
+        experiments=regex,
+    )
     assert len(names) == len(expected)
     assert set(names) == set(expected)
 
 
 @pytest.mark.parametrize(
-    "filter_, expected",
+    "arg_experiments, expected",
     [
         (Filter.eq(Attribute("sys/name", type="string"), ""), []),
         (Filter.name_in(*TEST_DATA.experiment_names), TEST_DATA.experiment_names),
@@ -429,7 +435,10 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
         # ),
     ],
 )
-def test_list_experiments_with_filter_matching_some(project, filter_, expected):
-    names = list_experiments(filter_, context=_context(project))
+def test_list_experiments_with_filter_matching_some(project, arg_experiments, expected):
+    names = list_experiments(
+        project=project.project_identifier,
+        experiments=arg_experiments,
+    )
     assert set(names) == set(expected)
     assert len(names) == len(expected)
