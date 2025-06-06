@@ -176,9 +176,10 @@ def test_split_series_attributes(attributes, expected):
         (3, 2 * ATTRIBUTE_DEFINITION_SIZE, 500, [2, 1]),
         (3, 3 * ATTRIBUTE_DEFINITION_SIZE, 500, [3]),
         (3, 4 * ATTRIBUTE_DEFINITION_SIZE, 500, [3]),
+        (10, 10 * ATTRIBUTE_DEFINITION_SIZE, 3, [3, 3, 3, 1]),
     ],
 )
-def split_series_attributes_custom_envs(monkeypatch, given_num, query_size_limit, batch_size, expected_nums):
+def test_split_series_attributes_custom_envs(monkeypatch, given_num, query_size_limit, batch_size, expected_nums):
     # given
     monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
     monkeypatch.setenv(NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name, str(batch_size))
