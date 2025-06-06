@@ -165,9 +165,7 @@ def _fetch_metrics(
     include_point_previews: bool,
     tail_limit: Optional[int],
     container_type: ContainerType,
-) -> tuple[
-    dict[identifiers.RunAttributeDefinition, list[FloatPointValue]], dict[identifiers.SysId, str]
-]:  # pd.DataFrame:
+) -> tuple[dict[identifiers.RunAttributeDefinition, list[FloatPointValue]], dict[identifiers.SysId, str]]:
     def fetch_values(
         exp_paths: list[identifiers.RunAttributeDefinition],
     ) -> tuple[list[concurrent.futures.Future], dict[identifiers.RunAttributeDefinition, list[FloatPointValue]]]:

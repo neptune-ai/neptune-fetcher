@@ -148,7 +148,7 @@ def _make_new_metrics_page_params(
     tail_limit: Optional[int],
     partial_results: dict[identifiers.RunAttributeDefinition, list[FloatPointValue]],
 ) -> Optional[dict[str, Any]]:
-    if data is None:
+    if data is None:  # no past data, we are fetching the first page
         for request in params["requests"]:
             if "afterStep" in request:
                 del request["afterStep"]
@@ -165,16 +165,14 @@ def _make_new_metrics_page_params(
         request_id = series.requestId
         value_size = len(series.series.values)
         is_page_full = value_size == prev_per_series_points_limit
-        if tail_limit is None:
-            if is_page_full:
-                new_request_after_steps[request_id] = series.series.values[-1].step
-        else:
-            attribute = request_id_to_attribute[request_id]
-            need_more_points = len(partial_results[attribute]) < tail_limit
-            if is_page_full and need_more_points:
-                new_request_after_steps[request_id] = series.series.values[0].step  # steps are in descending order
 
-    if not new_request_after_steps:
+        attribute = request_id_to_attribute[request_id]
+        need_more_points = len(partial_results[attribute]) < tail_limit if tail_limit is not None else True
+
+        if is_page_full and need_more_points:
+            new_request_after_steps[request_id] = series.series.values[-1].step
+
+    if not new_request_after_steps:  # no data left to fetch, return None to stop
         return None
 
     new_requests = []
@@ -185,8 +183,13 @@ def _make_new_metrics_page_params(
             request["afterStep"] = after_step
             new_requests.append(request)
     params["requests"] = new_requests
+
     per_series_points_limit = max(1, TOTAL_POINT_LIMIT // len(params["requests"]))
     if tail_limit is not None:
-        per_series_points_limit = min(per_series_points_limit, tail_limit)
+        already_fetched = next(
+            len(partial_results[request_id_to_attribute[request_id]]) for request_id in new_request_after_steps.keys()
+        )  # assumes the results for all unfinished series have the same length
+        per_series_points_limit = min(per_series_points_limit, tail_limit - already_fetched)
     params["perSeriesPointsLimit"] = per_series_points_limit
+
     return params
