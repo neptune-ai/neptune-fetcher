@@ -80,6 +80,19 @@ def fetch_attribute_definitions_single_filter(
     if must_not_match_regexes is not None:
         params["attributeNameFilter"]["mustNotMatchRegexes"] = must_not_match_regexes
 
+    must_match_any = attribute_filter.must_match_any
+    if must_match_any is not None:
+        attribute_name_filter_dtos = []
+        for alternative in must_match_any:
+            attribute_name_filter_dto = {}
+            if alternative.must_match_regexes is not None:
+                attribute_name_filter_dto["mustMatchRegexes"] = alternative.must_match_regexes
+            if alternative.must_not_match_regexes is not None:
+                attribute_name_filter_dto["mustNotMatchRegexes"] = alternative.must_not_match_regexes
+            if attribute_name_filter_dto:
+                attribute_name_filter_dtos.append(attribute_name_filter_dto)
+        params["attributeNameFilter"]["mustMatchAny"] = attribute_name_filter_dtos
+
     attribute_types = _variants_to_list(attribute_filter.type_in)
     if attribute_types is not None:
         params["attributeFilter"] = [
