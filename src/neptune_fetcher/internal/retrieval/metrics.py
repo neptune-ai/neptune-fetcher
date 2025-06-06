@@ -56,7 +56,7 @@ def fetch_multiple_series_values(
         return {}
 
     assert len(run_attribute_definitions) <= TOTAL_POINT_LIMIT, (
-        "The number of requested attributes exceeds the maximum limit of "
+        f"The number of requested attributes {len(run_attribute_definitions)} exceeds the maximum limit of "
         f"{TOTAL_POINT_LIMIT}. Please reduce the number of attributes."
     )
 

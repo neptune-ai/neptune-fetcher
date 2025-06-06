@@ -8,6 +8,7 @@ from typing import (
     Tuple,
     Union,
 )
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -102,6 +103,7 @@ def create_expected_data(
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize("page_point_limit", [50, 1_000_000])
 @pytest.mark.parametrize(
     "attr_filter", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
 )
@@ -115,19 +117,27 @@ def create_expected_data(
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
 def test__fetch_metrics_unique(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
+    project,
+    type_suffix_in_column_names,
+    step_range,
+    tail_limit,
+    page_point_limit,
+    include_time,
+    attr_filter,
+    exp_filter,
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    result = fetch_metrics(
-        experiments=exp_filter(),
-        attributes=attr_filter,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        step_range=step_range,
-        tail_limit=tail_limit,
-        include_time=include_time,
-        context=get_context().with_project(project.project_identifier),
-    )
+    with patch("neptune_fetcher.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
+        result = fetch_metrics(
+            experiments=exp_filter(),
+            attributes=attr_filter,
+            type_suffix_in_column_names=type_suffix_in_column_names,
+            step_range=step_range,
+            tail_limit=tail_limit,
+            include_time=include_time,
+            context=get_context().with_project(project.project_identifier),
+        )
 
     expected, columns, filtred_exps = create_expected_data(
         project, experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
