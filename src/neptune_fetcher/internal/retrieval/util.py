@@ -30,7 +30,10 @@ from typing import (
 
 import httpx
 from neptune_api import AuthenticatedClient
-from neptune_api.errors import ApiKeyRejectedError
+from neptune_api.errors import (
+    ApiKeyRejectedError,
+    UnableToParseResponse,
+)
 from neptune_api.types import Response
 
 from neptune_fetcher import exceptions
@@ -95,21 +98,28 @@ def backoff_retry(
 
     while True:
         tries += 1
+        response = None
         try:
             response = func(*args, **kwargs)
         except ApiKeyRejectedError as e:
             # The API token is explicitly rejected by the backend -- don't retry anymore.
-            raise NeptuneInvalidCredentialsError from e
+            raise NeptuneInvalidCredentialsError() from e
         except httpx.TimeoutException as e:
-            response = None
             last_exc = e
             logger.warning(
                 "Neptune API request timed out. Retrying...\n"
                 "Check your network connection or increase the timeout by setting the "
                 "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable (default: 60 seconds)."
             )
+        except UnableToParseResponse as e:
+            # Allow invalid response in 5xx errors to be retried, raise otherwise
+            if e.response.status_code < 500:
+                raise exceptions.NeptuneUnexpectedResponseError(
+                    status_code=e.response.status_code,
+                    content=e.response.content,
+                ) from e
+            last_exc = e
         except Exception as e:
-            response = None
             last_exc = e
 
         if response is not None:
