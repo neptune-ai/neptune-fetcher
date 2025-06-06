@@ -114,7 +114,7 @@ def fetch_series(
                 downstream=lambda sys_ids_split, definitions_page: concurrency.generate_concurrently(
                     items=split.split_series_attributes(
                         items=(
-                            series.RunAttributeDefinition(
+                            identifiers.RunAttributeDefinition(
                                 run_identifier=identifiers.RunIdentifier(project_identifier, sys_id),
                                 attribute_definition=definition,
                             )
@@ -139,10 +139,10 @@ def fetch_series(
             ),
         )
         results: Generator[
-            util.Page[tuple[series.RunAttributeDefinition, list[series.StringSeriesValue]]], None, None
+            util.Page[tuple[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]]], None, None
         ] = concurrency.gather_results(output)
 
-        series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
+        series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
         for result in results:
             for run_attribute_definition, series_values in result.items:
                 series_data.setdefault(run_attribute_definition, []).extend(series_values)

@@ -11,14 +11,12 @@ import pytest
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.internal.filters import _AttributeFilter
 from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
     ProjectIdentifier,
     RunIdentifier,
     SysId,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import (
-    AttributeDefinition,
-    fetch_attribute_definitions_single_filter,
-)
+from neptune_fetcher.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FloatSeriesAggregations,
     StringSeriesAggregations,

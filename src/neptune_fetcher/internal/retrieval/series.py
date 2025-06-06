@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools as ft
-from dataclasses import dataclass
 from typing import (
     Any,
     Generator,
@@ -30,16 +29,8 @@ from neptune_api.models import SeriesValuesRequest
 from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSeriesValuesResponseDTO
 from neptune_api.types import UNSET
 
-from neptune_fetcher.internal.identifiers import RunIdentifier
+from neptune_fetcher.internal.identifiers import RunAttributeDefinition
 from neptune_fetcher.internal.retrieval import util
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
-
-
-@dataclass(frozen=True)
-class RunAttributeDefinition:
-    run_identifier: RunIdentifier
-    attribute_definition: AttributeDefinition
-
 
 StringSeriesValue = NamedTuple("StringSeriesValue", [("step", float), ("value", str), ("timestamp_millis", float)])
 
