@@ -105,7 +105,14 @@ def create_expected_data(
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize("page_point_limit", [50, 1_000_000])
 @pytest.mark.parametrize(
-    "attr_filter", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
+    "attr_filter",
+    [
+        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+        ".*/metrics/.*",
+        # Alternative should work too, see bug PY-137
+        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+        | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+    ],
 )
 @pytest.mark.parametrize(
     "exp_filter",
