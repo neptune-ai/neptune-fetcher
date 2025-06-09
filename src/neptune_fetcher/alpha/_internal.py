@@ -51,9 +51,7 @@ def resolve_experiments_filter(
 
 
 def resolve_attributes_filter(
-    # TODO: this function also accepts filters._AlternateAttributeFilter, but this is not fully tested...
-    # see test_list_attributes_with_attribute_filter with "Combined filters" input
-    attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
+    attributes: Optional[Union[str, list[str], filters.AttributeFilter, filters._AttributeFilterAlternative]],
     forced_type: Optional[list[filters.ATTRIBUTE_LITERAL]] = None,
 ) -> _filters._AttributeFilter:
     if forced_type is None:
@@ -63,12 +61,8 @@ def resolve_attributes_filter(
             return _filters._AttributeFilter(name_matches_all=attributes)
         if isinstance(attributes, list):
             return _filters._AttributeFilter(name_eq=attributes)
-        if isinstance(attributes, filters.BaseAttributeFilter):
+        if isinstance(attributes, (filters._AttributeFilterAlternative, filters.AttributeFilter)):
             return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
     else:
         if attributes is None:
             return _filters._AttributeFilter(type_in=forced_type)
@@ -86,10 +80,14 @@ def resolve_attributes_filter(
             return modified_attributes._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
+        if isinstance(attributes, filters._AttributeFilterAlternative):
+            # recursively set forced type for each alternative
+            alternatives = [resolve_attributes_filter(attr, forced_type=forced_type) for attr in attributes.filters]
+            return _filters._AttributeFilterAlternative(filters=alternatives)
+    raise ValueError(
+        "Invalid type for attributes filter. Expected str, list of str, AttributeFilter object or "
+        f"alternative of AttributeFilters, but got {type(attributes)}."
+    )
 
 
 def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribute:

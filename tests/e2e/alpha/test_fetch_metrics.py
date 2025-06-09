@@ -112,6 +112,20 @@ def create_expected_data(
         # Alternative should work too, see bug PY-137
         AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
         | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+        # Recursive alternatives:
+        # a | b | c
+        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+        | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+        | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+        # (a | b) | (c | d)
+        (
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+            | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+        )
+        | (
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+            | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
+        ),
     ],
 )
 @pytest.mark.parametrize(
