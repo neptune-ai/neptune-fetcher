@@ -27,6 +27,7 @@ from neptune_fetcher.internal.composition import attribute_components as _compon
 from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
+    validation,
 )
 from neptune_fetcher.internal.context import (
     Context,
@@ -62,9 +63,10 @@ def fetch_series(
     context: Optional[Context] = None,
     container_type: ContainerType,
 ) -> pd.DataFrame:
-    _validate_step_range(step_range)
-    _validate_tail_limit(tail_limit)
-    _validate_include_time(include_time)
+    validation.validate_step_range(step_range)
+    validation.validate_tail_limit(tail_limit)
+    validation.validate_include_time(include_time)
+    validation.validate_attribute_filter_type(attributes, type_in="string_series")
 
     valid_context = validate_context(context or get_context())
     client = get_client(context=valid_context)
@@ -81,11 +83,6 @@ def fetch_series(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
-
-        if "string_series" in attributes.type_in:
-            attributes.type_in = ["string_series"]
-        else:
-            raise ValueError("Only string_series type is supported for attributes in fetch_series")
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
@@ -153,37 +150,3 @@ def fetch_series(
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,
         )
-
-
-# TODO: common validation and output of series+metrics
-def _validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
-    if include_time is not None:
-        if include_time not in ["absolute"]:
-            raise ValueError("include_time must be 'absolute'")
-
-
-def _validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> None:
-    """Validate that a step range tuple contains valid values and is properly ordered."""
-    if not isinstance(step_range, tuple) or len(step_range) != 2:
-        raise ValueError("step_range must be a tuple of two values")
-
-    start, end = step_range
-
-    # Validate types
-    if start is not None and not isinstance(start, (int, float)):
-        raise ValueError("step_range start must be None or a number")
-    if end is not None and not isinstance(end, (int, float)):
-        raise ValueError("step_range end must be None or a number")
-
-    # Validate range order if both values are provided
-    if start is not None and end is not None and start > end:
-        raise ValueError("step_range start must be less than or equal to end")
-
-
-def _validate_tail_limit(tail_limit: Optional[int]) -> None:
-    """Validate that tail_limit is either None or a positive integer."""
-    if tail_limit is not None:
-        if not isinstance(tail_limit, int):
-            raise ValueError("tail_limit must be None or an integer")
-        if tail_limit <= 0:
-            raise ValueError("tail_limit must be greater than 0")

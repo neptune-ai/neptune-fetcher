@@ -66,12 +66,21 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
-def test_download_files_single(client, project, experiment_identifier, temp_dir):
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+        _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"])
+        | _AttributeFilter(name_eq=[f"{PATH}/file-value.txt"]),
+        _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]) | _AttributeFilter(name_eq=[f"{PATH}/int-value"]),
+    ],
+)
+def test_download_files_single(client, project, experiment_identifier, temp_dir, attributes):
     # when
     result_df = download_files(
         project_identifier=project.project_identifier,
         filter_=_Filter.name_in(EXPERIMENT_NAME),
-        attributes=_AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+        attributes=attributes,
         destination=temp_dir,
         context=None,
         container_type=ContainerType.EXPERIMENT,

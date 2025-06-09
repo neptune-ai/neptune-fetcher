@@ -1,0 +1,100 @@
+#
+# Copyright (c) 2025, Neptune Labs Sp. z o.o.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import pathlib
+from typing import (
+    Literal,
+    Optional,
+    Tuple,
+)
+
+from neptune_fetcher.internal import filters
+
+
+def validate_attribute_filter_type(
+    attribute_filter: filters._BaseAttributeFilter, type_in: filters.ATTRIBUTE_LITERAL
+) -> None:
+    if isinstance(attribute_filter, filters._AttributeFilter):
+        if type_in in attribute_filter.type_in:
+            attribute_filter.type_in = [type_in]
+        else:
+            raise ValueError(
+                f"Only {type_in} type is supported for attribute filters in this function "
+                f"and the filter contains types {attribute_filter.type_in}"
+            )
+    elif isinstance(attribute_filter, filters._AttributeFilterAlternative):
+        for child in attribute_filter.filters:
+            validate_attribute_filter_type(child, type_in)
+
+
+def validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
+    if include_time is not None:
+        if include_time not in ["absolute"]:
+            raise ValueError("include_time must be 'absolute'")
+
+
+def validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> None:
+    """Validate that a step range tuple contains valid values and is properly ordered."""
+    if not isinstance(step_range, tuple) or len(step_range) != 2:
+        raise ValueError("step_range must be a tuple of two values")
+
+    start, end = step_range
+
+    # Validate types
+    if start is not None and not isinstance(start, (int, float)):
+        raise ValueError("step_range start must be None or a number")
+    if end is not None and not isinstance(end, (int, float)):
+        raise ValueError("step_range end must be None or a number")
+
+    # Validate range order if both values are provided
+    if start is not None and end is not None and start > end:
+        raise ValueError("step_range start must be less than or equal to end")
+
+
+def validate_tail_limit(tail_limit: Optional[int]) -> None:
+    """Validate that tail_limit is either None or a positive integer."""
+    if tail_limit is not None:
+        if not isinstance(tail_limit, int):
+            raise ValueError("tail_limit must be None or an integer")
+        if tail_limit <= 0:
+            raise ValueError("tail_limit must be greater than 0")
+
+
+def validate_limit(limit: Optional[int]) -> None:
+    """Validate that limit is either None or a positive integer."""
+    if limit is not None:
+        if not isinstance(limit, int):
+            raise ValueError("limit must be None or an integer")
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
+
+def validate_sort_direction(sort_direction: Literal["asc", "desc"]) -> Literal["asc", "desc"]:
+    """Validate that sort_direction is either 'asc' or 'desc'."""
+    if sort_direction not in ("asc", "desc"):
+        raise ValueError("sort_direction must be either 'asc' or 'desc'")
+    return sort_direction
+
+
+def ensure_write_access(destination: pathlib.Path) -> None:
+    if not destination.exists():
+        destination.mkdir(parents=True, exist_ok=True)
+
+    if not destination.is_dir():
+        raise NotADirectoryError(f"Destination is not a directory: {destination}")
+
+    if not os.access(destination, os.W_OK):
+        raise PermissionError(f"No write access to the directory: {destination}")
