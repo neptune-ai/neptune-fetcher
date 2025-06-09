@@ -41,9 +41,8 @@ def validate_attribute_filter_type(
 
 
 def validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:
-    if include_time is not None:
-        if include_time not in ["absolute"]:
-            raise ValueError("include_time must be 'absolute'")
+    if include_time is not None and include_time not in ["absolute"]:
+        raise ValueError("include_time must be 'absolute'")
 
 
 def validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> None:
@@ -64,28 +63,29 @@ def validate_step_range(step_range: Tuple[Optional[float], Optional[float]]) -> 
         raise ValueError("step_range start must be less than or equal to end")
 
 
+def _validate_optional_positive_int(value: Optional[int], name: str) -> None:
+    """Validate that value is either None or a positive integer, with a custom name for error messages."""
+    if value is not None:
+        if not isinstance(value, int):
+            raise ValueError(f"{name} must be None or an integer")
+        if value <= 0:
+            raise ValueError(f"{name} must be greater than 0")
+
+
 def validate_tail_limit(tail_limit: Optional[int]) -> None:
     """Validate that tail_limit is either None or a positive integer."""
-    if tail_limit is not None:
-        if not isinstance(tail_limit, int):
-            raise ValueError("tail_limit must be None or an integer")
-        if tail_limit <= 0:
-            raise ValueError("tail_limit must be greater than 0")
+    _validate_optional_positive_int(tail_limit, "tail_limit")
 
 
 def validate_limit(limit: Optional[int]) -> None:
     """Validate that limit is either None or a positive integer."""
-    if limit is not None:
-        if not isinstance(limit, int):
-            raise ValueError("limit must be None or an integer")
-        if limit <= 0:
-            raise ValueError("limit must be greater than 0")
+    _validate_optional_positive_int(limit, "limit")
 
 
 def validate_sort_direction(sort_direction: Literal["asc", "desc"]) -> Literal["asc", "desc"]:
     """Validate that sort_direction is either 'asc' or 'desc'."""
     if sort_direction not in ("asc", "desc"):
-        raise ValueError("sort_direction must be either 'asc' or 'desc'")
+        raise ValueError(f"sort_direction '{sort_direction}' is invalid; must be 'asc' or 'desc'")
     return sort_direction
 
 

@@ -41,7 +41,7 @@ def test_validate_sort_direction():
     validate_sort_direction("desc")
 
     # Invalid cases
-    with pytest.raises(ValueError, match="must be either 'asc' or 'desc'"):
+    with pytest.raises(ValueError, match="sort_direction 'invalid' is invalid; must be 'asc' or 'desc'"):
         validate_sort_direction("invalid")
 
 
