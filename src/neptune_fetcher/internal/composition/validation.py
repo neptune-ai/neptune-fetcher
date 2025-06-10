@@ -24,7 +24,7 @@ from typing import (
 from neptune_fetcher.internal import filters
 
 
-def validate_attribute_filter_type(
+def restrict_attribute_filter_type(
     attribute_filter: filters._BaseAttributeFilter, type_in: filters.ATTRIBUTE_LITERAL
 ) -> None:
     if isinstance(attribute_filter, filters._AttributeFilter):
@@ -37,7 +37,7 @@ def validate_attribute_filter_type(
             )
     elif isinstance(attribute_filter, filters._AttributeFilterAlternative):
         for child in attribute_filter.filters:
-            validate_attribute_filter_type(child, type_in)
+            restrict_attribute_filter_type(child, type_in)
 
 
 def validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:

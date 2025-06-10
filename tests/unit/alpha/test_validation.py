@@ -1,7 +1,7 @@
 import pytest
 
 from neptune_fetcher.internal.composition.validation import (
-    validate_attribute_filter_type,
+    restrict_attribute_filter_type,
     validate_include_time,
     validate_limit,
     validate_sort_direction,
@@ -131,7 +131,7 @@ def test_validate_include_time_invalid():
 )
 def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
     # Valid cases
-    validate_attribute_filter_type(attribute_filter, type_in=type_in)
+    restrict_attribute_filter_type(attribute_filter, type_in=type_in)
     if isinstance(attribute_filter, _AttributeFilter):
         assert attribute_filter.type_in == [type_in]
     elif isinstance(attribute_filter, _AttributeFilterAlternative):
@@ -154,4 +154,4 @@ def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
 def test_validate_attribute_filter_type_invalid(attribute_filter, type_in):
     # Valid cases
     with pytest.raises(ValueError, match=f"Only {type_in} type is supported for attribute filters in this function"):
-        validate_attribute_filter_type(attribute_filter, type_in=type_in)
+        restrict_attribute_filter_type(attribute_filter, type_in=type_in)
