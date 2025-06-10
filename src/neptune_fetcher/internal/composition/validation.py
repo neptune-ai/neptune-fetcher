@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import dataclasses
 import os
 import pathlib
 from typing import (
@@ -26,18 +26,17 @@ from neptune_fetcher.internal import filters
 
 def restrict_attribute_filter_type(
     attribute_filter: filters._BaseAttributeFilter, type_in: filters.ATTRIBUTE_LITERAL
-) -> None:
-    if isinstance(attribute_filter, filters._AttributeFilter):
-        if type_in in attribute_filter.type_in:
-            attribute_filter.type_in = [type_in]
+) -> filters._BaseAttributeFilter:
+    def restrict_type(leaf: filters._AttributeFilter) -> filters._AttributeFilter:
+        if type_in in leaf.type_in:
+            return dataclasses.replace(leaf, type_in=[type_in])
         else:
             raise ValueError(
                 f"Only {type_in} type is supported for attribute filters in this function "
-                f"and the filter contains types {attribute_filter.type_in}"
+                f"and the filter contains types {leaf.type_in}"
             )
-    elif isinstance(attribute_filter, filters._AttributeFilterAlternative):
-        for child in attribute_filter.filters:
-            restrict_attribute_filter_type(child, type_in)
+
+    return attribute_filter.transform(map_attribute_filter=restrict_type)
 
 
 def validate_include_time(include_time: Optional[Literal["absolute"]]) -> None:

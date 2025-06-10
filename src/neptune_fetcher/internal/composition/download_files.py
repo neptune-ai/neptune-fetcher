@@ -59,7 +59,7 @@ def download_files(
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
 
-    validation.restrict_attribute_filter_type(attributes, type_in="file")
+    attributes = validation.restrict_attribute_filter_type(attributes, type_in="file")
     validation.ensure_write_access(destination)
 
     with (

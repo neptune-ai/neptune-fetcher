@@ -8,10 +8,7 @@ from neptune_fetcher.internal.composition.validation import (
     validate_step_range,
     validate_tail_limit,
 )
-from neptune_fetcher.internal.filters import (
-    _AttributeFilter,
-    _AttributeFilterAlternative,
-)
+from neptune_fetcher.internal.filters import _AttributeFilter
 
 
 def test_validate_limit():
@@ -131,12 +128,13 @@ def test_validate_include_time_invalid():
 )
 def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
     # Valid cases
-    restrict_attribute_filter_type(attribute_filter, type_in=type_in)
-    if isinstance(attribute_filter, _AttributeFilter):
-        assert attribute_filter.type_in == [type_in]
-    elif isinstance(attribute_filter, _AttributeFilterAlternative):
-        for child in attribute_filter.filters:
-            assert isinstance(child, _AttributeFilter)
+    new_filter = restrict_attribute_filter_type(attribute_filter, type_in=type_in)
+
+    def go_assert(f):
+        assert f.type_in == [type_in]
+        return f
+
+    new_filter.transform(go_assert)
 
 
 @pytest.mark.parametrize(
