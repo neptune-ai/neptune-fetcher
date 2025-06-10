@@ -16,20 +16,17 @@
 from __future__ import annotations
 
 from typing import (
-    Callable,
     Generator,
     Iterable,
-    TypeVar,
 )
 
 from neptune_fetcher.internal import (
     env,
     identifiers,
 )
+from neptune_fetcher.internal.identifiers import RunAttributeDefinition
 
 _UUID_SIZE = 50
-
-T = TypeVar("T")
 
 
 def _attribute_definition_size(attr: identifiers.AttributeDefinition) -> int:
@@ -137,7 +134,7 @@ def _split_attribute_definitions(
     return attribute_batches
 
 
-def split_series_attributes(items: Iterable[T], get_path: Callable[[T], str]) -> Generator[list[T]]:
+def split_series_attributes(items: Iterable[RunAttributeDefinition]) -> Generator[list[RunAttributeDefinition]]:
     """
     Splits a list of classes containing an attribute_definition into batches so that:
     When the lengths of attribute paths are added, the total length is at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
@@ -151,10 +148,10 @@ def split_series_attributes(items: Iterable[T], get_path: Callable[[T], str]) ->
     if not items:
         return
 
-    batch: list[T] = []
+    batch: list[RunAttributeDefinition] = []
     batch_size = 0
     for item in items:
-        attr_size = _attribute_name_size(get_path(item))
+        attr_size = _attribute_name_size(item.attribute_definition.name)
         if batch and (len(batch) >= batch_size_limit or batch_size + attr_size > query_size_limit):
             yield batch
             batch = []
