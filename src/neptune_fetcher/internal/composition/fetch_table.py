@@ -61,6 +61,7 @@ def fetch_table(
     type_suffix_in_column_names: bool,
     context: Optional[_context.Context] = None,
     container_type: search.ContainerType,
+    flatten_file_properties: bool = False,
 ) -> pd.DataFrame:
     _validate_limit(limit)
     _sort_direction = _validate_sort_direction(sort_direction)
@@ -161,6 +162,7 @@ def fetch_table(
         selected_aggregations=selected_aggregations,
         type_suffix_in_column_names=type_suffix_in_column_names,
         index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+        flatten_file_properties=flatten_file_properties,
     )
     return dataframe
 
