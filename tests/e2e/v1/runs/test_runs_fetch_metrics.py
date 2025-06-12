@@ -215,7 +215,7 @@ def test_fetch_run_metrics(
     )
 
     expected_df = create_expected_data(
-        new_project_context.project,
+        new_project_id,
         expected_metrics,
         include_time=include_time,
         type_suffix_in_column_names=type_suffix_in_column_names,
