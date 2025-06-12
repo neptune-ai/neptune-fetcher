@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import pathlib
 from typing import (
     Generator,
@@ -30,6 +29,7 @@ from neptune_fetcher.internal.composition import attribute_components as _compon
 from neptune_fetcher.internal.composition import (
     concurrency,
     type_inference,
+    validation,
 )
 from neptune_fetcher.internal.context import (
     Context,
@@ -59,7 +59,8 @@ def download_files(
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
 
-    _ensure_write_access(destination)
+    attributes = validation.restrict_attribute_filter_type(attributes, type_in="file")
+    validation.ensure_write_access(destination)
 
     with (
         concurrency.create_thread_pool_executor() as executor,
@@ -73,11 +74,6 @@ def download_files(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
-
-        if "file" in attributes.type_in:
-            attributes.type_in = ["file"]
-        else:
-            raise ValueError("Only file attributes are supported for file download.")
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
@@ -151,14 +147,3 @@ def download_files(
         file_list = list(results)
 
         return output_format.create_files_dataframe(file_list, sys_id_label_mapping)
-
-
-def _ensure_write_access(destination: pathlib.Path) -> None:
-    if not destination.exists():
-        destination.mkdir(parents=True, exist_ok=True)
-
-    if not destination.is_dir():
-        raise NotADirectoryError(f"Destination is not a directory: {destination}")
-
-    if not os.access(destination, os.W_OK):
-        raise PermissionError(f"No write access to the directory: {destination}")

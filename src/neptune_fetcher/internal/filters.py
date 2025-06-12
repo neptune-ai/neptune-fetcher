@@ -20,6 +20,7 @@ from dataclasses import (
 )
 from datetime import datetime
 from typing import (
+    Callable,
     Iterable,
     Literal,
     Optional,
@@ -48,6 +49,12 @@ class _BaseAttributeFilter(ABC):
 
     def any(*filters: "_BaseAttributeFilter") -> "_BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
+
+    @abc.abstractmethod
+    def transform(
+        self, map_attribute_filter: Callable[["_AttributeFilter"], "_AttributeFilter"]
+    ) -> "_BaseAttributeFilter":
+        ...
 
 
 @dataclass
@@ -102,6 +109,11 @@ class _AttributeFilter(_BaseAttributeFilter):
         _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")  # type: ignore
         _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")  # type: ignore
 
+    def transform(
+        self, map_attribute_filter: Callable[["_AttributeFilter"], "_AttributeFilter"]
+    ) -> "_BaseAttributeFilter":
+        return map_attribute_filter(self)
+
 
 @dataclass
 class _AttributeFilterAlternative(_BaseAttributeFilter):
@@ -110,6 +122,12 @@ class _AttributeFilterAlternative(_BaseAttributeFilter):
     def __or__(self, other: "_BaseAttributeFilter") -> "_BaseAttributeFilter":
         filters = tuple(self.filters) + (other,)
         return _AttributeFilterAlternative(filters)
+
+    def transform(
+        self, map_attribute_filter: Callable[["_AttributeFilter"], "_AttributeFilter"]
+    ) -> "_BaseAttributeFilter":
+        transformed_filters = [f.transform(map_attribute_filter) for f in self.filters]
+        return _AttributeFilterAlternative(transformed_filters)
 
 
 @dataclass
