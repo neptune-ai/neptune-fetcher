@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.identifiers import AttributeDefinition
 from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,

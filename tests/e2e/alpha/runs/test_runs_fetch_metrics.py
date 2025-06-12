@@ -5,6 +5,7 @@ import pytest
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
+from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from tests.e2e.alpha.generator import (
     RUN_BY_ID,
@@ -215,20 +216,32 @@ def test_fetch_run_metrics(
     )
 
     expected_df = create_expected_data(
-        expected_metrics, include_time=include_time, type_suffix_in_column_names=type_suffix_in_column_names
+        new_project_context.project,
+        expected_metrics,
+        include_time=include_time,
+        type_suffix_in_column_names=type_suffix_in_column_names,
     )
 
     pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
 
 
-def create_expected_data(expected_metrics, include_time: str, type_suffix_in_column_names):
-    rows = []
+def create_expected_data(project, expected_metrics, include_time: str, type_suffix_in_column_names):
+    data = {}
     for (run, metric_name), values in expected_metrics.items():
+        attribute_run = identifiers.RunAttributeDefinition(
+            run_identifier=identifiers.RunIdentifier(project_identifier=project, sys_id=identifiers.SysId(run)),
+            attribute_definition=identifiers.AttributeDefinition(name=metric_name, type="float_series"),
+        )
+        rows = data.setdefault(attribute_run, [])
+
         for step, value in values:
-            rows.append((run, metric_name, int(timestamp_for_step(step).timestamp() * 1000), step, value, False, 1.0))
+            rows.append((int(timestamp_for_step(step).timestamp() * 1000), step, value, False, 1.0))
+
+    sys_id_label_mapping = {identifiers.SysId(run): run for run, _ in expected_metrics.keys()}
 
     return create_metrics_dataframe(
-        rows,
+        metrics_data=data,
+        sys_id_label_mapping=sys_id_label_mapping,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,

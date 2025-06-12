@@ -16,7 +16,6 @@ import pathlib
 from typing import (
     Any,
     Generator,
-    Iterable,
     Optional,
     Tuple,
     Union,
@@ -28,10 +27,9 @@ import pandas as pd
 from neptune_fetcher.exceptions import ConflictingAttributeTypes
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.retrieval import (
-    attribute_definitions,
+    metrics,
     series,
 )
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FLOAT_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
@@ -41,9 +39,6 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.internal.retrieval.metrics import (
-    AttributePathIndex,
-    ExperimentNameIndex,
-    FloatPointValue,
     IsPreviewIndex,
     PreviewCompletionIndex,
     StepIndex,
@@ -61,7 +56,7 @@ __all__ = (
 
 def convert_table_to_dataframe(
     table_data: dict[str, list[AttributeValue]],
-    selected_aggregations: dict[AttributeDefinition, set[str]],
+    selected_aggregations: dict[identifiers.AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
@@ -165,7 +160,8 @@ def convert_table_to_dataframe(
 
 
 def create_metrics_dataframe(
-    data_points: Iterable[FloatPointValue],
+    metrics_data: dict[identifiers.RunAttributeDefinition, list[metrics.FloatPointValue]],
+    sys_id_label_mapping: dict[identifiers.SysId, str],
     *,
     type_suffix_in_column_names: bool,
     include_point_previews: bool,
@@ -202,51 +198,45 @@ def create_metrics_dataframe(
     """
 
     path_mapping: dict[str, int] = {}
-    experiment_mapping: dict[str, int] = {}
+    sys_id_mapping: dict[str, int] = {}
+    label_mapping: list[str] = []
+
+    for run_attr_definition in metrics_data:
+        if run_attr_definition.run_identifier.sys_id not in sys_id_mapping:
+            sys_id_mapping[run_attr_definition.run_identifier.sys_id] = len(sys_id_mapping)
+            label_mapping.append(sys_id_label_mapping[run_attr_definition.run_identifier.sys_id])
+
+        if run_attr_definition.attribute_definition.name not in path_mapping:
+            path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
-        last_experiment_name, last_experiment_category = None, None
-        last_path_name, last_path_category = None, None
+        for attribute, points in metrics_data.items():
+            exp_category = sys_id_mapping[attribute.run_identifier.sys_id]
+            path_category = path_mapping[attribute.attribute_definition.name]
 
-        for point in data_points:
-            exp_category = (
-                last_experiment_category
-                if last_experiment_name == point[ExperimentNameIndex]
-                else experiment_mapping.get(point[ExperimentNameIndex], None)  # type: ignore
-            )
-            path_category = (
-                last_path_category
-                if last_path_name == point[AttributePathIndex]
-                else path_mapping.get(point[AttributePathIndex], None)  # type: ignore
-            )
+            for point in points:
+                # Only include columns that we know we need. Note that the list of columns must match the
+                # the list of `types` below.
+                head = (
+                    exp_category,
+                    path_category,
+                    point[StepIndex],
+                    point[ValueIndex],
+                )
+                if include_point_previews and timestamp_column_name:
+                    tail: Tuple[Any, ...] = (
+                        point[TimestampIndex],
+                        point[IsPreviewIndex],
+                        point[PreviewCompletionIndex],
+                    )
+                elif timestamp_column_name:
+                    tail = (point[TimestampIndex],)
+                elif include_point_previews:
+                    tail = (point[IsPreviewIndex], point[PreviewCompletionIndex])
+                else:
+                    tail = ()
 
-            if exp_category is None:
-                exp_category = len(experiment_mapping)
-                experiment_mapping[point[ExperimentNameIndex]] = exp_category  # type: ignore
-                last_experiment_name, last_experiment_category = point[ExperimentNameIndex], exp_category
-            if path_category is None:
-                path_category = len(path_mapping)
-                path_mapping[point[AttributePathIndex]] = path_category  # type: ignore
-                last_path_name, last_path_category = point[AttributePathIndex], path_category
-
-            # Only include columns that we know we need. Note that the order of must match the
-            # the `types` list below.
-            head = (
-                exp_category,
-                path_category,
-                point[StepIndex],
-                point[ValueIndex],
-            )
-            if include_point_previews and timestamp_column_name:
-                tail: Tuple[Any, ...] = (point[TimestampIndex], point[IsPreviewIndex], point[PreviewCompletionIndex])
-            elif timestamp_column_name:
-                tail = (point[TimestampIndex],)
-            elif include_point_previews:
-                tail = (point[IsPreviewIndex], point[PreviewCompletionIndex])
-            else:
-                tail = ()
-
-            yield head + tail
+                yield head + tail
 
     types = [
         (index_column_name, "uint32"),
@@ -266,7 +256,7 @@ def create_metrics_dataframe(
         np.fromiter(generate_categorized_rows(), dtype=types),
     )
 
-    experiment_dtype = pd.CategoricalDtype(categories=list(experiment_mapping.keys()))
+    experiment_dtype = pd.CategoricalDtype(categories=label_mapping)
     df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
 
     df = _pivot_and_reindex_df(df, include_point_previews, index_column_name, timestamp_column_name)
@@ -277,7 +267,7 @@ def create_metrics_dataframe(
 
 
 def create_series_dataframe(
-    series_data: dict[series.RunAttributeDefinition, list[series.StringSeriesValue]],
+    series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str,
     timestamp_column_name: Optional[str],
@@ -385,9 +375,7 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[
-        tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, Optional[pathlib.Path]]
-    ],
+    files_data: list[tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:

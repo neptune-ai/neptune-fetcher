@@ -8,6 +8,7 @@ from typing import (
     Tuple,
     Union,
 )
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,15 @@ from neptune_fetcher.alpha.filters import (
     Filter,
 )
 from neptune_fetcher.internal.context import get_context
+from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
+    ProjectIdentifier,
+    RunAttributeDefinition,
+    RunIdentifier,
+    SysId,
+)
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
+from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
 from tests.e2e.data import (
     NOW,
     PATH,
@@ -31,13 +40,16 @@ NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 def create_expected_data(
+    project: str,
     experiments: list[ExperimentData],
     type_suffix_in_column_names: bool,
     include_time: Union[Literal["absolute"], None],
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
-    rows = []
+    metrics_data: dict[RunAttributeDefinition, list[FloatPointValue]] = {}
+    sys_id_label_mapping: dict[SysId, str] = {SysId(experiment.name): experiment.name for experiment in experiments}
+
     columns = set()
     filtered_exps = set()
 
@@ -51,13 +63,11 @@ def create_expected_data(
         for path, series in chain.from_iterable([experiment.float_series.items(), experiment.unique_series.items()]):
             filtered = []
             for step in steps:
-                if step >= step_filter[0] and step <= step_filter[1]:
+                if step_filter[0] <= step <= step_filter[1]:
                     columns.add(f"{path}:float_series" if type_suffix_in_column_names else path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
                         (
-                            experiment.name,
-                            path,
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
                             step,
                             series[int(step)],
@@ -66,10 +76,16 @@ def create_expected_data(
                         )
                     )
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
-            rows.extend(limited)
+
+            attribute_run = RunAttributeDefinition(
+                RunIdentifier(ProjectIdentifier(project), SysId(experiment.name)),
+                AttributeDefinition(path, "float_series"),
+            )
+            metrics_data.setdefault(attribute_run, []).extend(limited)
 
     df = create_metrics_dataframe(
-        rows,
+        metrics_data=metrics_data,
+        sys_id_label_mapping=sys_id_label_mapping,
         type_suffix_in_column_names=type_suffix_in_column_names,
         include_point_previews=False,
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -87,6 +103,7 @@ def create_expected_data(
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize("step_range", [(0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize("page_point_limit", [50, 1_000_000])
 @pytest.mark.parametrize(
     "attr_filter", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]), ".*/metrics/.*"]
 )
@@ -100,22 +117,30 @@ def create_expected_data(
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])  # "relative",
 def test__fetch_metrics_unique(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
+    project,
+    type_suffix_in_column_names,
+    step_range,
+    tail_limit,
+    page_point_limit,
+    include_time,
+    attr_filter,
+    exp_filter,
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    result = fetch_metrics(
-        experiments=exp_filter(),
-        attributes=attr_filter,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        step_range=step_range,
-        tail_limit=tail_limit,
-        include_time=include_time,
-        context=get_context().with_project(project.project_identifier),
-    )
+    with patch("neptune_fetcher.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
+        result = fetch_metrics(
+            experiments=exp_filter(),
+            attributes=attr_filter,
+            type_suffix_in_column_names=type_suffix_in_column_names,
+            step_range=step_range,
+            tail_limit=tail_limit,
+            include_time=include_time,
+            context=get_context().with_project(project.project_identifier),
+        )
 
     expected, columns, filtred_exps = create_expected_data(
-        experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
+        project, experiments, type_suffix_in_column_names, include_time, step_range, tail_limit
     )
 
     pd.testing.assert_frame_equal(result, expected)

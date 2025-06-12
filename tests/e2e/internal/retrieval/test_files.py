@@ -11,7 +11,7 @@ from datetime import (
 import azure.core.exceptions
 import pytest
 
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
+from neptune_fetcher.internal.identifiers import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_values import fetch_attribute_values
 from neptune_fetcher.internal.retrieval.files import (
     SignedFile,

@@ -62,9 +62,8 @@ def fetch_pages(
     while page_params is not None:
         data = fetch_page(client, page_params)
         page = process_page(data)
-        page_params = make_new_page_params(page_params, data)
-
         yield page
+        page_params = make_new_page_params(page_params, data)
 
 
 def backoff_retry(

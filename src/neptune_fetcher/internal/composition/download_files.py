@@ -41,7 +41,6 @@ from neptune_fetcher.internal.filters import (
     _Filter,
 )
 from neptune_fetcher.internal.retrieval import (
-    attribute_definitions,
     files,
     search,
 )
@@ -145,7 +144,7 @@ def download_files(
         )
 
         results: Generator[
-            tuple[identifiers.RunIdentifier, attribute_definitions.AttributeDefinition, Optional[pathlib.Path]],
+            tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]],
             None,
             None,
         ] = concurrency.gather_results(output)

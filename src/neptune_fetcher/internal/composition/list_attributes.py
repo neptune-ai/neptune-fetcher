@@ -37,7 +37,6 @@ from neptune_fetcher.internal.filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import (
     search,
     util,
@@ -79,7 +78,7 @@ def list_attributes(
             container_type=container_type,
         )
 
-        results: Generator[util.Page[att_defs.AttributeDefinition], None, None] = concurrency.gather_results(output)
+        results: Generator[util.Page[identifiers.AttributeDefinition], None, None] = concurrency.gather_results(output)
         names = set()
         for page in results:
             for item in page.items:
