@@ -27,7 +27,7 @@ from neptune_fetcher.internal.output_format import (
     create_series_dataframe,
 )
 from neptune_fetcher.internal.retrieval.attribute_types import (
-    FileProperties,
+    File,
     FloatSeriesAggregations,
     StringSeriesAggregations,
 )
@@ -147,24 +147,34 @@ def test_convert_experiment_table_to_dataframe_single_file():
         identifiers.SysName("exp1"): [
             AttributeValue(
                 AttributeDefinition("attr1", "file"),
-                FileProperties(path="path/to/file", size_bytes=1024, mime_type="text/plain"),
+                File(path="path/to/file", size_bytes=1024, mime_type="text/plain"),
                 EXPERIMENT_IDENTIFIER,
             ),
         ],
     }
 
     # when
-    dataframe = convert_table_to_dataframe(
+    dataframe_flattened = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        flatten_file_properties=True,
+    )
+    dataframe_unflattened = convert_table_to_dataframe(
         experiment_data,
         selected_aggregations={},
         type_suffix_in_column_names=False,
     )
 
     # then
-    assert dataframe.to_dict() == {
+    assert dataframe_flattened.to_dict() == {
         ("attr1", "path"): {"exp1": "path/to/file"},
         ("attr1", "size_bytes"): {"exp1": 1024},
         ("attr1", "mime_type"): {"exp1": "text/plain"},
+    }
+
+    assert dataframe_unflattened.to_dict() == {
+        ("attr1", ""): {"exp1": File(path="path/to/file", size_bytes=1024, mime_type="text/plain")},
     }
 
 
