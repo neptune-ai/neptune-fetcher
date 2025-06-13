@@ -47,6 +47,7 @@ class BaseAttributeFilter(ABC):
     def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return BaseAttributeFilter.any(self, other)
 
+    @staticmethod
     def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
 

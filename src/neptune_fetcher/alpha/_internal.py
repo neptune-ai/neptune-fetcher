@@ -112,7 +112,7 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
         return _filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs)
     if isinstance(runs, list):
         return _filters._Filter.any(
-            *[_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+            [_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
         )
     if isinstance(runs, filters.Filter):
         return runs._to_internal()
