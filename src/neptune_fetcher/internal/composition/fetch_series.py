@@ -118,7 +118,6 @@ def fetch_series(
                             for sys_id in sys_ids_split
                             for definition in definitions_page.items
                         ),
-                        get_path=lambda x: x.attribute_definition.name,
                     ),
                     executor=executor,
                     downstream=lambda run_attribute_definitions_split: concurrency.generate_concurrently(
