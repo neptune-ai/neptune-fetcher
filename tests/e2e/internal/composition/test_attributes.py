@@ -133,8 +133,8 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     "make_attribute_filter",
     [
         lambda a, b, c: a | b | c,
-        lambda a, b, c: _AttributeFilter.any(a, b, c),
-        lambda a, b, c: _AttributeFilter.any(a, _AttributeFilter.any(b, c)),
+        lambda a, b, c: _AttributeFilter.any([a, b, c]),
+        lambda a, b, c: _AttributeFilter.any([a, _AttributeFilter.any([b, c])]),
     ],
 )
 def test_fetch_attribute_definitions_filter_triple_or(
