@@ -98,7 +98,13 @@ def create_expected_data(
 @pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
 @pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
-    "arg_attributes", [AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]), ".*/metrics/.*"]
+    "arg_attributes",
+    [
+        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
+        ".*/metrics/.*",
+        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"])
+        | AttributeFilter(name_matches_all=[".*/int-value"]),
+    ],
 )
 @pytest.mark.parametrize(
     "arg_experiments",
