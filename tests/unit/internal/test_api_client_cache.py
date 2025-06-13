@@ -22,9 +22,9 @@ from unittest.mock import (
 
 from pytest import fixture
 
-from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal.client import clear_cache
 from neptune_fetcher.internal.client import get_client as _get_client
+from neptune_fetcher.internal.context import Context
 
 
 def get_client(context: Context, proxies: dict = None):
