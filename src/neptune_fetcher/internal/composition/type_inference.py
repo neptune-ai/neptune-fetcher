@@ -30,7 +30,6 @@ from neptune_fetcher.internal import (
 )
 from neptune_fetcher.internal.composition import attribute_components as _components
 from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import (
     search,
     util,
@@ -143,7 +142,7 @@ def _infer_attribute_types_from_api(
     )
 
     attribute_definition_pages: Generator[
-        util.Page[att_defs.AttributeDefinition], None, None
+        util.Page[identifiers.AttributeDefinition], None, None
     ] = concurrency.gather_results(output)
 
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)

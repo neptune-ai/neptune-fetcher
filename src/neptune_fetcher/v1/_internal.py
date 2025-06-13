@@ -86,6 +86,8 @@ def resolve_attributes_filter(
                 aggregations=attributes.aggregations,
             )
             return modified_attributes._to_internal()
+        if isinstance(attributes, filters.BaseAttributeFilter):
+            return attributes._to_internal()
         raise ValueError(
             "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
             f"{type(attributes)}."

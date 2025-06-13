@@ -26,14 +26,13 @@ from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.retrieval import attribute_definitions as adef
 
 _UUID_SIZE = 50
 
 T = TypeVar("T")
 
 
-def _attribute_definition_size(attr: adef.AttributeDefinition) -> int:
+def _attribute_definition_size(attr: identifiers.AttributeDefinition) -> int:
     return _attribute_name_size(attr.name)
 
 
@@ -68,8 +67,8 @@ def split_sys_ids(
 
 def split_sys_ids_attributes(
     sys_ids: list[identifiers.SysId],
-    attribute_definitions: list[adef.AttributeDefinition],
-) -> Generator[tuple[list[identifiers.SysId], list[adef.AttributeDefinition]]]:
+    attribute_definitions: list[identifiers.AttributeDefinition],
+) -> Generator[tuple[list[identifiers.SysId], list[identifiers.AttributeDefinition]]]:
     """
     Splits a pair of sys ids and attribute_definitions into batches that:
     When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
@@ -113,12 +112,13 @@ def split_sys_ids_attributes(
 
 
 def _split_attribute_definitions(
-    attribute_definitions: list[adef.AttributeDefinition],
+    attribute_definitions: list[identifiers.AttributeDefinition],
     query_size_limit: int,
     attribute_values_batch_size: int,
-) -> list[list[adef.AttributeDefinition]]:
+) -> list[list[identifiers.AttributeDefinition]]:
+
     attribute_batches = []
-    current_batch: list[adef.AttributeDefinition] = []
+    current_batch: list[identifiers.AttributeDefinition] = []
     current_batch_size = 0
     for attr in attribute_definitions:
         attr_size = _attribute_definition_size(attr)

@@ -11,16 +11,15 @@ from neptune_fetcher import alpha as npt
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.alpha.filters import AttributeFilter
 from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
     ProjectIdentifier,
+    RunAttributeDefinition,
     RunIdentifier,
     SysId,
     SysName,
 )
 from neptune_fetcher.internal.retrieval import util
-from neptune_fetcher.internal.retrieval.attribute_definitions import AttributeDefinition
-from neptune_fetcher.internal.retrieval.metrics import AttributePathInRun
 from neptune_fetcher.internal.retrieval.search import ExperimentSysAttrs
-from neptune_fetcher.internal.retrieval.series import RunAttributeDefinition
 
 
 @pytest.mark.parametrize(
@@ -269,11 +268,10 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         for i in range(exp_count)
     ]
     attributes = [AttributeDefinition(name=f"{i:0{attr_name_length}d}", type="float_series") for i in range(attr_count)]
-    attribute_path_in_runs = [
-        AttributePathInRun(
+    exp_attributes = [
+        RunAttributeDefinition(
             run_identifier=RunIdentifier(project_identifier=project, sys_id=experiment.sys_id),
-            run_label=experiment.sys_name,
-            attribute_path=attribute.name,
+            attribute_definition=attribute,
         )
         for experiment in experiments
         for attribute in attributes
@@ -293,13 +291,13 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         get_client.return_value = None
         fetch_experiment_sys_attrs.return_value = iter([util.Page(experiments)])
         fetch_attribute_definitions_single_filter.side_effect = lambda **kwargs: iter([util.Page(attributes)])
-        fetch_multiple_series_values.return_value = iter([])
+        fetch_multiple_series_values.return_value = {}
 
         npt.fetch_metrics(experiments="ignored", attributes=AttributeFilter(name_eq="ignored"), context=context)
 
     # then
     call_sizes = Counter(
-        len(fetch_multiple_series_values.call_args_list[i].kwargs["exp_paths"])
+        len(fetch_multiple_series_values.call_args_list[i].kwargs["run_attribute_definitions"])
         for i in range(fetch_multiple_series_values.call_count)
     )
     assert call_sizes == Counter(expected_calls)
@@ -307,7 +305,7 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         [
             call(
                 ANY,
-                exp_paths=attribute_path_in_runs[start:end],
+                run_attribute_definitions=exp_attributes[start:end],
                 include_inherited=ANY,
                 include_preview=ANY,
                 step_range=ANY,

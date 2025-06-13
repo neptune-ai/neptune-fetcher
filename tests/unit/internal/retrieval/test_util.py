@@ -5,7 +5,10 @@ from unittest.mock import (
 )
 
 import pytest
-from neptune_api.errors import ApiKeyRejectedError
+from neptune_api.errors import (
+    ApiKeyRejectedError,
+    UnableToParseResponse,
+)
 from pytest import fixture
 
 from neptune_fetcher.exceptions import (
@@ -106,6 +109,27 @@ def test_dont_retry_on_api_token_rejected(sleep):
     exc.match("API token was rejected")
     func.assert_called_once()
     sleep.assert_not_called()
+
+
+def test_dont_retry_on_unable_to_parse_response_with_non_500_code(sleep):
+    func = Mock(side_effect=UnableToParseResponse(response=Mock(status_code=200, content=b"foo"), exception=Mock()))
+    with pytest.raises(NeptuneUnexpectedResponseError) as exc:
+        backoff_retry(func, max_tries=10)
+
+    exc.match("unexpected response")
+    func.assert_called_once()
+    sleep.assert_not_called()
+
+
+def test_retry_on_unable_to_parse_response_with_code_500(sleep):
+    func = Mock(side_effect=UnableToParseResponse(response=Mock(status_code=500, content=b"foo"), exception=Mock()))
+    with pytest.raises(NeptuneRetryError) as exc:
+        backoff_retry(func, max_tries=3)
+
+    assert func.call_count == 3
+    assert sleep.call_count == 2
+
+    exc.match("after 3 retries")
 
 
 def test_no_error(response_200, sleep):

@@ -28,3 +28,15 @@ class RunIdentifier:
 
     def __str__(self) -> str:
         return f"{self.project_identifier}/{self.sys_id}"
+
+
+@dataclass(frozen=True)
+class AttributeDefinition:
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
+class RunAttributeDefinition:
+    run_identifier: RunIdentifier
+    attribute_definition: AttributeDefinition

@@ -40,7 +40,6 @@ from neptune_fetcher.internal.filters import (
     _Filter,
 )
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.internal.retrieval import (
     search,
@@ -95,7 +94,7 @@ def fetch_table(
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
-        selected_aggregations: dict[att_defs.AttributeDefinition, set[str]] = defaultdict(set)
+        selected_aggregations: dict[identifiers.AttributeDefinition, set[str]] = defaultdict(set)
 
         def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
             for page in search.fetch_sys_id_labels(container_type)(
@@ -140,7 +139,7 @@ def fetch_table(
             ),
         )
         results: Generator[
-            Union[util.Page[att_vals.AttributeValue], dict[att_defs.AttributeDefinition, set[str]]], None, None
+            Union[util.Page[att_vals.AttributeValue], dict[identifiers.AttributeDefinition, set[str]]], None, None
         ] = concurrency.gather_results(output)
 
         for result in results:

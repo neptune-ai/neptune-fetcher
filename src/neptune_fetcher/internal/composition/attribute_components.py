@@ -29,7 +29,6 @@ from neptune_fetcher.internal.composition.attributes import (
     fetch_attribute_definition_aggregations,
     fetch_attribute_definitions,
 )
-from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
 from neptune_fetcher.internal.retrieval import attribute_values as att_vals
 from neptune_fetcher.internal.retrieval import (
     search,
@@ -45,7 +44,7 @@ def fetch_attribute_definitions_split(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
-    downstream: Callable[[list[identifiers.SysId], util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
+    downstream: Callable[[list[identifiers.SysId], util.Page[identifiers.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
     return concurrency.generate_concurrently(
         items=split.split_sys_ids(sys_ids),
@@ -72,7 +71,11 @@ def fetch_attribute_definition_aggregations_split(
     fetch_attribute_definitions_executor: Executor,
     sys_ids: list[identifiers.SysId],
     downstream: Callable[
-        [list[identifiers.SysId], util.Page[att_defs.AttributeDefinition], util.Page[AttributeDefinitionAggregation]],
+        [
+            list[identifiers.SysId],
+            util.Page[identifiers.AttributeDefinition],
+            util.Page[AttributeDefinitionAggregation],
+        ],
         concurrency.OUT,
     ],
 ) -> concurrency.OUT:
@@ -101,7 +104,7 @@ def fetch_attribute_definitions_complete(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
-    downstream: Callable[[util.Page[att_defs.AttributeDefinition]], concurrency.OUT],
+    downstream: Callable[[util.Page[identifiers.AttributeDefinition]], concurrency.OUT],
 ) -> concurrency.OUT:
     if container_type == search.ContainerType.RUN and filter_ is None:
         return concurrency.generate_concurrently(
@@ -141,7 +144,7 @@ def fetch_attribute_values_split(
     project_identifier: identifiers.ProjectIdentifier,
     executor: Executor,
     sys_ids: list[identifiers.SysId],
-    attribute_definitions: list[att_defs.AttributeDefinition],
+    attribute_definitions: list[identifiers.AttributeDefinition],
     downstream: Callable[[util.Page[att_vals.AttributeValue]], concurrency.OUT],
 ) -> concurrency.OUT:
     return concurrency.generate_concurrently(
