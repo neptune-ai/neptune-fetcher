@@ -6,7 +6,12 @@ from neptune_fetcher.internal.env import (
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
     NEPTUNE_FETCHER_SERIES_BATCH_SIZE,
 )
-from neptune_fetcher.internal.identifiers import AttributeDefinition
+from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
+    ProjectIdentifier,
+    RunAttributeDefinition,
+    RunIdentifier,
+)
 from neptune_fetcher.internal.retrieval.split import (
     split_series_attributes,
     split_sys_ids,
@@ -15,6 +20,7 @@ from neptune_fetcher.internal.retrieval.split import (
 
 SYS_IDS = [identifiers.SysId(f"XXX-{n}") for n in range(10)]
 SYS_ID = SYS_IDS[0]
+RUN_ID = RunIdentifier(ProjectIdentifier("test_project"), SYS_ID)
 ATTRIBUTE_DEFINITIONS = [AttributeDefinition(f"config/attribute{n}", "string") for n in range(10)]
 ATTRIBUTE_DEFINITION = ATTRIBUTE_DEFINITIONS[0]
 ATTRIBUTE_DEFINITION_SIZES = [len(attr.name) for attr in ATTRIBUTE_DEFINITIONS]
@@ -150,8 +156,11 @@ def test_split_sys_ids_attributes_custom_envs(
 )
 def test_split_series_attributes(attributes, expected):
     # given
+    run_attributes = _add_run(attributes)
+    expected = [_add_run(group) for group in expected]
+
     # when
-    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
+    groups = list(split_series_attributes(run_attributes))
 
     # then
     assert groups == expected
@@ -183,11 +192,15 @@ def test_split_series_attributes_custom_envs(monkeypatch, given_num, query_size_
     # given
     monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
     monkeypatch.setenv(NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name, str(batch_size))
-    attributes = [ATTRIBUTE_DEFINITION] * given_num
-    expected = [[ATTRIBUTE_DEFINITION] * num for num in expected_nums]
+    run_attributes = _add_run([ATTRIBUTE_DEFINITION] * given_num)
+    expected = [_add_run([ATTRIBUTE_DEFINITION] * num) for num in expected_nums]
 
     # when
-    groups = list(split_series_attributes(attributes, get_path=lambda r: r.name))
+    groups = list(split_series_attributes(run_attributes))
 
     # then
     assert groups == expected
+
+
+def _add_run(attribute_definitions):
+    return [RunAttributeDefinition(RUN_ID, attr) for attr in attribute_definitions]

@@ -313,7 +313,7 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
     fetch_multiple_series_values.assert_has_calls(
         [
             call(
-                ANY,
+                client=ANY,
                 run_attribute_definitions=exp_attributes[start:end],
                 include_inherited=ANY,
                 include_preview=ANY,
