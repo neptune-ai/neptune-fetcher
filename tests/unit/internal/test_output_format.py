@@ -384,7 +384,7 @@ def test_create_metrics_dataframe_with_absolute_timestamp(type_suffix_in_column_
         index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
     )
 
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 def _run_definition(run_id: str, attribute_path: str, attribute_type: str = "string_series") -> RunAttributeDefinition:
@@ -431,7 +431,7 @@ def test_create_series_dataframe_with_absolute_timestamp():
         dict(sorted(expected.items())),
         index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
     )
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -491,7 +491,7 @@ def test_create_metrics_dataframe_without_timestamp(type_suffix_in_column_names:
         index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
     )
 
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 def test_create_metrics_dataframe_random_order():
@@ -531,7 +531,7 @@ def test_create_metrics_dataframe_random_order():
         ),
     )
 
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -676,7 +676,7 @@ def test_create_metrics_dataframe_with_reserved_paths_with_multiindex(
         index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
     )
 
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 @pytest.mark.parametrize(
@@ -727,7 +727,7 @@ def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str,
         index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
     )
 
-    pd.testing.assert_frame_equal(df, expected_df, check_dtype=False)
+    pd.testing.assert_frame_equal(df, expected_df)
 
 
 def test_create_files_dataframe_empty():
