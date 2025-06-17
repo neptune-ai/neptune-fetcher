@@ -61,7 +61,9 @@ def resolve_attributes_filter(
         if attributes is None:
             return _filters._AttributeFilter()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes)
+            return _filters._AttributeFilter(
+                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])]
+            )
         if isinstance(attributes, list):
             return _filters._AttributeFilter(name_eq=attributes)
         if isinstance(attributes, filters.BaseAttributeFilter):
@@ -74,7 +76,10 @@ def resolve_attributes_filter(
         if attributes is None:
             return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes, type_in=forced_type)
+            return _filters._AttributeFilter(
+                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])],
+                type_in=forced_type,
+            )
         if isinstance(attributes, list):
             return _filters._AttributeFilter(name_eq=attributes, type_in=forced_type)
         if isinstance(attributes, filters.AttributeFilter):

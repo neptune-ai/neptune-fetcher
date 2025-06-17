@@ -108,24 +108,18 @@ class _AttributeFilter(_BaseAttributeFilter):
 
     name_eq: Union[str, list[str], None] = None
     type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(types.ALL_TYPES))  # type: ignore
-    name_matches_all: Union[str, list[str], None] = None
-    name_matches_none: Union[str, list[str], None] = None
     must_match_any: Optional[list[_AttributeNameFilter]] = None
     aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
 
     def __post_init__(self) -> None:
         _validate_string_or_string_list(self.name_eq, "name_eq")
-        _validate_string_or_string_list(self.name_matches_all, "name_matches_all")
-        _validate_string_or_string_list(self.name_matches_none, "name_matches_none")
 
         if self.must_match_any is not None:
-            if self.name_matches_all is not None or self.name_matches_none is not None:
-                raise ValueError("must_match_any cannot be used together with name_matches_all or name_matches_none")
             if not isinstance(self.must_match_any, list):
-                raise ValueError("must_match_any must be a list of AttributeNameFilter instances")
+                raise ValueError("must_match_any must be a list of _AttributeNameFilter instances")
             for item in self.must_match_any:
                 if not isinstance(item, _AttributeNameFilter):
-                    raise ValueError("must_match_any must contain only AttributeNameFilter instances")
+                    raise ValueError("must_match_any must contain only _AttributeNameFilter instances")
                 _validate_string_list(item.must_match_regexes, "must_match_regexes")
                 _validate_string_list(item.must_not_match_regexes, "must_not_match_regexes")
 
