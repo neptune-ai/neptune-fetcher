@@ -27,6 +27,7 @@ from typing import (
 )
 
 from neptune_fetcher.internal import filters as _filters
+from neptune_fetcher.internal.filters import _AttributeNameFilter
 from neptune_fetcher.internal.retrieval import attribute_types as types
 from neptune_fetcher.internal.util import (
     _validate_allowed_value,
@@ -110,11 +111,23 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")  # type: ignore
 
     def _to_internal(self) -> _filters._AttributeFilter:
+        matches_all = [self.name_matches_all] if isinstance(self.name_matches_all, str) else self.name_matches_all
+        matches_none = [self.name_matches_none] if isinstance(self.name_matches_none, str) else self.name_matches_none
+
+        if matches_all is not None or matches_none is not None:
+            must_match_any = [
+                _AttributeNameFilter(
+                    must_match_regexes=matches_all,
+                    must_not_match_regexes=matches_none,
+                )
+            ]
+        else:
+            must_match_any = None
+
         return _filters._AttributeFilter(
             name_eq=self.name_eq,
             type_in=self.type_in,
-            name_matches_all=self.name_matches_all,
-            name_matches_none=self.name_matches_none,
+            must_match_any=must_match_any,
             aggregations=self.aggregations,
         )
 

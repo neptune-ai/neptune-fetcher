@@ -94,12 +94,60 @@ def test_build_extended_regex_filter(attribute, pattern, query):
 @pytest.mark.parametrize(
     "type_in,pattern,expected",
     [
-        (["string"], "", _AttributeFilter(type_in=["string"], name_matches_all=[""])),
-        (["string"], "a", _AttributeFilter(type_in=["string"], name_matches_all=["a"])),
-        (["int"], "a", _AttributeFilter(type_in=["int"], name_matches_all=["a"])),
-        (["string"], "!a", _AttributeFilter(type_in=["string"], name_matches_none=["a"])),
-        (["string"], " ! a", _AttributeFilter(type_in=["string"], name_matches_none=["a"])),
-        (["string"], "a & b", _AttributeFilter(type_in=["string"], name_matches_all=["a", "b"])),
+        (
+            ["string"],
+            "",
+            _AttributeFilter(
+                type_in=["string"],
+                must_match_any=[_AttributeNameFilter(must_match_regexes=[""])],
+                # name_matches_all=[""],
+            ),
+        ),
+        (
+            ["string"],
+            "a",
+            _AttributeFilter(
+                type_in=["string"],
+                must_match_any=[_AttributeNameFilter(must_match_regexes=["a"])],
+                # name_matches_all=["a"],
+            ),
+        ),
+        (
+            ["int"],
+            "a",
+            _AttributeFilter(
+                type_in=["int"],
+                must_match_any=[_AttributeNameFilter(must_match_regexes=["a"])],
+                # name_matches_all=["a"],
+            ),
+        ),
+        (
+            ["string"],
+            "!a",
+            _AttributeFilter(
+                type_in=["string"],
+                must_match_any=[_AttributeNameFilter(must_not_match_regexes=["a"])],
+                # name_matches_none=["a"],
+            ),
+        ),
+        (
+            ["string"],
+            " ! a",
+            _AttributeFilter(
+                type_in=["string"],
+                must_match_any=[_AttributeNameFilter(must_not_match_regexes=["a"])],
+                # name_matches_none=["a"],
+            ),
+        ),
+        (
+            ["string"],
+            "a & b",
+            _AttributeFilter(
+                type_in=["string"],
+                must_match_any=[_AttributeNameFilter(must_match_regexes=["a", "b"])],
+                # name_matches_all=["a", "b"],
+            ),
+        ),
         (
             ["string"],
             "a | b",

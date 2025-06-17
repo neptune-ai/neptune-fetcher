@@ -9,7 +9,10 @@ from datetime import (
 import pytest
 
 from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
-from neptune_fetcher.internal.filters import _AttributeFilter
+from neptune_fetcher.internal.filters import (
+    _AttributeFilter,
+    _AttributeNameFilter,
+)
 from neptune_fetcher.internal.identifiers import (
     AttributeDefinition,
     RunIdentifier,
@@ -104,8 +107,14 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
+    attribute_filter_1 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=[f"^{re.escape(COMMON_PATH)}/.*_value_a$"])],
+        type_in=["int"],
+    )
+    attribute_filter_2 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=[f"^{re.escape(COMMON_PATH)}/.*_value_b$"])],
+        type_in=["float"],
+    )
 
     #  when
     attribute_filter = _AttributeFilter.any([attribute_filter_1, attribute_filter_2])
@@ -142,9 +151,21 @@ def test_fetch_attribute_definitions_filter_triple_or(
     # given
     project_identifier = project.project_identifier
 
-    attribute_filter_1 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$", type_in=["int"])
-    attribute_filter_2 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
-    attribute_filter_3 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["int"])
+    attribute_filter_1 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=[f"^{re.escape(COMMON_PATH)}/.*_value_a$"])],
+        # name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_a$",
+        type_in=["int"],
+    )
+    attribute_filter_2 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=[f"^{re.escape(COMMON_PATH)}/.*_value_b$"])],
+        # name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$",
+        type_in=["float"],
+    )
+    attribute_filter_3 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=[f"^{re.escape(COMMON_PATH)}/.*_value_b$"])],
+        # name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$",
+        type_in=["int"],
+    )
     attribute_filter = make_attribute_filter(attribute_filter_1, attribute_filter_2, attribute_filter_3)
 
     #  when
@@ -174,7 +195,11 @@ def test_fetch_attribute_definitions_paging_executor(client, executor, project, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=["sys/.*_time"])],
+        # name_matches_all="sys/.*_time",
+        type_in=["datetime"],
+    )
 
     attributes = extract_pages(
         fetch_attribute_definitions(
@@ -203,11 +228,22 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, executor, 
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter_0 = _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter_0 = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=["sys/.*_time"])],
+        # name_matches_all="sys/.*_time",
+        type_in=["datetime"],
+    )
     attribute_filter = attribute_filter_0
     for i in range(10):
         attribute_filter = _AttributeFilter.any(
-            [attribute_filter, _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])]
+            [
+                attribute_filter,
+                _AttributeFilter(
+                    must_match_any=[_AttributeNameFilter(must_match_regexes=["sys/.*_time"])],
+                    # name_matches_all="sys/.*_time",
+                    type_in=["datetime"],
+                ),
+            ]
         )
 
     attributes = extract_pages(
