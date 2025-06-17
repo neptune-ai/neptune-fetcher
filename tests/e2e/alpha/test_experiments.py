@@ -15,6 +15,7 @@ from neptune_fetcher.alpha.filters import (
     AttributeFilter,
     Filter,
 )
+from neptune_fetcher.exceptions import NeptuneUnexpectedResponseError
 from neptune_fetcher.internal import env
 from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
@@ -433,3 +434,44 @@ def test_list_experiments_with_filter_matching_some(project, filter_, expected):
     names = list_experiments(filter_, context=_context(project))
     assert set(names) == set(expected)
     assert len(names) == len(expected)
+
+
+def test_list_experiments_with_filter_all_any(project):
+    """Test the behavior of `Filter.any` and `Filter.all` filters in the list_experiments function.
+
+    This is specific to alpha, in v1, we're going to do something more clever
+    """
+
+    output_all = list_experiments(Filter.any(), context=_context(project))
+    assert set(output_all).issuperset(set(TEST_DATA.experiment_names))
+
+    output_any = list_experiments(Filter.any(), context=_context(project))
+    assert set(output_any).issuperset(set(TEST_DATA.experiment_names))
+
+    # These generate invalid queries:
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.all() | Filter.any(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.any() | Filter.all(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.any() & Filter.any(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.any() & Filter.all(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.all() & Filter.all(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.all() & Filter.ne("sys/name", "xyz"), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.all() | Filter.ne("sys/name", "xyz"), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.ne("sys/name", "xyz") & Filter.all(), context=_context(project))
+
+    with pytest.raises(NeptuneUnexpectedResponseError):
+        list_experiments(Filter.ne("sys/name", "xyz") & Filter.any(), context=_context(project))

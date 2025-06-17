@@ -108,7 +108,7 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
     attribute_filter_2 = _AttributeFilter(name_matches_all=f"^{re.escape(COMMON_PATH)}/.*_value_b$", type_in=["float"])
 
     #  when
-    attribute_filter = attribute_filter_1 | attribute_filter_2
+    attribute_filter = _AttributeFilter.any([attribute_filter_1, attribute_filter_2])
     attributes = extract_pages(
         fetch_attribute_definitions(
             client,
@@ -132,9 +132,8 @@ def test_fetch_attribute_definitions_filter_or(client, executor, project, experi
 @pytest.mark.parametrize(
     "make_attribute_filter",
     [
-        lambda a, b, c: a | b | c,
-        lambda a, b, c: _AttributeFilter.any(a, b, c),
-        lambda a, b, c: _AttributeFilter.any(a, _AttributeFilter.any(b, c)),
+        lambda a, b, c: _AttributeFilter.any([a, b, c]),
+        lambda a, b, c: _AttributeFilter.any([a, _AttributeFilter.any([b, c])]),
     ],
 )
 def test_fetch_attribute_definitions_filter_triple_or(
@@ -207,7 +206,9 @@ def test_fetch_attribute_definitions_should_deduplicate_items(client, executor, 
     attribute_filter_0 = _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
     attribute_filter = attribute_filter_0
     for i in range(10):
-        attribute_filter = attribute_filter | _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+        attribute_filter = _AttributeFilter.any(
+            [attribute_filter, _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])]
+        )
 
     attributes = extract_pages(
         fetch_attribute_definitions(

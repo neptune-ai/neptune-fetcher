@@ -47,6 +47,7 @@ class BaseAttributeFilter(ABC):
     def __or__(self, other: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return BaseAttributeFilter.any(self, other)
 
+    @staticmethod
     def any(*filters: "BaseAttributeFilter") -> "BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
 
@@ -359,9 +360,8 @@ class Filter(ABC):
             filters = [Filter.name_eq(name) for name in names]
             return Filter.any(*filters)
 
-    @abc.abstractmethod
     def to_query(self) -> str:
-        ...
+        return self._to_internal().to_query()
 
     @abc.abstractmethod
     def _to_internal(self) -> _filters._Filter:
@@ -427,6 +427,12 @@ class _AssociativeOperator(Filter):
         return f" {self.operator} ".join(filter_queries)
 
     def _to_internal(self) -> _filters._Filter:
+        if not self.filters:
+            # Importing here to avoid circular dependency issues
+            from neptune_fetcher.alpha._internal import _EmptyAssociativeOperator
+
+            return _EmptyAssociativeOperator(operator=self.operator)
+
         return _filters._AssociativeOperator(
             operator=self.operator,
             filters=[f._to_internal() for f in self.filters],

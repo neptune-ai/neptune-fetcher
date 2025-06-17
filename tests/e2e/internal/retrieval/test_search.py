@@ -305,13 +305,17 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
             False,
         ),
         (
-            _Filter.ge(
-                _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
-                _variance(FLOAT_SERIES_VALUES) - 1e-6,
-            )
-            & _Filter.le(
-                _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
-                _variance(FLOAT_SERIES_VALUES) + 1e-6,
+            _Filter.all(
+                [
+                    _Filter.ge(
+                        _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                        _variance(FLOAT_SERIES_VALUES) - 1e-6,
+                    ),
+                    _Filter.le(
+                        _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                        _variance(FLOAT_SERIES_VALUES) + 1e-6,
+                    ),
+                ]
             ),
             True,
         ),
@@ -324,14 +328,18 @@ def test_find_experiments_by_config_values(client, project, run_with_attributes,
         ),
         (
             _Filter.negate(
-                _Filter.ge(
-                    _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
-                    _variance(FLOAT_SERIES_VALUES) - 1e-6,
-                )
-                & _Filter.le(
-                    _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
-                    _variance(FLOAT_SERIES_VALUES) + 1e-6,
-                )
+                _Filter.all(
+                    [
+                        _Filter.ge(
+                            _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                            _variance(FLOAT_SERIES_VALUES) - 1e-6,
+                        ),
+                        _Filter.le(
+                            _Attribute(name=FLOAT_SERIES_PATHS[0], type="float_series", aggregation="variance"),
+                            _variance(FLOAT_SERIES_VALUES) + 1e-6,
+                        ),
+                    ]
+                ),
             ),
             False,
         ),
@@ -392,135 +400,181 @@ def test_find_experiments_by_string_series_values(client, project, run_with_attr
     [
         (
             _Filter.all(
-                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            True,
-        ),
-        (
-            _Filter.all(
-                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            False,
-        ),
-        (
-            _Filter.all(
-                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            False,
-        ),
-        (
-            _Filter.all(
-                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            False,
-        ),
-        (
-            _Filter.any(
-                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            True,
-        ),
-        (
-            _Filter.any(
-                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            True,
-        ),
-        (
-            _Filter.any(
-                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            True,
-        ),
-        (
-            _Filter.any(
-                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-            ),
-            False,
-        ),
-        (
-            _Filter.negate(
-                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-            ),
-            False,
-        ),
-        (
-            _Filter.negate(
-                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-            ),
-            True,
-        ),
-        (
-            _Filter.all(
-                _Filter.any(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
-                _Filter.any(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-                ),
-            ),
-            True,
-        ),
-        (
-            _Filter.all(
-                _Filter.any(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
-                _Filter.any(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
-            ),
-            False,
-        ),
-        (
-            _Filter.any(
-                _Filter.all(
+                [
                     _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
                     _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
-                ),
-                _Filter.all(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
+                ]
+            ),
+            True,
+        ),
+        (
+            _Filter.all(
+                [
+                    _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            False,
+        ),
+        (
+            _Filter.all(
+                [
+                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            False,
+        ),
+        (
+            _Filter.all(
+                [
+                    _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            False,
+        ),
+        (
+            _Filter.any(
+                [
+                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
             ),
             True,
         ),
         (
             _Filter.any(
-                _Filter.all(
+                [
+                    _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            True,
+        ),
+        (
+            _Filter.any(
+                [
                     _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
-                _Filter.all(
-                    _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                    _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                ),
+                    _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            True,
+        ),
+        (
+            _Filter.any(
+                [
+                    _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                    _Filter.ne(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                ]
+            ),
+            False,
+        ),
+        (
+            _Filter.negate(
+                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+            ),
+            False,
+        ),
+        (
+            _Filter.negate(
+                _Filter.ne(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+            ),
+            True,
+        ),
+        (
+            _Filter.all(
+                [
+                    _Filter.any(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                    _Filter.any(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                        ]
+                    ),
+                ]
+            ),
+            True,
+        ),
+        (
+            _Filter.all(
+                [
+                    _Filter.any(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                    _Filter.any(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                ]
+            ),
+            False,
+        ),
+        (
+            _Filter.any(
+                [
+                    _Filter.all(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.0),
+                        ]
+                    ),
+                    _Filter.all(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                ]
+            ),
+            True,
+        ),
+        (
+            _Filter.any(
+                [
+                    _Filter.all(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                    _Filter.all(
+                        [
+                            _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                            _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                        ]
+                    ),
+                ]
             ),
             False,
         ),
         (
             _Filter.negate(
                 _Filter.any(
-                    _Filter.all(
-                        _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
-                        _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                    ),
-                    _Filter.all(
-                        _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
-                        _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
-                    ),
+                    [
+                        _Filter.all(
+                            [
+                                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 0),
+                                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                            ]
+                        ),
+                        _Filter.all(
+                            [
+                                _Filter.eq(_Attribute(name=f"{PATH}/int-value", type="int"), 1),
+                                _Filter.eq(_Attribute(name=f"{PATH}/float-value", type="float"), 0.1),
+                            ]
+                        ),
+                    ]
                 )
             ),
             True,
