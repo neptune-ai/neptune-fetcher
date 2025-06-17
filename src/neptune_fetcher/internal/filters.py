@@ -46,6 +46,7 @@ AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
 
 
 class _BaseAttributeFilter(ABC):
+    @staticmethod
     def any(filters: list["_BaseAttributeFilter"]) -> "_BaseAttributeFilter":
         return _AttributeFilterAlternative(filters=filters)
 
