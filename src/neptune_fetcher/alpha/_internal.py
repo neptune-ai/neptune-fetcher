@@ -19,7 +19,6 @@
 
 import pathlib
 from typing import (
-    Literal,
     Optional,
     Union,
 )
@@ -135,22 +134,3 @@ def get_default_project_identifier(context: Optional[Context] = None) -> Project
     if not project:
         raise NeptuneProjectNotProvided()
     return ProjectIdentifier(project)
-
-
-class _EmptyAssociativeOperator(_filters._AssociativeOperator):
-    """
-    A filter that maps to an empty string in the public API.
-    This is the result of calling `Filter.all()` and `Filter.any()`.
-    The results are surprising and these cannot be further combined with other filters.
-    This is going to go away in V1 and is only here for compatibility with the public API.
-    """
-
-    def __init__(self, operator: Literal["AND", "OR"]) -> None:
-        super().__init__(operator=operator, filters=[])
-
-    def __post_init__(self) -> None:
-        # Skip validation since this is an empty filter
-        pass
-
-    def to_query(self) -> str:
-        return ""
