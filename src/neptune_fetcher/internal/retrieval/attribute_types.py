@@ -71,10 +71,25 @@ class StringSeriesAggregations:
 
 
 @dataclass(frozen=True)
-class FileProperties:
+class File:
     path: str
     size_bytes: int
     mime_type: str
+
+    def __repr__(self):
+        return f"File({self.mime_type}, size={humanize_size(self.size_bytes)})"
+
+
+def humanize_size(size_bytes: int) -> str:
+    """Convert bytes to a human-readable format."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024**2:
+        return f"{size_bytes / 1024:.2f} KB"
+    elif size_bytes < 1024**3:
+        return f"{size_bytes / (1024 ** 2):.2f} MB"
+    else:
+        return f"{size_bytes / (1024 ** 3):.2f} GB"
 
 
 def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
@@ -120,8 +135,8 @@ def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> 
     )
 
 
-def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> FileProperties:
-    return FileProperties(
+def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> File:
+    return File(
         path=attr.path,
         size_bytes=attr.sizeBytes,
         mime_type=attr.mimeType,

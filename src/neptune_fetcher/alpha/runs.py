@@ -212,6 +212,7 @@ def fetch_runs_table(
         type_suffix_in_column_names=type_suffix_in_column_names,
         context=context,
         container_type=_search.ContainerType.RUN,
+        flatten_file_properties=True,
     )
 
 

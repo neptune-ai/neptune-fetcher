@@ -59,7 +59,7 @@ def test_fetch_attribute_definitions_retrieval(client, project, experiment_ident
                 client,
                 [project_identifier],
                 exp_identifiers,
-                attribute_filter=_attribute_filter("int-value", attr_limit),
+                attribute_filter=_attribute_filter("int-value", attr_limit)._to_internal(),
             )
         )
     except NeptuneUnexpectedResponseError as e:
