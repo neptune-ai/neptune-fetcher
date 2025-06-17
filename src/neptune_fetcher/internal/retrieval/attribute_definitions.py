@@ -67,31 +67,26 @@ def fetch_attribute_definitions_single_filter(
     if run_identifiers is not None:
         params["experimentIdsFilter"] = [str(e) for e in run_identifiers]
 
-    must_match_regexes = _union_options(
-        [
-            _escape_name_eq(_variants_to_list(attribute_filter.name_eq)),
-            _variants_to_list(attribute_filter.name_matches_all),
-        ]
-    )
-    if must_match_regexes is not None:
-        params["attributeNameFilter"]["mustMatchRegexes"] = must_match_regexes
+    # Convert name_eq to an additional condition added to each of must_match_any alternatives.
+    name_regexes = None
+    if attribute_filter.name_eq is not None:
+        name_regexes = _escape_name_eq(_variants_to_list(attribute_filter.name_eq))
 
-    must_not_match_regexes = _variants_to_list(attribute_filter.name_matches_none)
-    if must_not_match_regexes is not None:
-        params["attributeNameFilter"]["mustNotMatchRegexes"] = must_not_match_regexes
-
-    must_match_any = attribute_filter.must_match_any
-    if must_match_any is not None:
+    if attribute_filter.must_match_any is not None:
         attribute_name_filter_dtos = []
-        for alternative in must_match_any:
+        for alternative in attribute_filter.must_match_any:
             attribute_name_filter_dto = {}
-            if alternative.must_match_regexes is not None:
-                attribute_name_filter_dto["mustMatchRegexes"] = alternative.must_match_regexes
+            must_match_regexes = _union_options([name_regexes, alternative.must_match_regexes])
+            if must_match_regexes is not None:
+                attribute_name_filter_dto["mustMatchRegexes"] = must_match_regexes
             if alternative.must_not_match_regexes is not None:
                 attribute_name_filter_dto["mustNotMatchRegexes"] = alternative.must_not_match_regexes
             if attribute_name_filter_dto:
                 attribute_name_filter_dtos.append(attribute_name_filter_dto)
         params["attributeNameFilter"]["mustMatchAny"] = attribute_name_filter_dtos
+
+    elif name_regexes is not None:
+        params["attributeNameFilter"]["mustMatchAny"] = [{"mustMatchRegexes": name_regexes}]
 
     attribute_types = _variants_to_list(attribute_filter.type_in)
     if attribute_types is not None:
