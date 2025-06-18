@@ -39,6 +39,10 @@ def resolve_experiments_filter(
 ) -> Optional[_filters._Filter]:
     if isinstance(experiments, str):
         return _filters._Filter.matches_all(_filters._Attribute("sys/name", type="string"), experiments)
+    if experiments == []:
+        # In alpha, passing experiments=[] gives us un-filtered results
+        # In v1, we're going to return no results or raise an error
+        return None
     if isinstance(experiments, list):
         return _filters._Filter.name_in(*experiments)
     if isinstance(experiments, filters.Filter):
@@ -62,6 +66,10 @@ def resolve_attributes_filter(
             return _filters._AttributeFilter()
         if isinstance(attributes, str):
             return _filters._AttributeFilter(name_matches_all=attributes)
+        if attributes == []:
+            # In alpha, passing attributes=[] gives us un-filtered results
+            # In v1, we're going to return no results or raise an error
+            return _filters._AttributeFilter()
         if isinstance(attributes, list):
             return _filters._AttributeFilter(name_eq=attributes)
         if isinstance(attributes, filters.BaseAttributeFilter):
@@ -75,6 +83,10 @@ def resolve_attributes_filter(
             return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, str):
             return _filters._AttributeFilter(name_matches_all=attributes, type_in=forced_type)
+        if attributes == []:
+            # In alpha, passing attributes=[] gives us un-filtered results
+            # In v1, we're going to return no results or raise an error
+            return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, list):
             return _filters._AttributeFilter(name_eq=attributes, type_in=forced_type)
         if isinstance(attributes, filters.AttributeFilter):
@@ -111,6 +123,10 @@ def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
 def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
     if isinstance(runs, str):
         return _filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs)
+    if runs == []:
+        # In alpha, passing runs=[] gives us un-filtered results
+        # In v1, we're going to return no results or raise an error
+        return None
     if isinstance(runs, list):
         return _filters._Filter.any(
             [_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
@@ -120,7 +136,7 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
     if runs is None:
         return None
     raise ValueError(
-        f"Invalid type for `runs` filter. Expected str, list[str], or Filter object, but got {type(runs)}."
+        f"Invalid type for `runs` filter. Expected str, list of str, or Filter object, but got {type(runs)}."
     )
 
 
