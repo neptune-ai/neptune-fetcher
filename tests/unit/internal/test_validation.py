@@ -116,12 +116,21 @@ def test_validate_include_time_invalid():
         (_AttributeFilter("a", type_in=["string_series", "float_series"]), "float_series"),
         (_AttributeFilter("a", type_in=["string_series", "float_series"]), "string_series"),
         (
-            _AttributeFilter("a", type_in=["string_series"]) | _AttributeFilter("b", type_in=["string_series"]),
+            _AttributeFilter.any(
+                [
+                    _AttributeFilter("a", type_in=["string_series"]),
+                    _AttributeFilter("b", type_in=["string_series"]),
+                ]
+            ),
             "string_series",
         ),
         (
-            _AttributeFilter("a", type_in=["string_series", "float_series"])
-            | _AttributeFilter("b", type_in=["float_series"]),
+            _AttributeFilter.any(
+                [
+                    _AttributeFilter("a", type_in=["string_series", "float_series"]),
+                    _AttributeFilter("b", type_in=["float_series"]),
+                ]
+            ),
             "float_series",
         ),
     ],
@@ -144,9 +153,20 @@ def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
         (_AttributeFilter("a", type_in=["string_series"]), "float_series"),
         (_AttributeFilter("a", type_in=["float_series"]), "string_series"),
         (_AttributeFilter("a", type_in=["string_series", "float_series"]), "int"),
-        (_AttributeFilter("a", type_in=["float_series"]) | _AttributeFilter(type_in=["string_series"]), "int"),
-        (_AttributeFilter("a", type_in=["int"]) | _AttributeFilter(type_in=["string_series"]), "int"),
-        (_AttributeFilter("a", type_in=["float_series"]) | _AttributeFilter(type_in=["int"]), "int"),
+        (
+            _AttributeFilter.any(
+                [_AttributeFilter("a", type_in=["float_series"]), _AttributeFilter(type_in=["string_series"])]
+            ),
+            "int",
+        ),
+        (
+            _AttributeFilter.any([_AttributeFilter("a", type_in=["int"]), _AttributeFilter(type_in=["string_series"])]),
+            "int",
+        ),
+        (
+            _AttributeFilter.any([_AttributeFilter("a", type_in=["float_series"]), _AttributeFilter(type_in=["int"])]),
+            "int",
+        ),
     ],
 )
 def test_validate_attribute_filter_type_invalid(attribute_filter, type_in):

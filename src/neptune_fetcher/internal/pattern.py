@@ -82,12 +82,10 @@ def build_extended_regex_filter(attribute: _Attribute, pattern: str) -> _Filter:
     parsed = parse_extended_regex(pattern)
 
     return _Filter.any(
-        *[
+        [
             _Filter.all(
-                *(
-                    [_Filter.matches_all(attribute, pattern) for pattern in conj.positive_patterns]
-                    + [_Filter.matches_none(attribute, pattern) for pattern in conj.negated_patterns]
-                )
+                [_Filter.matches_all(attribute, pattern) for pattern in conj.positive_patterns]
+                + [_Filter.matches_none(attribute, pattern) for pattern in conj.negated_patterns]
             )
             for conj in parsed.children
         ]

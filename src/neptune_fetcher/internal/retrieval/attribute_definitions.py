@@ -157,7 +157,7 @@ def _make_new_attribute_definitions_page_params(
 
 
 def _escape_name_eq(names: Optional[list[str]]) -> Optional[list[str]]:
-    if not names:
+    if names is None:
         return None
 
     escaped = [f"{re.escape(name)}" for name in names]
