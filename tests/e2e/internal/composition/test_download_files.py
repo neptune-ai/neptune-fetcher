@@ -70,9 +70,18 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     "attributes",
     [
         _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
-        _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"])
-        | _AttributeFilter(name_eq=[f"{PATH}/file-value.txt"]),
-        _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]) | _AttributeFilter(name_eq=[f"{PATH}/int-value"]),
+        _AttributeFilter.any(
+            [
+                _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+                _AttributeFilter(name_eq=[f"{PATH}/file-value.txt"]),
+            ]
+        ),
+        _AttributeFilter.any(
+            [
+                _AttributeFilter(name_eq=[f"{PATH}/files/file-value.txt"]),
+                _AttributeFilter(name_eq=[f"{PATH}/int-value"]),
+            ]
+        ),
     ],
 )
 def test_download_files_single(client, project, experiment_identifier, temp_dir, attributes):
