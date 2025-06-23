@@ -1,0 +1,39 @@
+---
+name: Test Integration
+description: Check unit tests
+inputs:
+  report-suffix:
+    description: "Suffix for report file"
+    required: true
+  report-job:
+    description: "Job name to update by JUnit report"
+    required: true
+  test-directory:
+    description: "Directory with tests"
+    required: true
+  working-directory:
+    description: 'Working directory'
+    required: false
+    default: .
+
+runs:
+  using: "composite"
+  steps:
+    - name: Test
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        pytest -v "./tests/${{ inputs.test-directory }}" \
+        --timeout=120 --timeout_method=thread \
+        --color=yes \
+        --junitxml="${{ inputs.working-directory }}/test-results/test-${{ inputs.report-suffix }}.xml"
+      shell: bash
+
+    - name: Report
+      uses: mikepenz/action-junit-report@v5
+      if: always()
+      with:
+        report_paths: "${{ inputs.working-directory }}/test-results/test-${{ inputs.report-suffix }}.xml"
+        update_check: true
+        include_passed: true
+        annotate_notice: true
+        job_name: ${{ inputs.report-job }}
