@@ -136,10 +136,12 @@ def test_attribute_filter_valid_values():
     _AttributeFilter(name_eq="test")  # string
     _AttributeFilter(name_eq=["test1", "test2"])  # list of strings
     _AttributeFilter(type_in=["float", "int"])  # valid types
-    _AttributeFilter(name_matches_all="test")  # string
-    _AttributeFilter(name_matches_all=["test1", "test2"])  # list of strings
-    _AttributeFilter(name_matches_none="test")  # string
-    _AttributeFilter(name_matches_none=["test1", "test2"])  # list of strings
+    _AttributeFilter(must_match_any=[_AttributeNameFilter(must_match_regexes=["test"])])  # string
+    _AttributeFilter(must_match_any=[_AttributeNameFilter(must_match_regexes=["test1", "test2"])])  # list of strings
+    _AttributeFilter(must_match_any=[_AttributeNameFilter(must_not_match_regexes=["test"])])  # string
+    _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_not_match_regexes=["test1", "test2"])]
+    )  # list of strings
     _AttributeFilter(
         must_match_any=[_AttributeNameFilter(must_match_regexes=["test1"], must_not_match_regexes=["test2"])]
     )  # list of strings
@@ -180,33 +182,35 @@ def test_type_in_validation():
 def test_name_matches_all_validation():
     # Test invalid name_matches_all values
     invalid_values = [
-        42,  # int
-        3.14,  # float
-        True,  # bool
+        [42],  # int
+        [3.14],  # float
+        [True],  # bool
         ["test", 42],  # list with non-string
         [1, 2],  # list of numbers
     ]
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            _AttributeFilter(name_matches_all=invalid_value)  # type: ignore
-        assert "name_matches_all must be a string or list of strings" in str(exc_info.value)
+            _AttributeFilter(must_match_any=[_AttributeNameFilter(must_match_regexes=invalid_value)])  # type: ignore
+        assert "must_match_regexes must be a list of strings" in str(exc_info.value)
 
 
 def test_name_matches_none_validation():
     # Test invalid name_matches_none values
     invalid_values = [
-        42,  # int
-        3.14,  # float
-        True,  # bool
+        [42],  # int
+        [3.14],  # float
+        [True],  # bool
         ["test", 42],  # list with non-string
         [1, 2],  # list of numbers
     ]
 
     for invalid_value in invalid_values:
         with pytest.raises(ValueError) as exc_info:
-            _AttributeFilter(name_matches_none=invalid_value)  # type: ignore
-        assert "name_matches_none must be a string or list of strings" in str(exc_info.value)
+            _AttributeFilter(
+                must_match_any=[_AttributeNameFilter(must_not_match_regexes=invalid_value)],
+            )  # type: ignore
+        assert "must_not_match_regexes must be a list of strings" in str(exc_info.value)
 
 
 def test_name_matches_any_validation_values():
@@ -227,21 +231,11 @@ def test_name_matches_any_validation_values():
         with pytest.raises(ValueError) as exc_info:
             _AttributeFilter(must_match_any=invalid_value)  # type: ignore
         assert (
-            "must_match_any must be a list of AttributeNameFilter instances" in str(exc_info.value)
-            or "must_match_any must contain only AttributeNameFilter instances" in str(exc_info.value)
+            "must_match_any must be a list of _AttributeNameFilter instances" in str(exc_info.value)
+            or "must_match_any must contain only _AttributeNameFilter instances" in str(exc_info.value)
             or "must_match_regexes must be a list of strings" in str(exc_info.value)
             or "must_not_match_regexes must be a list of strings" in str(exc_info.value)
         )
-
-
-def test_name_matches_any_validation_coexistence():
-    with pytest.raises(ValueError) as exc_info:
-        _AttributeFilter(name_matches_all="", must_match_any=[])  # type: ignore
-    assert "must_match_any cannot be used together with name_matches_all or name_matches_none" in str(exc_info.value)
-
-    with pytest.raises(ValueError) as exc_info:
-        _AttributeFilter(name_matches_none="", must_match_any=[])  # type: ignore
-    assert "must_match_any cannot be used together with name_matches_all or name_matches_none" in str(exc_info.value)
 
 
 def test_aggregations_validation():

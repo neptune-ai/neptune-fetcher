@@ -95,14 +95,6 @@ def build_extended_regex_filter(attribute: _Attribute, pattern: str) -> _Filter:
 def build_extended_regex_attribute_filter(pattern: str, type_in: list[ATTRIBUTE_LITERAL]) -> _AttributeFilter:
     parsed = parse_extended_regex(pattern)
 
-    if len(parsed.children) == 1:
-        child = parsed.children[0]
-        return _AttributeFilter(
-            type_in=type_in,
-            name_matches_all=child.positive_patterns if child.positive_patterns else None,
-            name_matches_none=child.negated_patterns if child.negated_patterns else None,
-        )
-
     return _AttributeFilter(
         type_in=type_in,
         must_match_any=[
