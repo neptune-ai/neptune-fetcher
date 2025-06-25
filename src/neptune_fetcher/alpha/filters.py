@@ -187,7 +187,7 @@ class Attribute:
 
     def __post_init__(self) -> None:
         _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
-        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")
 
     def to_query(self) -> str:
         query = f"`{self.name}`"

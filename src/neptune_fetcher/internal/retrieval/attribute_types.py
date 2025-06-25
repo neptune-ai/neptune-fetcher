@@ -22,19 +22,27 @@ from typing import (
 from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
     ProtoFileRefAttributeDTO,
+    ProtoFileRefSeriesAttributeDTO,
     ProtoFloatSeriesAttributeDTO,
+    ProtoHistogramSeriesAttributeDTO,
     ProtoStringSeriesAttributeDTO,
 )
 
 from neptune_fetcher.exceptions import warn_unsupported_value_type
 
 ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file")
-FLOAT_SERIES_AGGREGATIONS = {"last", "min", "max", "average", "variance"}
-STRING_SERIES_AGGREGATIONS = {"last"}
-ALL_AGGREGATIONS = FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS
+FLOAT_SERIES_AGGREGATIONS = frozenset({"last", "min", "max", "average", "variance"})
+STRING_SERIES_AGGREGATIONS = frozenset({"last"})
+FILE_SERIES_AGGREGATIONS = frozenset({"last"})
+HISTOGRAM_SERIES_AGGREGATIONS = frozenset({"last"})
+ALL_AGGREGATIONS = (
+    FLOAT_SERIES_AGGREGATIONS | STRING_SERIES_AGGREGATIONS | FILE_SERIES_AGGREGATIONS | HISTOGRAM_SERIES_AGGREGATIONS
+)
 TYPE_AGGREGATIONS = {
     "float_series": FLOAT_SERIES_AGGREGATIONS,
     "string_series": STRING_SERIES_AGGREGATIONS,
+    "file_series": FILE_SERIES_AGGREGATIONS,
+    "histogram_series": HISTOGRAM_SERIES_AGGREGATIONS,
 }
 
 _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
@@ -42,6 +50,8 @@ _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP = {
     "string_set": "stringSet",
     "string_series": "stringSeries",
     "file": "fileRef",
+    "file_series": "fileRefSeries",
+    "histogram_series": "histogramSeries",
 }
 
 _ATTRIBUTE_TYPE_BACKEND_TO_PYTHON_MAP = {v: k for k, v in _ATTRIBUTE_TYPE_PYTHON_TO_BACKEND_MAP.items()}
@@ -65,12 +75,6 @@ class FloatSeriesAggregations:
 
 
 @dataclass(frozen=True)
-class StringSeriesAggregations:
-    last: str
-    last_step: float
-
-
-@dataclass(frozen=True)
 class File:
     path: str
     size_bytes: int
@@ -85,6 +89,24 @@ class Histogram:
     type: str
     edges: list[float]
     values: list[float]
+
+
+@dataclass(frozen=True)
+class StringSeriesAggregations:
+    last: Optional[str]
+    last_step: Optional[float]
+
+
+@dataclass(frozen=True)
+class FileSeriesAggregations:
+    last: Optional[File]
+    last_step: Optional[float]
+
+
+@dataclass(frozen=True)
+class HistogramSeriesAggregations:
+    last: Optional[Histogram]
+    last_step: Optional[float]
 
 
 def humanize_size(size_bytes: int) -> str:
@@ -104,6 +126,10 @@ def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
         return _extract_float_series_aggregations(attr.float_series_properties)
     elif attr.type == "stringSeries":
         return _extract_string_series_aggregations(attr.string_series_properties)
+    elif attr.type == "fileRefSeries":
+        return _extract_file_ref_series_aggregations(attr.file_ref_series_properties)
+    elif attr.type == "histogramSeries":
+        return _extract_histogram_series_aggregations(attr.histogram_series_properties)
     elif attr.type == "string":
         return attr.string_properties.value
     elif attr.type == "int":
@@ -135,6 +161,14 @@ def _extract_float_series_aggregations(attr: ProtoFloatSeriesAttributeDTO) -> Fl
     )
 
 
+def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> File:
+    return File(
+        path=attr.path,
+        size_bytes=attr.sizeBytes,
+        mime_type=attr.mimeType,
+    )
+
+
 def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> StringSeriesAggregations:
     return StringSeriesAggregations(
         last=attr.last,
@@ -142,9 +176,23 @@ def _extract_string_series_aggregations(attr: ProtoStringSeriesAttributeDTO) -> 
     )
 
 
-def _extract_file_ref_properties(attr: ProtoFileRefAttributeDTO) -> File:
-    return File(
-        path=attr.path,
-        size_bytes=attr.sizeBytes,
-        mime_type=attr.mimeType,
+def _extract_file_ref_series_aggregations(attr: ProtoFileRefSeriesAttributeDTO) -> FileSeriesAggregations:
+    return FileSeriesAggregations(
+        last=File(
+            path=attr.last.path,
+            size_bytes=attr.last.sizeBytes,
+            mime_type=attr.last.mimeType,
+        ),
+        last_step=attr.last_step,
+    )
+
+
+def _extract_histogram_series_aggregations(attr: ProtoHistogramSeriesAttributeDTO) -> HistogramSeriesAggregations:
+    return HistogramSeriesAggregations(
+        last=Histogram(
+            type=attr.last.type,
+            edges=list(attr.last.edges),
+            values=list(attr.last.values),
+        ),
+        last_step=attr.last_step,
     )
