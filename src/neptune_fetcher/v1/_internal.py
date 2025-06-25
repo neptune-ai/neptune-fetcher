@@ -36,14 +36,21 @@ def resolve_experiments_filter(
 ) -> Optional[_filters._Filter]:
     if isinstance(experiments, str):
         return filters.Filter.name(experiments)._to_internal()
+    if experiments == []:
+        raise ValueError(
+            "Invalid type for `experiments` filter. Expected str, non-empty list of str, or Filter object, but got "
+            "an empty list"
+        )
     if isinstance(experiments, list):
-        return filters.Filter.name_in(*experiments)._to_internal()
+        return _filters._Filter.any(
+            [_filters._Filter.eq(_filters._Attribute("sys/name", type="string"), exp) for exp in experiments]
+        )
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
     if experiments is None:
         return None
     raise ValueError(
-        "Invalid type for experiments filter. Expected str, list of str, or Filter object, but got "
+        "Invalid type for `experiments` filter. Expected str, non-empty list of str, or Filter object, but got "
         f"{type(experiments)}."
     )
 
@@ -63,16 +70,17 @@ def resolve_attributes_filter(
                 attributes, type_in=list(types.ALL_TYPES)  # type: ignore
             )
         if attributes == []:
-            # In v1, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter()
+            raise ValueError(
+                "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
+                "but got empty list."
+            )
         if isinstance(attributes, list):
             return filters.AttributeFilter(name_eq=attributes)._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
-            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
+            "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
+            f"but got {type(attributes)}."
         )
     else:
         if attributes is None:
@@ -80,9 +88,10 @@ def resolve_attributes_filter(
         if isinstance(attributes, str):
             return _pattern.build_extended_regex_attribute_filter(attributes, type_in=forced_type)
         if attributes == []:
-            # In v1, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter(type_in=forced_type)
+            raise ValueError(
+                "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
+                "but got empty list."
+            )
         if isinstance(attributes, list):
             return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
         if isinstance(attributes, filters.AttributeFilter):
@@ -97,8 +106,8 @@ def resolve_attributes_filter(
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
-            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
+            "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
+            f"but got {type(attributes)}."
         )
 
 
@@ -107,24 +116,26 @@ def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribu
         return _filters._Attribute(sort_by)
     if isinstance(sort_by, filters.Attribute):
         return sort_by._to_internal()
-    raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
+    raise ValueError(f"Invalid type for `sort_by`. Expected str or Attribute object, but got {type(sort_by)}.")
 
 
 def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
     if isinstance(runs, str):
-        return filters.Filter.matches(
-            filters.Attribute("sys/custom_run_id", type="string"), pattern=runs
-        )._to_internal()
+        return filters.Filter.matches(filters.Attribute("sys/custom_run_id", type="string"), runs)._to_internal()
+    if runs == []:
+        raise ValueError(
+            "Invalid type for `runs` filter. Expected str, non-empty list of str, or Filter object, but got an empty list"
+        )
     if isinstance(runs, list):
-        return filters.Filter.any(
-            *[filters.Filter.eq(filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
-        )._to_internal()
+        return _filters._Filter.any(
+            [_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), run) for run in runs]
+        )
     if isinstance(runs, filters.Filter):
         return runs._to_internal()
     if runs is None:
         return None
     raise ValueError(
-        f"Invalid type for `runs` filter. Expected str, list[str], or Filter object, but got {type(runs)}."
+        f"Invalid type for `runs` filter. Expected str, non-empty list of str, or Filter object, but got {type(runs)}."
     )
 
 

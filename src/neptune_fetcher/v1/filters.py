@@ -204,22 +204,21 @@ class Filter:
     """Filter used to specify criteria when fetching experiments or runs.
 
     Examples of filters:
-        - Name or attribute must match regular expression.
+        - Name or attribute value must match regular expression.
         - Attribute value must pass a condition, like "greater than 0.9".
+        - Attribute of a given name must exist or not exist.
 
     You can negate a filter or join multiple filters with logical operators.
 
     Methods available for attribute values:
-    - `name_eq()`: Run or experiment name equals
-    - `name_in()`: Run or experiment name equals any of the provided names
-    - `eq()`: Value equals
-    - `ne()`: Value doesn't equal
-    - `gt()`: Value is greater than
-    - `ge()`: Value is greater than or equal to
-    - `lt()`: Value is less than
-    - `le()`: Value is less than or equal to
-    - `matches_all()`: Value matches regex or all in list of regexes
-    - `matches_none()`: Value doesn't match regex or any of list of regexes
+    - `name()`: Name of experiment matches an extended regular expression or a list of names.
+    - `eq()`: Attribute value equals
+    - `ne()`: Attribute value doesn't equal
+    - `gt()`: Attribute value is greater than
+    - `ge()`: Attribute value is greater than or equal to
+    - `lt()`: Attribute value is less than
+    - `le()`: Attribute value is less than or equal to
+    - `matches()`: Name of experiment matches an extended regular expression
     - `contains_all()`: Tagset contains all tags, or string contains substrings
     - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
     - `exists()`: Attribute exists
@@ -231,7 +230,7 @@ class Filter:
     from neptune_fetcher.v1.filters import Filter
 
     # Fetch metadata from specific experiments
-    specific_experiments = Filter.name_in("flying-123", "swimming-77")
+    specific_experiments = Filter.name(["flying-123", "swimming-77"])
     npt.fetch_experiments_table(experiments=specific_experiments)
 
     # Define various criteria
@@ -247,6 +246,14 @@ class Filter:
 
     def __init__(self, internal: _filters._Filter) -> None:
         self._internal = internal
+
+    @staticmethod
+    def name(name: Union[str, list[str]]) -> "Filter":
+        name_attribute = Attribute(name="sys/name", type="string")
+        if isinstance(name, str):
+            return Filter.matches(name_attribute, name)
+        else:
+            return Filter(_filters._Filter.any([_filters._Filter.eq(name_attribute, n) for n in name]))
 
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":
@@ -297,56 +304,31 @@ class Filter:
         )
 
     @staticmethod
-    def matches_all(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
+    def contains_all(attribute: Union[str, Attribute], values: Union[list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        if isinstance(regex, str):
-            return Filter(
-                _filters._AttributeValuePredicate(operator="MATCHES", attribute=attribute._to_internal(), value=regex)
-            )
-        else:
-            filters = [Filter.matches_all(attribute, r) for r in regex]
-            return Filter.all(*filters)
+
+        if isinstance(values, str):
+            values = [values]
+
+        internal_filters = [
+            _filters._AttributeValuePredicate(operator="CONTAINS", attribute=attribute._to_internal(), value=value)
+            for value in values
+        ]
+
+        return Filter(_filters._Filter.all(internal_filters))
 
     @staticmethod
-    def matches_none(attribute: Union[str, Attribute], regex: Union[str, list[str]]) -> "Filter":
+    def contains_none(attribute: Union[str, Attribute], values: list[str]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
-        if isinstance(regex, str):
-            return Filter(
-                _filters._AttributeValuePredicate(
-                    operator="NOT MATCHES", attribute=attribute._to_internal(), value=regex
-                )
-            )
-        else:
-            filters = [Filter.matches_none(attribute, r) for r in regex]
-            return Filter.all(*filters)
 
-    @staticmethod
-    def contains_all(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "Filter":
-        if isinstance(attribute, str):
-            attribute = Attribute(name=attribute)
-        if isinstance(value, str):
-            return Filter(
-                _filters._AttributeValuePredicate(operator="CONTAINS", attribute=attribute._to_internal(), value=value)
-            )
-        else:
-            filters = [Filter.contains_all(attribute, v) for v in value]
-            return Filter.all(*filters)
+        internal_filters = [
+            _filters._AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute._to_internal(), value=value)
+            for value in values
+        ]
 
-    @staticmethod
-    def contains_none(attribute: Union[str, Attribute], value: Union[str, list[str]]) -> "Filter":
-        if isinstance(attribute, str):
-            attribute = Attribute(name=attribute)
-        if isinstance(value, str):
-            return Filter(
-                _filters._AttributeValuePredicate(
-                    operator="NOT CONTAINS", attribute=attribute._to_internal(), value=value
-                )
-            )
-        else:
-            filters = [Filter.contains_none(attribute, v) for v in value]
-            return Filter.all(*filters)
+        return Filter(_filters._Filter.all(internal_filters))
 
     @staticmethod
     def exists(attribute: Union[str, Attribute]) -> "Filter":
@@ -354,47 +336,17 @@ class Filter:
             attribute = Attribute(name=attribute)
         return Filter(_filters._AttributePredicate(postfix_operator="EXISTS", attribute=attribute._to_internal()))
 
-    @staticmethod
-    def all(*filters: "Filter") -> "Filter":
-        return Filter(_filters._AssociativeOperator(operator="AND", filters=[f._to_internal() for f in filters]))
-
-    @staticmethod
-    def any(*filters: "Filter") -> "Filter":
-        return Filter(_filters._AssociativeOperator(operator="OR", filters=[f._to_internal() for f in filters]))
-
-    @staticmethod
-    def negate(filter_: "Filter") -> "Filter":
-        return Filter(_filters._PrefixOperator(operator="NOT", filter_=filter_._to_internal()))
-
     def __and__(self, other: "Filter") -> "Filter":
-        return self.all(self, other)
+        """Logical AND operator to combine two filters."""
+        return Filter(_filters._Filter.all([self._to_internal(), other._to_internal()]))
 
     def __or__(self, other: "Filter") -> "Filter":
-        return self.any(self, other)
+        """Logical OR operator to combine two filters."""
+        return Filter(_filters._Filter.any([self._to_internal(), other._to_internal()]))
 
     def __invert__(self) -> "Filter":
-        return self.negate(self)
-
-    @staticmethod
-    def name(name: Union[str, list[str]]) -> "Filter":
-        if isinstance(name, str):
-            name_attribute = Attribute(name="sys/name", type="string")
-            return Filter.matches(name_attribute, name)
-        else:
-            return Filter.name_in(*name)
-
-    @staticmethod
-    def name_eq(name: str) -> "Filter":
-        name_attribute = Attribute(name="sys/name", type="string")
-        return Filter.eq(name_attribute, name)
-
-    @staticmethod
-    def name_in(*names: str) -> "Filter":
-        if len(names) == 1:
-            return Filter.name_eq(names[0])
-        else:
-            filters = [Filter.name_eq(name) for name in names]
-            return Filter.any(*filters)
+        """Logical NOT operator to negate the filter."""
+        return Filter(_filters._Filter.negate(self._to_internal()))
 
     def _to_internal(self) -> _filters._Filter:
         return self._internal

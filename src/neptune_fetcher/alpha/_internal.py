@@ -115,7 +115,7 @@ def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribu
         return _filters._Attribute(sort_by)
     if isinstance(sort_by, filters.Attribute):
         return sort_by._to_internal()
-    raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
+    raise ValueError(f"Invalid type for `sort_by`. Expected str or Attribute object, but got {type(sort_by)}.")
 
 
 def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
