@@ -270,7 +270,7 @@ def create_metrics_dataframe(
 
 
 def create_series_dataframe(
-    series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]],
+    series_data: dict[identifiers.RunAttributeDefinition, list[series.SeriesValue]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str,
     timestamp_column_name: Optional[str],

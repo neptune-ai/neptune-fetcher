@@ -80,6 +80,13 @@ class File:
         return f"File({self.mime_type}, size={humanize_size(self.size_bytes)})"
 
 
+@dataclass(frozen=True)
+class Histogram:
+    type: str
+    edges: list[float]
+    values: list[float]
+
+
 def humanize_size(size_bytes: int) -> str:
     """Convert bytes to a human-readable format."""
     if size_bytes < 1024:

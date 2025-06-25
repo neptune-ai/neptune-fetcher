@@ -33,7 +33,7 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
-from neptune_fetcher.internal.retrieval.series import StringSeriesValue
+from neptune_fetcher.internal.retrieval.series import SeriesValue
 
 EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -406,9 +406,9 @@ def _run_definition(run_id: str, attribute_path: str, attribute_type: str = "str
 def test_create_series_dataframe_with_absolute_timestamp():
     # Given
     series_data = {
-        _run_definition("expid1", "path1"): [StringSeriesValue(1, "aaa", _make_timestamp(2023, 1, 1))],
-        _run_definition("expid1", "path2"): [StringSeriesValue(2, "bbb", _make_timestamp(2023, 1, 3))],
-        _run_definition("expid2", "path1"): [StringSeriesValue(1, "ccc", _make_timestamp(2023, 1, 2))],
+        _run_definition("expid1", "path1"): [SeriesValue(1, "aaa", _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2"): [SeriesValue(2, "bbb", _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1"): [SeriesValue(1, "ccc", _make_timestamp(2023, 1, 2))],
     }
     sys_id_label_mapping = {
         SysId("expid1"): "exp1",

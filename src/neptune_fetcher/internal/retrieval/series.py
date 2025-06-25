@@ -26,13 +26,20 @@ from typing import (
 from neptune_api.api.retrieval import get_series_values_proto
 from neptune_api.client import AuthenticatedClient
 from neptune_api.models import SeriesValuesRequest
-from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSeriesValuesResponseDTO
+from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+    ProtoPointValueDTO,
+    ProtoSeriesValuesResponseDTO,
+)
 from neptune_api.types import UNSET
 
 from neptune_fetcher.internal.identifiers import RunAttributeDefinition
 from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval.attribute_types import (
+    File,
+    Histogram,
+)
 
-StringSeriesValue = NamedTuple("StringSeriesValue", [("step", float), ("value", str), ("timestamp_millis", float)])
+SeriesValue = NamedTuple("SeriesValue", [("step", float), ("value", Any), ("timestamp_millis", float)])
 
 
 def fetch_series_values(
@@ -41,7 +48,7 @@ def fetch_series_values(
     include_inherited: bool,
     step_range: Tuple[Union[float, None], Union[float, None]] = (None, None),
     tail_limit: Optional[int] = None,
-) -> Generator[util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]], None, None]:
+) -> Generator[util.Page[tuple[RunAttributeDefinition, list[SeriesValue]]], None, None]:
     if not run_attribute_definitions:
         yield from []
         return
@@ -98,19 +105,39 @@ def _fetch_series_page(
 def _process_series_page(
     data: ProtoSeriesValuesResponseDTO,
     request_id_to_run_attr_definition: dict[str, RunAttributeDefinition],
-) -> util.Page[tuple[RunAttributeDefinition, list[StringSeriesValue]]]:
-    items: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
+) -> util.Page[tuple[RunAttributeDefinition, list[SeriesValue]]]:
+    items: dict[RunAttributeDefinition, list[SeriesValue]] = {}
 
     for series in data.series:
         if series.seriesValues.values:
             run_definition = request_id_to_run_attr_definition[series.requestId]
-            values = [
-                StringSeriesValue(value.step, value.object.stringValue, value.timestamp_millis)
-                for value in series.seriesValues.values
-            ]
+            values = [_extract_series_value(value) for value in series.seriesValues.values]
             items.setdefault(run_definition, []).extend(values)
 
     return util.Page(items=list(items.items()))
+
+
+def _extract_series_value(value_dto: ProtoPointValueDTO) -> SeriesValue:
+    obj = value_dto.object
+    if obj.HasField("stringValue"):
+        value = str(obj.stringValue)
+    elif obj.HasField("fileRef"):
+        file_ref = obj.fileRef
+        value = File(
+            path=file_ref.path,
+            mime_type=file_ref.mimeType,
+            size_bytes=file_ref.sizeBytes,
+        )
+    elif obj.HasField("histogram"):
+        histogram = obj.histogram
+        value = Histogram(
+            type=str(histogram.type),
+            values=list(histogram.values),
+            edges=list(histogram.edges),
+        )
+    else:
+        raise ValueError("Series has no valid value")
+    return SeriesValue(value_dto.step, value, timestamp_millis=value_dto.timestamp_millis)
 
 
 def _make_new_series_page_params(

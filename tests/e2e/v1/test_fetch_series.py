@@ -21,7 +21,7 @@ from neptune_fetcher.internal.identifiers import (
     SysId,
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
-from neptune_fetcher.internal.retrieval.series import StringSeriesValue
+from neptune_fetcher.internal.retrieval.series import SeriesValue
 from neptune_fetcher.v1 import fetch_series
 from neptune_fetcher.v1.filters import (
     AttributeFilter,
@@ -43,7 +43,7 @@ def create_expected_data(
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
-    series_data: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
+    series_data: dict[RunAttributeDefinition, list[SeriesValue]] = {}
     sys_id_label_mapping: dict[SysId, str] = {}
 
     columns = set()
@@ -69,7 +69,7 @@ def create_expected_data(
                     columns.add(path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
-                        StringSeriesValue(
+                        SeriesValue(
                             step,
                             series[step],
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
