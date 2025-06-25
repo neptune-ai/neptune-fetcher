@@ -259,6 +259,8 @@ def create_metrics_dataframe(
 
     experiment_dtype = pd.CategoricalDtype(categories=label_mapping)
     df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
+    if timestamp_column_name:
+        df[timestamp_column_name] = pd.to_datetime(df[timestamp_column_name], unit="ms", origin="unix", utc=True)
 
     df = _pivot_and_reindex_df(df, include_point_previews, index_column_name, timestamp_column_name)
     df = _restore_path_column_names(df, path_mapping, "float_series" if type_suffix_in_column_names else None)
@@ -312,6 +314,8 @@ def create_series_dataframe(
 
     experiment_dtype = pd.CategoricalDtype(categories=label_mapping)
     df[index_column_name] = pd.Categorical.from_codes(df[index_column_name], dtype=experiment_dtype)
+    if timestamp_column_name:
+        df[timestamp_column_name] = pd.to_datetime(df[timestamp_column_name], unit="ms", origin="unix", utc=True)
 
     df = _pivot_and_reindex_df(df, False, index_column_name, timestamp_column_name)
     df = _restore_path_column_names(df, path_mapping, None)
@@ -326,19 +330,17 @@ def _pivot_and_reindex_df(
     index_column_name: str,
     timestamp_column_name: Optional[str],
 ) -> pd.DataFrame:
-    values: Union[str, list[str]] = "value"
+    if df.empty and timestamp_column_name:
+        # Handle empty DataFrame case to avoid pandas dtype errors
+        df[timestamp_column_name] = pd.Series(dtype="datetime64[ns]")
 
-    # Create column multi-index if necessary, otherwise we stick to a flat "value" column
     if include_point_previews or timestamp_column_name:
-        values = ["value"]
-        if timestamp_column_name:
-            df[timestamp_column_name] = pd.to_datetime(df[timestamp_column_name], unit="ms", origin="unix", utc=True)
-            values.append(timestamp_column_name)
-        if include_point_previews:
-            values.append("is_preview")
-            values.append("preview_completion")
+        # if there are multiple value columns, don't specify them and rely on pandas to create the column multi-index
+        df = df.pivot(index=[index_column_name, "step"], columns="path")
+    else:
+        # when there's only "value", define values explicitly, to make pandas generate a flat index
+        df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
 
-    df = df.pivot(index=[index_column_name, "step"], columns="path", values=values)
     df = df.reset_index()
     df[index_column_name] = df[index_column_name].astype(str)
     df = df.sort_values(by=[index_column_name, "step"], ignore_index=True)
