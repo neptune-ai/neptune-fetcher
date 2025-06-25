@@ -62,6 +62,10 @@ def resolve_attributes_filter(
             return _pattern.build_extended_regex_attribute_filter(
                 attributes, type_in=list(types.ALL_TYPES)  # type: ignore
             )
+        if attributes == []:
+            # In v1, passing attributes=[] gives us un-filtered results
+            # In v1, we're going to return no results or raise an error
+            return _filters._AttributeFilter()
         if isinstance(attributes, list):
             return filters.AttributeFilter(name_eq=attributes)._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
@@ -75,6 +79,10 @@ def resolve_attributes_filter(
             return filters.AttributeFilter(type_in=forced_type)._to_internal()
         if isinstance(attributes, str):
             return _pattern.build_extended_regex_attribute_filter(attributes, type_in=forced_type)
+        if attributes == []:
+            # In v1, passing attributes=[] gives us un-filtered results
+            # In v1, we're going to return no results or raise an error
+            return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, list):
             return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
         if isinstance(attributes, filters.AttributeFilter):

@@ -226,7 +226,10 @@ def test_fetch_attribute_definitions_regex_matches_all(client, project, experime
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=["sys/.*_time"])],
+        type_in=["datetime"],
+    )
     attributes = extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -253,7 +256,13 @@ def test_fetch_attribute_definitions_regex_matches_none(client, project, experim
 
     #  when
     attribute_filter = _AttributeFilter(
-        name_matches_all="sys/.*_time", name_matches_none="modification", type_in=["datetime"]
+        must_match_any=[
+            _AttributeNameFilter(
+                must_match_regexes=["sys/.*_time"],
+                must_not_match_regexes=["modification"],
+            ),
+        ],
+        type_in=["datetime"],
     )
     attributes = extract_pages(
         fetch_attribute_definitions_single_filter(
@@ -389,7 +398,10 @@ def test_fetch_attribute_definitions_paging(client, project, experiment_identifi
     project_identifier = project.project_identifier
 
     #  when
-    attribute_filter = _AttributeFilter(name_matches_all="sys/.*_time", type_in=["datetime"])
+    attribute_filter = _AttributeFilter(
+        must_match_any=[_AttributeNameFilter(must_match_regexes=["sys/.*_time"])],
+        type_in=["datetime"],
+    )
     attributes = extract_pages(
         fetch_attribute_definitions_single_filter(
             client,

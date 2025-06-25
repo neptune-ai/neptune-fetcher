@@ -65,7 +65,9 @@ def resolve_attributes_filter(
         if attributes is None:
             return _filters._AttributeFilter()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes)
+            return _filters._AttributeFilter(
+                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])]
+            )
         if attributes == []:
             # In alpha, passing attributes=[] gives us un-filtered results
             # In v1, we're going to return no results or raise an error
@@ -82,7 +84,10 @@ def resolve_attributes_filter(
         if attributes is None:
             return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(name_matches_all=attributes, type_in=forced_type)
+            return _filters._AttributeFilter(
+                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])],
+                type_in=forced_type,
+            )
         if attributes == []:
             # In alpha, passing attributes=[] gives us un-filtered results
             # In v1, we're going to return no results or raise an error
