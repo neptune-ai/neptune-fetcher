@@ -26,7 +26,7 @@ def _drop_sys_attr_names(attributes: Iterable[str]) -> list[str]:
 
 # Convenience filter to limit searches to experiments belonging to this test,
 # in case the run has some extra experiments.
-EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
+EXPERIMENTS_IN_THIS_TEST = Filter.name(TEST_DATA.experiment_names)
 
 
 @pytest.mark.parametrize(
