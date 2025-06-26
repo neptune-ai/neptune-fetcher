@@ -107,8 +107,8 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_string_or_string_list(self.name_matches_all, "name_matches_all")
         _validate_string_or_string_list(self.name_matches_none, "name_matches_none")
 
-        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")  # type: ignore
-        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")  # type: ignore
+        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")
+        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
         matches_all = [self.name_matches_all] if isinstance(self.name_matches_all, str) else self.name_matches_all
@@ -187,7 +187,7 @@ class Attribute:
 
     def __post_init__(self) -> None:
         _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
-        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")
 
     def to_query(self) -> str:
         query = f"`{self.name}`"

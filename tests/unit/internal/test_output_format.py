@@ -28,12 +28,15 @@ from neptune_fetcher.internal.output_format import (
 )
 from neptune_fetcher.internal.retrieval.attribute_types import (
     File,
+    FileSeriesAggregations,
     FloatSeriesAggregations,
+    Histogram,
+    HistogramSeriesAggregations,
     StringSeriesAggregations,
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
-from neptune_fetcher.internal.retrieval.series import StringSeriesValue
+from neptune_fetcher.internal.retrieval.series import SeriesValue
 
 EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -138,6 +141,62 @@ def test_convert_experiment_table_to_dataframe_single_string_series():
     # then
     assert dataframe.to_dict() == {
         ("attr1", "last"): {"exp1": "last log"},
+    }
+
+
+def test_convert_experiment_table_to_dataframe_single_histogram_series():
+    # given
+    last_histogram = Histogram(type="COUNTING", edges=list(range(6)), values=list(range(5)))
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "histogram_series"),
+                HistogramSeriesAggregations(last=last_histogram, last_step=10.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={
+            AttributeDefinition("attr1", "histogram_series"): {"last"},
+        },
+        type_suffix_in_column_names=False,
+    )
+
+    # then
+    assert dataframe.to_dict() == {
+        ("attr1", "last"): {"exp1": last_histogram},
+    }
+
+
+def test_convert_experiment_table_to_dataframe_single_file_series():
+    # given
+    last_file = File(path="path/to/last/file", size_bytes=1024, mime_type="text/plain")
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "file_series"),
+                FileSeriesAggregations(last=last_file, last_step=10.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={
+            AttributeDefinition("attr1", "file_series"): {"last"},
+        },
+        type_suffix_in_column_names=False,
+    )
+
+    # then
+    assert dataframe.to_dict() == {
+        ("attr1", "last"): {"exp1": last_file},
     }
 
 
@@ -403,12 +462,12 @@ def _run_definition(run_id: str, attribute_path: str, attribute_type: str = "str
     )
 
 
-def test_create_series_dataframe_with_absolute_timestamp():
+def test_create_string_series_dataframe_with_absolute_timestamp():
     # Given
     series_data = {
-        _run_definition("expid1", "path1"): [StringSeriesValue(1, "aaa", _make_timestamp(2023, 1, 1))],
-        _run_definition("expid1", "path2"): [StringSeriesValue(2, "bbb", _make_timestamp(2023, 1, 3))],
-        _run_definition("expid2", "path1"): [StringSeriesValue(1, "ccc", _make_timestamp(2023, 1, 2))],
+        _run_definition("expid1", "path1"): [SeriesValue(1, "aaa", _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2"): [SeriesValue(2, "bbb", _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1"): [SeriesValue(1, "ccc", _make_timestamp(2023, 1, 2))],
     }
     sys_id_label_mapping = {
         SysId("expid1"): "exp1",
@@ -436,6 +495,52 @@ def test_create_series_dataframe_with_absolute_timestamp():
             np.nan,
         ],
         ("path2", "value"): [np.nan, "bbb", np.nan],
+    }
+    expected_df = pd.DataFrame(
+        dict(sorted(expected.items())),
+        index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
+    )
+    pd.testing.assert_frame_equal(df, expected_df)
+
+
+def test_create_histogram_dataframe_with_absolute_timestamp():
+    # Given
+    histograms = [
+        Histogram(type="COUNTING", edges=[1, 2, 3], values=[10, 20]),
+        Histogram(type="COUNTING", edges=[5, 6], values=[100]),
+        Histogram(type="COUNTING", edges=[1, 2, 3], values=[11, 19]),
+    ]
+    series_data = {
+        _run_definition("expid1", "path1"): [SeriesValue(1, histograms[0], _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2"): [SeriesValue(2, histograms[1], _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1"): [SeriesValue(1, histograms[2], _make_timestamp(2023, 1, 2))],
+    }
+    sys_id_label_mapping = {
+        SysId("expid1"): "exp1",
+        SysId("expid2"): "exp2",
+    }
+
+    df = create_series_dataframe(
+        series_data=series_data,
+        sys_id_label_mapping=sys_id_label_mapping,
+        index_column_name="experiment",
+        timestamp_column_name="absolute_time",
+    )
+
+    # Then
+    expected = {
+        ("path1", "absolute_time"): [
+            datetime(2023, 1, 1, tzinfo=timezone.utc),
+            np.nan,
+            datetime(2023, 1, 2, tzinfo=timezone.utc),
+        ],
+        ("path1", "value"): [histograms[0], np.nan, histograms[2]],
+        ("path2", "absolute_time"): [
+            np.nan,
+            datetime(2023, 1, 3, tzinfo=timezone.utc),
+            np.nan,
+        ],
+        ("path2", "value"): [np.nan, histograms[1], np.nan],
     }
     expected_df = pd.DataFrame(
         dict(sorted(expected.items())),

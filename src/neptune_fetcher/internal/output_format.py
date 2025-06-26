@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pathlib
+from collections.abc import Collection
 from typing import (
     Any,
     Generator,
@@ -31,11 +32,8 @@ from neptune_fetcher.internal.retrieval import (
     series,
 )
 from neptune_fetcher.internal.retrieval.attribute_types import (
-    FLOAT_SERIES_AGGREGATIONS,
-    STRING_SERIES_AGGREGATIONS,
+    TYPE_AGGREGATIONS,
     File,
-    FloatSeriesAggregations,
-    StringSeriesAggregations,
 )
 from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
 from neptune_fetcher.internal.retrieval.metrics import (
@@ -74,16 +72,13 @@ def convert_table_to_dataframe(
             column_name = get_column_name(value)
             if column_name in row:
                 raise ConflictingAttributeTypes([value.attribute_definition.name])
-            if value.attribute_definition.type == "float_series":
-                float_series_aggregations: FloatSeriesAggregations = value.value
+            if value.attribute_definition.type in TYPE_AGGREGATIONS:
+                aggregation_value = value.value
                 selected_subset = selected_aggregations.get(value.attribute_definition, set())
-                agg_subset_values = get_float_series_aggregation_subset(float_series_aggregations, selected_subset)
-                for agg_name, agg_value in agg_subset_values.items():
-                    row[(column_name, agg_name)] = agg_value
-            elif value.attribute_definition.type == "string_series":
-                string_series_aggregations: StringSeriesAggregations = value.value
-                selected_subset = selected_aggregations.get(value.attribute_definition, set())
-                agg_subset_values = get_string_series_aggregation_subset(string_series_aggregations, selected_subset)
+                aggregations_set = TYPE_AGGREGATIONS[value.attribute_definition.type]
+
+                agg_subset_values = get_aggregation_subset(aggregation_value, selected_subset, aggregations_set)
+
                 for agg_name, agg_value in agg_subset_values.items():
                     row[(column_name, agg_name)] = agg_value
             elif flatten_file_properties and value.attribute_definition.type == "file":
@@ -98,22 +93,13 @@ def convert_table_to_dataframe(
     def get_column_name(attr: AttributeValue) -> str:
         return f"{attr.attribute_definition.name}:{attr.attribute_definition.type}"
 
-    def get_float_series_aggregation_subset(
-        float_series_aggregations: FloatSeriesAggregations, selected_subset: set[str]
+    def get_aggregation_subset(
+        aggregations_value: Any, selected_subset: set[str], aggregations_set: Collection[str]
     ) -> dict[str, Any]:
         result = {}
-        for agg_name in FLOAT_SERIES_AGGREGATIONS:
+        for agg_name in aggregations_set:
             if agg_name in selected_subset:
-                result[agg_name] = getattr(float_series_aggregations, agg_name)
-        return result
-
-    def get_string_series_aggregation_subset(
-        string_series_aggregation: StringSeriesAggregations, selected_subset: set[str]
-    ) -> dict[str, Any]:
-        result = {}
-        for agg_name in STRING_SERIES_AGGREGATIONS:
-            if agg_name in selected_subset:
-                result[agg_name] = getattr(string_series_aggregation, agg_name)
+                result[agg_name] = getattr(aggregations_value, agg_name)
         return result
 
     def transform_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -270,7 +256,7 @@ def create_metrics_dataframe(
 
 
 def create_series_dataframe(
-    series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]],
+    series_data: dict[identifiers.RunAttributeDefinition, list[series.SeriesValue]],
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str,
     timestamp_column_name: Optional[str],
