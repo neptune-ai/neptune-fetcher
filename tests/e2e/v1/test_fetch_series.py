@@ -100,10 +100,9 @@ def create_expected_data(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
+        AttributeFilter(name=r".*/metrics/.*", type_in=["string_series"]),
         ".*/metrics/.*",
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"])
-        | AttributeFilter(name_matches_all=[".*/int-value"]),
+        AttributeFilter(name=r".*/metrics/.*", type_in=["string_series"]) | AttributeFilter(name=".*/int-value"),
     ],
 )
 @pytest.mark.parametrize(

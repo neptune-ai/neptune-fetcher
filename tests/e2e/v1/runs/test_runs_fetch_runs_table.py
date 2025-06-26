@@ -51,7 +51,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"^linear_history_root$",
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
+            AttributeFilter(name=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
             {
                 "run": ["linear_history_root"],
                 ("foo0:float_series", "last"): [0.1 * 9],
@@ -63,8 +63,8 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             "^linear_history_root$",
-            AttributeFilter(name_matches_all="foo0$", aggregations=["last", "min", "max", "average", "variance"])
-            | AttributeFilter(name_matches_all=".*-value$"),
+            AttributeFilter(name="foo0$", aggregations=["last", "min", "max", "average", "variance"])
+            | AttributeFilter(name=".*-value$"),
             {
                 "run": ["linear_history_root"],
                 ("int-value:int", ""): [1],
@@ -81,7 +81,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             r"^linear_history_root$|^linear_history_fork2$",
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
+            AttributeFilter(name=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
                 ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
@@ -95,7 +95,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
         ),
         (
             ["linear_history_root", "linear_history_fork2"],
-            AttributeFilter(name_matches_all=r"foo0$", aggregations=["last", "variance"]),
+            AttributeFilter(name=r"foo0$", aggregations=["last", "variance"]),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
                 ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
