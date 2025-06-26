@@ -9,7 +9,7 @@ on:
 
 jobs:
   pre-commit:
-    runs-on: tools-gha-runners 
+    runs-on: tools-gha-runners
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4

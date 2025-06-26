@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-neptune-fetcher:
-    runs-on: tools-gha-runners 
+    runs-on: tools-gha-runners
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
     needs:
       - build-neptune-fetcher
       - test-install
-    runs-on: tools-gha-runners 
+    runs-on: tools-gha-runners
     steps:
       - uses: actions/download-artifact@v4
         with:
