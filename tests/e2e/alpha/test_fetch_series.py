@@ -27,7 +27,7 @@ from neptune_fetcher.internal.identifiers import (
     SysId,
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
-from neptune_fetcher.internal.retrieval.series import StringSeriesValue
+from neptune_fetcher.internal.retrieval.series import SeriesValue
 from tests.e2e.data import (
     NOW,
     NUMBER_OF_STEPS,
@@ -38,13 +38,13 @@ from tests.e2e.data import (
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
-def create_expected_data(
+def create_expected_data_string_series(
     experiments: list[ExperimentData],
     include_time: Union[Literal["absolute"], None],
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
-    series_data: dict[RunAttributeDefinition, list[StringSeriesValue]] = {}
+    series_data: dict[RunAttributeDefinition, list[SeriesValue]] = {}
     sys_id_label_mapping: dict[SysId, str] = {}
 
     columns = set()
@@ -70,7 +70,7 @@ def create_expected_data(
                     columns.add(path)
                     filtered_exps.add(experiment.name)
                     filtered.append(
-                        StringSeriesValue(
+                        SeriesValue(
                             step,
                             series[step],
                             int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000,
@@ -116,7 +116,7 @@ def create_expected_data(
     ],
 )
 @pytest.mark.parametrize("include_time", [None, "absolute"])
-def test__fetch_series(
+def test__fetch_series_string(
     project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
 ):
     experiments = TEST_DATA.experiments[:3]
@@ -131,7 +131,9 @@ def test__fetch_series(
         context=get_context().with_project(project.project_identifier),
     )
 
-    expected, columns, filtered_exps = create_expected_data(experiments, include_time, step_range, tail_limit)
+    expected, columns, filtered_exps = create_expected_data_string_series(
+        experiments, include_time, step_range, tail_limit
+    )
 
     pd.testing.assert_frame_equal(result, expected)
     assert result.columns.tolist() == columns

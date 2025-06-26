@@ -20,7 +20,7 @@ from neptune_fetcher.internal.retrieval.attribute_values import (
 )
 from neptune_fetcher.internal.retrieval.metrics import fetch_multiple_series_values
 from neptune_fetcher.internal.retrieval.series import (
-    StringSeriesValue,
+    SeriesValue,
     fetch_series_values,
 )
 from tests.e2e.conftest import extract_pages
@@ -201,7 +201,7 @@ def test_fetch_string_series_values_retrieval(client, project, experiment_identi
                 RunAttributeDefinition(
                     run_identifier=exp, attribute_definition=AttributeDefinition(key, "string_series")
                 ),
-                [StringSeriesValue(1.0, value, int(NOW.timestamp() * 1000))],
+                [SeriesValue(1.0, value, int(NOW.timestamp() * 1000))],
             )
             for exp in exp_identifiers
             for key, value in attribute_data.items()
