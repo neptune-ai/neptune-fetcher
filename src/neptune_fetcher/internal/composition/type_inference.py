@@ -35,7 +35,9 @@ from neptune_fetcher.internal.retrieval import (
     util,
 )
 from neptune_fetcher.internal.retrieval.attribute_types import (
+    FILE_SERIES_AGGREGATIONS,
     FLOAT_SERIES_AGGREGATIONS,
+    HISTOGRAM_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
 )
 
@@ -115,6 +117,10 @@ def _infer_attribute_types_from_attribute(
             matches.append("float_series")
         if all(agg in STRING_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("string_series")
+        if all(agg in FILE_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
+            matches.append("file_series")
+        if all(agg in HISTOGRAM_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
+            matches.append("histogram_series")
         if len(matches) == 1:
             attribute.type = matches[0]  # type: ignore
 

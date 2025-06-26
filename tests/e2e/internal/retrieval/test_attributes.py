@@ -22,6 +22,8 @@ from neptune_fetcher.internal.identifiers import (
 from neptune_fetcher.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FloatSeriesAggregations,
+    Histogram,
+    HistogramSeriesAggregations,
     StringSeriesAggregations,
 )
 from neptune_fetcher.internal.retrieval.attribute_values import (
@@ -30,7 +32,10 @@ from neptune_fetcher.internal.retrieval.attribute_values import (
 )
 from tests.e2e.conftest import extract_pages
 from tests.e2e.data import (
+    FILE_SERIES_PATHS,
+    FILE_SERIES_STEPS,
     FLOAT_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
     NUMBER_OF_STEPS,
     PATH,
     STRING_SERIES_PATHS,
@@ -131,13 +136,21 @@ def test_fetch_attribute_definitions_two_strings(client, project, experiment_ide
     )
 
 
-def test_fetch_attribute_definitions_single_float_series(client, project, experiment_identifier):
+@pytest.mark.parametrize(
+    "path, type_in",
+    [
+        (FLOAT_SERIES_PATHS[0], "float_series"),
+        (STRING_SERIES_PATHS[0], "string_series"),
+        (FILE_SERIES_PATHS[0], "file_series"),
+        (HISTOGRAM_SERIES_PATHS[0], "histogram_series"),
+    ],
+)
+def test_fetch_attribute_definitions_single_series(client, project, experiment_identifier, path, type_in):
     # given
     project_identifier = project.project_identifier
-    path = FLOAT_SERIES_PATHS[0]
 
     #  when
-    attribute_filter = _AttributeFilter(name_eq=path, type_in=["float_series"])
+    attribute_filter = _AttributeFilter(name_eq=path, type_in=[type_in])
     attributes = extract_pages(
         fetch_attribute_definitions_single_filter(
             client,
@@ -148,27 +161,7 @@ def test_fetch_attribute_definitions_single_float_series(client, project, experi
     )
 
     # then
-    assert attributes == [AttributeDefinition(path, "float_series")]
-
-
-def test_fetch_attribute_definitions_single_string_series(client, project, experiment_identifier):
-    # given
-    project_identifier = project.project_identifier
-    path = STRING_SERIES_PATHS[0]
-
-    #  when
-    attribute_filter = _AttributeFilter(name_eq=path, type_in=["string_series"])
-    attributes = extract_pages(
-        fetch_attribute_definitions_single_filter(
-            client,
-            [project_identifier],
-            [experiment_identifier],
-            attribute_filter=attribute_filter,
-        )
-    )
-
-    # then
-    assert attributes == [AttributeDefinition(path, "string_series")]
+    assert attributes == [AttributeDefinition(path, type_in)]
 
 
 def test_fetch_attribute_definitions_all_types(client, project, experiment_identifier):
@@ -182,6 +175,8 @@ def test_fetch_attribute_definitions_all_types(client, project, experiment_ident
         (f"{PATH}/datetime-value", "datetime"),
         (FLOAT_SERIES_PATHS[0], "float_series"),
         (STRING_SERIES_PATHS[0], "string_series"),
+        (FILE_SERIES_PATHS[0], "file_series"),
+        (HISTOGRAM_SERIES_PATHS[0], "histogram_series"),
         (f"{PATH}/files/file-value.txt", "file"),
         ("sys/tags", "string_set"),
     ]
@@ -562,6 +557,58 @@ def test_fetch_attribute_values_single_string_series_all_aggregations(client, pr
         last_step=NUMBER_OF_STEPS - 1,
     )
     assert values == [AttributeValue(AttributeDefinition(path, "string_series"), aggregates, experiment_identifier)]
+
+
+def test_fetch_attribute_values_single_file_series_all_aggregations(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = FILE_SERIES_PATHS[0]
+    attribute_definition = AttributeDefinition(path, "file_series")
+
+    #  when
+    values = extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [attribute_definition],
+        )
+    )
+
+    # then
+    assert len(values) == 1
+    value = values[0]
+    assert value.attribute_definition == attribute_definition
+    aggregate = value.value
+    assert aggregate.last_step == FILE_SERIES_STEPS - 1
+    last = aggregate.last
+    assert re.search(rf".*{PATH.replace('/', '_')}_files_file-series-value_0.*", last.path)
+    assert last.size_bytes == 8
+    assert last.mime_type == "application/octet-stream"
+
+
+def test_fetch_attribute_values_single_histogram_series_all_aggregations(client, project, experiment_identifier):
+    # given
+    project_identifier = project.project_identifier
+    path = HISTOGRAM_SERIES_PATHS[0]
+
+    #  when
+    values = extract_pages(
+        fetch_attribute_values(
+            client,
+            project_identifier,
+            [experiment_identifier],
+            [AttributeDefinition(path, "histogram_series")],
+        )
+    )
+
+    # then
+    data = TEST_DATA.experiments[0].histogram_series[path]
+    aggregates = HistogramSeriesAggregations(
+        last=Histogram(type="COUNTING", edges=data[-1].bin_edges, values=data[-1].counts),
+        last_step=NUMBER_OF_STEPS - 1,
+    )
+    assert values == [AttributeValue(AttributeDefinition(path, "histogram_series"), aggregates, experiment_identifier)]
 
 
 def test_fetch_attribute_values_all_types(client, project, experiment_identifier):

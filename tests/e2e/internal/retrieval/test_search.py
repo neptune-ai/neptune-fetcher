@@ -21,7 +21,9 @@ from neptune_fetcher.internal.retrieval.search import (
     fetch_experiment_sys_attrs,
 )
 from tests.e2e.data import (
+    FILE_SERIES_PATHS,
     FLOAT_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
     PATH,
     STRING_SERIES_PATHS,
     TEST_DATA,
@@ -154,11 +156,9 @@ def test_find_experiments_by_name_not_found(client, project):
         (_Filter.exists(_Attribute(name=f"{PATH}/str-value", type="string")), True),
         (_Filter.exists(_Attribute(name=f"{PATH}/str-value", type="int")), False),
         (_Filter.exists(_Attribute(name=f"{PATH}/does-not-exist-value", type="string")), False),
-        # (_Filter.exists(_Attribute(name=f"{PATH}/files/file-value.txt", type="file")), True),
-        # TODO - FILE not supported in nql
+        (_Filter.exists(_Attribute(name=f"{PATH}/files/file-value.txt", type="file")), True),
         (_Filter.exists(_Attribute(name=f"{PATH}/files/file-value.txt", type="int")), False),
-        # (_Filter.exists(_Attribute(name=f"{PATH}/files/does-not-exist-value.txt", type="file")), False),
-        # TODO - FILE not supported in nql
+        (_Filter.exists(_Attribute(name=f"{PATH}/files/does-not-exist-value.txt", type="file")), False),
         (
             _Filter.eq(
                 _Attribute(name=f"{PATH}/datetime-value", type="datetime"),
@@ -382,6 +382,70 @@ def test_find_experiments_by_float_series_values(client, project, run_with_attri
     ],
 )
 def test_find_experiments_by_string_series_values(client, project, run_with_attributes, experiment_filter, found):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
+
+    # then
+    if found:
+        assert EXPERIMENT_NAME in experiment_names
+    else:
+        assert EXPERIMENT_NAME not in experiment_names
+
+
+@pytest.mark.parametrize(
+    "experiment_filter,found",
+    [
+        # TODO: histogram_series type not supported in nql yet
+        # (
+        #         _Filter.exists(
+        #             _Attribute(name=FILE_SERIES_PATHS[0], type="file_series"),
+        #         ),
+        #         True,
+        # ),
+        (
+            _Filter.exists(
+                _Attribute(name=FILE_SERIES_PATHS[0], type="string_series"),
+            ),
+            False,
+        ),
+    ],
+)
+def test_find_experiments_by_file_series_values(client, project, run_with_attributes, experiment_filter, found):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
+
+    # then
+    if found:
+        assert EXPERIMENT_NAME in experiment_names
+    else:
+        assert EXPERIMENT_NAME not in experiment_names
+
+
+@pytest.mark.parametrize(
+    "experiment_filter,found",
+    [
+        # TODO: histogram_series type not supported in nql yet
+        # (
+        #         _Filter.exists(
+        #             _Attribute(name=HISTOGRAM_SERIES_PATHS[0], type="histogram_series"),
+        #         ),
+        #         True,
+        # ),
+        (
+            _Filter.exists(
+                _Attribute(name=HISTOGRAM_SERIES_PATHS[0], type="string_series"),
+            ),
+            False,
+        ),
+    ],
+)
+def test_find_experiments_by_histogram_series_values(client, project, run_with_attributes, experiment_filter, found):
     # given
     project_identifier = project.project_identifier
 

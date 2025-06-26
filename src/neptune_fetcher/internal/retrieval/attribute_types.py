@@ -30,7 +30,19 @@ from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
 
 from neptune_fetcher.exceptions import warn_unsupported_value_type
 
-ALL_TYPES = ("float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file")
+ALL_TYPES = (
+    "float",
+    "int",
+    "string",
+    "bool",
+    "datetime",
+    "float_series",
+    "string_set",
+    "string_series",
+    "file",
+    "file_series",
+    "histogram_series",
+)
 FLOAT_SERIES_AGGREGATIONS = frozenset({"last", "min", "max", "average", "variance"})
 STRING_SERIES_AGGREGATIONS = frozenset({"last"})
 FILE_SERIES_AGGREGATIONS = frozenset({"last"})
