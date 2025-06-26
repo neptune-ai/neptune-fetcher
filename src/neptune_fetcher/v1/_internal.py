@@ -75,7 +75,7 @@ def resolve_attributes_filter(
                 "but got empty list."
             )
         if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes)._to_internal()
+            return _filters._AttributeFilter(name_eq=attributes)
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
@@ -93,12 +93,10 @@ def resolve_attributes_filter(
                 "but got empty list."
             )
         if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
+            return _filters._AttributeFilter(name_eq=attributes, type_in=forced_type)
         if isinstance(attributes, filters.AttributeFilter):
             modified_attributes = filters.AttributeFilter(
-                name_eq=attributes.name_eq,
-                name_matches_all=attributes.name_matches_all,
-                name_matches_none=attributes.name_matches_none,
+                name=attributes.name,
                 type_in=forced_type,
                 aggregations=attributes.aggregations,
             )
@@ -124,7 +122,8 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
         return filters.Filter.matches(filters.Attribute("sys/custom_run_id", type="string"), runs)._to_internal()
     if runs == []:
         raise ValueError(
-            "Invalid type for `runs` filter. Expected str, non-empty list of str, or Filter object, but got an empty list"
+            "Invalid type for `runs` filter. Expected str, non-empty list of str, or Filter object, "
+            "but got an empty list"
         )
     if isinstance(runs, list):
         return _filters._Filter.any(

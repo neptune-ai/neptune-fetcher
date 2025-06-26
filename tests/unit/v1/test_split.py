@@ -54,7 +54,7 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
         npt.list_attributes(
             project=project,
             experiments="ignored",
-            attributes=AttributeFilter(name_eq="ignored"),
+            attributes=AttributeFilter(name="ignored"),
         )
 
     # then
@@ -145,7 +145,7 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
         npt.fetch_experiments_table(
             project=project,
             experiments="ignored",
-            attributes=AttributeFilter(name_eq="ignored"),
+            attributes=AttributeFilter(name="ignored"),
         )
 
     # then
@@ -223,7 +223,7 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
         npt.fetch_series(
             project=project,
             experiments="ignored",
-            attributes=AttributeFilter(name_eq="ignored"),
+            attributes=AttributeFilter(name="ignored"),
         )
 
     # then
@@ -301,7 +301,7 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
         npt.fetch_metrics(
             project=project,
             experiments="ignored",
-            attributes=AttributeFilter(name_eq="ignored"),
+            attributes=AttributeFilter(name="ignored"),
         )
 
     # then

@@ -22,6 +22,7 @@ from neptune_fetcher.internal.filters import (
     _AttributeFilter,
     _AttributeNameFilter,
     _Filter,
+    AGGREGATION_LITERAL,
 )
 
 _WS_PATTERN = re.compile(r"[ \t\r\n]")
@@ -92,7 +93,11 @@ def build_extended_regex_filter(attribute: _Attribute, pattern: str) -> _Filter:
     )
 
 
-def build_extended_regex_attribute_filter(pattern: str, type_in: list[ATTRIBUTE_LITERAL]) -> _AttributeFilter:
+def build_extended_regex_attribute_filter(
+    pattern: str,
+    type_in: list[ATTRIBUTE_LITERAL] | None = None,
+    aggregations: list[AGGREGATION_LITERAL] | None = None,
+) -> _AttributeFilter:
     parsed = parse_extended_regex(pattern)
 
     return _AttributeFilter(
@@ -104,4 +109,5 @@ def build_extended_regex_attribute_filter(pattern: str, type_in: list[ATTRIBUTE_
             )
             for conj in parsed.children
         ],
+        aggregations=["last"] if aggregations is None else aggregations,
     )
