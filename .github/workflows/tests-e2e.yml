@@ -18,7 +18,7 @@ on:
 
 jobs:
   test:
-    runs-on: arc-runner-set
+    runs-on: tools-gha-runners 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
