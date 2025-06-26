@@ -109,8 +109,9 @@ def create_expected_data(
 @pytest.mark.parametrize(
     "arg_experiments",
     [
-        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        Filter.name([exp.name for exp in TEST_DATA.experiments[:3]]),
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
         [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
