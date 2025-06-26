@@ -41,6 +41,11 @@ _cache: dict[int, AuthenticatedClient] = {}
 _lock: threading.RLock = threading.RLock()
 
 
+def clear_cache() -> None:
+    with _lock:
+        _cache.clear()
+
+
 def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> AuthenticatedClient:
     hash_key = hash((context.api_token, _dict_to_hashable(proxies)))
 
@@ -65,11 +70,6 @@ def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> Au
 
         _cache[hash_key] = client
         return client
-
-
-def clear_cache() -> None:
-    with _lock:
-        _cache.clear()
 
 
 def _dict_to_hashable(d: Optional[Dict[str, str]]) -> frozenset[Tuple[str, str]]:
