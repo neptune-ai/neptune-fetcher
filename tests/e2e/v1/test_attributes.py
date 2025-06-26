@@ -28,7 +28,7 @@ def _drop_sys_attr_names(attributes: Iterable[str]) -> list[str]:
 
 # Convenience filter to limit searches to experiments belonging to this test,
 # in case the run has some extra experiments.
-EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
+EXPERIMENTS_IN_THIS_TEST = Filter.name(TEST_DATA.experiment_names)
 
 
 @pytest.mark.parametrize(
@@ -68,13 +68,14 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
             },
         ),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
-        (AttributeFilter(name_matches_all=PATH), TEST_DATA.all_attribute_names),
-        (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
+        (AttributeFilter(name=PATH), TEST_DATA.all_attribute_names),
+        (AttributeFilter(name=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
         (
-            AttributeFilter.any(AttributeFilter(name_matches_all="^(foo)"), AttributeFilter(name_matches_all=PATH)),
+            AttributeFilter.any(AttributeFilter(name="^(foo)"), AttributeFilter(name=PATH)),
             TEST_DATA.all_attribute_names,
         ),
-        (AttributeFilter(name_matches_none=".*"), []),
+        (AttributeFilter(name=f"^(foo) | {PATH}"), TEST_DATA.all_attribute_names),  # ERS
+        (AttributeFilter(name="!.*"), []),
     ],
 )
 def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys(
@@ -96,7 +97,7 @@ def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys
         None,
         "",
         ".*",
-        AttributeFilter(name_matches_all=".*"),
+        AttributeFilter(name=".*"),
         AttributeFilter(),
     ),
 )
@@ -113,8 +114,7 @@ def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filte
         ".*unknown.*",
         "sys/abcdef",
         "\\x20",
-        AttributeFilter(name_eq=".*"),
-        AttributeFilter(name_matches_all="unknown"),
+        AttributeFilter(name="unknown"),
     ),
 )
 def test_list_attributes_unknown_name(filter_):
@@ -155,12 +155,12 @@ def test_list_attributes_unknown_name(filter_):
         ),
         (
             Filter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilter(name="!sys/.* & .*"),
             [],
         ),
         (
             Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilter(name="!sys/.* & .*"),
             [],
         ),
         (
@@ -197,7 +197,8 @@ def test_list_attributes_depending_on_values_in_experiments(arg_experiments, arg
             {"sys/name", "sys/id"},
         ),
         (r"sys/.*id$", {"sys/custom_run_id", "sys/id", "sys/diagnostics/project_uuid", "sys/diagnostics/run_uuid"}),
-        (AttributeFilter(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
+        (AttributeFilter(name="sys/(name|id)"), {"sys/name", "sys/id"}),
+        (AttributeFilter(name="sys/name | sys/id"), {"sys/name", "sys/id"}),  # ERS
     ],
 )
 def test_list_attributes_sys_attrs(attribute_filter, expected):
