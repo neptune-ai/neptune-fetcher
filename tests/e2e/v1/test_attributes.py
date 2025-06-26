@@ -10,7 +10,9 @@ from neptune_fetcher.v1.filters import (
     Filter,
 )
 from tests.e2e.data import (
+    FILE_SERIES_PATHS,
     FLOAT_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
     PATH,
     STRING_SERIES_PATHS,
     TEST_DATA,
@@ -44,10 +46,14 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
     [
         (PATH, TEST_DATA.all_attribute_names),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
-        (rf"{PATH}/metrics/.*", FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"] + STRING_SERIES_PATHS),
+        (
+            rf"{PATH}/metrics/.*",
+            FLOAT_SERIES_PATHS + [f"{PATH}/metrics/step"] + STRING_SERIES_PATHS + HISTOGRAM_SERIES_PATHS,
+        ),
         (
             rf"{PATH}/files/.*",
-            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"},
+            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"}
+            | set(FILE_SERIES_PATHS),
         ),
         (
             rf"{PATH}/.*-value$",

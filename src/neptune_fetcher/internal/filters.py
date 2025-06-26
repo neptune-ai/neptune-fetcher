@@ -123,7 +123,7 @@ class _AttributeFilter(_BaseAttributeFilter):
     """
 
     name_eq: Union[str, list[str], None] = None
-    type_in: Sequence[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(types.ALL_TYPES))  # type: ignore
+    type_in: Sequence[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(types.ALL_TYPES))
     must_match_any: Optional[list[_AttributeNameFilter]] = None
     aggregations: Sequence[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
 
@@ -139,8 +139,8 @@ class _AttributeFilter(_BaseAttributeFilter):
                 _validate_string_list(item.must_match_regexes, "must_match_regexes")
                 _validate_string_list(item.must_not_match_regexes, "must_not_match_regexes")
 
-        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")  # type: ignore
-        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")  # type: ignore
+        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")
+        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")
 
     def transform(
         self, map_attribute_filter: Callable[["_AttributeFilter"], "_AttributeFilter"]

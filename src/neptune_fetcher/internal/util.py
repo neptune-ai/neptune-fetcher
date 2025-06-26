@@ -15,6 +15,7 @@
 from typing import (
     Collection,
     Optional,
+    Sequence,
     Union,
 )
 
@@ -36,7 +37,7 @@ def _validate_string_list(value: Optional[list[str]], field_name: str) -> None:
             raise ValueError(f"{field_name} must be a list of strings")
 
 
-def _validate_list_of_allowed_values(value: list[str], allowed_values: Collection[str], field_name: str) -> None:
+def _validate_list_of_allowed_values(value: Sequence[str], allowed_values: Collection[str], field_name: str) -> None:
     """Validate that a value is a list containing only allowed values."""
     if not isinstance(value, list) or not all(isinstance(v, str) and v in allowed_values for v in value):
         raise ValueError(f"{field_name} must be a list of valid values: {sorted(allowed_values)}")

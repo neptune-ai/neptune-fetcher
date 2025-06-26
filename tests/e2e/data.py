@@ -16,12 +16,12 @@ from neptune_scale.types import (
     Histogram,
 )
 
-TEST_DATA_VERSION = "2025-06-26"
+TEST_DATA_VERSION = "2025-06-27"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
 FILE_SERIES_PATHS = [f"{PATH}/files/file-series-value_{j}" for j in range(2)]
-HISTOGRAM_SERIES_PATHS = [f"{PATH}/histogram-series-value_{j}" for j in range(3)]
+HISTOGRAM_SERIES_PATHS = [f"{PATH}/metrics/histogram-series-value_{j}" for j in range(3)]
 NUMBER_OF_STEPS = 10
 MAX_PATH_LENGTH = 1024
 FILE_SERIES_STEPS = 3
