@@ -11,14 +11,20 @@ from datetime import (
 )
 from typing import Any
 
-from neptune_scale.types import File
+from neptune_scale.types import (
+    File,
+    Histogram,
+)
 
-TEST_DATA_VERSION = "2025-05-08"
+TEST_DATA_VERSION = "2025-06-27"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
+FILE_SERIES_PATHS = [f"{PATH}/files/file-series-value_{j}" for j in range(2)]
+HISTOGRAM_SERIES_PATHS = [f"{PATH}/metrics/histogram-series-value_{j}" for j in range(3)]
 NUMBER_OF_STEPS = 10
 MAX_PATH_LENGTH = 1024
+FILE_SERIES_STEPS = 3
 
 
 @dataclass
@@ -30,6 +36,8 @@ class ExperimentData:
     unique_series: dict[str, list[float]]
     string_series: dict[str, list[str]]
     files: dict[str, bytes]
+    file_series: dict[str, list[bytes]]
+    histogram_series: dict[str, list[Histogram]]
     long_path_configs: dict[str, int]
     long_path_series: dict[str, str]
     long_path_metrics: dict[str, float]
@@ -45,6 +53,8 @@ class ExperimentData:
                 self.unique_series.keys(),
                 self.string_series.keys(),
                 self.files.keys(),
+                self.file_series.keys(),
+                self.histogram_series.keys(),
                 self.long_path_configs.keys(),
                 self.long_path_series.keys(),
                 self.long_path_metrics.keys(),
@@ -86,6 +96,17 @@ class TestData:
                     path: [f"string-{i}-{j}" for j in range(NUMBER_OF_STEPS)] for path in STRING_SERIES_PATHS
                 }
 
+                histogram_series = {
+                    path: [
+                        Histogram(
+                            bin_edges=[n + j for n in range(6)],
+                            counts=[n * j for n in range(5)],
+                        )
+                        for j in range(NUMBER_OF_STEPS)
+                    ]
+                    for path in HISTOGRAM_SERIES_PATHS
+                }
+
                 if i == 0:
                     files = {
                         f"{PATH}/files/file-value": b"Binary content",
@@ -93,6 +114,11 @@ class TestData:
                         f"{PATH}/files/object-does-not-exist": File(
                             "/tmp/object-does-not-exist", mime_type="text/plain", size=1
                         ),
+                    }
+
+                    file_series = {
+                        path: [f"file-{i}-{j}".encode("utf-8") for j in range(FILE_SERIES_STEPS)]
+                        for path in FILE_SERIES_PATHS
                     }
                 else:
                     files = {}
@@ -124,6 +150,8 @@ class TestData:
                         string_sets=string_sets,
                         float_series=float_series,
                         string_series=string_series,
+                        file_series=file_series,
+                        histogram_series=histogram_series,
                         unique_series={},
                         long_path_configs=long_path_configs,
                         long_path_series=long_path_series,

@@ -21,6 +21,7 @@ from neptune_fetcher.util import (
     get_config_and_token_urls,
 )
 from tests.e2e.data import (
+    FILE_SERIES_STEPS,
     NOW,
     PATH,
     TEST_DATA,
@@ -99,11 +100,18 @@ def run_with_attributes(project, client):
             series_data = {path: values[step] for path, values in experiment.string_series.items()}
             run.log_string_series(data=series_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
+            histogram_data = {path: values[step] for path, values in experiment.histogram_series.items()}
+            run.log_histograms(histograms=histogram_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
+
         run.log_configs(experiment.long_path_configs)
         run.log_string_series(data=experiment.long_path_series, step=1, timestamp=NOW)
         run.log_metrics(data=experiment.long_path_metrics, step=1, timestamp=NOW)
 
         run.assign_files(experiment.files)
+
+        for step in range(FILE_SERIES_STEPS):
+            file_data = {path: values[step] for path, values in experiment.file_series.items()}
+            run.log_files(files=file_data, step=step, timestamp=NOW + timedelta(seconds=int(step)))
 
         runs[experiment.name] = run
     for run in runs.values():

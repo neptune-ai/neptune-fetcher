@@ -135,10 +135,10 @@ def fetch_series(
             ),
         )
         results: Generator[
-            util.Page[tuple[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]]], None, None
+            util.Page[tuple[identifiers.RunAttributeDefinition, list[series.SeriesValue]]], None, None
         ] = concurrency.gather_results(output)
 
-        series_data: dict[identifiers.RunAttributeDefinition, list[series.StringSeriesValue]] = {}
+        series_data: dict[identifiers.RunAttributeDefinition, list[series.SeriesValue]] = {}
         for result in results:
             for run_attribute_definition, series_values in result.items:
                 series_data.setdefault(run_attribute_definition, []).extend(series_values)

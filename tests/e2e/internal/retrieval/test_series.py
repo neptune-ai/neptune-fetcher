@@ -1,21 +1,40 @@
 import os
+import re
+from dataclasses import dataclass
 from datetime import timedelta
 
 import pytest
 
 from neptune_fetcher.internal.identifiers import AttributeDefinition
+from neptune_fetcher.internal.retrieval.attribute_types import Histogram
 from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,
 )
 from tests.e2e.conftest import extract_pages
 from tests.e2e.data import (
+    FILE_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
     NOW,
     STRING_SERIES_PATHS,
     TEST_DATA,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
+
+
+@dataclass
+class FileMatcher:
+    path_pattern: str
+    size_bytes: int
+    mime_type: str
+
+    def __eq__(self, other):
+        return (
+            self.size_bytes == other.size_bytes
+            and self.mime_type == other.mime_type
+            and re.search(self.path_pattern, other.path) is not None
+        )
 
 
 def test_fetch_series_values_does_not_exist(client, project, experiment_identifier):
@@ -35,11 +54,38 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
     assert series == []
 
 
-def test_fetch_series_values_single_series(client, project, experiment_identifier):
+@pytest.mark.parametrize(
+    "attribute_name, attribute_type, expected_values",
+    [
+        (STRING_SERIES_PATHS[0], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]),
+        (STRING_SERIES_PATHS[1], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[1]]),
+        (
+            HISTOGRAM_SERIES_PATHS[0],
+            "histogram_series",
+            [
+                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
+                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
+            ],
+        ),
+        (
+            FILE_SERIES_PATHS[0],
+            "file_series",
+            [
+                FileMatcher(
+                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
+                    size_bytes=len(value),
+                    mime_type="application/octet-stream",
+                )
+                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
+            ],
+        ),
+    ],
+)
+def test_fetch_series_values_single_series(
+    client, project, experiment_identifier, attribute_name, attribute_type, expected_values
+):
     # given
-    run_definition = RunAttributeDefinition(
-        experiment_identifier, AttributeDefinition(STRING_SERIES_PATHS[0], "string")
-    )
+    run_definition = RunAttributeDefinition(experiment_identifier, AttributeDefinition(attribute_name, attribute_type))
 
     #  when
     series = extract_pages(
@@ -53,11 +99,38 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     # then
     expected = [
         (step, value, int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000)
-        for step, value in enumerate(TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]])
+        for step, value in enumerate(expected_values)
     ]
     assert series == [(run_definition, expected)]
 
 
+@pytest.mark.parametrize(
+    "attribute_name, attribute_type, expected_values",
+    [
+        (STRING_SERIES_PATHS[0], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]),
+        (STRING_SERIES_PATHS[1], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[1]]),
+        (
+            HISTOGRAM_SERIES_PATHS[0],
+            "histogram_series",
+            [
+                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
+                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
+            ],
+        ),
+        (
+            FILE_SERIES_PATHS[0],
+            "file_series",
+            [
+                FileMatcher(
+                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
+                    size_bytes=len(value),
+                    mime_type="application/octet-stream",
+                )
+                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
+            ],
+        ),
+    ],
+)
 @pytest.mark.parametrize(
     "step_range, expected_start, expected_end",
     [
@@ -70,12 +143,18 @@ def test_fetch_series_values_single_series(client, project, experiment_identifie
     ],
 )
 def test_fetch_series_values_single_series_stop_range(
-    client, project, experiment_identifier, step_range, expected_start, expected_end
+    client,
+    project,
+    experiment_identifier,
+    attribute_name,
+    attribute_type,
+    expected_values,
+    step_range,
+    expected_start,
+    expected_end,
 ):
     # given
-    run_definition = RunAttributeDefinition(
-        experiment_identifier, AttributeDefinition(STRING_SERIES_PATHS[0], "string")
-    )
+    run_definition = RunAttributeDefinition(experiment_identifier, AttributeDefinition(attribute_name, attribute_type))
 
     #  when
     series = extract_pages(
@@ -85,22 +164,50 @@ def test_fetch_series_values_single_series_stop_range(
     # then
     expected = [
         (step, value, int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000)
-        for step, value in list(enumerate(TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]))[
-            expected_start:expected_end
-        ]
+        for step, value in list(enumerate(expected_values))[expected_start:expected_end]
     ]
-    assert series == [(run_definition, expected)]
+    if expected:
+        assert series == [(run_definition, expected)]
+    else:
+        assert series == []
 
 
+@pytest.mark.parametrize(
+    "attribute_name, attribute_type, expected_values",
+    [
+        (STRING_SERIES_PATHS[0], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]),
+        (STRING_SERIES_PATHS[1], "string_series", TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[1]]),
+        (
+            HISTOGRAM_SERIES_PATHS[0],
+            "histogram_series",
+            [
+                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
+                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
+            ],
+        ),
+        (
+            FILE_SERIES_PATHS[0],
+            "file_series",
+            [
+                FileMatcher(
+                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
+                    size_bytes=len(value),
+                    mime_type="application/octet-stream",
+                )
+                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
+            ],
+        ),
+    ],
+)
 @pytest.mark.parametrize(
     "tail_limit",
     [0, 1, 5, 20, 40],
 )
-def test_fetch_series_values_single_series_tail_limit(client, project, experiment_identifier, tail_limit):
+def test_fetch_series_values_single_series_tail_limit(
+    client, project, experiment_identifier, attribute_name, attribute_type, expected_values, tail_limit
+):
     # given
-    run_definition = RunAttributeDefinition(
-        experiment_identifier, AttributeDefinition(STRING_SERIES_PATHS[0], "string")
-    )
+    run_definition = RunAttributeDefinition(experiment_identifier, AttributeDefinition(attribute_name, attribute_type))
 
     #  when
     series = extract_pages(
@@ -113,8 +220,6 @@ def test_fetch_series_values_single_series_tail_limit(client, project, experimen
     else:
         expected = [
             (step, value, int((NOW + timedelta(seconds=int(step))).timestamp()) * 1000)
-            for step, value in reversed(
-                list(enumerate(TEST_DATA.experiments[0].string_series[STRING_SERIES_PATHS[0]]))[-tail_limit:]
-            )
+            for step, value in reversed(list(enumerate(expected_values))[-tail_limit:])
         ]
         assert series == [(run_definition, expected)]
