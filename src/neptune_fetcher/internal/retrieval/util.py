@@ -70,13 +70,13 @@ def fetch_pages(
 
 
 def backoff_retry(
-    func: Callable,
+    func: Callable[..., Response[T]],
     *args: Any,
     max_tries: int = 5,
     backoff_factor: float = 0.5,
     max_backoff: float = 30.0,
     **kwargs: Any,
-) -> Response[Any]:
+) -> Response[T]:
     """
     Retries a function with exponential backoff. The function will be called at most `max_tries` times.
 
