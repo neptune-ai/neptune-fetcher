@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import pathlib
 from collections.abc import Collection
 from typing import (
@@ -50,6 +51,9 @@ __all__ = (
     "create_series_dataframe",
     "create_files_dataframe",
 )
+
+
+logger = logging.getLogger()
 
 
 def convert_table_to_dataframe(
@@ -320,12 +324,19 @@ def _pivot_and_reindex_df(
         # Handle empty DataFrame case to avoid pandas dtype errors
         df[timestamp_column_name] = pd.Series(dtype="datetime64[ns]")
 
-    if include_point_previews or timestamp_column_name:
-        # if there are multiple value columns, don't specify them and rely on pandas to create the column multi-index
-        df = df.pivot(index=[index_column_name, "step"], columns="path")
-    else:
-        # when there's only "value", define values explicitly, to make pandas generate a flat index
-        df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
+    try:
+        if include_point_previews or timestamp_column_name:
+            # if there are multiple value columns, don't specify them and rely on pandas to create the column multi-index
+            df = df.pivot(index=[index_column_name, "step"], columns="path")
+        else:
+            # when there's only "value", define values explicitly, to make pandas generate a flat index
+            df = df.pivot(index=[index_column_name, "step"], columns="path", values="value")
+    except ValueError as e:
+        if "Index contains duplicate entries" in str(e):
+            duplicates = df.duplicated(subset=[index_column_name, "step"], keep=False)
+            if duplicates.any():
+                logging.error(f"Found duplicate entries: {df[duplicates]}")
+            raise
 
     df = df.reset_index()
     df[index_column_name] = df[index_column_name].astype(str)

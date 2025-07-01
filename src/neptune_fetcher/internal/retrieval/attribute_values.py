@@ -82,12 +82,15 @@ def _fetch_attribute_values_page(
     params: dict[str, Any],
     project_identifier: identifiers.ProjectIdentifier,
 ) -> ProtoQueryAttributesResultDTO:
+    body = QueryAttributesBodyDTO.from_dict(params)
+
     response = util.backoff_retry(
         query_attributes_within_project_proto.sync_detailed,
         client=client,
-        body=QueryAttributesBodyDTO.from_dict(params),
+        body=body,
         project_identifier=project_identifier,
     )
+
     return ProtoQueryAttributesResultDTO.FromString(response.content)
 
 

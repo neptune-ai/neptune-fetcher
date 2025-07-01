@@ -613,6 +613,13 @@ def test_create_metrics_dataframe_random_order():
     # Given
     data = {
         RunAttributeDefinition(
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path2", "float_series")
+        ): [
+            (_make_timestamp(2023, 1, 1), 2, 2.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 1, 3.0, False, 1.0),
+            (_make_timestamp(2023, 1, 1), 3, 1.0, False, 1.0),
+        ],
+        RunAttributeDefinition(
             RunIdentifier(ProjectIdentifier("foo/bar"), SysId("sysid1")), AttributeDefinition("path1", "float_series")
         ): [
             (_make_timestamp(2023, 1, 1), 3, 30.0, False, 1.0),
@@ -637,12 +644,14 @@ def test_create_metrics_dataframe_random_order():
     # Then
     expected = {
         "path1": [10.0, 20.0, 30.0, 40.0, 50.0],
+        "path2": [3.0, 2.0, 1.0, np.nan, np.nan],
     }
 
     expected_df = pd.DataFrame(
         dict(sorted(expected.items())),
         index=pd.MultiIndex.from_tuples(
-            [("exp1", 1.0), ("exp1", 2.0), ("exp1", 3.0), ("exp1", 4.0), ("exp1", 5.0)], names=["experiment", "step"]
+            [("exp1", 1.0), ("exp1", 2.0), ("exp1", 3.0), ("exp1", 4.0), ("exp1", 5.0)],
+            names=["experiment", "step"]
         ),
     )
 
