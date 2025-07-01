@@ -11,10 +11,10 @@ from datetime import (
 )
 from typing import Any
 
-from neptune_scale.types import (
-    File,
-    Histogram,
-)
+from neptune_scale.types import File
+from neptune_scale.types import Histogram as ScaleHistogram
+
+from neptune_fetcher.internal.retrieval.attribute_types import Histogram as FetcherHistogram
 
 TEST_DATA_VERSION = "2025-06-27"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
@@ -37,7 +37,7 @@ class ExperimentData:
     string_series: dict[str, list[str]]
     files: dict[str, bytes]
     file_series: dict[str, list[bytes]]
-    histogram_series: dict[str, list[Histogram]]
+    histogram_series: dict[str, list[ScaleHistogram]]
     long_path_configs: dict[str, int]
     long_path_series: dict[str, str]
     long_path_metrics: dict[str, float]
@@ -60,6 +60,12 @@ class ExperimentData:
                 self.long_path_metrics.keys(),
             )
         )
+
+    def fetcher_histogram_series(self) -> dict[str, list[FetcherHistogram]]:
+        return {
+            key: [FetcherHistogram(type="COUNTING", edges=value.bin_edges, values=value.counts) for value in values]
+            for key, values in self.histogram_series.items()
+        }
 
 
 @dataclass
@@ -98,7 +104,7 @@ class TestData:
 
                 histogram_series = {
                     path: [
-                        Histogram(
+                        ScaleHistogram(
                             bin_edges=[n + j for n in range(6)],
                             counts=[n * j for n in range(5)],
                         )
@@ -122,6 +128,7 @@ class TestData:
                     }
                 else:
                     files = {}
+                    file_series = {}
 
                 if i <= 2:
                     long_path_prefix = f"{PATH}/long/int-value-"

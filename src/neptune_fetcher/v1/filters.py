@@ -40,7 +40,16 @@ __all__ = ["Filter", "AttributeFilter", "Attribute"]
 
 
 ATTRIBUTE_LITERAL = Literal[
-    "float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file"
+    "float",
+    "int",
+    "string",
+    "bool",
+    "datetime",
+    "float_series",
+    "string_set",
+    "string_series",
+    "file",
+    "histogram_series",
 ]
 AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
 

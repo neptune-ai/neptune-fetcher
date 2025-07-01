@@ -85,15 +85,6 @@ def resolve_attributes_filter(
             return _filters._AttributeFilter(type_in=forced_type)
         if isinstance(attributes, list):
             return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
-        if isinstance(attributes, filters.AttributeFilter):
-            modified_attributes = filters.AttributeFilter(
-                name_eq=attributes.name_eq,
-                name_matches_all=attributes.name_matches_all,
-                name_matches_none=attributes.name_matches_none,
-                type_in=forced_type,
-                aggregations=attributes.aggregations,
-            )
-            return modified_attributes._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
