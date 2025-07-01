@@ -63,17 +63,15 @@ def resolve_attributes_filter(
 ) -> _filters._AttributeFilter:
     if forced_type is None:
         if attributes is None:
-            return _filters._AttributeFilter()
+            return filters.AttributeFilter()._to_internal()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(
-                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])]
-            )
+            return filters.AttributeFilter(name_matches_all=attributes)._to_internal()
         if attributes == []:
             # In alpha, passing attributes=[] gives us un-filtered results
             # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter()
+            return filters.AttributeFilter()._to_internal()
         if isinstance(attributes, list):
-            return _filters._AttributeFilter(name_eq=attributes)
+            return filters.AttributeFilter(name_eq=attributes)._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
@@ -82,18 +80,15 @@ def resolve_attributes_filter(
         )
     else:
         if attributes is None:
-            return _filters._AttributeFilter(type_in=forced_type)
+            return filters.AttributeFilter(type_in=forced_type)._to_internal()
         if isinstance(attributes, str):
-            return _filters._AttributeFilter(
-                must_match_any=[_filters._AttributeNameFilter(must_match_regexes=[attributes])],
-                type_in=forced_type,
-            )
+            return filters.AttributeFilter(name_matches_all=attributes)._to_internal()
         if attributes == []:
             # In alpha, passing attributes=[] gives us un-filtered results
             # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter(type_in=forced_type)
+            return filters.AttributeFilter(type_in=forced_type)._to_internal()
         if isinstance(attributes, list):
-            return _filters._AttributeFilter(name_eq=attributes, type_in=forced_type)
+            return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
         if isinstance(attributes, filters.BaseAttributeFilter):
             return attributes._to_internal()
         raise ValueError(
@@ -104,7 +99,7 @@ def resolve_attributes_filter(
 
 def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribute:
     if isinstance(sort_by, str):
-        return _filters._Attribute(sort_by)
+        return filters.Attribute(sort_by)._to_internal()
     if isinstance(sort_by, filters.Attribute):
         return sort_by._to_internal()
     raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
@@ -119,15 +114,17 @@ def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
 
 def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -> Optional[_filters._Filter]:
     if isinstance(runs, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/custom_run_id", type="string"), regex=runs)
+        return filters.Filter.matches_all(
+            filters.Attribute("sys/custom_run_id", type="string"), regex=runs
+        )._to_internal()
     if runs == []:
         # In alpha, passing runs=[] gives us un-filtered results
         # In v1, we're going to return no results or raise an error
         return None
     if isinstance(runs, list):
-        return _filters._Filter.any(
-            [_filters._Filter.eq(_filters._Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
-        )
+        return filters.Filter.any(
+            *[filters.Filter.eq(filters.Attribute("sys/custom_run_id", type="string"), value=run) for run in runs]
+        )._to_internal()
     if isinstance(runs, filters.Filter):
         return runs._to_internal()
     if runs is None:
