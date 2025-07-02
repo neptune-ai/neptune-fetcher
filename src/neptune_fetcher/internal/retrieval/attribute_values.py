@@ -30,7 +30,10 @@ from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.retrieval import util, retry
+from neptune_fetcher.internal.retrieval import (
+    errors,
+    util,
+)
 from neptune_fetcher.internal.retrieval.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
@@ -84,7 +87,7 @@ def _fetch_attribute_values_page(
 ) -> ProtoQueryAttributesResultDTO:
     body = QueryAttributesBodyDTO.from_dict(params)
 
-    response = retry.default_error_handling(query_attributes_within_project_proto.sync_detailed)(
+    response = errors.handle_errors_default(query_attributes_within_project_proto.sync_detailed)(
         client=client,
         body=body,
         project_identifier=project_identifier,

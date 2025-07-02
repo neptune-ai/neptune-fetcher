@@ -13,7 +13,6 @@ python = "^3.9"
 
 # Base neptune package
 neptune-api = ">=0.17.0,<0.19.0"
-backoff = "^2.0.0"
 azure-storage-blob = "^12.7.0"
 pandas = [
     { version = ">=1.4.0,<2.3.0", python = "<3.10" },
@@ -104,4 +103,4 @@ ignore_missing_imports = "True"
 [tool.pytest.ini_options]
 retries = 3
 retry_delay = 2
-addopts = "--dist=loadfile -s"
+addopts = "--dist=loadfile"
