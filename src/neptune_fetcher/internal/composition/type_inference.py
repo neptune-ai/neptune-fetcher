@@ -158,7 +158,7 @@ def _infer_attribute_types_from_api(
 
     for name, types in attribute_name_to_definition.items():
         if len(types) > 1:
-            raise AttributeTypeInferenceError(attribute_names=[name])
+            raise AttributeTypeInferenceError(attribute_names=[name], conflicting_types=types)
 
     for attribute in attributes:
         if attribute.name in attribute_name_to_definition:
