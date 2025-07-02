@@ -22,12 +22,12 @@ from typing import (
     Union,
 )
 
+from neptune_fetcher.alpha.filters import KNOWN_TYPES
 from neptune_fetcher.exceptions import NeptuneProjectNotProvided
 from neptune_fetcher.internal import filters as _filters
 from neptune_fetcher.internal import pattern as _pattern
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.internal.retrieval import attribute_types as types
 from neptune_fetcher.v1 import filters
 
 
@@ -51,51 +51,29 @@ def resolve_experiments_filter(
 def resolve_attributes_filter(
     # TODO: this function also accepts filters._AlternateAttributeFilter, but this is not fully tested...
     # see test_list_attributes_with_attribute_filter with "Combined filters" input
-    # Note: it will fail for an Alternative if forced_type is provided...
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
-    forced_type: Optional[list[filters.ATTRIBUTE_LITERAL]] = None,
 ) -> _filters._AttributeFilter:
-    if forced_type is None:
-        if attributes is None:
-            return filters.AttributeFilter()._to_internal()
-        if isinstance(attributes, str):
-            return _pattern.build_extended_regex_attribute_filter(
-                attributes, type_in=list(types.ALL_TYPES)  # type: ignore
-            )
-        if attributes == []:
-            # In v1, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter()
-        if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes)._to_internal()
-        if isinstance(attributes, filters.BaseAttributeFilter):
-            return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
-    else:
-        if attributes is None:
-            return filters.AttributeFilter(type_in=forced_type)._to_internal()
-        if isinstance(attributes, str):
-            return _pattern.build_extended_regex_attribute_filter(attributes, type_in=forced_type)
-        if attributes == []:
-            # In v1, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return _filters._AttributeFilter(type_in=forced_type)
-        if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
-        if isinstance(attributes, filters.BaseAttributeFilter):
-            return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
+    if attributes is None:
+        return filters.AttributeFilter()._to_internal()
+    if isinstance(attributes, str):
+        return _pattern.build_extended_regex_attribute_filter(attributes, type_in=list(KNOWN_TYPES))  # type: ignore
+    if attributes == []:
+        # In v1, passing attributes=[] gives us un-filtered results
+        # In v1, we're going to return no results or raise an error
+        return filters.AttributeFilter()._to_internal()
+    if isinstance(attributes, list):
+        return filters.AttributeFilter(name_eq=attributes)._to_internal()
+    if isinstance(attributes, filters.BaseAttributeFilter):
+        return attributes._to_internal()
+    raise ValueError(
+        "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
+        f"{type(attributes)}."
+    )
 
 
 def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribute:
     if isinstance(sort_by, str):
-        return _filters._Attribute(sort_by)
+        return filters.Attribute(sort_by)._to_internal()
     if isinstance(sort_by, filters.Attribute):
         return sort_by._to_internal()
     raise ValueError(f"Invalid type for sort_by. Expected str or Attribute object, but got {type(sort_by)}.")
