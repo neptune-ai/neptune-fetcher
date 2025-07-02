@@ -151,7 +151,7 @@ def fetch_metrics(
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes, forced_type=["float_series"])
+    attributes_filter = resolve_attributes_filter(attributes)
 
     return _fetch_metrics.fetch_metrics(
         project_identifier=project_identifier,
@@ -252,7 +252,7 @@ def fetch_series(
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes, forced_type=["string_series"])
+    attributes_filter = resolve_attributes_filter(attributes)
 
     return _fetch_series.fetch_series(
         project_identifier=project_identifier,

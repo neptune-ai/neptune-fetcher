@@ -148,7 +148,7 @@ def fetch_metrics(
     """
     _runs = resolve_runs_filter(runs)
     assert _runs is not None
-    _attributes = resolve_attributes_filter(attributes, forced_type=["float_series"])
+    _attributes = resolve_attributes_filter(attributes)
     project_identifier = get_default_project_identifier(context)
 
     return _fetch_metrics.fetch_metrics(
@@ -251,7 +251,7 @@ def fetch_series(
     """
     _runs = resolve_runs_filter(runs)
     assert _runs is not None
-    _attributes = resolve_attributes_filter(attributes, forced_type=["string_series"])
+    _attributes = resolve_attributes_filter(attributes)
     project_identifier = get_default_project_identifier(context)
 
     return _fetch_series.fetch_series(
@@ -293,7 +293,7 @@ def download_files(
     Returns a DataFrame mapping runs and attributes to the paths of downloaded files.
     """
     _runs = resolve_runs_filter(runs)
-    _attributes = resolve_attributes_filter(attributes, forced_type=["file"])
+    _attributes = resolve_attributes_filter(attributes)
     destination_path = resolve_destination_path(destination)
     project_identifier = get_default_project_identifier(context)
 

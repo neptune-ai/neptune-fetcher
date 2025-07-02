@@ -17,6 +17,7 @@ from neptune_fetcher.v1.filters import (
 from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
     PATH,
+    STRING_SERIES_PATHS,
     TEST_DATA,
     TEST_DATA_VERSION,
 )
@@ -175,7 +176,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
         | AttributeFilter(f"{PATH}/metrics/string-series-value_1", type_in=["string_series"])
     ],
 )
-def test__fetch_experiments_table_with_attributes_filter_for_series(
+def test__fetch_experiments_table_with_attributes_filter_for_string_series(
     project, run_with_attributes, attr_filter, type_suffix_in_column_names
 ):
     df = fetch_experiments_table(
@@ -205,9 +206,52 @@ def test__fetch_experiments_table_with_attributes_filter_for_series(
     assert df[expected.columns].columns.equals(expected.columns)
 
 
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
 @pytest.mark.parametrize(
     "attr_filter",
-    [AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"])],
+    [
+        AttributeFilter(f"{PATH}/metrics/histogram-series-value_0", type_in=["histogram_series"], aggregations=["last"])
+        | AttributeFilter(f"{PATH}/metrics/histogram-series-value_1", type_in=["histogram_series"])
+    ],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_histogram_series(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:2]]),
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+    )
+
+    suffix = ":histogram_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:2]],
+            (f"{PATH}/metrics/histogram-series-value_0" + suffix, "last"): [
+                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
+                for i in range(2)
+            ],
+            (f"{PATH}/metrics/histogram-series-value_1" + suffix, "last"): [
+                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
+                for i in range(2)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
+    assert df.shape == expected.shape
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=[]),
+        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type_in=["string_series"], aggregations=["min"]),
+    ],
 )
 def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggregation(
     project, run_with_attributes, attr_filter
@@ -429,9 +473,21 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
             Filter.eq(Attribute("sys/name", type="string"), f"test_alpha_0_{TEST_DATA_VERSION}"),
             [f"test_alpha_0_{TEST_DATA_VERSION}"],
         ),
-        # (     TODO - FILE nto supported in nql
-        #     Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),
-        #     [f"test_experiment_0_{TEST_DATA_VERSION}"],
+        (
+            Filter.exists(Attribute(f"{PATH}/files/file-value.txt", type="file")),
+            [f"test_alpha_0_{TEST_DATA_VERSION}"],
+        ),
+        (
+            Filter.exists(Attribute(FLOAT_SERIES_PATHS[0], type="float_series")),
+            TEST_DATA.experiment_names,
+        ),
+        (
+            Filter.exists(Attribute(STRING_SERIES_PATHS[0], type="string_series")),
+            TEST_DATA.experiment_names,
+        ),
+        # ( # todo: histogram_series not supported yet in the nql
+        #     Filter.exists(Attribute(HISTOGRAM_SERIES_PATHS[0], type="histogram_series")),
+        #     TEST_DATA.experiment_names,
         # ),
     ],
 )

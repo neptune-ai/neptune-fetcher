@@ -75,6 +75,16 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
             TEST_DATA.all_attribute_names,
         ),
         (AttributeFilter(name_matches_none=".*"), []),
+        (
+            AttributeFilter(name_matches_all=rf"{PATH}/metrics/string-series-value_.*", type_in=["string_series"]),
+            set(STRING_SERIES_PATHS),
+        ),
+        (
+            AttributeFilter(
+                name_matches_all=rf"{PATH}/metrics/histogram-series-value_.*", type_in=["histogram_series"]
+            ),
+            set(HISTOGRAM_SERIES_PATHS),
+        ),
     ],
 )
 def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys(

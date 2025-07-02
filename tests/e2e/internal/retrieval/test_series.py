@@ -6,7 +6,6 @@ from datetime import timedelta
 import pytest
 
 from neptune_fetcher.internal.identifiers import AttributeDefinition
-from neptune_fetcher.internal.retrieval.attribute_types import Histogram
 from neptune_fetcher.internal.retrieval.series import (
     RunAttributeDefinition,
     fetch_series_values,
@@ -62,10 +61,7 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
         (
             HISTOGRAM_SERIES_PATHS[0],
             "histogram_series",
-            [
-                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
-                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
-            ],
+            TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
         (
             FILE_SERIES_PATHS[0],
@@ -112,10 +108,7 @@ def test_fetch_series_values_single_series(
         (
             HISTOGRAM_SERIES_PATHS[0],
             "histogram_series",
-            [
-                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
-                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
-            ],
+            TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
         (
             FILE_SERIES_PATHS[0],
@@ -180,10 +173,7 @@ def test_fetch_series_values_single_series_stop_range(
         (
             HISTOGRAM_SERIES_PATHS[0],
             "histogram_series",
-            [
-                Histogram(type="COUNTING", edges=value.bin_edges, values=value.counts)
-                for value in TEST_DATA.experiments[0].histogram_series[HISTOGRAM_SERIES_PATHS[0]]
-            ],
+            TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
         (
             FILE_SERIES_PATHS[0],
