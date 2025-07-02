@@ -22,7 +22,6 @@ from neptune_fetcher.internal.identifiers import (
 from neptune_fetcher.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
 from neptune_fetcher.internal.retrieval.attribute_types import (
     FloatSeriesAggregations,
-    Histogram,
     HistogramSeriesAggregations,
     StringSeriesAggregations,
 )
@@ -603,9 +602,8 @@ def test_fetch_attribute_values_single_histogram_series_all_aggregations(client,
     )
 
     # then
-    data = TEST_DATA.experiments[0].histogram_series[path]
     aggregates = HistogramSeriesAggregations(
-        last=Histogram(type="COUNTING", edges=data[-1].bin_edges, values=data[-1].counts),
+        last=TEST_DATA.experiments[0].fetcher_histogram_series()[path][-1],
         last_step=NUMBER_OF_STEPS - 1,
     )
     assert values == [AttributeValue(AttributeDefinition(path, "histogram_series"), aggregates, experiment_identifier)]

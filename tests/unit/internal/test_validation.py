@@ -110,11 +110,13 @@ def test_validate_include_time_invalid():
 @pytest.mark.parametrize(
     "attribute_filter, type_in",
     [
-        (_AttributeFilter("a"), "float_series"),
-        (_AttributeFilter("a", type_in=["string_series"]), "string_series"),
-        (_AttributeFilter("a", type_in=["float_series"]), "float_series"),
-        (_AttributeFilter("a", type_in=["string_series", "float_series"]), "float_series"),
-        (_AttributeFilter("a", type_in=["string_series", "float_series"]), "string_series"),
+        (_AttributeFilter("a"), ["float_series"]),
+        (_AttributeFilter("a", type_in=["string_series"]), ["string_series"]),
+        (_AttributeFilter("a", type_in=["float_series"]), ["float_series"]),
+        (_AttributeFilter("a", type_in=["string_series", "float_series"]), ["float_series"]),
+        (_AttributeFilter("a", type_in=["string_series", "float_series"]), ["string_series"]),
+        (_AttributeFilter("a", type_in=["string_series", "float_series"]), ["float_series", "string_series"]),
+        (_AttributeFilter("a", type_in=["string_series", "float_series"]), ["float_series", "histogram_series"]),
         (
             _AttributeFilter.any(
                 [
@@ -122,7 +124,7 @@ def test_validate_include_time_invalid():
                     _AttributeFilter("b", type_in=["string_series"]),
                 ]
             ),
-            "string_series",
+            ["string_series"],
         ),
         (
             _AttributeFilter.any(
@@ -131,7 +133,7 @@ def test_validate_include_time_invalid():
                     _AttributeFilter("b", type_in=["float_series"]),
                 ]
             ),
-            "float_series",
+            ["float_series"],
         ),
     ],
 )
@@ -140,7 +142,7 @@ def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
     new_filter = restrict_attribute_filter_type(attribute_filter, type_in=type_in)
 
     def go_assert(f):
-        assert f.type_in == [type_in]
+        assert set(f.type_in).issubset(type_in)
         return f
 
     new_filter.transform(go_assert)
@@ -149,27 +151,31 @@ def test_validate_attribute_filter_type_valid(attribute_filter, type_in):
 @pytest.mark.parametrize(
     "attribute_filter, type_in",
     [
-        (_AttributeFilter("a", type_in=[]), "float_series"),
-        (_AttributeFilter("a", type_in=["string_series"]), "float_series"),
-        (_AttributeFilter("a", type_in=["float_series"]), "string_series"),
-        (_AttributeFilter("a", type_in=["string_series", "float_series"]), "int"),
+        (_AttributeFilter("a", type_in=[]), ["float_series"]),
+        (_AttributeFilter("a", type_in=["string_series"]), ["float_series"]),
+        (_AttributeFilter("a", type_in=["float_series"]), ["string_series"]),
+        (_AttributeFilter("a", type_in=["string_series", "float_series"]), ["int"]),
+        (_AttributeFilter("a", type_in=["string_series"]), ["int", "float"]),
         (
             _AttributeFilter.any(
                 [_AttributeFilter("a", type_in=["float_series"]), _AttributeFilter(type_in=["string_series"])]
             ),
-            "int",
+            ["int"],
         ),
         (
             _AttributeFilter.any([_AttributeFilter("a", type_in=["int"]), _AttributeFilter(type_in=["string_series"])]),
-            "int",
+            ["int"],
         ),
         (
             _AttributeFilter.any([_AttributeFilter("a", type_in=["float_series"]), _AttributeFilter(type_in=["int"])]),
-            "int",
+            ["int"],
         ),
     ],
 )
 def test_validate_attribute_filter_type_invalid(attribute_filter, type_in):
     # Valid cases
-    with pytest.raises(ValueError, match=f"Only {type_in} type is supported for attribute filters in this function"):
+    with pytest.raises(
+        ValueError,
+        match=f"Only {'.*'.join(type_in)} (type is|types are) supported for attribute filters in this function",
+    ):
         restrict_attribute_filter_type(attribute_filter, type_in=type_in)

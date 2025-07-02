@@ -16,6 +16,7 @@ import dataclasses
 import os
 import pathlib
 from typing import (
+    Iterable,
     Literal,
     Optional,
     Tuple,
@@ -25,15 +26,25 @@ from neptune_fetcher.internal import filters
 
 
 def restrict_attribute_filter_type(
-    attribute_filter: filters._BaseAttributeFilter, type_in: filters.ATTRIBUTE_LITERAL
+    attribute_filter: filters._BaseAttributeFilter, type_in: Iterable[filters.ATTRIBUTE_LITERAL]
 ) -> filters._BaseAttributeFilter:
     def restrict_type(leaf: filters._AttributeFilter) -> filters._AttributeFilter:
-        if type_in in leaf.type_in:
-            return dataclasses.replace(leaf, type_in=[type_in])
+        # user: [A], type_in: [A, B] => [A]  # it's ok for user to request less types
+        # user: [A, B], type_in: [A] => [A]  # remove types that are not supported
+        # user: [A], type_in: [B] => raise   # raise an error when there is a complete mismatch
+        intersection = [t for t in leaf.type_in if t in type_in]
+        if intersection:
+            return dataclasses.replace(leaf, type_in=intersection)
         else:
+            types = list(type_in)
+            if len(types) == 1:
+                label = f"{types[0]} type is"
+            else:
+                label = f"{', '.join(types[:-1])} or {types[-1]} types are"
+
             raise ValueError(
-                f"Only {type_in} type is supported for attribute filters in this function "
-                f"and the filter contains types {leaf.type_in}"
+                f"Only {label} supported for attribute filters in this function "
+                f"and the filter contains types: {', '.join(leaf.type_in)}"
             )
 
     return attribute_filter.transform(map_attribute_filter=restrict_type)
