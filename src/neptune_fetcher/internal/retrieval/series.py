@@ -30,7 +30,10 @@ from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoSer
 from neptune_api.types import UNSET
 
 from neptune_fetcher.internal.identifiers import RunAttributeDefinition
-from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval import (
+    errors,
+    util,
+)
 
 StringSeriesValue = NamedTuple("StringSeriesValue", [("step", float), ("value", str), ("timestamp_millis", float)])
 
@@ -89,9 +92,11 @@ def _fetch_series_page(
     params: dict[str, Any],
 ) -> ProtoSeriesValuesResponseDTO:
     body = SeriesValuesRequest.from_dict(params)
-    response = util.backoff_retry(
-        get_series_values_proto.sync_detailed, client=client, body=body, use_deprecated_string_fields=False
+
+    response = errors.handle_errors_default(get_series_values_proto.sync_detailed)(
+        client=client, body=body, use_deprecated_string_fields=False
     )
+
     return ProtoSeriesValuesResponseDTO.FromString(response.content)
 
 
