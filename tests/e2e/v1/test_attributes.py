@@ -1,3 +1,4 @@
+import itertools as it
 import os
 from typing import Iterable
 
@@ -10,7 +11,6 @@ from neptune_fetcher.v1.filters import (
     Filter,
 )
 from tests.e2e.data import (
-    FILE_SERIES_PATHS,
     FLOAT_SERIES_PATHS,
     HISTOGRAM_SERIES_PATHS,
     PATH,
@@ -30,6 +30,10 @@ def _drop_sys_attr_names(attributes: Iterable[str]) -> list[str]:
 # in case the run has some extra experiments.
 EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
 
+ALL_V1_ATTRIBUTE_NAMES = set(
+    it.chain.from_iterable(exp.all_attribute_names - exp.file_series.keys() for exp in TEST_DATA.experiments)
+)
+
 
 @pytest.mark.parametrize(
     "arg_experiments",
@@ -44,7 +48,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
 @pytest.mark.parametrize(
     "arg_attributes, expected",
     [
-        (PATH, TEST_DATA.all_attribute_names),
+        (PATH, ALL_V1_ATTRIBUTE_NAMES),
         (f"{PATH}/int-value", {f"{PATH}/int-value"}),
         (
             rf"{PATH}/metrics/.*",
@@ -52,8 +56,7 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
         ),
         (
             rf"{PATH}/files/.*",
-            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"}
-            | set(FILE_SERIES_PATHS),
+            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"},
         ),
         (
             rf"{PATH}/.*-value$",
@@ -68,11 +71,11 @@ EXPERIMENTS_IN_THIS_TEST = Filter.name_in(*TEST_DATA.experiment_names)
             },
         ),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
-        (AttributeFilter(name_matches_all=PATH), TEST_DATA.all_attribute_names),
+        (AttributeFilter(name_matches_all=PATH), ALL_V1_ATTRIBUTE_NAMES),
         (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
         (
             AttributeFilter.any(AttributeFilter(name_matches_all="^(foo)"), AttributeFilter(name_matches_all=PATH)),
-            TEST_DATA.all_attribute_names,
+            ALL_V1_ATTRIBUTE_NAMES,
         ),
         (AttributeFilter(name_matches_none=".*"), []),
         (
@@ -112,8 +115,8 @@ def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys
 )
 def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filter):
     attributes = _drop_sys_attr_names(list_attributes(experiments=EXPERIMENTS_IN_THIS_TEST, attributes=name_filter))
-    assert set(attributes) == set(TEST_DATA.all_attribute_names)
-    assert len(attributes) == len(TEST_DATA.all_attribute_names)
+    assert set(attributes) == set(ALL_V1_ATTRIBUTE_NAMES)
+    assert len(attributes) == len(ALL_V1_ATTRIBUTE_NAMES)
 
 
 @pytest.mark.parametrize(
