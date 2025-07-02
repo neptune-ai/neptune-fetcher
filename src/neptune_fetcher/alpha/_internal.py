@@ -38,13 +38,13 @@ def resolve_experiments_filter(
     experiments: Optional[Union[str, list[str], filters.Filter]],
 ) -> Optional[_filters._Filter]:
     if isinstance(experiments, str):
-        return _filters._Filter.matches_all(_filters._Attribute("sys/name", type="string"), experiments)
+        return filters.Filter.matches_all(filters.Attribute("sys/name", type="string"), experiments)._to_internal()
     if experiments == []:
         # In alpha, passing experiments=[] gives us un-filtered results
         # In v1, we're going to return no results or raise an error
         return None
     if isinstance(experiments, list):
-        return _filters._Filter.name_in(*experiments)
+        return filters.Filter.name_in(*experiments)._to_internal()
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
     if experiments is None:
@@ -59,42 +59,23 @@ def resolve_attributes_filter(
     # TODO: this function also accepts filters._AlternateAttributeFilter, but this is not fully tested...
     # see test_list_attributes_with_attribute_filter with "Combined filters" input
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
-    forced_type: Optional[list[filters.ATTRIBUTE_LITERAL]] = None,
 ) -> _filters._AttributeFilter:
-    if forced_type is None:
-        if attributes is None:
-            return filters.AttributeFilter()._to_internal()
-        if isinstance(attributes, str):
-            return filters.AttributeFilter(name_matches_all=attributes)._to_internal()
-        if attributes == []:
-            # In alpha, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return filters.AttributeFilter()._to_internal()
-        if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes)._to_internal()
-        if isinstance(attributes, filters.BaseAttributeFilter):
-            return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
-    else:
-        if attributes is None:
-            return filters.AttributeFilter(type_in=forced_type)._to_internal()
-        if isinstance(attributes, str):
-            return filters.AttributeFilter(name_matches_all=attributes)._to_internal()
-        if attributes == []:
-            # In alpha, passing attributes=[] gives us un-filtered results
-            # In v1, we're going to return no results or raise an error
-            return filters.AttributeFilter(type_in=forced_type)._to_internal()
-        if isinstance(attributes, list):
-            return filters.AttributeFilter(name_eq=attributes, type_in=forced_type)._to_internal()
-        if isinstance(attributes, filters.BaseAttributeFilter):
-            return attributes._to_internal()
-        raise ValueError(
-            "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
-            f"{type(attributes)}."
-        )
+    if attributes is None:
+        return filters.AttributeFilter()._to_internal()
+    if isinstance(attributes, str):
+        return filters.AttributeFilter(name_matches_all=attributes)._to_internal()
+    if attributes == []:
+        # In alpha, passing attributes=[] gives us un-filtered results
+        # In v1, we're going to return no results or raise an error
+        return filters.AttributeFilter()._to_internal()
+    if isinstance(attributes, list):
+        return filters.AttributeFilter(name_eq=attributes)._to_internal()
+    if isinstance(attributes, filters.BaseAttributeFilter):
+        return attributes._to_internal()
+    raise ValueError(
+        "Invalid type for attributes filter. Expected str, list of str, or AttributeFilter object, but got "
+        f"{type(attributes)}."
+    )
 
 
 def resolve_sort_by(sort_by: Union[str, filters.Attribute]) -> _filters._Attribute:
