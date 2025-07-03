@@ -76,7 +76,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
-                _Filter.name_in(experiment.name),
+                _Filter.name_eq(experiment.name),
             )
         )
         if existing.items:
@@ -123,7 +123,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project.project_identifier),
-                _Filter.name_in(*TEST_DATA.experiment_names),
+                _Filter.any([_Filter.name_eq(experiment_name) for experiment_name in TEST_DATA.experiment_names]),
             )
         )
 
@@ -142,7 +142,9 @@ def experiment_identifiers(client, project, run_with_attributes) -> list[RunIden
 
     project_identifier = project.project_identifier
 
-    experiment_filter = _Filter.name_in(*TEST_DATA.experiment_names)
+    experiment_filter = _Filter.any(
+        [_Filter.name_eq(experiment_name) for experiment_name in TEST_DATA.experiment_names]
+    )
     experiment_attrs = extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )
