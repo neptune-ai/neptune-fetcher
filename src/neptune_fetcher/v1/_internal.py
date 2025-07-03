@@ -24,11 +24,9 @@ from typing import (
 
 from neptune_fetcher.exceptions import NeptuneProjectNotProvided
 from neptune_fetcher.internal import filters as _filters
-from neptune_fetcher.internal import pattern as _pattern
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_fetcher.v1 import filters
-from neptune_fetcher.v1.filters import KNOWN_TYPES
 
 
 def resolve_experiments_filter(
@@ -42,8 +40,11 @@ def resolve_experiments_filter(
             "an empty list"
         )
     if isinstance(experiments, list):
+        # Right now, there's no Filter.any() in the public API, so we use the internal _Filter.any()
+        # (The reason for not having Filter.any() is that we cannot express TRUE/FALSE in NQL
+        # which would be the equivalent of Filter.any with an empty list)
         return _filters._Filter.any(
-            [_filters._Filter.eq(_filters._Attribute("sys/name", type="string"), exp) for exp in experiments]
+            [_filters._Filter.eq(filters.Attribute("sys/name", type="string"), exp_name) for exp_name in experiments]
         )
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
@@ -56,14 +57,12 @@ def resolve_experiments_filter(
 
 
 def resolve_attributes_filter(
-    # TODO: this function also accepts filters._AlternateAttributeFilter, but this is not fully tested...
-    # see test_list_attributes_with_attribute_filter with "Combined filters" input
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
 ) -> _filters._AttributeFilter:
     if attributes is None:
         return filters.AttributeFilter()._to_internal()
     if isinstance(attributes, str):
-        return _pattern.build_extended_regex_attribute_filter(attributes, type_in=list(KNOWN_TYPES))
+        return filters.AttributeFilter(name=attributes)._to_internal()
     if attributes == []:
         raise ValueError(
             "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
