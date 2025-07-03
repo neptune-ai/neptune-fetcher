@@ -45,7 +45,7 @@ def handle_errors_default(func: Callable[..., Response[T]]) -> Callable[..., Res
         max_tries=None,
         soft_max_time=env.NEPTUNE_FETCHER_RETRY_SOFT_TIMEOUT.get(),
         hard_max_time=env.NEPTUNE_FETCHER_RETRY_HARD_TIMEOUT.get(),
-        backoff_strategy=exponential_backoff(),
+        backoff_strategy=exponential_backoff(jitter="full"),
     )(handle_api_errors(func))
 
 
@@ -53,7 +53,7 @@ def exponential_backoff(
     backoff_base: float = 0.5,
     backoff_factor: float = 2.0,
     backoff_max: float = 30.0,
-    jitter: Optional[Literal["full", "equal"]] = "full",
+    jitter: Optional[Literal["full", "equal"]] = None,
 ) -> Callable[[int], float]:
     def _calculate_sleep(tries: int) -> float:
         sleep = backoff_base * (backoff_factor ** (tries - 1))

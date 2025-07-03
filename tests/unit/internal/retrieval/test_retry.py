@@ -1,3 +1,4 @@
+import re
 from unittest.mock import (
     Mock,
     call,
@@ -33,55 +34,140 @@ def response(code, content, headers=None):
     return Mock(status_code=Mock(value=code), content=content, headers=headers or {})
 
 
-@fixture
-def response_200():
-    return response(200, b"Hello")
+def response_200(content: bytes = b"OK"):
+    return response(200, content=content)
 
 
-@fixture
-def response_500():
-    return response(500, b"Error 500")
+def response_429(content: bytes = b"Error 429", retry_after: int = 1):
+    return response(429, content=content, headers={"x-rate-limit-retry-after-seconds": str(retry_after)})
 
 
-def test_retry_on_exception(response_200, sleep):
+def response_500(content: bytes = b"Error 500"):
+    return response(500, content=content)
+
+
+@pytest.mark.parametrize(
+    "retry_kwargs, side_effects, func_call_count, sleep_calls, exception, exception_message",
+    [
+        (dict(), [response_200()], 1, [], None, None),
+        (
+            dict(backoff_strategy=exponential_backoff(backoff_base=0.5)),
+            [Exception, response_200()],
+            2,
+            [call(0.5)],
+            None,
+            None,
+        ),
+        (
+            dict(backoff_strategy=exponential_backoff(0.5, 2, 10)),
+            [Exception] * 7 + [response_200()],
+            8,
+            [call(n) for n in [0.5, 1, 2, 4, 8, 10, 10]],
+            None,
+            None,
+        ),
+        (
+            dict(max_tries=5),
+            [Exception] * 5,
+            5,
+            [call(n) for n in [0.5, 1, 2, 4]],
+            NeptuneRetryError,
+            "after 5 retries",
+        ),
+        (
+            dict(max_tries=2),
+            [response_500(), ValueError("foo")],
+            2,
+            [call(n) for n in [0.5]],
+            NeptuneRetryError,
+            re.compile("after 2 retries.*Last response status: 500.*Last response content: Error 500", re.DOTALL),
+        ),
+        (
+            dict(max_tries=2),
+            [response_500()] * 10,
+            2,
+            [call(n) for n in [0.5]],
+            NeptuneRetryError,
+            re.compile("after 2 retries.*Last response status: 500.*Last response content: Error 500", re.DOTALL),
+        ),
+        (
+            dict(max_tries=2),
+            [response_500(content=b'Error 500 {"header":{}, "content": ""}')] * 10,
+            2,
+            [call(0.5)],
+            NeptuneRetryError,
+            re.compile(
+                "after 2 retries.*Last response status: 500"
+                '.*Last response content: Error 500 {"header":{}, "content": ""}',
+                re.DOTALL,
+            ),
+        ),
+        (dict(max_tries=10), [ApiKeyRejectedError()], 1, [], NeptuneInvalidCredentialsError, "API token was rejected"),
+        (
+            dict(max_tries=3),
+            [UnableToParseResponse(response=Mock(status_code=200, content=b"foo"), exception=Mock())],
+            1,
+            [],
+            NeptuneUnexpectedResponseError,
+            "unexpected response",
+        ),
+        (
+            dict(max_tries=3),
+            [UnableToParseResponse(response=Mock(status_code=500, content=b"foo"), exception=Mock())],
+            3,
+            [call(n) for n in [0.5, 1.0]],
+            NeptuneRetryError,
+            "after 3 retries",
+        ),
+        (
+            dict(max_tries=3),
+            [UnableToParseResponse(response=Mock(status_code=777, content=b"jackpot"), exception=Mock())],
+            1,
+            [],
+            NeptuneUnexpectedResponseError,
+            re.compile("unexpected response.*Response status: 777.*Response content: jackpot", re.DOTALL),
+        ),
+    ],
+)
+def test_retry_backoff(sleep, retry_kwargs, side_effects, func_call_count, sleep_calls, exception, exception_message):
     """`func` should be retried with the given arguments"""
-    func = Mock(side_effect=[Exception, Exception, response_200])
+    func = Mock(side_effect=side_effects)
 
-    assert retry_backoff(max_tries=3)(func)(1, kw=2) == response_200
+    def decorator(f):
+        return retry_backoff(**retry_kwargs)(handle_api_errors(f))
+
+    if exception is not None:
+        with pytest.raises(exception) as exc:
+            decorator(func)(1, kw=2)
+        if exception_message:
+            exc.match(exception_message)
+    else:
+        result = decorator(func)()
+        assert result == side_effects[-1]
+
+    assert func.call_count == func_call_count
+    if sleep_calls:
+        assert sleep.call_count == len(sleep_calls)
+        sleep.assert_has_calls(sleep_calls)
+    else:
+        sleep.assert_not_called()
+
+
+def test_retry_passes_on_args(sleep):
+    """`func` should be retried with the given arguments"""
+    exp_response = response_200()
+    func = Mock(side_effect=[Exception, Exception, exp_response])
+
+    assert retry_backoff(max_tries=3)(func)(1, kw=2) == exp_response
     func.assert_has_calls([call(1, kw=2)] * 3)
 
     assert sleep.call_count == 2
 
 
-def test_retry_limit_hit_on_exception(sleep):
+def test_retry_limit_hit_on_exception_and_response_error_valid_cause(sleep):
     """`func` should be called `max_tries` times in total, then an exception should be raised"""
-
-    func = Mock(side_effect=[ValueError(f"error {x}") for x in range(1, 11)])
-    with pytest.raises(NeptuneRetryError) as exc:
-        retry_backoff(max_tries=7)(func)()
-
-    assert func.call_count == 7
-    assert sleep.call_count == func.call_count - 1
-
-    exc.match("after 7 retries")
-
-
-def test_retry_limit_hit_on_response_error(response_500, sleep):
-    """`func` should be called `max_tries` times in total, then an exception should be raised"""
-
-    func = Mock(side_effect=[response_500] * 10)
-    with pytest.raises(NeptuneRetryError) as exc:
-        retry_backoff(max_tries=5)(func)()
-
-    exc.match("after 5 retries")
-    exc.match("Last response status: 500")
-    exc.match("Last response content: Error 500")
-
-
-def test_retry_limit_hit_on_exception_and_response_error(response_500, sleep):
-    """`func` should be called `max_tries` times in total, then an exception should be raised"""
-
-    func = Mock(side_effect=[response_500, ValueError("foo")])
+    exp_response = response_500()
+    func = Mock(side_effect=[exp_response, ValueError("foo")])
     with pytest.raises(NeptuneRetryError) as exc:
         retry_backoff(max_tries=2)(func)()
 
@@ -89,77 +175,3 @@ def test_retry_limit_hit_on_exception_and_response_error(response_500, sleep):
     exc.match("Last response status: 500")
     exc.match("Last response content: Error 500")
     assert isinstance(exc.value.__cause__, ValueError)
-
-
-def test_retry_limit_hit_on_response_error_pattern(sleep):
-    """`func` should be called `max_tries` times in total, then an exception should be raised"""
-
-    func = Mock(side_effect=[response(500, b'Error 500 {"header":{}, "content": ""}')] * 10)
-    with pytest.raises(NeptuneRetryError) as exc:
-        retry_backoff(max_tries=5)(func)()
-
-    exc.match("after 5 retries")
-    exc.match("Last response status: 500")
-    exc.match("""Last response content: Error 500 {"header":{}, "content": ""}""")
-
-
-def test_dont_retry_on_api_token_rejected(sleep):
-    """Should abort immediately on API token rejection with NeptuneInvalidCredentialsError"""
-
-    func = Mock(side_effect=ApiKeyRejectedError)
-    with pytest.raises(NeptuneInvalidCredentialsError) as exc:
-        retry_backoff(max_tries=10)(handle_api_errors(func))()
-
-    exc.match("API token was rejected")
-    func.assert_called_once()
-    sleep.assert_not_called()
-
-
-def test_dont_retry_on_unable_to_parse_response_with_non_500_code(sleep):
-    func = Mock(side_effect=UnableToParseResponse(response=Mock(status_code=200, content=b"foo"), exception=Mock()))
-    with pytest.raises(NeptuneUnexpectedResponseError) as exc:
-        retry_backoff(max_tries=10)(handle_api_errors(func))()
-
-    exc.match("unexpected response")
-    func.assert_called_once()
-    sleep.assert_not_called()
-
-
-def test_retry_on_unable_to_parse_response_with_code_500(sleep):
-    func = Mock(side_effect=UnableToParseResponse(response=Mock(status_code=500, content=b"foo"), exception=Mock()))
-    with pytest.raises(NeptuneRetryError) as exc:
-        retry_backoff(max_tries=3)(func)()
-
-    assert func.call_count == 3
-    assert sleep.call_count == 2
-
-    exc.match("after 3 retries")
-
-
-def test_no_error(response_200, sleep):
-    func = Mock(return_value=response_200)
-
-    assert retry_backoff()(func)(1, kw=2) == response_200
-    func.assert_has_calls([call(1, kw=2)])
-    sleep.assert_not_called()
-
-
-def test_sleep_backoff(response_500, sleep):
-    func = Mock(return_value=response_500)
-    with pytest.raises(NeptuneRetryError):
-        retry_backoff(max_tries=10, backoff_strategy=exponential_backoff(backoff_max=10, jitter=None))(func)()
-
-    # Last call to sleep should be max backoff
-    assert sleep.call_args.args[0] == 10
-    # time.sleep() should be called with increasing values
-    assert sleep.call_args_list == sorted(sleep.call_args_list)
-
-
-def test_unexpected_server_response():
-    """Should abort on unexpected response, and not retry"""
-    func = Mock(return_value=response(777, b"jackpot!"))
-    with pytest.raises(NeptuneUnexpectedResponseError) as exc:
-        retry_backoff(max_tries=10)(handle_api_errors(func))()
-
-    assert func.call_count == 1
-    exc.match("jackpot!")
