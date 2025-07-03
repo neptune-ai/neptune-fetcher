@@ -45,7 +45,7 @@ def handle_errors_default(func: Callable[..., Response[T]]) -> Callable[..., Res
         max_tries=None,
         max_time=300.0,
         backoff_strategy=exponential_backoff(),
-        max_rate_limit_time_extension=600.0,
+        max_rate_limit_time_extension=300.0,
     )(handle_api_errors(func))
 
 
@@ -75,7 +75,8 @@ def retry_backoff(
     def decorator(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            tries = 0
+            total_tries = 0
+            backoff_tries = 0
             start_time = time.monotonic()
             last_exc = None
             last_response = None
@@ -101,8 +102,9 @@ def retry_backoff(
                 if response is not None:
                     last_response = response
 
-                tries += 1
-                if max_tries is not None and tries >= max_tries:
+                total_tries += 1
+                backoff_tries += 1
+                if max_tries is not None and total_tries >= max_tries:
                     break
 
                 if response is not None and "x-rate-limit-retry-after-seconds" in response.headers:
@@ -111,8 +113,10 @@ def retry_backoff(
                     rate_limit_time_extension += +sleep_time
                     if max_rate_limit_time_extension is not None:
                         rate_limit_time_extension = min(rate_limit_time_extension, max_rate_limit_time_extension)
+
+                    backoff_tries = 0  # reset backoff tries counter when using a different strategy
                 else:
-                    sleep_time = backoff_strategy(tries)
+                    sleep_time = backoff_strategy(backoff_tries)
 
                 elapsed_time = time.monotonic() - start_time
                 remaining_time = total_max_time() - elapsed_time
@@ -125,10 +129,10 @@ def retry_backoff(
             elapsed_time = time.monotonic() - start_time
             if last_response:
                 error = exceptions.NeptuneRetryError(
-                    tries, elapsed_time, last_response.status_code.value, last_response.content
+                    total_tries, elapsed_time, last_response.status_code.value, last_response.content
                 )
             else:
-                error = exceptions.NeptuneRetryError(tries, elapsed_time)
+                error = exceptions.NeptuneRetryError(total_tries, elapsed_time)
             if last_exc:
                 raise error from last_exc
             else:

@@ -120,7 +120,7 @@ def test_sleep_backoff(response_500, sleep):
 
 def test_unexpected_server_response():
     """Should abort on unexpected response, and not retry"""
-    func = Mock(return_value=response(777, "jackpot!"))
+    func = Mock(return_value=response(777, b"jackpot!"))
     with pytest.raises(NeptuneException) as exc:
         rethrow_neptune_error(retry_backoff(max_tries=10)(handle_api_errors(func)))()
 

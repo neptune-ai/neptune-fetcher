@@ -142,11 +142,11 @@ def _wrap_httpx_json_response(httpx_response: httpx.Response) -> Response:
 def get_config_and_token_urls(
     *, credentials: Credentials, proxies: Optional[Dict[str, str]]
 ) -> tuple[ClientConfig, TokenRefreshingURLs]:
-    timeout = httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS)
+    timeout = httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.get())
     with Client(
         base_url=credentials.base_url,
         httpx_args={"mounts": proxies},
-        verify_ssl=NEPTUNE_VERIFY_SSL,
+        verify_ssl=NEPTUNE_VERIFY_SSL.get(),
         timeout=timeout,
         headers={"User-Agent": _generate_user_agent()},
     ) as client:
