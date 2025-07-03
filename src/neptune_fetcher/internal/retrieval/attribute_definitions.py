@@ -38,7 +38,7 @@ from neptune_fetcher.internal import (  # noqa: E402
 )
 from neptune_fetcher.internal.retrieval import attribute_types as types  # noqa: E402
 from neptune_fetcher.internal.retrieval import util  # noqa: E402
-from neptune_fetcher.internal.retrieval import errors
+from neptune_fetcher.internal.retrieval import retry
 
 
 def split_attribute_filters(
@@ -112,7 +112,7 @@ def _fetch_attribute_definitions_page(
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-    response = errors.handle_errors_default(query_attribute_definitions_within_project.sync_detailed)(
+    response = retry.handle_errors_default(query_attribute_definitions_within_project.sync_detailed)(
         client=client,
         body=body,
     )

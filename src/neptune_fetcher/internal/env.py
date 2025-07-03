@@ -22,6 +22,7 @@ from typing import (
 )
 
 __all__ = (
+    "NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS",
     "NEPTUNE_API_TOKEN",
     "NEPTUNE_FETCHER_MAX_WORKERS",
     "NEPTUNE_PROJECT",
@@ -76,6 +77,7 @@ def _lift_optional(mapper: Callable[[str], T]) -> Callable[[str], Optional[T]]:
     return wrapped
 
 
+NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS = EnvVariable[int]("NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS", int, 60)
 NEPTUNE_API_TOKEN = EnvVariable[str]("NEPTUNE_API_TOKEN", _map_str)
 NEPTUNE_PROJECT = EnvVariable[str]("NEPTUNE_PROJECT", _map_str)
 NEPTUNE_VERIFY_SSL = EnvVariable[bool]("NEPTUNE_VERIFY_SSL", _map_bool, True)

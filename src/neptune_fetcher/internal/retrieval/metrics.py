@@ -28,7 +28,7 @@ from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFlo
 
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.retrieval import (
-    errors,
+    retry,
     util,
 )
 
@@ -117,7 +117,7 @@ def _fetch_metrics_page(
 ) -> ProtoFloatSeriesValuesResponseDTO:
     body = FloatTimeSeriesValuesRequest.from_dict(params)
 
-    response = errors.handle_errors_default(get_multiple_float_series_values_proto.sync_detailed)(
+    response = retry.handle_errors_default(get_multiple_float_series_values_proto.sync_detailed)(
         client=client, body=body
     )
 

@@ -33,7 +33,7 @@ import neptune_api.errors
 from neptune_api.types import Response
 
 from neptune_fetcher import exceptions
-from neptune_fetcher.util import NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS
+from neptune_fetcher.internal.env import NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -167,8 +167,8 @@ def handle_api_errors(func: Callable[..., Response[T]]) -> Callable[..., Respons
             logger.warning(
                 "Neptune API request timed out. Retrying...\n"
                 "Check your network connection or increase the timeout by setting the "
-                f"NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS environment variable "
-                f"(currently: {NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS} seconds)."
+                f"{NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.name} environment variable "
+                f"(currently: {NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.get()} seconds)."
             )
             raise e
         except Exception as e:

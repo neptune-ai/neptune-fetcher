@@ -35,7 +35,7 @@ from neptune_fetcher.internal import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.retrieval import errors
+from neptune_fetcher.internal.retrieval import retry
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ def fetch_signed_urls(
         ]
     )
 
-    response = errors.handle_errors_default(signed_url.sync_detailed)(client=client, body=body)
+    response = retry.handle_errors_default(signed_url.sync_detailed)(client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
     return [SignedFile(url=file_.url, path=file_.path) for file_ in data.files]

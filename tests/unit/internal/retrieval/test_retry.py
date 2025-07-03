@@ -16,7 +16,7 @@ from neptune_fetcher.exceptions import (
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
 )
-from neptune_fetcher.internal.retrieval.errors import (
+from neptune_fetcher.internal.retrieval.retry import (
     exponential_backoff,
     handle_api_errors,
     retry_backoff,

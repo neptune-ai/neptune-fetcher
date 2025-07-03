@@ -34,7 +34,7 @@ from neptune_api.types import UNSET
 
 from neptune_fetcher.internal.identifiers import RunAttributeDefinition
 from neptune_fetcher.internal.retrieval import (
-    errors,
+    retry,
     util,
 )
 from neptune_fetcher.internal.retrieval.attribute_types import (
@@ -100,7 +100,7 @@ def _fetch_series_page(
 ) -> ProtoSeriesValuesResponseDTO:
     body = SeriesValuesRequest.from_dict(params)
 
-    response = errors.handle_errors_default(get_series_values_proto.sync_detailed)(
+    response = retry.handle_errors_default(get_series_values_proto.sync_detailed)(
         client=client, body=body, use_deprecated_string_fields=False
     )
 
