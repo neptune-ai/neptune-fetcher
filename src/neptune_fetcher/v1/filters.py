@@ -55,18 +55,6 @@ KNOWN_TYPES = frozenset(
 ALL_AGGREGATIONS = (
     types.FLOAT_SERIES_AGGREGATIONS | types.STRING_SERIES_AGGREGATIONS | types.HISTOGRAM_SERIES_AGGREGATIONS
 )
-ATTRIBUTE_LITERAL = Literal[
-    "float",
-    "int",
-    "string",
-    "bool",
-    "datetime",
-    "float_series",
-    "string_set",
-    "string_series",
-    "file",
-    "histogram_series",
-]
 AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
 
 
@@ -92,10 +80,11 @@ class AttributeFilter(BaseAttributeFilter):
         name (str|list[str], optional):
             if str given: an extended regular expression to match attribute names.
             if list[str] given: a list of attribute names to match exactly.
-        type (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
-        "string_series", "file"]], optional):
-            A list of allowed attribute types. Defaults to all available types.
-            For a reference, see: https://docs.neptune.ai/attribute_types
+        type (str|list[str], optional):
+            A list of allowed attribute types (or a single type as str). Defaults to all available types:
+                ["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series",
+                "file", "histogram_series"]
+            For reference, see: https://docs.neptune.ai/attribute_types
         aggregations (list[Literal["last", "min", "max", "average", "variance"]], optional, deprecated): List of
             aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
             Defaults to ["last"].
@@ -110,7 +99,7 @@ class AttributeFilter(BaseAttributeFilter):
     loss_avg_and_var = AttributeFilter(
         type=["float_series"],
         name="loss$",
-        aggregations=["average", "variance"],
+        aggregations=["average", "variance"]
     )
 
     npt.fetch_experiments_table(attributes=loss_avg_and_var)
@@ -118,10 +107,41 @@ class AttributeFilter(BaseAttributeFilter):
     """
 
     name: Union[str, list[str], None] = None
-    type: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
+    type: Union[
+        Literal[
+            "float",
+            "int",
+            "string",
+            "bool",
+            "datetime",
+            "float_series",
+            "string_set",
+            "string_series",
+            "file",
+            "histogram_series",
+        ],
+        list[
+            Literal[
+                "float",
+                "int",
+                "string",
+                "bool",
+                "datetime",
+                "float_series",
+                "string_set",
+                "string_series",
+                "file",
+                "histogram_series",
+            ]
+        ],
+        None,
+    ] = None
     aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
 
     def __post_init__(self) -> None:
+        self.type = self.type or list(KNOWN_TYPES)
+        if isinstance(self.type, str):
+            self.type = [self.type]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
         _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
@@ -209,7 +229,20 @@ class Attribute:
 
     name: str
     aggregation: Optional[AGGREGATION_LITERAL] = None
-    type: Optional[ATTRIBUTE_LITERAL] = None
+    type: Optional[
+        Literal[
+            "float",
+            "int",
+            "string",
+            "bool",
+            "datetime",
+            "float_series",
+            "string_set",
+            "string_series",
+            "file",
+            "histogram_series",
+        ]
+    ] = None
 
     def __post_init__(self) -> None:
         _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
