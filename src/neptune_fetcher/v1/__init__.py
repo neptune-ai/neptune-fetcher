@@ -213,6 +213,7 @@ def fetch_experiments_table(
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         container_type=_search.ContainerType.EXPERIMENT,
+        flatten_aggregations=True,
     )
 
 

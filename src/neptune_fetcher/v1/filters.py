@@ -14,10 +14,7 @@
 # limitations under the License.
 import abc
 from abc import ABC
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Iterable,
@@ -52,10 +49,8 @@ KNOWN_TYPES = frozenset(
         "histogram_series",
     }
 )
-ALL_AGGREGATIONS = (
-    types.FLOAT_SERIES_AGGREGATIONS | types.STRING_SERIES_AGGREGATIONS | types.HISTOGRAM_SERIES_AGGREGATIONS
-)
-AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
+ALL_AGGREGATIONS = ("last",)
+AGGREGATION_LITERAL = Literal["last"]
 
 
 class BaseAttributeFilter(ABC):
@@ -85,10 +80,8 @@ class AttributeFilter(BaseAttributeFilter):
                 ["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series",
                 "file", "histogram_series"]
             For reference, see: https://docs.neptune.ai/attribute_types
-        aggregations (list[Literal["last", "min", "max", "average", "variance"]], optional, deprecated): List of
-            aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
-            Defaults to ["last"].
 
+    # TODO: Update docs post-PY-156
     Example:
 
     ```
@@ -136,12 +129,14 @@ class AttributeFilter(BaseAttributeFilter):
         ],
         None,
     ] = None
-    aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
+    aggregations: Literal["last"] = "last"
 
     def __post_init__(self) -> None:
         self.type = self.type or list(KNOWN_TYPES)
         if isinstance(self.type, str):
             self.type = [self.type]
+        if isinstance(self.aggregations, str):
+            self.aggregations = [self.aggregations]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
         _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")

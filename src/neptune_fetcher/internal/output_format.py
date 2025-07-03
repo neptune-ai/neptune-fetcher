@@ -57,8 +57,17 @@ def convert_table_to_dataframe(
     selected_aggregations: dict[identifiers.AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
     index_column_name: str = "experiment",
+    flatten_aggregations: bool = False,
     flatten_file_properties: bool = False,
 ) -> pd.DataFrame:
+
+    if flatten_aggregations:
+        has_non_last_aggregations = any(aggregations != {"last"} for aggregations in selected_aggregations.values())
+        if has_non_last_aggregations:
+            raise ValueError("Cannot flatten aggregations when selected aggregations include more than just 'last'. ")
+
+    if flatten_aggregations and flatten_file_properties:
+        raise ValueError("Cannot set flatten_aggregations and flatten_file_properties at the same time")
 
     if not table_data:
         return pd.DataFrame(
@@ -89,6 +98,18 @@ def convert_table_to_dataframe(
             else:
                 row[(column_name, "")] = value.value
         return row
+
+    def flatten_row(row: dict[tuple[str, str], Any]) -> dict[str, Any]:
+        """
+        Flatten the row by converting tuple keys to string keys.
+        """
+        for (attribute, aggregation), value in row.items():
+            if aggregation not in ("", "last"):
+                raise ValueError(
+                    f"Unexpected aggregation '{aggregation}' for attribute '{attribute}'. "
+                    "Only 'last' or empty aggregation are allowed when flattening."
+                )
+        return {attribute: value for (attribute, aggregation), value in row.items()}
 
     def get_column_name(attr: AttributeValue) -> str:
         return f"{attr.attribute_definition.name}:{attr.attribute_definition.type}"
@@ -131,14 +152,20 @@ def convert_table_to_dataframe(
 
     rows: list[dict[Union[str, tuple[str, str]], Any]] = []
     for label, values in table_data.items():
-        row: dict[Union[str, tuple[str, str]], Any] = convert_row(values)  # type: ignore
+        row: dict[Union[str, Union[str, tuple[str, str]]], Any] = convert_row(values)  # type: ignore
+        if flatten_aggregations:
+            # Note for future optimization:
+            # flatten_aggregations is always True in v1
+            # flatten_aggregations is always False in alpha
+            row = flatten_row(row)
         row[index_column_name] = label
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
     dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
-    dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
+    if not flatten_aggregations:
+        dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
 
     sorted_columns = sorted(dataframe.columns, key=lambda x: (x[0], x[1]))
     dataframe = dataframe[sorted_columns]

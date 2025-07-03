@@ -211,6 +211,7 @@ def fetch_runs_table(
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         container_type=_search.ContainerType.RUN,
+        flatten_aggregations=True,
     )
 
 
