@@ -337,6 +337,12 @@ class Filter:
         if isinstance(values, str):
             values = [values]
 
+        if values == []:
+            raise ValueError(
+                "Invalid value for `contains_all` filter. Expected str, or non-empty list of str, but got "
+                "an empty list"
+            )
+
         internal_filters = [
             _filters._AttributeValuePredicate(operator="CONTAINS", attribute=attribute._to_internal(), value=value)
             for value in values
@@ -345,9 +351,18 @@ class Filter:
         return Filter(_filters._Filter.all(internal_filters))
 
     @staticmethod
-    def contains_none(attribute: Union[str, Attribute], values: list[str]) -> "Filter":
+    def contains_none(attribute: Union[str, Attribute], values: Union[str, list[str]]) -> "Filter":
         if isinstance(attribute, str):
             attribute = Attribute(name=attribute)
+
+        if values == []:
+            raise ValueError(
+                "Invalid value for `contains_none` filter. Expected str, or non-empty list of str, but got "
+                "an empty list"
+            )
+
+        if isinstance(values, str):
+            values = [values]
 
         internal_filters = [
             _filters._AttributeValuePredicate(operator="NOT CONTAINS", attribute=attribute._to_internal(), value=value)
