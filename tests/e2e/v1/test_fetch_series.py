@@ -23,7 +23,10 @@ from neptune_fetcher.internal.identifiers import (
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval.series import SeriesValue
 from neptune_fetcher.v1 import fetch_series
-from neptune_fetcher.v1.filters import AttributeFilter
+from neptune_fetcher.v1.filters import (
+    AttributeFilter,
+    Filter,
+)
 from tests.e2e.data import (
     NOW,
     NUMBER_OF_STEPS,
@@ -106,7 +109,9 @@ def create_expected_data_string_series(
 @pytest.mark.parametrize(
     "arg_experiments",
     [
+        Filter.name([exp.name for exp in TEST_DATA.experiments[:3]]),
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
         [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )

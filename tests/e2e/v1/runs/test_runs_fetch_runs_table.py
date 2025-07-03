@@ -123,7 +123,7 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             },
         ),
         (
-            Filter.matches_all("sys/custom_run_id", r"forked_history_root|forked_history_fork1"),
+            Filter.matches("sys/custom_run_id", r"forked_history_root|forked_history_fork1"),
             r".*-value$",
             {
                 "run": ["forked_history_root", "forked_history_fork1"],
