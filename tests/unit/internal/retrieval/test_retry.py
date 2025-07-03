@@ -30,6 +30,12 @@ def sleep():
         yield p
 
 
+@fixture
+def time():
+    with patch("time.monotonic") as p:
+        yield p
+
+
 def response(code, content, headers=None):
     return Mock(status_code=Mock(value=code), content=content, headers=headers or {})
 
@@ -191,3 +197,27 @@ def test_retry_limit_hit_on_exception_and_response_error_valid_cause(sleep):
     exc.match("Last response status: 500")
     exc.match("Last response content: Error 500")
     assert isinstance(exc.value.__cause__, ValueError)
+
+
+def test_retry_timeout_soft(sleep, time):
+    """`func` should be called `max_tries` times in total, then an exception should be raised"""
+    func = Mock(side_effect=[response_500()] * 5)
+    time.side_effect = [0, 1, 2, 2, 3]
+    with pytest.raises(NeptuneRetryError) as exc:
+        retry_backoff(soft_max_time=2.0)(func)()
+
+    exc.match("after 2 retries, 2.00 seconds")
+    exc.match("Last response status: 500")
+    exc.match("Last response content: Error 500")
+
+
+def test_retry_timeout_hard(sleep, time):
+    """`func` should be called `max_tries` times in total, then an exception should be raised"""
+    func = Mock(side_effect=[response_429(retry_after=3)] * 5)
+    time.side_effect = [0, 3, 6, 6, 9]
+    with pytest.raises(NeptuneRetryError) as exc:
+        retry_backoff(soft_max_time=2.0, hard_max_time=5)(func)()
+
+    exc.match("after 2 retries, 6.00 seconds")
+    exc.match("Last response status: 429")
+    exc.match("Last response content: Error 429")
