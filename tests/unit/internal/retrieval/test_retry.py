@@ -127,6 +127,22 @@ def response_500(content: bytes = b"Error 500"):
             NeptuneUnexpectedResponseError,
             re.compile("unexpected response.*Response status: 777.*Response content: jackpot", re.DOTALL),
         ),
+        (
+            dict(),
+            [response_429(retry_after=3), response_429(retry_after=1), response_429(retry_after=2), response_200()],
+            4,
+            [call(n) for n in [3.0, 1.0, 2.0]],
+            None,
+            None,
+        ),
+        (
+            dict(),
+            [response_500()] * 3 + [response_429(retry_after=8)] + [response_500()] * 4 + [response_200()],
+            9,
+            [call(n) for n in [0.5, 1.0, 2.0, 8.0, 0.5, 1.0, 2.0, 4.0]],
+            None,
+            None,
+        ),
     ],
 )
 def test_retry_backoff(sleep, retry_kwargs, side_effects, func_call_count, sleep_calls, exception, exception_message):
