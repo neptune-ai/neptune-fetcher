@@ -28,7 +28,6 @@ from typing import (
 
 from neptune_fetcher.internal import filters as _filters
 from neptune_fetcher.internal import pattern as _pattern
-from neptune_fetcher.internal.filters import _AttributeNameFilter
 from neptune_fetcher.internal.retrieval import attribute_types as types
 from neptune_fetcher.internal.util import (
     _validate_allowed_value,
@@ -90,17 +89,13 @@ class AttributeFilter(BaseAttributeFilter):
     Use to select specific metrics or other metadata based on various criteria.
 
     Args:
-        name_eq (Union[str, list[str], None]): An attribute name or list of names to match exactly.
-            If `None`, this filter is not applied.
+        name (str|list[str], optional):
+            if str given: an extended regular expression to match attribute names.
+            if list[str] given: a list of attribute names to match exactly.
         type_in (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
         "string_series", "file"]]):
             A list of allowed attribute types. Defaults to all available types.
             For a reference, see: https://docs.neptune.ai/attribute_types
-        name_matches_all (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            name must match. If `None`, this filter is not applied.
-        name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            names mustn't match. Attributes matching any of the regexes are excluded.
-            If `None`, this filter is not applied.
         aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of
             aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
             Defaults to ["last"].
@@ -114,7 +109,7 @@ class AttributeFilter(BaseAttributeFilter):
 
     loss_avg_and_var = AttributeFilter(
         type_in=["float_series"],
-        name_matches_all=[r"loss$"],
+        name="loss$",
         aggregations=["average", "variance"],
     )
 
@@ -122,39 +117,44 @@ class AttributeFilter(BaseAttributeFilter):
     ```
     """
 
-    name_eq: Union[str, list[str], None] = None
+    name: Union[str, list[str], None] = None
     type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
-    name_matches_all: Union[str, list[str], None] = None
-    name_matches_none: Union[str, list[str], None] = None
     aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
 
     def __post_init__(self) -> None:
-        _validate_string_or_string_list(self.name_eq, "name_eq")
-        _validate_string_or_string_list(self.name_matches_all, "name_matches_all")
-        _validate_string_or_string_list(self.name_matches_none, "name_matches_none")
-
+        _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type_in, KNOWN_TYPES, "type_in")
         _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
-        matches_all = [self.name_matches_all] if isinstance(self.name_matches_all, str) else self.name_matches_all
-        matches_none = [self.name_matches_none] if isinstance(self.name_matches_none, str) else self.name_matches_none
+        if isinstance(self.name, str):
+            return _pattern.build_extended_regex_attribute_filter(
+                self.name,
+                type_in=self.type_in,
+                aggregations=self.aggregations,
+            )
 
-        if matches_all is not None or matches_none is not None:
-            must_match_any = [
-                _AttributeNameFilter(
-                    must_match_regexes=matches_all,
-                    must_not_match_regexes=matches_none,
-                )
-            ]
-        else:
-            must_match_any = None
+        if self.name is None:
+            return _filters._AttributeFilter(
+                type_in=self.type_in,
+                aggregations=self.aggregations,
+            )
 
-        return _filters._AttributeFilter(
-            name_eq=self.name_eq,
-            type_in=self.type_in,
-            must_match_any=must_match_any,
-            aggregations=self.aggregations,
+        if self.name == []:
+            raise ValueError(
+                "Invalid type for `name` attribute. Expected str, non-empty list of str, or None, but got empty list."
+            )
+
+        if isinstance(self.name, list):
+            return _filters._AttributeFilter(
+                name_eq=self.name,
+                type_in=self.type_in,
+                aggregations=self.aggregations,
+            )
+
+        raise ValueError(
+            "Invalid type for `name` attribute. Expected str, non-empty list of str, or None, but got "
+            f"{type(self.name)}."
         )
 
 

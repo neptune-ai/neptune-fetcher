@@ -106,11 +106,11 @@ def create_expected_data(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+        AttributeFilter(name=r".*/metrics/.*", type_in=["float_series"]),
         ".*/metrics/.*",
         # Alternative should work too, see bug PY-137
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"])
-        | AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["float_series"]),
+        AttributeFilter(name=r".*/metrics/.*", type_in=["float_series"])
+        | AttributeFilter(name=r".*/metrics/.*", type_in=["float_series"]),
     ],
 )
 @pytest.mark.parametrize(

@@ -70,12 +70,12 @@ def resolve_attributes_filter(
             "but got empty list."
         )
     if isinstance(attributes, list):
-        return filters.AttributeFilter(name_eq=attributes)._to_internal()
+        return filters.AttributeFilter(name=attributes)._to_internal()
     if isinstance(attributes, filters.BaseAttributeFilter):
         return attributes._to_internal()
     raise ValueError(
-        "Invalid type for `attributes` filter. Expected str, list of str, or AttributeFilter object, but got "
-        f"{type(attributes)}."
+        "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
+        f"but got {type(attributes)}."
     )
 
 

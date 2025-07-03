@@ -71,23 +71,22 @@ ALL_V1_ATTRIBUTE_NAMES = set(
             },
         ),
         (rf"{PATH}/unique-value-[0-9]", {f"{PATH}/unique-value-{i}" for i in range(6)}),
-        (AttributeFilter(name_matches_all=PATH), ALL_V1_ATTRIBUTE_NAMES),
-        (AttributeFilter(name_eq=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
+        (AttributeFilter(name=PATH), ALL_V1_ATTRIBUTE_NAMES),
+        (AttributeFilter(name=f"{PATH}/float-value"), {f"{PATH}/float-value"}),
         (
-            AttributeFilter.any(AttributeFilter(name_matches_all="^(foo)"), AttributeFilter(name_matches_all=PATH)),
+            AttributeFilter.any(AttributeFilter(name="^(foo)"), AttributeFilter(name=PATH)),
             ALL_V1_ATTRIBUTE_NAMES,
         ),
-        (AttributeFilter(name_matches_none=".*"), []),
         (
-            AttributeFilter(name_matches_all=rf"{PATH}/metrics/string-series-value_.*", type_in=["string_series"]),
+            AttributeFilter(name=rf"{PATH}/metrics/string-series-value_.*", type_in=["string_series"]),
             set(STRING_SERIES_PATHS),
         ),
         (
-            AttributeFilter(
-                name_matches_all=rf"{PATH}/metrics/histogram-series-value_.*", type_in=["histogram_series"]
-            ),
+            AttributeFilter(name=rf"{PATH}/metrics/histogram-series-value_.*", type_in=["histogram_series"]),
             set(HISTOGRAM_SERIES_PATHS),
         ),
+        (AttributeFilter(name=f"^(foo) | {PATH}"), ALL_V1_ATTRIBUTE_NAMES),  # ERS OR
+        (AttributeFilter(name="!.*"), []),  # ERS NOT
     ],
 )
 def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys(
@@ -109,7 +108,7 @@ def test_list_attributes_known_in_all_experiments_with_name_filter_excluding_sys
         None,
         "",
         ".*",
-        AttributeFilter(name_matches_all=".*"),
+        AttributeFilter(name=".*"),
         AttributeFilter(),
     ),
 )
@@ -126,8 +125,7 @@ def test_list_attributes_all_names_from_all_experiments_excluding_sys(name_filte
         ".*unknown.*",
         "sys/abcdef",
         "\\x20",
-        AttributeFilter(name_eq=".*"),
-        AttributeFilter(name_matches_all="unknown"),
+        AttributeFilter(name="unknown"),
     ),
 )
 def test_list_attributes_unknown_name(filter_):
@@ -168,12 +166,12 @@ def test_list_attributes_unknown_name(filter_):
         ),
         (
             Filter.gt(Attribute(f"{PATH}/int-value", type="int"), 1234) & EXPERIMENTS_IN_THIS_TEST,
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilter(name="!sys/.* & .*"),
             [],
         ),
         (
             Filter.eq(Attribute(f"{PATH}/str-value", type="string"), "hello_12345") & EXPERIMENTS_IN_THIS_TEST,
-            AttributeFilter(name_matches_none="sys/.*", name_matches_all=".*"),
+            AttributeFilter(name="!sys/.* & .*"),
             [],
         ),
         (
@@ -210,7 +208,8 @@ def test_list_attributes_depending_on_values_in_experiments(arg_experiments, arg
             {"sys/name", "sys/id"},
         ),
         (r"sys/.*id$", {"sys/custom_run_id", "sys/id", "sys/diagnostics/project_uuid", "sys/diagnostics/run_uuid"}),
-        (AttributeFilter(name_matches_all=r"sys/(name|id)"), {"sys/name", "sys/id"}),
+        (AttributeFilter(name="sys/(name|id)"), {"sys/name", "sys/id"}),
+        (AttributeFilter(name="sys/name | sys/id"), {"sys/name", "sys/id"}),  # ERS
     ],
 )
 def test_list_attributes_sys_attrs(attribute_filter, expected):
