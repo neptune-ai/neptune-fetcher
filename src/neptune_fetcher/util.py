@@ -154,9 +154,9 @@ def get_config_and_token_urls(
             config_response = handle_errors_default(get_client_config.sync_detailed)(client=client)
             config = config_response.parsed
 
-            urls_response = handle_errors_default(_wrap_httpx_json_response)(
-                client.get_httpx_client().get(config.security.open_id_discovery)
-            )
+            urls_response = handle_errors_default(
+                lambda: _wrap_httpx_json_response(client.get_httpx_client().get(config.security.open_id_discovery))
+            )()
             token_urls = TokenRefreshingURLs.from_dict(urls_response.parsed)
 
             return config, token_urls
