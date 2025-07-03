@@ -33,7 +33,7 @@ import neptune_api.errors
 from neptune_api.types import Response
 
 from neptune_fetcher import exceptions
-from neptune_fetcher.internal.env import NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS
+from neptune_fetcher.internal import env
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,9 @@ T = TypeVar("T")
 def handle_errors_default(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
     return retry_backoff(
         max_tries=None,
-        max_time=300.0,
+        soft_max_time=env.NEPTUNE_FETCHER_RETRY_SOFT_TIMEOUT.get(),
+        hard_max_time=env.NEPTUNE_FETCHER_RETRY_HARD_TIMEOUT.get(),
         backoff_strategy=exponential_backoff(),
-        max_rate_limit_time_extension=300.0,
     )(handle_api_errors(func))
 
 
@@ -68,9 +68,9 @@ def exponential_backoff(
 
 def retry_backoff(
     max_tries: Optional[int] = None,
-    max_time: Optional[float] = None,
+    soft_max_time: Optional[float] = None,
+    hard_max_time: Optional[float] = None,
     backoff_strategy: Callable[[int], float] = exponential_backoff(),
-    max_rate_limit_time_extension: Optional[float] = 0.0,
 ) -> Callable[[Callable[..., Response[T]]], Callable[..., Response[T]]]:
     def decorator(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
         @functools.wraps(func)
@@ -81,11 +81,6 @@ def retry_backoff(
             last_exc = None
             last_response = None
             rate_limit_time_extension = 0.0
-
-            def total_max_time() -> float:
-                if max_time is None:
-                    return float("inf")
-                return max_time + rate_limit_time_extension
 
             while True:
                 response = None
@@ -109,17 +104,18 @@ def retry_backoff(
 
                 if response is not None and "x-rate-limit-retry-after-seconds" in response.headers:
                     sleep_time = int(response.headers["x-rate-limit-retry-after-seconds"])
-
-                    rate_limit_time_extension += +sleep_time
-                    if max_rate_limit_time_extension is not None:
-                        rate_limit_time_extension = min(rate_limit_time_extension, max_rate_limit_time_extension)
-
+                    rate_limit_time_extension += sleep_time
                     backoff_tries = 0  # reset backoff tries counter when using a different strategy
                 else:
                     sleep_time = backoff_strategy(backoff_tries)
 
                 elapsed_time = time.monotonic() - start_time
-                remaining_time = total_max_time() - elapsed_time
+
+                remaining_time = float("inf")
+                if hard_max_time is not None:
+                    remaining_time = min(remaining_time, hard_max_time - elapsed_time)
+                if soft_max_time is not None:
+                    remaining_time = min(remaining_time, soft_max_time + rate_limit_time_extension - elapsed_time)
                 if remaining_time <= 0:
                     break
                 sleep_time = min(remaining_time, sleep_time)
@@ -171,8 +167,8 @@ def handle_api_errors(func: Callable[..., Response[T]]) -> Callable[..., Respons
             logger.warning(
                 "Neptune API request timed out. Retrying...\n"
                 "Check your network connection or increase the timeout by setting the "
-                f"{NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.name} environment variable "
-                f"(currently: {NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.get()} seconds)."
+                f"{env.NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.name} environment variable "
+                f"(currently: {env.NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.get()} seconds)."
             )
             raise e
         except Exception as e:
