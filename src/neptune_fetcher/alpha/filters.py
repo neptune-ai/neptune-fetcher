@@ -35,7 +35,7 @@ from neptune_fetcher.internal.util import (
     _validate_string_or_string_list,
 )
 
-__all__ = ["Filter", "AttributeFilter", "Attribute"]
+__all__ = ["Filter", "AttributeFilter", "Attribute", "KNOWN_TYPES"]
 
 
 KNOWN_TYPES = frozenset(
