@@ -48,9 +48,10 @@ def random_series(length=10, start_step=0):
 @fixture(scope="session")
 def new_project_id(client: AuthenticatedClient):
     # Use a file lock to ensure that only one test session can create a project at a time to avoid 409 Conflict errors
+
     # TODO: account for the case where the file is owned by another user or otherwise not writable
     # TODO: Append a suffix (user id / user name), try path in HOME and project root
-    lockfile_path = Path(tempfile.gettempdir()) / "neptune_e2e.lock"
+    lockfile_path = Path(tempfile.gettempdir()) / "neptune_e2e_v1.lock"
 
     try:
         with filelock.FileLock(lockfile_path, timeout=300):
