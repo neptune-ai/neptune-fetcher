@@ -78,11 +78,11 @@ ALL_V1_ATTRIBUTE_NAMES = set(
             ALL_V1_ATTRIBUTE_NAMES,
         ),
         (
-            AttributeFilter(name=rf"{PATH}/metrics/string-series-value_.*", type_in=["string_series"]),
+            AttributeFilter(name=rf"{PATH}/metrics/string-series-value_.*", type=["string_series"]),
             set(STRING_SERIES_PATHS),
         ),
         (
-            AttributeFilter(name=rf"{PATH}/metrics/histogram-series-value_.*", type_in=["histogram_series"]),
+            AttributeFilter(name=rf"{PATH}/metrics/histogram-series-value_.*", type=["histogram_series"]),
             set(HISTOGRAM_SERIES_PATHS),
         ),
         (AttributeFilter(name=f"^(foo) | {PATH}"), ALL_V1_ATTRIBUTE_NAMES),  # ERS OR

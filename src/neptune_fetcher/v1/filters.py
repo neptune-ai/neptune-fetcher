@@ -92,11 +92,11 @@ class AttributeFilter(BaseAttributeFilter):
         name (str|list[str], optional):
             if str given: an extended regular expression to match attribute names.
             if list[str] given: a list of attribute names to match exactly.
-        type_in (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
-        "string_series", "file"]]):
+        type (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
+        "string_series", "file"]], optional):
             A list of allowed attribute types. Defaults to all available types.
             For a reference, see: https://docs.neptune.ai/attribute_types
-        aggregations (list[Literal["last", "min", "max", "average", "variance"]]): List of
+        aggregations (list[Literal["last", "min", "max", "average", "variance"]], optional, deprecated): List of
             aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
             Defaults to ["last"].
 
@@ -108,7 +108,7 @@ class AttributeFilter(BaseAttributeFilter):
 
 
     loss_avg_and_var = AttributeFilter(
-        type_in=["float_series"],
+        type=["float_series"],
         name="loss$",
         aggregations=["average", "variance"],
     )
@@ -118,25 +118,25 @@ class AttributeFilter(BaseAttributeFilter):
     """
 
     name: Union[str, list[str], None] = None
-    type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
+    type: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
     aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
 
     def __post_init__(self) -> None:
         _validate_string_or_string_list(self.name, "name")
-        _validate_list_of_allowed_values(self.type_in, KNOWN_TYPES, "type_in")
+        _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
         _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
-                type_in=self.type_in,
+                type_in=self.type,
                 aggregations=self.aggregations,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
-                type_in=self.type_in,
+                type_in=self.type,
                 aggregations=self.aggregations,
             )
 
@@ -148,7 +148,7 @@ class AttributeFilter(BaseAttributeFilter):
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
                 name_eq=self.name,
-                type_in=self.type_in,
+                type_in=self.type,
                 aggregations=self.aggregations,
             )
 

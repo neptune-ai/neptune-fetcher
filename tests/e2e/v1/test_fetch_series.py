@@ -100,9 +100,9 @@ def create_expected_data_string_series(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name=r".*/metrics/.*", type_in=["string_series"]),
+        AttributeFilter(name=r".*/metrics/.*", type=["string_series"]),
         ".*/metrics/string-series.*",
-        AttributeFilter(name=r".*/metrics/.*", type_in=["string_series"]) | AttributeFilter(name=".*/int-value"),
+        AttributeFilter(name=r".*/metrics/.*", type=["string_series"]) | AttributeFilter(name=".*/int-value"),
     ],
 )
 @pytest.mark.parametrize(
@@ -209,9 +209,9 @@ def create_expected_data_histogram_series(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name=".*/metrics/.*", type_in=["histogram_series"]),
+        AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]),
         ".*/metrics/histogram-series.*",
-        AttributeFilter(name=".*/metrics/.*", type_in=["histogram_series"]) | AttributeFilter(name=".*/int-value"),
+        AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]) | AttributeFilter(name=".*/int-value"),
     ],
 )
 @pytest.mark.parametrize(
