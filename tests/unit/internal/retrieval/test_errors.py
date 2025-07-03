@@ -17,6 +17,7 @@ from neptune_fetcher.exceptions import (
     NeptuneUnexpectedResponseError,
 )
 from neptune_fetcher.internal.retrieval.errors import (
+    exponential_backoff,
     handle_api_errors,
     retry_backoff,
 )
@@ -146,7 +147,7 @@ def test_no_error(response_200, sleep):
 def test_sleep_backoff(response_500, sleep):
     func = Mock(return_value=response_500)
     with pytest.raises(NeptuneRetryError):
-        retry_backoff(max_tries=10, backoff_max=10, jitter=None)(func)()
+        retry_backoff(max_tries=10, backoff_strategy=exponential_backoff(backoff_max=10, jitter=None))(func)()
 
     # Last call to sleep should be max backoff
     assert sleep.call_args.args[0] == 10

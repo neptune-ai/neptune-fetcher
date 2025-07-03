@@ -41,17 +41,20 @@ T = TypeVar("T")
 
 
 def handle_errors_default(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
-    return retry_backoff()(handle_api_errors(func))
+    return retry_backoff(
+        max_tries=None,
+        max_time=300.0,
+        backoff_strategy=exponential_backoff(),
+        max_rate_limit_time_extension=600.0,
+    )(handle_api_errors(func))
 
 
-def retry_backoff(
-    max_tries: int = 5,
-    max_time: float = 300.0,
+def exponential_backoff(
     backoff_base: float = 0.5,
     backoff_factor: float = 2.0,
     backoff_max: float = 30.0,
     jitter: Optional[Literal["full", "equal"]] = "full",
-) -> Callable[[Callable[..., Response[T]]], Callable[..., Response[T]]]:
+) -> Callable[[int], float]:
     def _calculate_sleep(tries: int) -> float:
         sleep = backoff_base * (backoff_factor ** (tries - 1))
         if jitter == "full":
@@ -60,6 +63,15 @@ def retry_backoff(
             sleep *= random.uniform(0.5, 1.0)
         return min(sleep, backoff_max)
 
+    return _calculate_sleep
+
+
+def retry_backoff(
+    max_tries: Optional[int] = None,
+    max_time: Optional[float] = None,
+    backoff_strategy: Callable[[int], float] = exponential_backoff(),
+    max_rate_limit_time_extension: Optional[float] = 0.0,
+) -> Callable[[Callable[..., Response[T]]], Callable[..., Response[T]]]:
     def decorator(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -67,6 +79,12 @@ def retry_backoff(
             start_time = time.monotonic()
             last_exc = None
             last_response = None
+            rate_limit_time_extension = 0.0
+
+            def total_max_time() -> float:
+                if max_time is None:
+                    return float("inf")
+                return max_time + rate_limit_time_extension
 
             while True:
                 response = None
@@ -84,25 +102,23 @@ def retry_backoff(
                     last_response = response
 
                 tries += 1
-                if tries == max_tries:
-                    break
-
-                elapsed_time = time.monotonic() - start_time
-                remaining_time = max_time - elapsed_time
-                if remaining_time <= 0:
+                if max_tries is not None and tries >= max_tries:
                     break
 
                 if response is not None and "x-rate-limit-retry-after-seconds" in response.headers:
                     sleep_time = int(response.headers["x-rate-limit-retry-after-seconds"])
 
-                    if sleep_time > remaining_time:
-                        logger.debug(
-                            f"The value of x-rate-limit-retry-after-seconds header {sleep_time} seconds exceeds "
-                            f"the remaining time of {remaining_time} seconds. Giving up on retries early."
-                        )
-                        break
+                    rate_limit_time_extension += +sleep_time
+                    if max_rate_limit_time_extension is not None:
+                        rate_limit_time_extension = min(rate_limit_time_extension, max_rate_limit_time_extension)
                 else:
-                    sleep_time = min(_calculate_sleep(tries), remaining_time)
+                    sleep_time = backoff_strategy(tries)
+
+                elapsed_time = time.monotonic() - start_time
+                remaining_time = total_max_time() - elapsed_time
+                if remaining_time <= 0:
+                    break
+                sleep_time = min(remaining_time, sleep_time)
                 time.sleep(sleep_time)
 
             # No more retries left
