@@ -182,6 +182,6 @@ def test_build_extended_regex_filter(attribute, pattern, query):
     ],
 )
 def test_build_extended_regex_attribute_filter(type_in, pattern, expected):
-    result = build_extended_regex_attribute_filter(pattern, type_in)
+    result = build_extended_regex_attribute_filter(pattern, type_in=type_in, aggregations=["last"])
 
     assert result == expected

@@ -23,7 +23,10 @@ from neptune_fetcher.internal.identifiers import (
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval.series import SeriesValue
 from neptune_fetcher.v1 import fetch_series
-from neptune_fetcher.v1.filters import AttributeFilter
+from neptune_fetcher.v1.filters import (
+    AttributeFilter,
+    Filter,
+)
 from tests.e2e.data import (
     NOW,
     NUMBER_OF_STEPS,
@@ -97,16 +100,17 @@ def create_expected_data_string_series(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
+        AttributeFilter(name=r".*/metrics/.*", type=["string_series"]),
         ".*/metrics/string-series.*",
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"])
-        | AttributeFilter(name_matches_all=[".*/int-value"]),
+        AttributeFilter(name=r".*/metrics/.*", type=["string_series"]) | AttributeFilter(name=".*/int-value"),
     ],
 )
 @pytest.mark.parametrize(
     "arg_experiments",
     [
+        Filter.name([exp.name for exp in TEST_DATA.experiments[:3]]),
         f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
         [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
@@ -205,10 +209,9 @@ def create_expected_data_histogram_series(
 @pytest.mark.parametrize(
     "arg_attributes",
     [
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["histogram_series"]),
+        AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]),
         ".*/metrics/histogram-series.*",
-        AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["histogram_series"])
-        | AttributeFilter(name_matches_all=[".*/int-value"]),
+        AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]) | AttributeFilter(name=".*/int-value"),
     ],
 )
 @pytest.mark.parametrize(

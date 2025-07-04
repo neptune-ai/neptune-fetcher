@@ -87,7 +87,7 @@ def test_find_experiments_by_name(client, project, run_with_attributes):
     assert experiment_names == [EXPERIMENT_NAME]
 
     #  when
-    experiment_filter = _Filter.name_in(EXPERIMENT_NAME, "experiment_not_found")
+    experiment_filter = _Filter.any([_Filter.name_eq(EXPERIMENT_NAME), _Filter.name_eq("experiment_not_found")])
     experiment_names = _extract_names(fetch_experiment_sys_attrs(client, project_identifier, experiment_filter))
 
     # then

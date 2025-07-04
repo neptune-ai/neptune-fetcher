@@ -30,11 +30,14 @@ def _validate_string_or_string_list(value: Optional[Union[str, list[str]]], fiel
             raise ValueError(f"{field_name} must be a string or list of strings")
 
 
-def _validate_string_list(value: Optional[list[str]], field_name: str) -> None:
+def _validate_string_list(value: Optional[list[str]], field_name: str, disallow_empty: bool = False) -> None:
     """Validate that a value is either None or a list of strings."""
+    msg = f"{field_name} must not be a non-empty list" if disallow_empty else f"{field_name} must be a list of strings"
     if value is not None:
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-            raise ValueError(f"{field_name} must be a list of strings")
+            raise ValueError(msg)
+        if disallow_empty and len(value) == 0:
+            raise ValueError(msg)
 
 
 def _validate_list_of_allowed_values(value: Sequence[str], allowed_values: Collection[str], field_name: str) -> None:
