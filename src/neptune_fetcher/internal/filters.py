@@ -365,14 +365,6 @@ class _Filter(ABC):
         name_attribute = _Attribute(name="sys/name", type="string")
         return _Filter.eq(name_attribute, name)
 
-    @staticmethod
-    def name_in(*names: str) -> "_Filter":
-        if len(names) == 1:
-            return _Filter.name_eq(names[0])
-        else:
-            filters = [_Filter.name_eq(name) for name in names]
-            return _Filter.any(filters)
-
     @abc.abstractmethod
     def to_query(self) -> str:
         ...

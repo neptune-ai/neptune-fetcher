@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 
 from neptune_fetcher.internal.filters import (
+    AGGREGATION_LITERAL,
     ATTRIBUTE_LITERAL,
     _Attribute,
     _AttributeFilter,
@@ -92,11 +93,14 @@ def build_extended_regex_filter(attribute: _Attribute, pattern: str) -> _Filter:
     )
 
 
-def build_extended_regex_attribute_filter(pattern: str, type_in: list[ATTRIBUTE_LITERAL]) -> _AttributeFilter:
+def build_extended_regex_attribute_filter(
+    pattern: str,
+    type_in: list[ATTRIBUTE_LITERAL],
+    aggregations: list[AGGREGATION_LITERAL],
+) -> _AttributeFilter:
     parsed = parse_extended_regex(pattern)
 
     return _AttributeFilter(
-        type_in=type_in,
         must_match_any=[
             _AttributeNameFilter(
                 must_match_regexes=conj.positive_patterns if conj.positive_patterns else None,
@@ -104,4 +108,6 @@ def build_extended_regex_attribute_filter(pattern: str, type_in: list[ATTRIBUTE_
             )
             for conj in parsed.children
         ],
+        aggregations=aggregations,
+        type_in=type_in,
     )
