@@ -19,7 +19,6 @@ from datetime import datetime
 from typing import (
     Iterable,
     Literal,
-    Optional,
     Union,
 )
 
@@ -91,7 +90,7 @@ class AttributeFilter(BaseAttributeFilter):
     loss_avg_and_var = AttributeFilter(
         type=["float_series"],
         name="loss$",
-        aggregations=["average", "variance"]
+        aggregations=["average", "variance"],
     )
 
     npt.fetch_experiments_table(attributes=loss_avg_and_var)
@@ -198,19 +197,10 @@ class Attribute:
     """
 
     name: str
-    type: Optional[
-        Literal[
-            "float",
-            "int",
-            "string",
-            "bool",
-            "datetime",
-            "float_series",
-            "string_set",
-            "string_series",
-            "file",
-            "histogram_series",
-        ]
+    type: Union[
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set"],
+        Literal["float_series", "histogram_series", "string_series"],
+        None,
     ] = None
 
     def __post_init__(self) -> None:
