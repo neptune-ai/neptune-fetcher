@@ -1,5 +1,4 @@
 import os
-import statistics
 from datetime import datetime
 
 import pandas as pd
@@ -38,10 +37,9 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     expected = pd.DataFrame(
         {
             "experiment": experiments if sort_direction == "asc" else experiments[::-1],
-            ("sys/name", ""): experiments if sort_direction == "asc" else experiments[::-1],
+            "sys/name": experiments if sort_direction == "asc" else experiments[::-1],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert len(df) == 6
     pd.testing.assert_frame_equal(df, expected)
 
@@ -93,14 +91,13 @@ def test__fetch_experiments_table_with_attributes_filter(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            (f"{PATH}/int-value{suffix('int')}", ""): [i for i in range(3)],
-            (f"{PATH}/float-value{suffix('float')}", ""): [float(i) for i in range(3)],
-            (f"{PATH}/metrics/step{suffix('float_series')}", "last"): [
+            f"{PATH}/int-value{suffix('int')}": [i for i in range(3)],
+            f"{PATH}/float-value{suffix('float')}": [float(i) for i in range(3)],
+            f"{PATH}/metrics/step{suffix('float_series')}": [
                 TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
             ],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape == (3, 3)
     pd.testing.assert_frame_equal(df[expected.columns], expected)
 
@@ -109,10 +106,8 @@ def test__fetch_experiments_table_with_attributes_filter(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(
-            f"{PATH}/metrics/step", type=["float_series"], aggregations=["last", "min", "max", "average", "variance"]
-        )
-        | AttributeFilter(FLOAT_SERIES_PATHS[0], type=["float_series"], aggregations=["average", "variance"])
+        AttributeFilter(f"{PATH}/metrics/step", type=["float_series"], aggregations=["last"])
+        | AttributeFilter(FLOAT_SERIES_PATHS[0], type=["float_series"], aggregations=["last"])
         | AttributeFilter(FLOAT_SERIES_PATHS[1], type=["float_series"]),
     ],
 )
@@ -132,34 +127,15 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            (f"{PATH}/metrics/step" + suffix, "last"): [
-                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
-            ],
-            (f"{PATH}/metrics/step" + suffix, "min"): [
-                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][0] for i in range(3)
-            ],
-            (f"{PATH}/metrics/step" + suffix, "max"): [
-                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
-            ],
-            (f"{PATH}/metrics/step" + suffix, "average"): [
-                statistics.fmean(TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"]) for i in range(3)
-            ],
-            (f"{PATH}/metrics/step" + suffix, "variance"): [
-                statistics.pvariance(TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"]) for i in range(3)
-            ],
-            (FLOAT_SERIES_PATHS[0] + suffix, "average"): [
-                statistics.fmean(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
-            ],
-            (FLOAT_SERIES_PATHS[0] + suffix, "variance"): [
-                statistics.pvariance(TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]]) for i in range(3)
-            ],
-            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
-                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
-            ],
+            f"{PATH}/metrics/step"
+            + suffix: [TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)],
+            FLOAT_SERIES_PATHS[0]
+            + suffix: [TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]][-1] for i in range(3)],
+            FLOAT_SERIES_PATHS[1]
+            + suffix: [TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
-    assert df.shape == (3, 8)
+    assert df.shape == (3, 3)
     pd.testing.assert_frame_equal(df[expected.columns], expected)
     assert df[expected.columns].columns.equals(expected.columns)
 
@@ -188,15 +164,16 @@ def test__fetch_experiments_table_with_attributes_filter_for_string_series(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:2]],
-            (f"{PATH}/metrics/string-series-value_0" + suffix, "last"): [
+            f"{PATH}/metrics/string-series-value_0"
+            + suffix: [
                 TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-value_0"][-1] for i in range(2)
             ],
-            (f"{PATH}/metrics/string-series-value_1" + suffix, "last"): [
+            f"{PATH}/metrics/string-series-value_1"
+            + suffix: [
                 TEST_DATA.experiments[i].string_series[f"{PATH}/metrics/string-series-value_1"][-1] for i in range(2)
             ],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape == expected.shape
     pd.testing.assert_frame_equal(df[expected.columns], expected)
     assert df[expected.columns].columns.equals(expected.columns)
@@ -226,41 +203,21 @@ def test__fetch_experiments_table_with_attributes_filter_for_histogram_series(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:2]],
-            (f"{PATH}/metrics/histogram-series-value_0" + suffix, "last"): [
+            f"{PATH}/metrics/histogram-series-value_0"
+            + suffix: [
                 TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
                 for i in range(2)
             ],
-            (f"{PATH}/metrics/histogram-series-value_1" + suffix, "last"): [
+            f"{PATH}/metrics/histogram-series-value_1"
+            + suffix: [
                 TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
                 for i in range(2)
             ],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape == expected.shape
     pd.testing.assert_frame_equal(df[expected.columns], expected)
     assert df[expected.columns].columns.equals(expected.columns)
-
-
-@pytest.mark.parametrize(
-    "attr_filter",
-    [
-        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type=["string_series"], aggregations=[]),
-        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type=["string_series"], aggregations=["min"]),
-    ],
-)
-def test__fetch_experiments_table_with_attributes_filter_for_series_wrong_aggregation(
-    project, run_with_attributes, attr_filter
-):
-    df = fetch_experiments_table(
-        project=project.project_identifier,
-        experiments=[exp.name for exp in TEST_DATA.experiments[:2]],
-        sort_by=Attribute("sys/name", type="string"),
-        sort_direction="asc",
-        attributes=attr_filter,
-        type_suffix_in_column_names=True,
-    )
-    assert df.empty
 
 
 @pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
@@ -288,18 +245,14 @@ def test__fetch_experiments_table_with_attributes_regex_filter_for_metrics(
     expected = pd.DataFrame(
         {
             "experiment": [exp.name for exp in TEST_DATA.experiments[:3]],
-            (f"{PATH}/metrics/step" + suffix, "last"): [
-                TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)
-            ],
-            (FLOAT_SERIES_PATHS[0] + suffix, "last"): [
-                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]][-1] for i in range(3)
-            ],
-            (FLOAT_SERIES_PATHS[1] + suffix, "last"): [
-                TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)
-            ],
+            f"{PATH}/metrics/step"
+            + suffix: [TEST_DATA.experiments[i].float_series[f"{PATH}/metrics/step"][-1] for i in range(3)],
+            FLOAT_SERIES_PATHS[0]
+            + suffix: [TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[0]][-1] for i in range(3)],
+            FLOAT_SERIES_PATHS[1]
+            + suffix: [TEST_DATA.experiments[i].float_series[FLOAT_SERIES_PATHS[1]][-1] for i in range(3)],
         }
     ).set_index("experiment", drop=True)
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
     assert df.shape == (3, 3)
     pd.testing.assert_frame_equal(df[expected.columns], expected)
     assert df[expected.columns].columns.equals(expected.columns)
