@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Iterable,
     Optional,
+    Sequence,
 )
 
 import neptune_fetcher.internal.env as env
@@ -110,12 +111,26 @@ https://docs.neptune.ai/project_access
 
 
 class AttributeTypeInferenceError(NeptuneError):
-    def __init__(self, attribute_names: Iterable[str]) -> None:
+    def __init__(self, attribute_names: Sequence[str], conflicting_types: Optional[Iterable[str]] = None) -> None:
+        attribute_str = (
+            f"attribute {attribute_names[0]}"
+            if len(attribute_names) == 1
+            else f"attributes [{', '.join(attribute_names)}]"
+        )
+
+        if conflicting_types:
+            reason = (
+                f"Neptune found the attribute name in multiple runs, "
+                f"but the attribute type is not the same across all runs [{', '.join(conflicting_types)}]."
+            )
+        else:
+            reason = "Neptune could not find the attribute in any run you queried."
+
         super().__init__(
             """
-{h1}AttributeTypeInferenceError: Failed to infer types for attributes [{attribute_names}]{end}
+{h1}AttributeTypeInferenceError: Failed to infer types for {attribute_names}{end}
 
-Neptune found the attribute name in multiple runs, but the attribute type is not the same across all runs.
+{reason}
 To resolve this ambiguity, specify the attribute type explicitly when constructing a filter:
     {python}
     fetch_experiments_table(
@@ -139,7 +154,8 @@ To resolve this ambiguity, specify the attribute type explicitly when constructi
 
 For details, see https://docs.neptune.ai/attribute_types
 """,
-            attribute_names=", ".join(attribute_names),
+            attribute_names=attribute_str,
+            reason=reason,
         )
 
 

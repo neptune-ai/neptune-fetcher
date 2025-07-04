@@ -220,7 +220,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -228,6 +228,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune could not find the attribute in any run you queried" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -243,7 +244,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -252,6 +253,7 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune could not find the attribute in any run you queried" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -260,14 +262,14 @@ def test_infer_attribute_types_in_sort_by_missing(client, executor, project, att
         _Filter.eq(f"{PATH}/conflicting-type-int-str-value", 10),
     ],
 )
-def test_infer_attribute_types_in_filter_conflicting_types(
+def test_infer_attribute_types_in_filter_conflicting_types_int_string(
     client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -275,6 +277,7 @@ def test_infer_attribute_types_in_filter_conflicting_types(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune found the attribute name in multiple runs" in str(exc.value)
 
 
 @pytest.mark.skip(
@@ -286,14 +289,14 @@ def test_infer_attribute_types_in_filter_conflicting_types(
         _Filter.eq(f"{PATH}/conflicting-type-int-float-value", 0.5),
     ],
 )
-def test_infer_attribute_types_in_filter_conflicting_types_todo(
+def test_infer_attribute_types_in_filter_conflicting_types_int_float(
     client, executor, project, run_with_attributes, run_with_attributes_b, filter_before
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_filter(
             client,
             project_identifier,
@@ -301,6 +304,7 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune found the attribute name in multiple runs" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -313,14 +317,14 @@ def test_infer_attribute_types_in_filter_conflicting_types_todo(
         ),
     ],
 )
-def test_infer_attribute_types_in_sort_by_conflicting_types(
+def test_infer_attribute_types_in_sort_by_conflicting_types_int_string(
     client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -329,6 +333,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune found the attribute name in multiple runs" in str(exc.value)
 
 
 @pytest.mark.skip(
@@ -344,14 +349,14 @@ def test_infer_attribute_types_in_sort_by_conflicting_types(
         ),
     ],
 )
-def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
+def test_infer_attribute_types_in_sort_by_conflicting_types_int_float(
     client, executor, project, run_with_attributes, run_with_attributes_b, attribute_before, experiment_filter
 ):
     # given
     project_identifier = project.project_identifier
 
     #  when
-    with pytest.raises(AttributeTypeInferenceError):
+    with pytest.raises(AttributeTypeInferenceError) as exc:
         infer_attribute_types_in_sort_by(
             client,
             project_identifier,
@@ -360,6 +365,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_todo(
             executor=executor,
             fetch_attribute_definitions_executor=executor,
         )
+    assert "Neptune found the attribute name in multiple runs" in str(exc.value)
 
 
 @pytest.mark.parametrize(
