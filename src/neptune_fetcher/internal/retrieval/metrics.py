@@ -27,7 +27,10 @@ from neptune_api.models import FloatTimeSeriesValuesRequest
 from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
 from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval import (
+    retry,
+    util,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +117,8 @@ def _fetch_metrics_page(
 ) -> ProtoFloatSeriesValuesResponseDTO:
     body = FloatTimeSeriesValuesRequest.from_dict(params)
 
-    response = util.backoff_retry(
-        lambda: get_multiple_float_series_values_proto.sync_detailed(client=client, body=body)
+    response = retry.handle_errors_default(get_multiple_float_series_values_proto.sync_detailed)(
+        client=client, body=body
     )
 
     return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)

@@ -34,10 +34,7 @@ from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
 )
 from tqdm import tqdm
 
-from neptune_fetcher.api.api_client import (
-    ApiClient,
-    backoff_retry,
-)
+from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fields import (
     Bool,
     DateTime,
@@ -51,9 +48,11 @@ from neptune_fetcher.fields import (
     StringSet,
     Unsupported,
 )
+from neptune_fetcher.internal.retrieval.retry import handle_errors_default
 from neptune_fetcher.util import (
     batched_paths,
     getenv_int,
+    rethrow_neptune_error,
     warn_unsupported_value_type,
 )
 
@@ -75,19 +74,19 @@ class FieldsCache(Dict[str, Union[Field, FloatSeries]]):
         missed_paths = [path for path in paths if path not in self]
 
         if not missed_paths:
-            return None
+            return
 
         missed_paths = list(set(missed_paths))
 
         # Split paths into chunks to avoid hitting the server limit in a single request
         for batch in batched_paths(missed_paths, MAX_PATHS_PER_REQUEST, MAX_PATHS_SIZE_QUERY_LIMIT):
-            response = backoff_retry(
-                lambda: get_attributes_with_paths_filter_proto.sync_detailed(
-                    client=self._backend._backend,
-                    body=AttributeQueryDTO.from_dict({"attributePathsFilter": batch}),
-                    holder_type="experiment",
-                    holder_identifier=self._container_id,
-                )
+            response = rethrow_neptune_error(
+                handle_errors_default(get_attributes_with_paths_filter_proto.sync_detailed)
+            )(
+                client=self._backend._backend,
+                body=AttributeQueryDTO.from_dict({"attributePathsFilter": batch}),
+                holder_type="experiment",
+                holder_identifier=self._container_id,
             )
             data: ProtoAttributesDTO = ProtoAttributesDTO.FromString(response.content)
 

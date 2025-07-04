@@ -176,17 +176,18 @@ Response content: {content}
 
 class NeptuneRetryError(NeptuneError):
     def __init__(
-        self, retries: int, last_status_code: Optional[int] = None, last_content: Optional[bytes] = None
+        self, retries: int, time: float, last_status_code: Optional[int] = None, last_content: Optional[bytes] = None
     ) -> None:
         content_str = _decode_content(last_content) if last_content else ""
         super().__init__(
             """
-{h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries.{end}
+{h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries, {time:.2f} seconds.{end}
 
 {status_code_line}
 {content_line}
 """,
             retries=retries,
+            time=time,
             status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
             content_line=f"Last response content: {content_str}" if last_content is not None else "",
         )

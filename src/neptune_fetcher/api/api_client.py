@@ -72,18 +72,19 @@ from neptune_fetcher.fields import (
     FieldType,
     FloatPointValue,
 )
+from neptune_fetcher.internal.retrieval.retry import handle_errors_default
 from neptune_fetcher.util import (
     NeptuneException,
-    backoff_retry,
     create_auth_api_client,
     get_config_and_token_urls,
+    rethrow_neptune_error,
 )
 
 
 class ApiClient:
     def __init__(self, api_token: str, proxies: Optional[Dict[str, str]] = None) -> None:
         credentials = Credentials.from_api_key(api_key=api_token)
-        config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)
+        config, token_urls = rethrow_neptune_error(get_config_and_token_urls)(credentials=credentials, proxies=proxies)
         self._backend = create_auth_api_client(
             credentials=credentials, config=config, token_refreshing_urls=token_urls, proxies=proxies
         )
@@ -204,8 +205,8 @@ class ApiClient:
             order=FloatTimeSeriesValuesRequestOrder.ASCENDING,
         )
 
-        response = backoff_retry(
-            lambda: get_multiple_float_series_values_proto.sync_detailed(client=self._backend, body=request)
+        response = rethrow_neptune_error(handle_errors_default(get_multiple_float_series_values_proto.sync_detailed))(
+            client=self._backend, body=request
         )
 
         data: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
@@ -225,11 +226,9 @@ class ApiClient:
         ]
 
     def query_attribute_definitions(self, container_id: str) -> List[FieldDefinition]:
-        response = backoff_retry(
-            lambda: query_attribute_definitions_proto.sync_detailed(
-                client=self._backend,
-                experiment_identifier=container_id,
-            )
+        response = rethrow_neptune_error(handle_errors_default(query_attribute_definitions_proto.sync_detailed))(
+            client=self._backend,
+            experiment_identifier=container_id,
         )
         definitions: ProtoAttributesSearchResultDTO = ProtoAttributesSearchResultDTO.FromString(response.content)
         return [
@@ -240,10 +239,8 @@ class ApiClient:
     def query_attributes_within_project(
         self, project_id: str, body: QueryAttributesBodyDTO
     ) -> ProtoQueryAttributesResultDTO:
-        response = backoff_retry(
-            lambda: query_attributes_within_project_proto.sync_detailed(
-                client=self._backend, body=body, project_identifier=project_id
-            )
+        response = rethrow_neptune_error(handle_errors_default(query_attributes_within_project_proto.sync_detailed))(
+            client=self._backend, body=body, project_identifier=project_id
         )
         data: ProtoQueryAttributesResultDTO = ProtoQueryAttributesResultDTO.FromString(response.content)
         return data
@@ -259,9 +256,9 @@ class ApiClient:
             }
         )
 
-        response = backoff_retry(
-            lambda: query_attribute_definitions_within_project.sync_detailed(client=self._backend, body=body)
-        )
+        response = rethrow_neptune_error(
+            handle_errors_default(query_attribute_definitions_within_project.sync_detailed)
+        )(client=self._backend, body=body)
 
         data: QueryAttributeDefinitionsResultDTO = response.parsed
 
@@ -270,16 +267,16 @@ class ApiClient:
     def search_entries(
         self, project_id: str, body: SearchLeaderboardEntriesParamsDTO
     ) -> ProtoLeaderboardEntriesSearchResultDTO:
-        resp = backoff_retry(
-            lambda: search_leaderboard_entries_proto.sync_detailed(
-                client=self._backend, project_identifier=project_id, type=["run"], body=body
-            )
+        resp = rethrow_neptune_error(handle_errors_default(search_leaderboard_entries_proto.sync_detailed))(
+            client=self._backend, project_identifier=project_id, type=["run"], body=body
         )
         proto_data = ProtoLeaderboardEntriesSearchResultDTO.FromString(resp.content)
         return proto_data
 
     def project_name_lookup(self, name: Optional[str] = None) -> ProjectDTO:
-        response = backoff_retry(lambda: get_project.sync_detailed(client=self._backend, project_identifier=name))
+        response = rethrow_neptune_error(handle_errors_default(get_project.sync_detailed))(
+            client=self._backend, project_identifier=name
+        )
         if response.status_code.value == 404:
             raise NeptuneException("Project not found")
         else:
