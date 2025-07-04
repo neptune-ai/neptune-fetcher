@@ -50,7 +50,6 @@ KNOWN_TYPES = frozenset(
     }
 )
 AGGREGATION_LAST = ("last",)
-AGGREGATION_LITERAL = Literal["last"]
 
 
 class BaseAttributeFilter(ABC):
@@ -167,20 +166,18 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 
 @dataclass
 class Attribute:
-    """Helper for specifying an attribute and picking a metric aggregation function.
+    """Helper for specifying an attribute and its type.
 
     When fetching experiments or runs, use this class to filter and sort the returned entries.
 
     Args:
         name (str): An attribute name to match exactly.
-        aggregation (Literal["last", "min", "max", "average", "variance"], optional):
-            Aggregation function to apply when specifying a metric of type FloatSeries.
-            Defaults to `"last"`, i.e. the last logged value.
         type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
             Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
             that have the same name but are of a different type.
             For a reference, see: https://docs.neptune.ai/attribute_types
 
+     # TODO: Update docs post-PY-156
     Example:
 
     Select a metric and pick variance as the aggregation:
@@ -201,7 +198,6 @@ class Attribute:
     """
 
     name: str
-    aggregation: Optional[AGGREGATION_LITERAL] = None
     type: Optional[
         Literal[
             "float",

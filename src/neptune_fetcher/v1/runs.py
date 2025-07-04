@@ -89,8 +89,6 @@ def list_attributes(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
 
     Returns a list of unique attribute names in runs matching the filter.
     """
@@ -131,8 +129,6 @@ def fetch_metrics(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
     `include_time` - whether to include absolute timestamp
     `step_range` - a tuple specifying the range of steps to include; can represent an open interval
     `lineage_to_the_root` - if True (default), includes all points from the complete run history.
@@ -185,7 +181,7 @@ def fetch_runs_table(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
+    `sort_by` - an attribute name or an Attribute object specifying type
     `sort_direction` - 'asc' or 'desc'
     `limit` - maximum number of runs to return; by default all runs are returned.
     `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
