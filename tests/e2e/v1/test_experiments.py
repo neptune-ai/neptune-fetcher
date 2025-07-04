@@ -106,8 +106,8 @@ def test__fetch_experiments_table_with_attributes_filter(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(f"{PATH}/metrics/step", type=["float_series"], aggregations=["last"])
-        | AttributeFilter(FLOAT_SERIES_PATHS[0], type=["float_series"], aggregations=["last"])
+        AttributeFilter(f"{PATH}/metrics/step", type=["float_series"])
+        | AttributeFilter(FLOAT_SERIES_PATHS[0], type=["float_series"])
         | AttributeFilter(FLOAT_SERIES_PATHS[1], type=["float_series"]),
     ],
 )
@@ -144,7 +144,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_metrics(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type=["string_series"], aggregations=["last"])
+        AttributeFilter(f"{PATH}/metrics/string-series-value_0", type=["string_series"])
         | AttributeFilter(f"{PATH}/metrics/string-series-value_1", type=["string_series"])
     ],
 )
@@ -183,7 +183,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_string_series(
 @pytest.mark.parametrize(
     "attr_filter",
     [
-        AttributeFilter(f"{PATH}/metrics/histogram-series-value_0", type=["histogram_series"], aggregations=["last"])
+        AttributeFilter(f"{PATH}/metrics/histogram-series-value_0", type=["histogram_series"])
         | AttributeFilter(f"{PATH}/metrics/histogram-series-value_1", type=["histogram_series"])
     ],
 )

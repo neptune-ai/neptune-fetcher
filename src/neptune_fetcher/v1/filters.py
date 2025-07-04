@@ -49,7 +49,7 @@ KNOWN_TYPES = frozenset(
         "histogram_series",
     }
 )
-ALL_AGGREGATIONS = ("last",)
+AGGREGATION_LAST = ("last",)
 AGGREGATION_LITERAL = Literal["last"]
 
 
@@ -111,30 +111,26 @@ class AttributeFilter(BaseAttributeFilter):
         ],
         None,
     ] = None
-    aggregations: Literal["last"] = "last"
 
     def __post_init__(self) -> None:
         self.type = self.type or list(KNOWN_TYPES)
         if isinstance(self.type, str):
             self.type = [self.type]
-        if isinstance(self.aggregations, str):
-            self.aggregations = [self.aggregations]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
-        _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         if self.name == []:
@@ -146,7 +142,7 @@ class AttributeFilter(BaseAttributeFilter):
             return _filters._AttributeFilter(
                 name_eq=self.name,
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         raise ValueError(
@@ -222,13 +218,11 @@ class Attribute:
     ] = None
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
         _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
 
     def _to_internal(self) -> _filters._Attribute:
         return _filters._Attribute(
             name=self.name,
-            aggregation=self.aggregation,
             type=self.type,
         )
 
