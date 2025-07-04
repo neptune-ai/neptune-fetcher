@@ -74,6 +74,11 @@ def convert_table_to_dataframe(
             index=pd.Index([], name=index_column_name),
             columns=pd.MultiIndex.from_tuples([], names=["attribute", "aggregation"]),
         )
+    if not table_data and flatten_aggregations:
+        return pd.DataFrame(
+            index=pd.Index([], name=index_column_name),
+            columns=[],
+        )
 
     def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
         row = {}

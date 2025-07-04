@@ -54,10 +54,6 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             {
                 "run": ["linear_history_root"],
                 "foo0:float_series": [0.1 * 9],
-                # "foo0:float_series": [0.1 * 0],
-                # "foo0:float_series": [0.1 * 9],
-                # "foo0:float_series": [np.mean([0.1 * i for i in range(10)])],
-                # "foo0:float_series": [np.var([0.1 * i for i in range(10)])],
             },
         ),
         (
@@ -71,10 +67,6 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
                 "bool-value:bool": [False],
                 "datetime-value:datetime": [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
                 "foo0:float_series": [0.1 * 9],
-                # ("foo0:float_series", "min"): [0.1 * 0],
-                # ("foo0:float_series", "max"): [0.1 * 9],
-                # ("foo0:float_series", "average"): [np.mean([0.1 * i for i in range(10)])],
-                # ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
             },
         ),
         (
@@ -91,12 +83,6 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
                 "foo0:float_series": [0.1 * 9, 0.7 * 19],
-                # ("foo0:float_series", "variance"): [
-                #     np.var([0.1 * i for i in range(10)]),
-                #     np.var(
-                #         [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 20)]
-                #     ),
-                # ],
             },
         ),
         (
@@ -198,8 +184,6 @@ def test_fetch_runs_table(
     expected = pd.DataFrame(expected_data).sort_values("run", ascending=False)
     expected["run"] = expected["run"].astype(object)
     expected.set_index("run", drop=True, inplace=True)
-
-    # expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
 
     pd.testing.assert_frame_equal(df, expected)
 
