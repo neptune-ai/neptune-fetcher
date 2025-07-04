@@ -39,7 +39,10 @@ from neptune_fetcher.internal.filters import (
     _Attribute,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval import util
+from neptune_fetcher.internal.retrieval import (
+    retry,
+    util,
+)
 from neptune_fetcher.internal.retrieval.attribute_types import map_attribute_type_python_to_backend
 
 _DIRECTION_PYTHON_TO_BACKEND_MAP: dict[str, str] = {
@@ -216,8 +219,7 @@ def _fetch_sys_attrs_page(
 ) -> ProtoLeaderboardEntriesSearchResultDTO:
     body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
 
-    response = util.backoff_retry(
-        search_leaderboard_entries_proto.sync_detailed,
+    response = retry.handle_errors_default(search_leaderboard_entries_proto.sync_detailed)(
         client=client,
         project_identifier=project_identifier,
         type=["run"],
