@@ -4,7 +4,6 @@ from datetime import (
     timezone,
 )
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -26,11 +25,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             r".*-value$",
             {
                 "run": ["linear_history_root"],
-                ("int-value:int", ""): [1],
-                ("float-value:float", ""): [1.0],
-                ("str-value:string", ""): ["hello_1"],
-                ("bool-value:bool", ""): [False],
-                ("datetime-value:datetime", ""): [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
+                "int-value:int": [1],
+                "float-value:float": [1.0],
+                "str-value:string": ["hello_1"],
+                "bool-value:bool": [False],
+                "datetime-value:datetime": [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
             },
         ),
         (
@@ -45,66 +44,45 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             r"^foo.*$",
             {
                 "run": ["linear_history_root"],
-                ("foo0:float_series", "last"): [0.1 * 9],
-                ("foo1:float_series", "last"): [0.2 * 9],
+                "foo0:float_series": [0.1 * 9],
+                "foo1:float_series": [0.2 * 9],
             },
         ),
         (
             r"^linear_history_root$",
-            AttributeFilter(name=r"foo0$", aggregations=["last", "min", "max", "average", "variance"]),
+            AttributeFilter(name=r"foo0$"),
             {
                 "run": ["linear_history_root"],
-                ("foo0:float_series", "last"): [0.1 * 9],
-                ("foo0:float_series", "min"): [0.1 * 0],
-                ("foo0:float_series", "max"): [0.1 * 9],
-                ("foo0:float_series", "average"): [np.mean([0.1 * i for i in range(10)])],
-                ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
+                "foo0:float_series": [0.1 * 9],
             },
         ),
         (
             "^linear_history_root$",
-            AttributeFilter(name="foo0$", aggregations=["last", "min", "max", "average", "variance"])
-            | AttributeFilter(name=".*-value$"),
+            AttributeFilter(name="foo0$") | AttributeFilter(name=".*-value$"),
             {
                 "run": ["linear_history_root"],
-                ("int-value:int", ""): [1],
-                ("float-value:float", ""): [1.0],
-                ("str-value:string", ""): ["hello_1"],
-                ("bool-value:bool", ""): [False],
-                ("datetime-value:datetime", ""): [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
-                ("foo0:float_series", "last"): [0.1 * 9],
-                ("foo0:float_series", "min"): [0.1 * 0],
-                ("foo0:float_series", "max"): [0.1 * 9],
-                ("foo0:float_series", "average"): [np.mean([0.1 * i for i in range(10)])],
-                ("foo0:float_series", "variance"): [np.var([0.1 * i for i in range(10)])],
+                "int-value:int": [1],
+                "float-value:float": [1.0],
+                "str-value:string": ["hello_1"],
+                "bool-value:bool": [False],
+                "datetime-value:datetime": [datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc)],
+                "foo0:float_series": [0.1 * 9],
             },
         ),
         (
             r"^linear_history_root$|^linear_history_fork2$",
-            AttributeFilter(name=r"foo0$", aggregations=["last", "variance"]),
+            AttributeFilter(name=r"foo0$"),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
-                ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
-                ("foo0:float_series", "variance"): [
-                    np.var([0.1 * i for i in range(10)]),
-                    np.var(
-                        [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 20)]
-                    ),
-                ],
+                "foo0:float_series": [0.1 * 9, 0.7 * 19],
             },
         ),
         (
             ["linear_history_root", "linear_history_fork2"],
-            AttributeFilter(name=r"foo0$", aggregations=["last", "variance"]),
+            AttributeFilter(name=r"foo0$"),
             {
                 "run": ["linear_history_root", "linear_history_fork2"],
-                ("foo0:float_series", "last"): [0.1 * 9, 0.7 * 19],
-                ("foo0:float_series", "variance"): [
-                    np.var([0.1 * i for i in range(10)]),
-                    np.var(
-                        [0.1 * i for i in range(5)] + [0.4 * i for i in range(5, 9)] + [0.7 * i for i in range(9, 20)]
-                    ),
-                ],
+                "foo0:float_series": [0.1 * 9, 0.7 * 19],
             },
         ),
         (
@@ -112,11 +90,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             r".*-value$",
             {
                 "run": ["forked_history_root", "forked_history_fork1"],
-                ("int-value:int", ""): [1, 2],
-                ("float-value:float", ""): [1.0, 2.0],
-                ("str-value:string", ""): ["hello_1", "hello_2"],
-                ("bool-value:bool", ""): [False, True],
-                ("datetime-value:datetime", ""): [
+                "int-value:int": [1, 2],
+                "float-value:float": [1.0, 2.0],
+                "str-value:string": ["hello_1", "hello_2"],
+                "bool-value:bool": [False, True],
+                "datetime-value:datetime": [
                     datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
                 ],
@@ -127,11 +105,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             r".*-value$",
             {
                 "run": ["forked_history_root", "forked_history_fork1"],
-                ("int-value:int", ""): [1, 2],
-                ("float-value:float", ""): [1.0, 2.0],
-                ("str-value:string", ""): ["hello_1", "hello_2"],
-                ("bool-value:bool", ""): [False, True],
-                ("datetime-value:datetime", ""): [
+                "int-value:int": [1, 2],
+                "float-value:float": [1.0, 2.0],
+                "str-value:string": ["hello_1", "hello_2"],
+                "bool-value:bool": [False, True],
+                "datetime-value:datetime": [
                     datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
                 ],
@@ -143,11 +121,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             r".*-value$",
             {
                 "run": ["linear_history_fork1", "linear_history_fork2", "linear_history_root"],
-                ("int-value:int", ""): [2, 3, 1],
-                ("float-value:float", ""): [2.0, 3.0, 1.0],
-                ("str-value:string", ""): ["hello_2", "hello_3", "hello_1"],
-                ("bool-value:bool", ""): [True, False, False],
-                ("datetime-value:datetime", ""): [
+                "int-value:int": [2, 3, 1],
+                "float-value:float": [2.0, 3.0, 1.0],
+                "str-value:string": ["hello_2", "hello_3", "hello_1"],
+                "bool-value:bool": [True, False, False],
+                "datetime-value:datetime": [
                     datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
@@ -166,11 +144,11 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
                     "linear_history_fork2",
                     "linear_history_root",
                 ],
-                ("int-value:int", ""): [2, 3, 1, 2, 3, 1],
-                ("float-value:float", ""): [2.0, 3.0, 1.0, 2.0, 3.0, 1.0],
-                ("str-value:string", ""): ["hello_2", "hello_3", "hello_1", "hello_2", "hello_3", "hello_1"],
-                ("bool-value:bool", ""): [True, False, False, True, False, False],
-                ("datetime-value:datetime", ""): [
+                "int-value:int": [2, 3, 1, 2, 3, 1],
+                "float-value:float": [2.0, 3.0, 1.0, 2.0, 3.0, 1.0],
+                "str-value:string": ["hello_2", "hello_3", "hello_1", "hello_2", "hello_3", "hello_1"],
+                "bool-value:bool": [True, False, False, True, False, False],
+                "datetime-value:datetime": [
                     datetime(2025, 1, 1, 2, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 3, 0, 0, 0, timezone.utc),
                     datetime(2025, 1, 1, 1, 0, 0, 0, timezone.utc),
@@ -206,8 +184,6 @@ def test_fetch_runs_table(
     expected = pd.DataFrame(expected_data).sort_values("run", ascending=False)
     expected["run"] = expected["run"].astype(object)
     expected.set_index("run", drop=True, inplace=True)
-
-    expected.columns = pd.MultiIndex.from_tuples(expected.columns, names=["attribute", "aggregation"])
 
     pd.testing.assert_frame_equal(df, expected)
 
