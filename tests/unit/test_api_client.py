@@ -29,7 +29,7 @@ def get_multiple_float_series_values_proto():
         yield patched
 
 
-class TestApiClient(ApiClient):
+class _TestApiClient(ApiClient):
     def __init__(self):
         # don't call super().__init__ to avoid an attempt to authenticate
         self._backend = None
@@ -87,7 +87,7 @@ def multiple_series_dto(
 
 
 def test_fetch_multiple_series_values__single_path__returns_empty_series(get_multiple_float_series_values_proto):
-    api_client = TestApiClient()
+    api_client = _TestApiClient()
     return_value = response(multiple_series_dto([[]]))
     get_multiple_float_series_values_proto.return_value = return_value
 
@@ -102,7 +102,7 @@ def test_fetch_multiple_series_values__single_path__returns_empty_series(get_mul
 
 
 def test_fetch_multiple_series_values__single_path__returns_values(get_multiple_float_series_values_proto):
-    api_client = TestApiClient()
+    api_client = _TestApiClient()
     values = [(step, step * 2) for step in range(10)]
     return_value = response(multiple_series_dto([values]))
     get_multiple_float_series_values_proto.return_value = return_value
@@ -118,7 +118,7 @@ def test_fetch_multiple_series_values__single_path__returns_values(get_multiple_
 
 
 def test_fetch_multiple_series_values__multiple_paths__returns_values(get_multiple_float_series_values_proto):
-    api_client = TestApiClient()
+    api_client = _TestApiClient()
     paths = ["path1", "path2", "path3"]
     values = [[(step, step * (10**i)) for step in range(10)] for i in range(len(paths))]
     return_value = response(multiple_series_dto(values))
@@ -139,7 +139,7 @@ def test_fetch_multiple_series_values__multiple_paths__returns_values(get_multip
 def test_fetch_multiple_series_values__single_path__returns_values_exceeding_batch(
     get_multiple_float_series_values_proto,
 ):
-    api_client = TestApiClient()
+    api_client = _TestApiClient()
     values = [(step, step * 2) for step in range(2_300_000)]
     get_multiple_float_series_values_proto.side_effect = [
         response(multiple_series_dto([batch]))

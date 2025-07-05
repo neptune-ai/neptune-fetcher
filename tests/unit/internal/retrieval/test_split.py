@@ -13,6 +13,7 @@ from neptune_fetcher.internal.identifiers import (
     RunIdentifier,
 )
 from neptune_fetcher.internal.retrieval.split import (
+    _split_attribute_definitions,
     split_series_attributes,
     split_sys_ids,
     split_sys_ids_attributes,
@@ -204,3 +205,54 @@ def test_split_series_attributes_custom_envs(monkeypatch, given_num, query_size_
 
 def _add_run(attribute_definitions):
     return [RunAttributeDefinition(RUN_ID, attr) for attr in attribute_definitions]
+
+
+def test__split_attribute_definitions_empty():
+    # Should return empty list when input is empty
+    result = _split_attribute_definitions([], query_size_limit=100, attribute_values_batch_size=10)
+    assert result == []
+
+
+def test__split_attribute_definitions_single_batch():
+    # All attributes fit in one batch
+    attrs = [AttributeDefinition(f"attr{i}", "string") for i in range(3)]
+    result = _split_attribute_definitions(attrs, query_size_limit=1000, attribute_values_batch_size=10)
+    assert result == [attrs]
+
+
+def test__split_attribute_definitions_split_by_size():
+    # Should split by query_size_limit
+    # Each attribute name is 5 bytes, so 3 attributes = 15, limit = 10 -> expect 2 batches
+    attrs = [AttributeDefinition(f"a{i}", "string") for i in range(3)]
+    # Each name is 2 bytes, so 2 per batch if limit=4
+    result = _split_attribute_definitions(attrs, query_size_limit=4, attribute_values_batch_size=10)
+    # Each batch should not exceed 4 bytes
+    for batch in result:
+        assert sum(len(attr.name.encode("utf-8")) for attr in batch) <= 4
+    # All attributes should be present
+    flat = [a for batch in result for a in batch]
+    assert flat == attrs
+
+
+def test__split_attribute_definitions_split_by_count():
+    # Should split by attribute_values_batch_size
+    attrs = [AttributeDefinition(f"attr{i}", "string") for i in range(5)]
+    result = _split_attribute_definitions(attrs, query_size_limit=1000, attribute_values_batch_size=2)
+    # Each batch should have at most 2 attributes
+    for batch in result:
+        assert len(batch) <= 2
+    # All attributes should be present
+    flat = [a for batch in result for a in batch]
+    assert flat == attrs
+
+
+def test__split_attribute_definitions_split_by_both():
+    # Should split by both size and count
+    attrs = [AttributeDefinition("a" * 5, "string") for _ in range(10)]
+    # Each attr is 5 bytes, limit=10, batch_size=3
+    result = _split_attribute_definitions(attrs, query_size_limit=10, attribute_values_batch_size=3)
+    for batch in result:
+        assert len(batch) <= 3
+        assert sum(len(attr.name.encode("utf-8")) for attr in batch) <= 10
+    flat = [a for batch in result for a in batch]
+    assert flat == attrs
