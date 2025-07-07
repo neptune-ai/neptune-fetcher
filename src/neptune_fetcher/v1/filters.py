@@ -97,18 +97,17 @@ class AttributeFilter(BaseAttributeFilter):
     ```
     """
 
+    # Stopping formatting here to allow long Literal lines
+    # fmt: off
     name: Union[str, list[str], None] = None
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set"],
-        Literal["float_series", "histogram_series", "string_series"],
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
         list[
-            Union[
-                Literal["bool", "datetime", "file", "float", "int", "string", "string_set"],
-                Literal["float_series", "histogram_series", "string_series"],
-            ]
+            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
         ],
         None,
     ] = None
+    # fmt: on
 
     def __post_init__(self) -> None:
         self.type = self.type or list(KNOWN_TYPES)
@@ -196,12 +195,13 @@ class Attribute:
     ```
     """
 
+    # fmt: off
     name: str
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set"],
-        Literal["float_series", "histogram_series", "string_series"],
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
         None,
     ] = None
+    # fmt: on
 
     def __post_init__(self) -> None:
         _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore

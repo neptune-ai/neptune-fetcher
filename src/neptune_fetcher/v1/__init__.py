@@ -190,10 +190,8 @@ def fetch_experiments_table(
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
 
-    Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
+    Returns a DataFrame similar to the Experiments Table in the UI.
+    (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)

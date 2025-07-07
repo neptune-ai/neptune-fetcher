@@ -188,10 +188,8 @@ def fetch_runs_table(
         are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
         If False, an exception is raised if there are multiple types under one attribute path.
 
-    Returns a DataFrame similar to the runs table in the web app, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    If you don't specify aggregates to return, only the last logged value of each metric is returned.
+    Returns a DataFrame similar to the Runs Table in the UI.
+    (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
