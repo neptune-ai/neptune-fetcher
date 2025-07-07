@@ -308,6 +308,165 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_without_suffix(
     assert "attr1/a:b:c" in str(exc_info.value)
 
 
+def test_convert_experiment_table_to_dataframe_flatten_aggregations_only_last():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "float_series"),
+                FloatSeriesAggregations(last=42.0, min=0.0, max=100, average=24.0, variance=100.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={
+            AttributeDefinition("attr1", "float_series"): {"last"},
+        },
+        type_suffix_in_column_names=False,
+        flatten_aggregations=True,
+    )
+    # then
+    assert dataframe.to_dict() == {
+        "attr1": {"exp1": 42.0},
+    }
+
+
+def test_convert_experiment_table_to_dataframe_flatten_aggregations_non_last_raises():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "float_series"),
+                FloatSeriesAggregations(last=42.0, min=0.0, max=100, average=24.0, variance=100.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+    # when / then
+    with pytest.raises(ValueError):
+        convert_table_to_dataframe(
+            experiment_data,
+            selected_aggregations={
+                AttributeDefinition("attr1", "float_series"): {"last", "min"},
+            },
+            type_suffix_in_column_names=False,
+            flatten_aggregations=True,
+        )
+
+
+def test_convert_experiment_table_to_dataframe_flatten_aggregations_and_file_properties_raises():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "float_series"),
+                FloatSeriesAggregations(last=42.0, min=0.0, max=100, average=24.0, variance=100.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+    # when / then
+    with pytest.raises(ValueError):
+        convert_table_to_dataframe(
+            experiment_data,
+            selected_aggregations={
+                AttributeDefinition("attr1", "float_series"): {"last"},
+            },
+            type_suffix_in_column_names=False,
+            flatten_aggregations=True,
+            flatten_file_properties=True,
+        )
+
+
+def test_convert_experiment_table_to_dataframe_empty_with_flatten_aggregations():
+    # given
+    experiment_data = {}
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        flatten_aggregations=True,
+    )
+    # then
+    assert dataframe.empty
+    assert list(dataframe.columns) == []
+
+
+def test_convert_experiment_table_to_dataframe_empty_with_flatten_file_properties():
+    # given
+    experiment_data = {}
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        flatten_file_properties=True,
+    )
+    # then
+    assert dataframe.empty
+    assert isinstance(dataframe.columns, pd.MultiIndex)
+
+
+def test_convert_experiment_table_to_dataframe_duplicate_column_name_with_type_suffix():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(AttributeDefinition("attr", "int"), 1, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr", "float"), 2.0, EXPERIMENT_IDENTIFIER),
+        ],
+    }
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=True,
+    )
+    # then
+    assert set(dataframe.columns.get_level_values(0)) == {"attr:int", "attr:float"}
+
+
+def test_convert_experiment_table_to_dataframe_duplicate_column_name_without_type_suffix_raises():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(AttributeDefinition("attr", "int"), 1, EXPERIMENT_IDENTIFIER),
+            AttributeValue(AttributeDefinition("attr", "float"), 2.0, EXPERIMENT_IDENTIFIER),
+        ],
+    }
+    # when / then
+    with pytest.raises(ConflictingAttributeTypes):
+        convert_table_to_dataframe(
+            experiment_data,
+            selected_aggregations={},
+            type_suffix_in_column_names=False,
+        )
+
+
+def test_convert_experiment_table_to_dataframe_index_column_name_custom():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(AttributeDefinition("attr1", "int"), 42, EXPERIMENT_IDENTIFIER),
+        ],
+    }
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        index_column_name="custom_index",
+    )
+    # then
+    assert dataframe.index.name == "custom_index"
+    assert dataframe.to_dict() == {
+        ("attr1", ""): {"exp1": 42},
+    }
+
+
 EXPERIMENTS = 5
 PATHS = 5
 STEPS = 10

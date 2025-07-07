@@ -61,6 +61,9 @@ def fetch_table(
     type_suffix_in_column_names: bool,
     context: Optional[_context.Context] = None,
     container_type: search.ContainerType,
+    # flatten_aggregations: Only allow "last" aggregation and skip the aggregation sub-column in the output
+    flatten_aggregations: bool = False,
+    # flatten_file_properties: for file attributes, return 3 sub-columns: path, size_bytes, mime_type
     flatten_file_properties: bool = False,
 ) -> pd.DataFrame:
     validation.validate_limit(limit)
@@ -180,6 +183,7 @@ def fetch_table(
         selected_aggregations=selected_aggregations,
         type_suffix_in_column_names=type_suffix_in_column_names,
         index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+        flatten_aggregations=flatten_aggregations,
         flatten_file_properties=flatten_file_properties,
     )
     return dataframe

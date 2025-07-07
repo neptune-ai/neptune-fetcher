@@ -43,7 +43,7 @@ def _validate_string_list(value: Optional[list[str]], field_name: str, disallow_
 def _validate_list_of_allowed_values(value: Sequence[str], allowed_values: Collection[str], field_name: str) -> None:
     """Validate that a value is a list containing only allowed values."""
     if not isinstance(value, Sequence) or not all(isinstance(v, str) and v in allowed_values for v in value):
-        raise ValueError(f"{field_name} must be a list of valid values: {sorted(allowed_values)}")
+        raise ValueError(f"{field_name} must be a list of valid values: {sorted(allowed_values)} (got {value!r})")
 
 
 def _validate_allowed_value(value: Optional[str], allowed_values: Collection[str], field_name: str) -> None:
