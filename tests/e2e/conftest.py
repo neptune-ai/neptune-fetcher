@@ -11,15 +11,15 @@ from neptune_scale import Run
 
 from neptune_fetcher import ReadOnlyProject
 from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.api_utils import (
+    create_auth_api_client,
+    get_config_and_token_urls,
+)
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.context import set_project
 from neptune_fetcher.internal.filters import _Filter
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
-from neptune_fetcher.util import (
-    create_auth_api_client,
-    get_config_and_token_urls,
-)
 from tests.e2e.data import (
     FILE_SERIES_STEPS,
     NOW,
