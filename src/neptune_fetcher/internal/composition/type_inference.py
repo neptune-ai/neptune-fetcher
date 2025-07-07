@@ -12,9 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 from collections import defaultdict
 from concurrent.futures import Executor
+from dataclasses import dataclass
 from typing import (
     Generator,
     Iterable,
@@ -30,6 +31,7 @@ from neptune_fetcher.internal import (
 )
 from neptune_fetcher.internal.composition import attribute_components as _components
 from neptune_fetcher.internal.composition import concurrency
+from neptune_fetcher.internal.filters import ATTRIBUTE_LITERAL
 from neptune_fetcher.internal.retrieval import (
     search,
     util,
@@ -42,6 +44,93 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 )
 
 
+@dataclass
+class AttributeInferenceState:
+    original_attribute: filters._Attribute
+    attribute: filters._Attribute
+    inferred_type: Optional[str] = None
+    success_details: Optional[str] = None
+    error: Optional[str] = None
+
+    def is_finalized(self) -> bool:
+        return self.inferred_type is not None or self.error is not None
+
+    def is_inferred(self) -> bool:
+        return self.inferred_type is not None
+
+    def set_success(self, inferred_type: ATTRIBUTE_LITERAL, success_details: Optional[str] = None) -> None:
+        self.inferred_type = inferred_type
+        self.success_details = success_details
+        self.attribute.type = inferred_type
+
+    def set_error(self, error: str) -> None:
+        self.error = error
+
+
+@dataclass
+class InferenceState:
+    attributes: list[AttributeInferenceState]
+    run_domain_empty: Optional[bool] = None
+
+    @staticmethod
+    def empty() -> "InferenceState":
+        return InferenceState(attributes=[])
+
+    @staticmethod
+    def from_attributes(attributes: Iterable[filters._Attribute]) -> "InferenceState":
+        attribute_states = [
+            AttributeInferenceState(
+                original_attribute=copy.copy(attr),
+                attribute=attr,
+                inferred_type=attr.type,
+                success_details="Type provided" if attr.type is not None else None,
+            )
+            for attr in attributes
+        ]
+        return InferenceState(attributes=attribute_states)
+
+    @staticmethod
+    def from_filter(filter_: filters._Filter) -> "InferenceState":
+        def _walk_attributes(experiment_filter: filters._Filter) -> Iterable[filters._Attribute]:
+            if isinstance(experiment_filter, filters._AttributeValuePredicate):
+                yield experiment_filter.attribute
+            elif isinstance(experiment_filter, filters._AttributePredicate):
+                yield experiment_filter.attribute
+            elif isinstance(experiment_filter, filters._AssociativeOperator):
+                for child in experiment_filter.filters:
+                    yield from _walk_attributes(child)
+            elif isinstance(experiment_filter, filters._PrefixOperator):
+                yield from _walk_attributes(experiment_filter.filter_)
+            else:
+                raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")
+
+        attributes = _walk_attributes(filter_)
+        return InferenceState.from_attributes(attributes)
+
+    def incomplete_attributes(self) -> list[AttributeInferenceState]:
+        return [attr_state for attr_state in self.attributes if not attr_state.is_finalized()]
+
+    def is_complete(self) -> bool:
+        return all(attr_state.is_finalized() for attr_state in self.attributes)
+
+    def is_run_domain_empty(self) -> bool:
+        return self.run_domain_empty is not None and self.run_domain_empty
+
+    def raise_if_incomplete(self) -> None:
+        uninferred_attributes = [attr_state for attr_state in self.attributes if not attr_state.is_inferred()]
+        if uninferred_attributes:
+            attribute_names = [attr_state.original_attribute.name for attr_state in uninferred_attributes]
+
+            details = []
+            for attr_state in uninferred_attributes:
+                if attr_state.error:
+                    details.append(f"{attr_state.original_attribute.name}: {attr_state.error}")
+                else:
+                    details.append(f"{attr_state.original_attribute.name}: could not find the attribute")
+
+            raise AttributeTypeInferenceError(attribute_names=attribute_names, details=details)
+
+
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
@@ -49,31 +138,28 @@ def infer_attribute_types_in_filter(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
-) -> None:
+) -> InferenceState:
     if filter_ is None:
-        return
+        return InferenceState.empty()
 
-    attributes = _filter_untyped(_walk_attributes(filter_))
-    if not attributes:
-        return
+    state = InferenceState.from_filter(filter_)
+    if state.is_complete():
+        return state
 
-    _infer_attribute_types_from_attribute(attributes)
-    attributes = _filter_untyped(attributes)
-    if not attributes:
-        return
+    _infer_attribute_types_from_attribute(inference_state=state)
+    if state.is_complete():
+        return state
 
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
         filter_=None,
-        attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
+        inference_state=state,
     )
-    attributes = _filter_untyped(attributes)
-    if attributes:
-        raise AttributeTypeInferenceError(attribute_names=[a.name for a in attributes])
+    return state
 
 
 def infer_attribute_types_in_sort_by(
@@ -84,34 +170,32 @@ def infer_attribute_types_in_sort_by(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
-) -> None:
-    attributes = _filter_untyped([sort_by])
-    if not attributes:
-        return
+) -> InferenceState:
+    state = InferenceState.from_attributes([sort_by])
+    if state.is_complete():
+        return state
 
-    _infer_attribute_types_from_attribute(attributes)
-    attributes = _filter_untyped(attributes)
-    if not attributes:
-        return
+    _infer_attribute_types_from_attribute(inference_state=state)
+    if state.is_complete():
+        return state
 
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
         filter_=filter_,
-        attributes=attributes,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
+        inference_state=state,
     )
-    attributes = _filter_untyped(attributes)
-    if attributes:
-        raise AttributeTypeInferenceError(attribute_names=[a.name for a in attributes])
+    return state
 
 
 def _infer_attribute_types_from_attribute(
-    attributes: Iterable[filters._Attribute],
+    inference_state: InferenceState,
 ) -> None:
-    for attribute in attributes:
+    for state in inference_state.incomplete_attributes():
+        attribute = state.attribute
         matches = []
         if all(agg in FLOAT_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("float_series")
@@ -122,64 +206,71 @@ def _infer_attribute_types_from_attribute(
         if all(agg in HISTOGRAM_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("histogram_series")
         if len(matches) == 1:
-            attribute.type = matches[0]  # type: ignore
+            state.set_success(inferred_type=matches[0], success_details="Inferred from aggregation")
 
 
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters._Filter],
-    attributes: Iterable[filters._Attribute],
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType,
+    inference_state: InferenceState,
 ) -> None:
+    attribute_states = inference_state.incomplete_attributes()
+    attributes = [state.attribute for state in attribute_states]
     attribute_filter_by_name = filters._AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    output = _components.fetch_attribute_definitions_complete(
-        client=client,
-        project_identifier=project_identifier,
-        filter_=filter_,
-        attribute_filter=attribute_filter_by_name,
+    output = concurrency.generate_concurrently(
+        items=search.fetch_sys_ids(
+            client=client,
+            project_identifier=project_identifier,
+            filter_=filter_,
+            container_type=container_type,
+        ),
         executor=executor,
-        fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        container_type=container_type,
-        downstream=concurrency.return_value,
+        downstream=lambda sys_ids_page: concurrency.fork_concurrently(
+            executor=executor,
+            downstreams=[
+                lambda: _components.fetch_attribute_definitions_split(
+                    client=client,
+                    project_identifier=project_identifier,
+                    attribute_filter=attribute_filter_by_name,
+                    executor=executor,
+                    fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
+                    sys_ids=sys_ids_page.items,
+                    downstream=lambda _, definitions: concurrency.return_value(definitions),
+                ),
+                lambda: concurrency.return_value(sys_ids_page.items),
+            ],
+        ),
     )
 
-    attribute_definition_pages: Generator[
-        util.Page[identifiers.AttributeDefinition], None, None
-    ] = concurrency.gather_results(output)
+    results: Generator[util.Page[identifiers.AttributeDefinition], None, None] = concurrency.gather_results(output)
 
+    sys_ids: list[identifiers.SysId] = []
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
-    for attribute_definition_page in attribute_definition_pages:
-        for attr_def in attribute_definition_page.items:
-            attribute_name_to_definition[attr_def.name].add(attr_def.type)
+    for result in results:
+        if isinstance(result, util.Page):
+            for attr_def in result.items:
+                attribute_name_to_definition[attr_def.name].add(attr_def.type)
+        elif isinstance(result, list):
+            sys_ids.extend(result)
 
-    for name, types in attribute_name_to_definition.items():
-        if len(types) > 1:
-            raise AttributeTypeInferenceError(attribute_names=[name], conflicting_types=types)
-
-    for attribute in attributes:
+    for state in attribute_states:
+        attribute = state.attribute
         if attribute.name in attribute_name_to_definition:
-            attribute.type = next(iter(attribute_name_to_definition[attribute.name]))  # type: ignore
+            types = attribute_name_to_definition[attribute.name]
+            if len(types) == 1:
+                state.set_success(
+                    inferred_type=next(iter(types)),  # type: ignore
+                    success_details="Inferred from neptune api",
+                )
+            elif len(types) > 1:
+                state.set_error(
+                    error=f"Neptune found the attribute name in multiple runs "
+                    f"with conflicting types: {', '.join(types)}"
+                )
 
-
-def _filter_untyped(
-    attributes: Iterable[filters._Attribute],
-) -> list[filters._Attribute]:
-    return [attr for attr in attributes if attr.type is None]
-
-
-def _walk_attributes(experiment_filter: filters._Filter) -> Iterable[filters._Attribute]:
-    if isinstance(experiment_filter, filters._AttributeValuePredicate):
-        yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AttributePredicate):
-        yield experiment_filter.attribute
-    elif isinstance(experiment_filter, filters._AssociativeOperator):
-        for child in experiment_filter.filters:
-            yield from _walk_attributes(child)
-    elif isinstance(experiment_filter, filters._PrefixOperator):
-        yield from _walk_attributes(experiment_filter.filter_)
-    else:
-        raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")
+    inference_state.run_domain_empty = len(sys_ids) == 0

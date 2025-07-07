@@ -58,7 +58,7 @@ def list_attributes(
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        type_inference.infer_attribute_types_in_filter(
+        inference_result = type_inference.infer_attribute_types_in_filter(
             client,
             project_identifier,
             filter_,
@@ -66,6 +66,9 @@ def list_attributes(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
+        if inference_result.is_run_domain_empty():
+            return []
+        inference_result.raise_if_incomplete()
 
         output = _components.fetch_attribute_definitions_complete(
             client=client,

@@ -75,7 +75,7 @@ def fetch_series(
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        type_inference.infer_attribute_types_in_filter(
+        inference_result = type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
@@ -83,6 +83,14 @@ def fetch_series(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
+        if inference_result.is_run_domain_empty():
+            return create_series_dataframe(
+                series_data={},
+                sys_id_label_mapping={},
+                index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
+                timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+            )
+        inference_result.raise_if_incomplete()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 

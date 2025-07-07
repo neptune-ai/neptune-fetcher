@@ -80,7 +80,7 @@ def fetch_metrics(
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        type_inference.infer_attribute_types_in_filter(
+        inference_result = type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
@@ -88,6 +88,16 @@ def fetch_metrics(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
+        if inference_result.is_run_domain_empty():
+            return create_metrics_dataframe(
+                metrics_data={},
+                sys_id_label_mapping={},
+                index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
+                timestamp_column_name="absolute_time" if include_time == "absolute" else None,
+                include_point_previews=include_point_previews,
+                type_suffix_in_column_names=type_suffix_in_column_names,
+            )
+        inference_result.raise_if_incomplete()
 
         metrics_data, sys_id_to_label_mapping = _fetch_metrics(
             filter_=filter_,
