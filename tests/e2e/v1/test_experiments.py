@@ -37,7 +37,25 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     expected = pd.DataFrame(
         {
             "experiment": experiments if sort_direction == "asc" else experiments[::-1],
-            "sys/name": experiments if sort_direction == "asc" else experiments[::-1],
+        }
+    ).set_index("experiment", drop=True)
+    assert len(df) == 6
+    pd.testing.assert_frame_equal(df, expected)
+
+
+def test__fetch_experiments_table_empty_attribute_list(project):
+    df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=[exp.name for exp in TEST_DATA.experiments],
+        attributes=[],
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+    )
+
+    experiments = [experiment.name for experiment in TEST_DATA.experiments]
+    expected = pd.DataFrame(
+        {
+            "experiment": experiments,
         }
     ).set_index("experiment", drop=True)
     assert len(df) == 6

@@ -33,7 +33,7 @@ def test_attribute_invalid_type():
     assert f"type must be one of: {sorted(types.ALL_TYPES)}" in str(exc_info.value)
 
 
-@pytest.mark.parametrize("aggregation", types.ALL_AGGREGATIONS)
+@pytest.mark.parametrize("aggregation", sorted(types.ALL_AGGREGATIONS))
 def test_attribute_all_valid_aggregations(aggregation):
     # Test all valid aggregation values
     attr = _Attribute(name="test", aggregation=aggregation)
