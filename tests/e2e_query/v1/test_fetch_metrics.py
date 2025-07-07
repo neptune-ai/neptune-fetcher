@@ -144,7 +144,7 @@ def create_expected_data(
         ),
     ],
 )
-def test__fetch_metrics_unique_filter_variants(
+def test__fetch_metrics_unique__filter_variants(
     project,
     arg_experiments,
     arg_attributes,
@@ -204,7 +204,7 @@ def test__fetch_metrics_unique_filter_variants(
         ),
     ],
 )
-def test__fetch_metrics_unique_step_options(
+def test__fetch_metrics_unique__step_variants(
     project,
     arg_experiments,
     arg_attributes,
@@ -266,7 +266,7 @@ def test__fetch_metrics_unique_step_options(
         ),
     ],
 )
-def test__fetch_metrics_unique_output_format_options(
+def test__fetch_metrics_unique__output_format_variants(
     project,
     arg_experiments,
     arg_attributes,

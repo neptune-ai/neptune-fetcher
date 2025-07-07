@@ -94,9 +94,6 @@ def create_expected_data_string_series(
         return df, sorted_columns, filtered_exps
 
 
-@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
-@pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
     "arg_attributes",
     [
@@ -114,15 +111,135 @@ def create_expected_data_string_series(
         [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
-@pytest.mark.parametrize("include_time", [None, "absolute"])
-def test__fetch_string_series(
+@pytest.mark.parametrize(
+    "step_range, tail_limit, type_suffix_in_column_names, include_time",
+    [
+        ((0.0, 5), None, True, None),
+        ((0, None), 3, False, "absolute"),
+        ((None, 5), 5, True, None),
+        ((None, None), None, False, "absolute"),
+    ],
+)
+def test__fetch_string_series__filter_variants(
     project,
-    type_suffix_in_column_names,
-    step_range,
-    tail_limit,
-    include_time,
     arg_experiments,
     arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        project=project.project_identifier,
+    )
+
+    expected, columns, filtered_exps = create_expected_data_string_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
+@pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,type_suffix_in_column_names,include_time",
+    [
+        (
+            Filter.name([exp.name for exp in TEST_DATA.experiments[:3]]),
+            AttributeFilter(name=r".*/metrics/.*", type=["string_series"]),
+            True,
+            None,
+        ),
+        (
+            f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
+            ".*/metrics/string-series.*",
+            False,
+            "absolute",
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name=r".*/metrics/.*", type=["string_series"]) | AttributeFilter(name=".*/int-value"),
+            True,
+            None,
+        ),
+    ],
+)
+def test__fetch_string_series__step_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        project=project.project_identifier,
+    )
+
+    expected, columns, filtered_exps = create_expected_data_string_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize("include_time", [None, "absolute"])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,step_range,tail_limit",
+    [
+        (
+            Filter.name([exp.name for exp in TEST_DATA.experiments[:3]]),
+            AttributeFilter(name=r".*/metrics/.*", type=["string_series"]),
+            (0.0, 5),
+            None,
+        ),
+        (
+            f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
+            ".*/metrics/string-series.*",
+            (0, None),
+            3,
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name=r".*/metrics/.*", type=["string_series"]) | AttributeFilter(name=".*/int-value"),
+            (None, 5),
+            5,
+        ),
+    ],
+)
+def test__fetch_string_series__output_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
 ):
     experiments = TEST_DATA.experiments[:3]
 
@@ -203,9 +320,6 @@ def create_expected_data_histogram_series(
         return df, sorted_columns, filtered_exps
 
 
-@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
-@pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
     "arg_attributes",
     [
@@ -221,15 +335,129 @@ def create_expected_data_histogram_series(
         [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
-@pytest.mark.parametrize("include_time", [None, "absolute"])
-def test__fetch_histogram_series(
+@pytest.mark.parametrize(
+    "step_range, tail_limit, type_suffix_in_column_names, include_time",
+    [
+        ((0.0, 5), None, True, None),
+        ((0, None), 3, False, "absolute"),
+        ((None, 5), 5, True, None),
+        ((None, None), None, False, "absolute"),
+    ],
+)
+def test__fetch_histogram_series__filter_variants(
     project,
-    type_suffix_in_column_names,
-    step_range,
-    tail_limit,
-    include_time,
     arg_experiments,
     arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        project=project.project_identifier,
+    )
+
+    expected, columns, filtered_exps = create_expected_data_histogram_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
+@pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,type_suffix_in_column_names,include_time",
+    [
+        (
+            f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
+            ".*/metrics/histogram-series.*",
+            True,
+            None,
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]) | AttributeFilter(name=".*/int-value"),
+            False,
+            "absolute",
+        ),
+    ],
+)
+def test__fetch_histogram_series__step_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        project=project.project_identifier,
+    )
+
+    expected, columns, filtered_exps = create_expected_data_histogram_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize("include_time", [None, "absolute"])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,step_range,tail_limit",
+    [
+        (
+            f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+            ".*/metrics/histogram-series.*",
+            (0.0, 5),
+            None,
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name=".*/metrics/.*", type=["histogram_series"]) | AttributeFilter(name=".*/int-value"),
+            (0, None),
+            3,
+        ),
+        (
+            f"{TEST_DATA.exp_name(0)} | {TEST_DATA.exp_name(1)} | {TEST_DATA.exp_name(2)}",  # ERS
+            ".*/metrics/histogram-series.*",
+            (None, 5),
+            5,
+        ),
+    ],
+)
+def test__fetch_histogram_series__output_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
 ):
     experiments = TEST_DATA.experiments[:3]
 
