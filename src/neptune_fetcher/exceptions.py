@@ -57,6 +57,24 @@ For details, see https://docs.neptune.ai/fetcher_setup
         )
 
 
+class NeptuneFailedToFetchClientConfig(NeptuneError):
+    def __init__(self, exception: Exception) -> None:
+        super().__init__(
+            """
+{h1}NeptuneFailedToFetchClientConfigException: Failed to fetch the client configuration.{end}
+
+This can happen due to network issues or if Neptune is unreachable.
+
+Make sure that you have a stable internet connection and that your Neptune instance is running and accessible.
+
+If the issue persists, please contact Neptune support with the following information:
+
+{exception}
+""",
+            exception=exception,
+        )
+
+
 class NeptuneProjectInaccessible(NeptuneError):
     def __init__(self) -> None:
         super().__init__(
