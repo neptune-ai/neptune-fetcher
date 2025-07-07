@@ -251,7 +251,6 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
     [
         (_Attribute(f"{PATH}/does-not-exist"), None),
         (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_eq(EXPERIMENT_NAME)),
-        # (_Attribute(f"{PATH}/int-value"), _Filter.name_eq(EXPERIMENT_NAME + "does-not-exist")),
     ],
 )
 def test_infer_attribute_types_in_sort_by_missing_attribute(client, executor, project, attribute, experiment_filter):
