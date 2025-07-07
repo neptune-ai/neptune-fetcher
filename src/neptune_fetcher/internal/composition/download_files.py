@@ -80,8 +80,7 @@ def download_files(
                 {},
                 index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
             )
-        inference_result.raise_if_incomplete()
-        filter_ = inference_result.result
+        filter_ = inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
