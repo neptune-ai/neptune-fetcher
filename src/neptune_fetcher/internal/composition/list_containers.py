@@ -48,9 +48,9 @@ def list_containers(
             executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
-        if inference_result is None:
+        if inference_result.is_run_domain_empty():
             return []
-        inference_result.raise_if_incomplete()
+        filter_ = inference_result.get_result_or_raise()
 
         sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
         return list(sorted(attrs.label for page in sys_attr_pages for attrs in page.items))

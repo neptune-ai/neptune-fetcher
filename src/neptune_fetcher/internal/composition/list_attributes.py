@@ -68,7 +68,7 @@ def list_attributes(
         )
         if inference_result.is_run_domain_empty():
             return []
-        inference_result.raise_if_incomplete()
+        filter_ = inference_result.get_result_or_raise()
 
         output = _components.fetch_attribute_definitions_complete(
             client=client,

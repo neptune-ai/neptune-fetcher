@@ -90,7 +90,7 @@ def fetch_series(
                 index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
                 timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             )
-        inference_result.raise_if_incomplete()
+        filter_ = inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 

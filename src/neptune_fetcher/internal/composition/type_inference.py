@@ -18,8 +18,11 @@ from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
     Generator,
+    Generic,
     Iterable,
     Optional,
+    TypeVar,
+    Union,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -42,6 +45,9 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
     HISTOGRAM_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
 )
+from neptune_fetcher.internal.retrieval.search import ContainerType
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -68,29 +74,31 @@ class AttributeInferenceState:
 
 
 @dataclass
-class InferenceState:
+class InferenceState(Generic[T]):
     attributes: list[AttributeInferenceState]
     run_domain_empty: Optional[bool] = None
+    result: Optional[T] = None
 
     @staticmethod
     def empty() -> "InferenceState":
         return InferenceState(attributes=[])
 
     @staticmethod
-    def from_attributes(attributes: Iterable[filters._Attribute]) -> "InferenceState":
+    def from_attribute(attribute: filters._Attribute) -> "InferenceState[filters._Attribute]":
+        attribute_copy = copy.deepcopy(attribute)
+
         attribute_states = [
             AttributeInferenceState(
-                original_attribute=copy.copy(attr),
-                attribute=attr,
-                inferred_type=attr.type,
-                success_details="Type provided" if attr.type is not None else None,
+                original_attribute=copy.copy(attribute_copy),
+                attribute=attribute_copy,
+                inferred_type=attribute_copy.type,
+                success_details="Type provided" if attribute_copy.type is not None else None,
             )
-            for attr in attributes
         ]
-        return InferenceState(attributes=attribute_states)
+        return InferenceState(attributes=attribute_states, result=attribute_copy)
 
     @staticmethod
-    def from_filter(filter_: filters._Filter) -> "InferenceState":
+    def from_filter(filter_: filters._Filter) -> "InferenceState[filters._Filter]":
         def _walk_attributes(experiment_filter: filters._Filter) -> Iterable[filters._Attribute]:
             if isinstance(experiment_filter, filters._AttributeValuePredicate):
                 yield experiment_filter.attribute
@@ -104,8 +112,19 @@ class InferenceState:
             else:
                 raise RuntimeError(f"Unexpected filter type: {type(experiment_filter)}")
 
-        attributes = _walk_attributes(filter_)
-        return InferenceState.from_attributes(attributes)
+        filter_copy = copy.deepcopy(filter_)
+
+        attributes = _walk_attributes(filter_copy)
+        attribute_states = [
+            AttributeInferenceState(
+                original_attribute=copy.copy(attr),
+                attribute=attr,
+                inferred_type=attr.type,
+                success_details="Type provided" if attr.type is not None else None,
+            )
+            for attr in attributes
+        ]
+        return InferenceState(attributes=attribute_states, result=filter_copy)
 
     def incomplete_attributes(self) -> list[AttributeInferenceState]:
         return [attr_state for attr_state in self.attributes if not attr_state.is_finalized()]
@@ -130,6 +149,10 @@ class InferenceState:
 
             raise AttributeTypeInferenceError(attribute_names=attribute_names, details=details)
 
+    def get_result_or_raise(self) -> Optional[T]:
+        self.raise_if_incomplete()
+        return self.result
+
 
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
@@ -146,7 +169,7 @@ def infer_attribute_types_in_filter(
     if state.is_complete():
         return state
 
-    _infer_attribute_types_from_attribute(inference_state=state)
+    _infer_attribute_types_locally(inference_state=state)
     if state.is_complete():
         return state
 
@@ -170,12 +193,12 @@ def infer_attribute_types_in_sort_by(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
-) -> InferenceState:
-    state = InferenceState.from_attributes([sort_by])
+) -> InferenceState[filters._Attribute]:
+    state = InferenceState.from_attribute(sort_by)
     if state.is_complete():
         return state
 
-    _infer_attribute_types_from_attribute(inference_state=state)
+    _infer_attribute_types_locally(inference_state=state)
     if state.is_complete():
         return state
 
@@ -191,7 +214,7 @@ def infer_attribute_types_in_sort_by(
     return state
 
 
-def _infer_attribute_types_from_attribute(
+def _infer_attribute_types_locally(
     inference_state: InferenceState,
 ) -> None:
     for state in inference_state.incomplete_attributes():
@@ -247,7 +270,9 @@ def _infer_attribute_types_from_api(
         ),
     )
 
-    results: Generator[util.Page[identifiers.AttributeDefinition], None, None] = concurrency.gather_results(output)
+    results: Generator[
+        Union[list[identifiers.SysId], util.Page[identifiers.AttributeDefinition]], None, None
+    ] = concurrency.gather_results(output)
 
     sys_ids: list[identifiers.SysId] = []
     attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
@@ -268,8 +293,9 @@ def _infer_attribute_types_from_api(
                     success_details="Inferred from neptune api",
                 )
             elif len(types) > 1:
+                container_name = "runs" if container_type == ContainerType.RUN else "experiments"
                 state.set_error(
-                    error=f"Neptune found the attribute name in multiple runs "
+                    error=f"Neptune found the attribute name in multiple {container_name} "
                     f"with conflicting types: {', '.join(types)}"
                 )
 

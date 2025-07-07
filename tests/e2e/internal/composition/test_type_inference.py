@@ -15,7 +15,10 @@ from neptune_fetcher.internal.filters import (
     _Attribute,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
+from neptune_fetcher.internal.retrieval.search import (
+    ContainerType,
+    fetch_experiment_sys_attrs,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"
@@ -177,7 +180,8 @@ def test_infer_attribute_types_in_filter_single(
     )
 
     # then
-    assert filter_before == filter_after
+    assert filter_before != filter_after
+    assert result.result == filter_after
     assert not result.is_run_domain_empty()
     result.raise_if_incomplete()
 
@@ -210,7 +214,8 @@ def test_infer_attribute_types_in_sort_by_single(
     )
 
     # then
-    assert attribute_before == attribute_after
+    assert attribute_before != attribute_after
+    assert result.result == attribute_after
     assert not result.is_run_domain_empty()
     result.raise_if_incomplete()
 
@@ -316,13 +321,16 @@ def test_infer_attribute_types_in_filter_conflicting_types_int_string(
         filter_=filter_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,
+        container_type=ContainerType.EXPERIMENT,
     )
 
     # then
     assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
-    exc.match("Neptune found the attribute name in multiple runs with conflicting types: (int, string|string, int)")
+    exc.match(
+        "Neptune found the attribute name in multiple experiments with conflicting types: (int, string|string, int)"
+    )
 
 
 @pytest.mark.skip(
@@ -347,13 +355,16 @@ def test_infer_attribute_types_in_filter_conflicting_types_int_float(
         filter_=filter_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,
+        container_type=ContainerType.EXPERIMENT,
     )
 
     # then
     assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
-    exc.match("Neptune found the attribute name in multiple runs with conflicting types: (int, float|float, int)")
+    exc.match(
+        "Neptune found the attribute name in multiple experiments with conflicting types: (int, float|float, int)"
+    )
 
 
 @pytest.mark.parametrize(
@@ -380,13 +391,16 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_string(
         sort_by=attribute_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,
+        container_type=ContainerType.EXPERIMENT,
     )
 
     # then
     assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
-    exc.match("Neptune found the attribute name in multiple runs with conflicting types: (int, string|string, int)")
+    exc.match(
+        "Neptune found the attribute name in multiple experiments with conflicting types: (int, string|string, int)"
+    )
 
 
 @pytest.mark.parametrize(
@@ -413,13 +427,16 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_float(
         sort_by=attribute_before,
         executor=executor,
         fetch_attribute_definitions_executor=executor,
+        container_type=ContainerType.EXPERIMENT,
     )
 
     # then
     assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
-    exc.match("Neptune found the attribute name in multiple runs with conflicting types: (int, float|float, int)")
+    exc.match(
+        "Neptune found the attribute name in multiple experiments with conflicting types: (int, float|float, int)"
+    )
 
 
 @pytest.mark.parametrize(
@@ -471,6 +488,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
     )
 
     # then
+    assert attribute_before != attribute_after
+    assert result.result == attribute_after
     assert not result.is_run_domain_empty()
-    assert attribute_before == attribute_after
     result.raise_if_incomplete()

@@ -97,7 +97,7 @@ def fetch_metrics(
                 include_point_previews=include_point_previews,
                 type_suffix_in_column_names=type_suffix_in_column_names,
             )
-        inference_result.raise_if_incomplete()
+        filter_ = inference_result.get_result_or_raise()
 
         metrics_data, sys_id_to_label_mapping = _fetch_metrics(
             filter_=filter_,

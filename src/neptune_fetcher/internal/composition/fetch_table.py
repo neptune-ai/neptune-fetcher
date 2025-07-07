@@ -90,7 +90,7 @@ def fetch_table(
                 index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
                 flatten_file_properties=flatten_file_properties,
             )
-        inference_result.raise_if_incomplete()
+        filter_ = inference_result.get_result_or_raise()
 
         sort_by_inference_result = type_inference.infer_attribute_types_in_sort_by(
             client=client,
@@ -109,7 +109,7 @@ def fetch_table(
                 index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
                 flatten_file_properties=flatten_file_properties,
             )
-        sort_by_inference_result.raise_if_incomplete()
+        sort_by = sort_by_inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
