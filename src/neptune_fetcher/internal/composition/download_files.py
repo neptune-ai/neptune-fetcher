@@ -66,7 +66,7 @@ def download_files(
         concurrency.create_thread_pool_executor() as executor,
         concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
     ):
-        type_inference.infer_attribute_types_in_filter(
+        inference_result = type_inference.infer_attribute_types_in_filter(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
@@ -74,6 +74,13 @@ def download_files(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
+        if inference_result.is_run_domain_empty():
+            return output_format.create_files_dataframe(
+                [],
+                {},
+                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+            )
+        filter_ = inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
@@ -146,4 +153,8 @@ def download_files(
         ] = concurrency.gather_results(output)
         file_list = list(results)
 
-        return output_format.create_files_dataframe(file_list, sys_id_label_mapping)
+        return output_format.create_files_dataframe(
+            file_list,
+            sys_id_label_mapping,
+            index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+        )
