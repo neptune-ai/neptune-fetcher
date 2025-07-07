@@ -14,15 +14,11 @@
 # limitations under the License.
 import abc
 from abc import ABC
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Iterable,
     Literal,
-    Optional,
     Union,
 )
 
@@ -52,22 +48,7 @@ KNOWN_TYPES = frozenset(
         "histogram_series",
     }
 )
-ALL_AGGREGATIONS = (
-    types.FLOAT_SERIES_AGGREGATIONS | types.STRING_SERIES_AGGREGATIONS | types.HISTOGRAM_SERIES_AGGREGATIONS
-)
-ATTRIBUTE_LITERAL = Literal[
-    "float",
-    "int",
-    "string",
-    "bool",
-    "datetime",
-    "float_series",
-    "string_set",
-    "string_series",
-    "file",
-    "histogram_series",
-]
-AGGREGATION_LITERAL = Literal["last", "min", "max", "average", "variance"]
+AGGREGATION_LAST = ("last",)
 
 
 class BaseAttributeFilter(ABC):
@@ -92,14 +73,13 @@ class AttributeFilter(BaseAttributeFilter):
         name (str|list[str], optional):
             if str given: an extended regular expression to match attribute names.
             if list[str] given: a list of attribute names to match exactly.
-        type (list[Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set",
-        "string_series", "file"]], optional):
-            A list of allowed attribute types. Defaults to all available types.
-            For a reference, see: https://docs.neptune.ai/attribute_types
-        aggregations (list[Literal["last", "min", "max", "average", "variance"]], optional, deprecated): List of
-            aggregation functions to apply when fetching metrics of type FloatSeries or StringSeries.
-            Defaults to ["last"].
+        type (str|list[str], optional):
+            A list of allowed attribute types (or a single type as str). Defaults to all available types:
+                ["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series",
+                "file", "histogram_series"]
+            For reference, see: https://docs.neptune.ai/attribute_types
 
+    # TODO: Update docs post-PY-156
     Example:
 
     ```
@@ -117,27 +97,37 @@ class AttributeFilter(BaseAttributeFilter):
     ```
     """
 
+    # Stopping formatting here to allow long Literal lines
+    # fmt: off
     name: Union[str, list[str], None] = None
-    type: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
-    aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
+    type: Union[
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        list[
+            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        ],
+        None,
+    ] = None
+    # fmt: on
 
     def __post_init__(self) -> None:
+        self.type = self.type or list(KNOWN_TYPES)
+        if isinstance(self.type, str):
+            self.type = [self.type]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
-        _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         if self.name == []:
@@ -149,7 +139,7 @@ class AttributeFilter(BaseAttributeFilter):
             return _filters._AttributeFilter(
                 name_eq=self.name,
                 type_in=self.type,
-                aggregations=self.aggregations,
+                aggregations=AGGREGATION_LAST,
             )
 
         raise ValueError(
@@ -174,20 +164,18 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 
 @dataclass
 class Attribute:
-    """Helper for specifying an attribute and picking a metric aggregation function.
+    """Helper for specifying an attribute and its type.
 
     When fetching experiments or runs, use this class to filter and sort the returned entries.
 
     Args:
         name (str): An attribute name to match exactly.
-        aggregation (Literal["last", "min", "max", "average", "variance"], optional):
-            Aggregation function to apply when specifying a metric of type FloatSeries.
-            Defaults to `"last"`, i.e. the last logged value.
         type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
             Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
             that have the same name but are of a different type.
             For a reference, see: https://docs.neptune.ai/attribute_types
 
+     # TODO: Update docs post-PY-156
     Example:
 
     Select a metric and pick variance as the aggregation:
@@ -207,18 +195,20 @@ class Attribute:
     ```
     """
 
+    # fmt: off
     name: str
-    aggregation: Optional[AGGREGATION_LITERAL] = None
-    type: Optional[ATTRIBUTE_LITERAL] = None
+    type: Union[
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        None,
+    ] = None
+    # fmt: on
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
         _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
 
     def _to_internal(self) -> _filters._Attribute:
         return _filters._Attribute(
             name=self.name,
-            aggregation=self.aggregation,
             type=self.type,
         )
 

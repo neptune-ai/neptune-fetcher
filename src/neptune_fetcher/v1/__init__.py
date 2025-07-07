@@ -91,8 +91,6 @@ def list_attributes(
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
 
     Returns a list of unique attribute names in experiments matching the filter.
     """
@@ -133,8 +131,6 @@ def fetch_metrics(
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
     `include_time` - whether to include absolute timestamp
     `step_range` - a tuple specifying the range of steps to include; can represent an open interval
     `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
@@ -187,17 +183,15 @@ def fetch_experiments_table(
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
+    `sort_by` - an attribute name or an Attribute object specifying type
     `sort_direction` - 'asc' or 'desc'
     `limit` - maximum number of experiments to return; by default all experiments are returned.
     `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
         will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
         If set to False, the method throws an exception if there are multiple types under one path.
 
-    Returns a DataFrame similar to the Experiments Table in the UI, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    In case the user doesn't specify metrics' aggregates to be returned, only the `last` aggregate is returned.
+    Returns a DataFrame similar to the Experiments Table in the UI.
+    (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
@@ -213,6 +207,7 @@ def fetch_experiments_table(
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         container_type=_search.ContainerType.EXPERIMENT,
+        flatten_aggregations=True,
     )
 
 

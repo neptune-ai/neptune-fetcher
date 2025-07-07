@@ -89,8 +89,6 @@ def list_attributes(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
-            If `AttributeFilter.aggregations` is set, an exception will be raised as they're
-            not supported in this function.
 
     Returns a list of unique attribute names in runs matching the filter.
     """
@@ -131,8 +129,6 @@ def fetch_metrics(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object;
-                If `AttributeFilter.aggregations` is set, an exception will be raised as
-                they're not supported in this function.
     `include_time` - whether to include absolute timestamp
     `step_range` - a tuple specifying the range of steps to include; can represent an open interval
     `lineage_to_the_root` - if True (default), includes all points from the complete run history.
@@ -185,17 +181,15 @@ def fetch_runs_table(
         - a list of specific attribute names, or
         - a regex that the attribute name must match, or
         - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type and, optionally, aggregation
+    `sort_by` - an attribute name or an Attribute object specifying type
     `sort_direction` - 'asc' or 'desc'
     `limit` - maximum number of runs to return; by default all runs are returned.
     `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
         are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
         If False, an exception is raised if there are multiple types under one attribute path.
 
-    Returns a DataFrame similar to the runs table in the web app, with an important difference:
-    aggregates of metrics (min, max, avg, last, ...) are returned as sub-columns of a metric column. In other words,
-    the returned DataFrame is indexed with a MultiIndex on (attribute name, attribute property).
-    If you don't specify aggregates to return, only the last logged value of each metric is returned.
+    Returns a DataFrame similar to the Runs Table in the UI.
+    (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
@@ -211,6 +205,7 @@ def fetch_runs_table(
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,
         container_type=_search.ContainerType.RUN,
+        flatten_aggregations=True,
     )
 
 
