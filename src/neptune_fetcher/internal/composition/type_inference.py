@@ -27,8 +27,7 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.exceptions import AttributeTypeInferenceError
-
+from ...exceptions import AttributeTypeInferenceError
 from .. import (
     filters,
     identifiers,

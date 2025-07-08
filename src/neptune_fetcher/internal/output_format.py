@@ -25,8 +25,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 
-from neptune_fetcher.exceptions import ConflictingAttributeTypes
-
+from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
 from .retrieval import (
     metrics,
