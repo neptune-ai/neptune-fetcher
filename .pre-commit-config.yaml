@@ -34,5 +34,12 @@ repos:
       - id: mypy
         args: [ --config-file, pyproject.toml ]
         pass_filenames: false
+  - repo: local
+    hooks:
+      - id: validate_internal
+        name: Check neptune_fetcher/internal = neptune_query/internal
+        entry: python .github/scripts/compare_python_dirs.py src/neptune_fetcher/internal src/neptune_query/internal
+        language: system
+        pass_filenames: false
 default_language_version:
     python: python3
