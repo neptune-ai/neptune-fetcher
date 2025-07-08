@@ -102,8 +102,8 @@ def retry_backoff(
                 if max_tries is not None and total_tries >= max_tries:
                     break
 
-                if response is not None and "x-rate-limit-retry-after-seconds" in response.headers:
-                    sleep_time = int(response.headers["x-rate-limit-retry-after-seconds"])
+                if response is not None and "retry-after" in response.headers:
+                    sleep_time = int(response.headers["retry-after"])
                     rate_limit_time_extension += sleep_time
                     backoff_tries = 0  # reset backoff tries counter when using a different strategy
                 else:

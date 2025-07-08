@@ -45,7 +45,7 @@ def response_200(content: bytes = b"OK"):
 
 
 def response_429(content: bytes = b"Error 429", retry_after: int = 1):
-    return response(429, content=content, headers={"x-rate-limit-retry-after-seconds": str(retry_after)})
+    return response(429, content=content, headers={"retry-after": str(retry_after)})
 
 
 def response_500(content: bytes = b"Error 500"):
