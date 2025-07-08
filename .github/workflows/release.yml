@@ -44,6 +44,11 @@ jobs:
           name: neptune-fetcher-package
           path: dist
 
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
       - name: Install neptune-fetcher package
         run: pip install --force-reinstall --pre -f ./dist neptune-fetcher
 
@@ -63,6 +68,11 @@ jobs:
         with:
           name: neptune-fetcher-package
           path: dist/
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
       - name: Uploading to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
