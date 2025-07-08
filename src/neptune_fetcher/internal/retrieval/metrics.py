@@ -26,8 +26,8 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import FloatTimeSeriesValuesRequest
 from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.retrieval import (
+from .. import identifiers
+from ..retrieval import (
     retry,
     util,
 )

@@ -21,18 +21,18 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.internal import (
+from .. import (
     filters,
     identifiers,
 )
-from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.internal.composition.attributes import (
+from ..composition import concurrency
+from ..composition.attributes import (
     AttributeDefinitionAggregation,
     fetch_attribute_definition_aggregations,
     fetch_attribute_definitions,
 )
-from neptune_fetcher.internal.retrieval import attribute_values as att_vals
-from neptune_fetcher.internal.retrieval import (
+from ..retrieval import attribute_values as att_vals
+from ..retrieval import (
     search,
     split,
     util,

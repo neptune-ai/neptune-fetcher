@@ -31,19 +31,19 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import SearchLeaderboardEntriesParamsDTO
 from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
 
-from neptune_fetcher.internal import (
+from .. import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.filters import (
+from ..filters import (
     _Attribute,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval import (
+from ..retrieval import (
     retry,
     util,
 )
-from neptune_fetcher.internal.retrieval.attribute_types import map_attribute_type_python_to_backend
+from ..retrieval.attribute_types import map_attribute_type_python_to_backend
 
 _DIRECTION_PYTHON_TO_BACKEND_MAP: dict[str, str] = {
     "asc": "ascending",

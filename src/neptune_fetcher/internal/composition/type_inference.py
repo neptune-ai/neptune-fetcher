@@ -28,24 +28,25 @@ from typing import (
 from neptune_api.client import AuthenticatedClient
 
 from neptune_fetcher.exceptions import AttributeTypeInferenceError
-from neptune_fetcher.internal import (
+
+from .. import (
     filters,
     identifiers,
 )
-from neptune_fetcher.internal.composition import attribute_components as _components
-from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.internal.filters import ATTRIBUTE_LITERAL
-from neptune_fetcher.internal.retrieval import (
+from ..composition import attribute_components as _components
+from ..composition import concurrency
+from ..filters import ATTRIBUTE_LITERAL
+from ..retrieval import (
     search,
     util,
 )
-from neptune_fetcher.internal.retrieval.attribute_types import (
+from ..retrieval.attribute_types import (
     FILE_SERIES_AGGREGATIONS,
     FLOAT_SERIES_AGGREGATIONS,
     HISTOGRAM_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
 )
-from neptune_fetcher.internal.retrieval.search import ContainerType
+from ..retrieval.search import ContainerType
 
 T = TypeVar("T")
 

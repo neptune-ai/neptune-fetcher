@@ -22,7 +22,7 @@ from typing import (
     Tuple,
 )
 
-from neptune_fetcher.internal import filters
+from .. import filters
 
 
 def restrict_attribute_filter_type(

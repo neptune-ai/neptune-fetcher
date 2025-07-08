@@ -14,15 +14,15 @@
 # limitations under the License.
 from typing import Optional
 
-from neptune_fetcher.internal import client as _client
-from neptune_fetcher.internal import context as _context
-from neptune_fetcher.internal.composition import (
+from .. import client as _client
+from .. import context as _context
+from ..composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.internal.filters import _Filter
-from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.internal.retrieval import search
+from ..filters import _Filter
+from ..identifiers import ProjectIdentifier
+from ..retrieval import search
 
 __all__ = ("list_containers",)
 

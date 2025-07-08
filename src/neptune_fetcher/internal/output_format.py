@@ -26,17 +26,18 @@ import numpy as np
 import pandas as pd
 
 from neptune_fetcher.exceptions import ConflictingAttributeTypes
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.retrieval import (
+
+from . import identifiers
+from .retrieval import (
     metrics,
     series,
 )
-from neptune_fetcher.internal.retrieval.attribute_types import (
+from .retrieval.attribute_types import (
     TYPE_AGGREGATIONS,
     File,
 )
-from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
-from neptune_fetcher.internal.retrieval.metrics import (
+from .retrieval.attribute_values import AttributeValue
+from .retrieval.metrics import (
     IsPreviewIndex,
     PreviewCompletionIndex,
     StepIndex,

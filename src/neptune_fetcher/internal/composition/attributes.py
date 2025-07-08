@@ -24,15 +24,15 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.internal import (
+from .. import (
     env,
     filters,
     identifiers,
 )
-from neptune_fetcher.internal.composition import concurrency
-from neptune_fetcher.internal.retrieval import attribute_definitions as att_defs
-from neptune_fetcher.internal.retrieval import util
-from neptune_fetcher.internal.retrieval.attribute_types import TYPE_AGGREGATIONS
+from ..composition import concurrency
+from ..retrieval import attribute_definitions as att_defs
+from ..retrieval import util
+from ..retrieval.attribute_types import TYPE_AGGREGATIONS
 
 
 @dataclass(frozen=True)

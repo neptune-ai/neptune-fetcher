@@ -16,7 +16,7 @@
 import re
 from dataclasses import dataclass
 
-from neptune_fetcher.internal.filters import (
+from .filters import (
     AGGREGATION_LITERAL,
     ATTRIBUTE_LITERAL,
     _Attribute,

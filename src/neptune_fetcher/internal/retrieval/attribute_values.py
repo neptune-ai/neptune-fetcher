@@ -26,15 +26,15 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import QueryAttributesBodyDTO
 from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
-from neptune_fetcher.internal import (
+from .. import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.retrieval import (
+from ..retrieval import (
     retry,
     util,
 )
-from neptune_fetcher.internal.retrieval.attribute_types import (
+from ..retrieval.attribute_types import (
     extract_value,
     map_attribute_type_backend_to_python,
 )

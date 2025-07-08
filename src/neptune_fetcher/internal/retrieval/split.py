@@ -20,11 +20,11 @@ from typing import (
     Iterable,
 )
 
-from neptune_fetcher.internal import (
+from .. import (
     env,
     identifiers,
 )
-from neptune_fetcher.internal.identifiers import RunAttributeDefinition
+from ..identifiers import RunAttributeDefinition
 
 _UUID_SIZE = 50
 
