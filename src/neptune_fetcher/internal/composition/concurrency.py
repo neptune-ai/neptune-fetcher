@@ -30,7 +30,7 @@ from typing import (
     TypeVar,
 )
 
-from neptune_fetcher.internal import env
+from .. import env
 
 T = TypeVar("T")
 R = TypeVar("R")

@@ -22,27 +22,27 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.internal import client as _client
-from neptune_fetcher.internal import context as _context
-from neptune_fetcher.internal import (
+from .. import client as _client
+from .. import context as _context
+from .. import (
     identifiers,
     output_format,
 )
-from neptune_fetcher.internal.composition import attribute_components as _components
-from neptune_fetcher.internal.composition import (
+from ..composition import attribute_components as _components
+from ..composition import (
     concurrency,
     type_inference,
     validation,
 )
-from neptune_fetcher.internal.composition.attributes import AttributeDefinitionAggregation
-from neptune_fetcher.internal.filters import (
+from ..composition.attributes import AttributeDefinitionAggregation
+from ..filters import (
     _Attribute,
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.internal.retrieval import attribute_values as att_vals
-from neptune_fetcher.internal.retrieval import (
+from ..identifiers import ProjectIdentifier
+from ..retrieval import attribute_values as att_vals
+from ..retrieval import (
     search,
     util,
 )

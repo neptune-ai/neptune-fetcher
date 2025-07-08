@@ -20,31 +20,31 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.internal import client as _client
-from neptune_fetcher.internal import (
+from .. import client as _client
+from .. import (
     identifiers,
     output_format,
 )
-from neptune_fetcher.internal.composition import attribute_components as _components
-from neptune_fetcher.internal.composition import (
+from ..composition import attribute_components as _components
+from ..composition import (
     concurrency,
     type_inference,
     validation,
 )
-from neptune_fetcher.internal.context import (
+from ..context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.internal.filters import (
+from ..filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval import (
+from ..retrieval import (
     files,
     search,
 )
-from neptune_fetcher.internal.retrieval.search import ContainerType
+from ..retrieval.search import ContainerType
 
 
 def download_files(

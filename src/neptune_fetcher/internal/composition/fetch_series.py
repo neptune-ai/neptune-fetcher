@@ -21,32 +21,32 @@ from typing import (
 
 import pandas as pd
 
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.client import get_client
-from neptune_fetcher.internal.composition import attribute_components as _components
-from neptune_fetcher.internal.composition import (
+from .. import identifiers
+from ..client import get_client
+from ..composition import attribute_components as _components
+from ..composition import (
     concurrency,
     type_inference,
     validation,
 )
-from neptune_fetcher.internal.context import (
+from ..context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.internal.filters import (
+from ..filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.internal.output_format import create_series_dataframe
-from neptune_fetcher.internal.retrieval import (
+from ..identifiers import ProjectIdentifier
+from ..output_format import create_series_dataframe
+from ..retrieval import (
     search,
     series,
     split,
     util,
 )
-from neptune_fetcher.internal.retrieval.search import ContainerType
+from ..retrieval.search import ContainerType
 
 __all__ = ("fetch_series",)
 

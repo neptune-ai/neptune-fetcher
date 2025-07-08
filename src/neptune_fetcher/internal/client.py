@@ -28,11 +28,11 @@ from typing import (
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 
-from neptune_fetcher.internal.api_utils import (
+from .api_utils import (
     create_auth_api_client,
     get_config_and_token_urls,
 )
-from neptune_fetcher.internal.context import Context
+from .context import Context
 
 # Disable httpx logging, httpx logs requests at INFO level
 logging.getLogger("httpx").setLevel(logging.WARN)

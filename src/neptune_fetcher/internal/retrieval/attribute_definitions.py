@@ -30,14 +30,14 @@ from neptune_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
-from neptune_fetcher.internal import filters  # noqa: E402
-from neptune_fetcher.internal import (  # noqa: E402
+from .. import filters  # noqa: E402
+from .. import (  # noqa: E402
     env,
     identifiers,
 )
-from neptune_fetcher.internal.retrieval import attribute_types as types  # noqa: E402
-from neptune_fetcher.internal.retrieval import util  # noqa: E402
-from neptune_fetcher.internal.retrieval import retry
+from ..retrieval import attribute_types as types  # noqa: E402
+from ..retrieval import util  # noqa: E402
+from ..retrieval import retry
 
 
 def split_attribute_filters(

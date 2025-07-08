@@ -33,7 +33,8 @@ import neptune_api.errors
 from neptune_api.types import Response
 
 from neptune_fetcher import exceptions
-from neptune_fetcher.internal import env
+
+from .. import env
 
 logger = logging.getLogger(__name__)
 

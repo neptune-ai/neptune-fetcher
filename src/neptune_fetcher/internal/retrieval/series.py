@@ -32,12 +32,12 @@ from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
 )
 from neptune_api.types import UNSET
 
-from neptune_fetcher.internal.identifiers import RunAttributeDefinition
-from neptune_fetcher.internal.retrieval import (
+from ..identifiers import RunAttributeDefinition
+from ..retrieval import (
     retry,
     util,
 )
-from neptune_fetcher.internal.retrieval.attribute_types import (
+from ..retrieval.attribute_types import (
     File,
     Histogram,
 )

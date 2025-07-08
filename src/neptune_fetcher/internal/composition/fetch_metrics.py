@@ -23,33 +23,33 @@ from typing import (
 import pandas as pd
 from neptune_api.client import AuthenticatedClient
 
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.client import get_client
-from neptune_fetcher.internal.composition import (
+from .. import identifiers
+from ..client import get_client
+from ..composition import (
     concurrency,
     type_inference,
     validation,
 )
-from neptune_fetcher.internal.composition.attribute_components import fetch_attribute_definitions_split
-from neptune_fetcher.internal.context import (
+from ..composition.attribute_components import fetch_attribute_definitions_split
+from ..context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.internal.filters import (
+from ..filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.internal.retrieval import (
+from ..output_format import create_metrics_dataframe
+from ..retrieval import (
     search,
     split,
 )
-from neptune_fetcher.internal.retrieval.metrics import (
+from ..retrieval.metrics import (
     FloatPointValue,
     fetch_multiple_series_values,
 )
-from neptune_fetcher.internal.retrieval.search import ContainerType
+from ..retrieval.search import ContainerType
 
 __all__ = ("fetch_metrics",)
 

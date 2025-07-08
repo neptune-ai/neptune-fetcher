@@ -21,23 +21,23 @@ from typing import (
     Optional,
 )
 
-from neptune_fetcher.internal import client as _client
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.composition import attribute_components as _components
-from neptune_fetcher.internal.composition import (
+from .. import client as _client
+from .. import identifiers
+from ..composition import attribute_components as _components
+from ..composition import (
     concurrency,
     type_inference,
 )
-from neptune_fetcher.internal.context import (
+from ..context import (
     Context,
     get_context,
     validate_context,
 )
-from neptune_fetcher.internal.filters import (
+from ..filters import (
     _AttributeFilter,
     _Filter,
 )
-from neptune_fetcher.internal.retrieval import (
+from ..retrieval import (
     search,
     util,
 )
