@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Iterable,
     Optional,
+    Sequence,
 )
 
 import neptune_fetcher.internal.env as env
@@ -110,12 +111,17 @@ https://docs.neptune.ai/project_access
 
 
 class AttributeTypeInferenceError(NeptuneError):
-    def __init__(self, attribute_names: Iterable[str]) -> None:
+    def __init__(self, attribute_names: Sequence[str], details: Optional[Iterable[str]] = None) -> None:
+        attribute_str = (
+            f"attribute {attribute_names[0]}"
+            if len(attribute_names) == 1
+            else f"attributes [{', '.join(attribute_names)}]"
+        )
+
         super().__init__(
             """
-{h1}AttributeTypeInferenceError: Failed to infer types for attributes [{attribute_names}]{end}
-
-Neptune found the attribute name in multiple runs, but the attribute type is not the same across all runs.
+{h1}AttributeTypeInferenceError: Failed to infer types for {attribute_names}{end}
+{details}
 To resolve this ambiguity, specify the attribute type explicitly when constructing a filter:
     {python}
     fetch_experiments_table(
@@ -139,7 +145,8 @@ To resolve this ambiguity, specify the attribute type explicitly when constructi
 
 For details, see https://docs.neptune.ai/attribute_types
 """,
-            attribute_names=", ".join(attribute_names),
+            attribute_names=attribute_str,
+            details="\n" + "\n".join(details) if details else "",
         )
 
 
@@ -176,17 +183,18 @@ Response content: {content}
 
 class NeptuneRetryError(NeptuneError):
     def __init__(
-        self, retries: int, last_status_code: Optional[int] = None, last_content: Optional[bytes] = None
+        self, retries: int, time: float, last_status_code: Optional[int] = None, last_content: Optional[bytes] = None
     ) -> None:
         content_str = _decode_content(last_content) if last_content else ""
         super().__init__(
             """
-{h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries.{end}
+{h1}NeptuneRetryError: The Neptune server returned an error after {retries} retries, {time:.2f} seconds.{end}
 
 {status_code_line}
 {content_line}
 """,
             retries=retries,
+            time=time,
             status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
             content_line=f"Last response content: {content_str}" if last_content is not None else "",
         )
