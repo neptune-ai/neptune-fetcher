@@ -7,7 +7,7 @@ from unittest.mock import (
 
 import pytest
 
-from neptune_fetcher import v1 as npt
+import neptune_query as npt
 from neptune_fetcher.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
@@ -18,7 +18,7 @@ from neptune_fetcher.internal.identifiers import (
 )
 from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.search import ExperimentSysAttrs
-from neptune_fetcher.v1.filters import AttributeFilter
+from neptune_query.filters import AttributeFilter
 
 
 @pytest.mark.parametrize(

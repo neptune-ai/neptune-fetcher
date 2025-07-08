@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pytest
 
-import neptune_fetcher.v1.runs as runs
+import neptune_query.runs as runs
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from tests.e2e.v1.generator import (
