@@ -4,8 +4,8 @@ from typing import Iterable
 
 import pytest
 
-from neptune_fetcher.v1 import list_attributes
-from neptune_fetcher.v1.filters import (
+from neptune_query import list_attributes
+from neptune_query.filters import (
     Attribute,
     AttributeFilter,
     Filter,

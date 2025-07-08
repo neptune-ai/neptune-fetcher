@@ -23,8 +23,8 @@ from neptune_fetcher.internal.identifiers import (
 )
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
-from neptune_fetcher.v1 import fetch_metrics
-from neptune_fetcher.v1.filters import (
+from neptune_query import fetch_metrics
+from neptune_query.filters import (
     AttributeFilter,
     Filter,
 )

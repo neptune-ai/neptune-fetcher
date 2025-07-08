@@ -22,8 +22,8 @@ from neptune_fetcher.internal.identifiers import (
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval.series import SeriesValue
-from neptune_fetcher.v1 import fetch_series
-from neptune_fetcher.v1.filters import (
+from neptune_query import fetch_series
+from neptune_query.filters import (
     AttributeFilter,
     Filter,
 )
