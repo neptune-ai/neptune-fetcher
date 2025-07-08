@@ -24,9 +24,9 @@ from typing import (
 
 from neptune_api.client import AuthenticatedClient
 
-import neptune_fetcher.internal.filters as filters
 from neptune_fetcher.internal import (
     env,
+    filters,
     identifiers,
 )
 from neptune_fetcher.internal.composition import concurrency

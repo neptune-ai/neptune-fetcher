@@ -23,7 +23,7 @@ from typing import (
     Sequence,
 )
 
-import neptune_fetcher.internal.env as env
+from neptune_fetcher.internal import env
 
 
 class NeptuneError(Exception):
