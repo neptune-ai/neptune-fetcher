@@ -13,21 +13,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.identifiers import (
-    AttributeDefinition,
-    RunAttributeDefinition,
-    RunIdentifier,
-    SysId,
-)
-from neptune_fetcher.internal.output_format import create_series_dataframe
-from neptune_fetcher.internal.retrieval.series import SeriesValue
 from neptune_query import fetch_series
 from neptune_query.filters import (
     AttributeFilter,
     Filter,
 )
-from tests.e2e.data import (
+from neptune_query.internal import identifiers
+from neptune_query.internal.identifiers import (
+    AttributeDefinition,
+    RunAttributeDefinition,
+    RunIdentifier,
+    SysId,
+)
+from neptune_query.internal.output_format import create_series_dataframe
+from neptune_query.internal.retrieval.series import SeriesValue
+from tests.e2e_query.data import (
     NOW,
     NUMBER_OF_STEPS,
     TEST_DATA,

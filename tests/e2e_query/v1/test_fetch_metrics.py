@@ -14,21 +14,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neptune_fetcher.internal.identifiers import (
+from neptune_query import fetch_metrics
+from neptune_query.filters import (
+    AttributeFilter,
+    Filter,
+)
+from neptune_query.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
     RunAttributeDefinition,
     RunIdentifier,
     SysId,
 )
-from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
-from neptune_query import fetch_metrics
-from neptune_query.filters import (
-    AttributeFilter,
-    Filter,
-)
-from tests.e2e.data import (
+from neptune_query.internal.output_format import create_metrics_dataframe
+from neptune_query.internal.retrieval.metrics import FloatPointValue
+from tests.e2e_query.data import (
     NOW,
     PATH,
     TEST_DATA,
@@ -135,7 +135,7 @@ def test__fetch_metrics_unique(
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    with patch("neptune_fetcher.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
+    with patch("neptune_query.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
         result = fetch_metrics(
             experiments=arg_experiments,
             attributes=arg_attributes,

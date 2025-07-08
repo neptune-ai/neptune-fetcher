@@ -8,7 +8,9 @@ from unittest.mock import (
 import pytest
 
 import neptune_query as npt
-from neptune_fetcher.internal.identifiers import (
+from neptune_query.filters import AttributeFilter
+from neptune_query.internal import context
+from neptune_query.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
     RunAttributeDefinition,
@@ -16,9 +18,8 @@ from neptune_fetcher.internal.identifiers import (
     SysId,
     SysName,
 )
-from neptune_fetcher.internal.retrieval import util
-from neptune_fetcher.internal.retrieval.search import ExperimentSysAttrs
-from neptune_query.filters import AttributeFilter
+from neptune_query.internal.retrieval import util
+from neptune_query.internal.retrieval.search import ExperimentSysAttrs
 
 
 @pytest.mark.parametrize(
@@ -38,14 +39,15 @@ from neptune_query.filters import AttributeFilter
 def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
+    context.set_api_token("irrelevant")
     sys_ids = [SysId(f"{i:0{sys_id_length}d}") for i in range(exp_count)]
 
     # when
     with (
-        patch("neptune_fetcher.internal.client.get_client") as get_client,
-        patch("neptune_fetcher.internal.retrieval.search.fetch_sys_ids") as fetch_sys_ids,
+        patch("neptune_query.internal.client.get_client") as get_client,
+        patch("neptune_query.internal.retrieval.search.fetch_sys_ids") as fetch_sys_ids,
         patch(
-            "neptune_fetcher.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
+            "neptune_query.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
         ) as fetch_attribute_definitions_single_filter,
     ):
         get_client.return_value = None
@@ -104,6 +106,7 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
 def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
+    context.set_api_token("irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -130,12 +133,12 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
 
     # when
     with (
-        patch("neptune_fetcher.internal.client.get_client") as get_client,
-        patch("neptune_fetcher.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
+        patch("neptune_query.internal.client.get_client") as get_client,
+        patch("neptune_query.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
         patch(
-            "neptune_fetcher.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
+            "neptune_query.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
         ) as fetch_attribute_definitions_single_filter,
-        patch("neptune_fetcher.internal.retrieval.attribute_values.fetch_attribute_values") as fetch_attribute_values,
+        patch("neptune_query.internal.retrieval.attribute_values.fetch_attribute_values") as fetch_attribute_values,
     ):
         get_client.return_value = None
         fetch_experiment_sys_attrs.return_value = iter([util.Page(experiments)])
@@ -192,6 +195,7 @@ def test_fetch_experiments_table_patched(sys_id_length, exp_count, attr_name_len
 def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
+    context.set_api_token("irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -208,12 +212,12 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
 
     # when
     with (
-        patch("neptune_fetcher.internal.composition.fetch_series.get_client") as get_client,
-        patch("neptune_fetcher.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
+        patch("neptune_query.internal.composition.fetch_series.get_client") as get_client,
+        patch("neptune_query.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
         patch(
-            "neptune_fetcher.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
+            "neptune_query.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
         ) as fetch_attribute_definitions_single_filter,
-        patch("neptune_fetcher.internal.retrieval.series.fetch_series_values") as fetch_series_values,
+        patch("neptune_query.internal.retrieval.series.fetch_series_values") as fetch_series_values,
     ):
         get_client.return_value = None
         fetch_experiment_sys_attrs.return_value = iter([util.Page(experiments)])
@@ -268,6 +272,7 @@ def test_fetch_series_patched(sys_id_length, exp_count, attr_name_length, attr_c
 def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_count, expected_calls):
     #  given
     project = ProjectIdentifier("project")
+    context.set_api_token("irrelevant")
     experiments = [
         ExperimentSysAttrs(sys_id=SysId(f"{i:0{sys_id_length}d}"), sys_name=SysName("irrelevant"))
         for i in range(exp_count)
@@ -284,13 +289,13 @@ def test_fetch_metrics_patched(sys_id_length, exp_count, attr_name_length, attr_
 
     # when
     with (
-        patch("neptune_fetcher.internal.composition.fetch_metrics.get_client") as get_client,
-        patch("neptune_fetcher.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
+        patch("neptune_query.internal.composition.fetch_metrics.get_client") as get_client,
+        patch("neptune_query.internal.retrieval.search.fetch_experiment_sys_attrs") as fetch_experiment_sys_attrs,
         patch(
-            "neptune_fetcher.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
+            "neptune_query.internal.retrieval.attribute_definitions.fetch_attribute_definitions_single_filter"
         ) as fetch_attribute_definitions_single_filter,
         patch(
-            "neptune_fetcher.internal.composition.fetch_metrics.fetch_multiple_series_values"
+            "neptune_query.internal.composition.fetch_metrics.fetch_multiple_series_values"
         ) as fetch_multiple_series_values,
     ):
         get_client.return_value = None

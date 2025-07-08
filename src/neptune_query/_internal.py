@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-# This module contains utility functions to resolve parameters to public functions from neptune_fetcher.v1
+# This module contains utility functions to resolve parameters to public functions from neptune_query
 # and translates them to internal objects like _Filter and _Attribute that are used in the internal API.
 
 from typing import (
@@ -22,11 +22,11 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.exceptions import NeptuneProjectNotProvided
-from neptune_fetcher.internal import filters as _filters
-from neptune_fetcher.internal.context import get_context
-from neptune_fetcher.internal.identifiers import ProjectIdentifier
 from neptune_query import filters
+from neptune_query.exceptions import NeptuneProjectNotProvided
+from neptune_query.internal import filters as _filters
+from neptune_query.internal.context import get_context
+from neptune_query.internal.identifiers import ProjectIdentifier
 
 
 def resolve_experiments_filter(

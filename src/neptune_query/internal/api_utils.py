@@ -32,8 +32,7 @@ from neptune_api.credentials import Credentials
 from neptune_api.models import ClientConfig
 from neptune_api.types import Response
 
-from neptune_fetcher.exceptions import NeptuneFailedToFetchClientConfig
-
+from ..exceptions import NeptuneFailedToFetchClientConfig
 from .env import (
     NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS,
     NEPTUNE_VERIFY_SSL,

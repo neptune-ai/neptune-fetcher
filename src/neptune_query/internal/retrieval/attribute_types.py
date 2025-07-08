@@ -28,7 +28,7 @@ from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoStringSeriesAttributeDTO,
 )
 
-from neptune_fetcher.exceptions import warn_unsupported_value_type
+from ...exceptions import warn_unsupported_value_type
 
 ALL_TYPES = (
     "float",

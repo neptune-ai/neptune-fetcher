@@ -22,10 +22,10 @@ from typing import (
     Union,
 )
 
-from neptune_fetcher.internal import filters as _filters
-from neptune_fetcher.internal import pattern as _pattern
-from neptune_fetcher.internal.retrieval import attribute_types as types
-from neptune_fetcher.internal.util import (
+from neptune_query.internal import filters as _filters
+from neptune_query.internal import pattern as _pattern
+from neptune_query.internal.retrieval import attribute_types as types
+from neptune_query.internal.util import (
     _validate_allowed_value,
     _validate_list_of_allowed_values,
     _validate_string_or_string_list,
@@ -83,8 +83,8 @@ class AttributeFilter(BaseAttributeFilter):
     Example:
 
     ```
-    import neptune_fetcher.v1 as npt
-    from neptune_fetcher.v1.filters import AttributeFilter
+    import neptune_query as npt
+    from neptune_query.filters import AttributeFilter
 
 
     loss_avg_and_var = AttributeFilter(
@@ -181,8 +181,8 @@ class Attribute:
     Select a metric and pick variance as the aggregation:
 
     ```
-    import neptune_fetcher.v1 as npt
-    from neptune_fetcher.v1.filters import Attribute, Filter
+    import neptune_query as npt
+    from neptune_query.filters import Attribute, Filter
 
 
     val_loss_variance = Attribute(
@@ -242,8 +242,8 @@ class Filter:
     Examples:
 
     ```
-    import neptune_fetcher.v1 as npt
-    from neptune_fetcher.v1.filters import Filter
+    import neptune_query as npt
+    from neptune_query.filters import Filter
 
     # Fetch metadata from specific experiments
     specific_experiments = Filter.name(["flying-123", "swimming-77"])
