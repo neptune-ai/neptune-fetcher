@@ -26,7 +26,7 @@ from neptune_fetcher.exceptions import NeptuneProjectNotProvided
 from neptune_fetcher.internal import filters as _filters
 from neptune_fetcher.internal.context import get_context
 from neptune_fetcher.internal.identifiers import ProjectIdentifier
-from neptune_fetcher.v1 import filters
+from neptune_query import filters
 
 
 def resolve_experiments_filter(

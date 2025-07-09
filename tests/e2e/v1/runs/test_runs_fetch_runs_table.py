@@ -7,8 +7,8 @@ from datetime import (
 import pandas as pd
 import pytest
 
-import neptune_fetcher.v1.runs as runs
-from neptune_fetcher.v1.filters import (
+import neptune_query.runs as runs
+from neptune_query.filters import (
     Attribute,
     AttributeFilter,
     Filter,

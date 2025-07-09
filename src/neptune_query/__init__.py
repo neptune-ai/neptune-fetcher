@@ -39,8 +39,8 @@ from neptune_fetcher.internal.composition import list_attributes as _list_attrib
 from neptune_fetcher.internal.composition import list_containers as _list_containers
 from neptune_fetcher.internal.context import set_api_token
 from neptune_fetcher.internal.retrieval import search as _search
-from neptune_fetcher.v1 import filters
-from neptune_fetcher.v1._internal import (
+from neptune_query import filters
+from neptune_query._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
     resolve_experiments_filter,

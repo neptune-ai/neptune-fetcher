@@ -4,11 +4,11 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from neptune_fetcher.v1 import (
+from neptune_query import (
     fetch_experiments_table,
     list_experiments,
 )
-from neptune_fetcher.v1.filters import (
+from neptune_query.filters import (
     Attribute,
     AttributeFilter,
     Filter,
