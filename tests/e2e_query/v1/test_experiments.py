@@ -13,7 +13,7 @@ from neptune_query.filters import (
     AttributeFilter,
     Filter,
 )
-from tests.e2e.data import (
+from tests.e2e_query.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     STRING_SERIES_PATHS,

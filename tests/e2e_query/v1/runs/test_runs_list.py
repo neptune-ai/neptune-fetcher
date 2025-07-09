@@ -7,7 +7,7 @@ from neptune_query.filters import (
     Attribute,
     Filter,
 )
-from tests.e2e.v1.generator import (
+from tests.e2e_query.v1.generator import (
     ALL_STATIC_RUNS,
     LINEAR_HISTORY_TREE,
 )

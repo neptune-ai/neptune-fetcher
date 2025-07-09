@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 
 import neptune_query.runs as runs
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.output_format import create_metrics_dataframe
-from tests.e2e.v1.generator import (
+from neptune_query.internal import identifiers
+from neptune_query.internal.output_format import create_metrics_dataframe
+from tests.e2e_query.v1.generator import (
     RUN_BY_ID,
     timestamp_for_step,
 )

@@ -32,13 +32,6 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_fetcher.internal.composition import fetch_metrics as _fetch_metrics
-from neptune_fetcher.internal.composition import fetch_series as _fetch_series
-from neptune_fetcher.internal.composition import fetch_table as _fetch_table
-from neptune_fetcher.internal.composition import list_attributes as _list_attributes
-from neptune_fetcher.internal.composition import list_containers as _list_containers
-from neptune_fetcher.internal.context import set_api_token
-from neptune_fetcher.internal.retrieval import search as _search
 from neptune_query import filters
 from neptune_query._internal import (
     get_default_project_identifier,
@@ -46,6 +39,13 @@ from neptune_query._internal import (
     resolve_experiments_filter,
     resolve_sort_by,
 )
+from neptune_query.internal.composition import fetch_metrics as _fetch_metrics
+from neptune_query.internal.composition import fetch_series as _fetch_series
+from neptune_query.internal.composition import fetch_table as _fetch_table
+from neptune_query.internal.composition import list_attributes as _list_attributes
+from neptune_query.internal.composition import list_containers as _list_containers
+from neptune_query.internal.context import set_api_token
+from neptune_query.internal.retrieval import search as _search
 
 
 def list_experiments(
