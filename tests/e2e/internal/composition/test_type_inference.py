@@ -187,6 +187,74 @@ def test_infer_attribute_types_in_filter_single(
 
 
 @pytest.mark.parametrize(
+    "filter_before, filter_after",
+    [
+        (
+            _Filter.eq("sys/name", "n"),
+            _Filter.eq(_Attribute("sys/name", type="string"), "n"),
+        ),
+        (
+            _Filter.eq("sys/id", "id"),
+            _Filter.eq(_Attribute("sys/id", type="string"), "id"),
+        ),
+        (
+            _Filter.eq("sys/modification_time", DATETIME_VALUE),
+            _Filter.eq(_Attribute("sys/modification_time", type="datetime"), DATETIME_VALUE),
+        ),
+        (
+            _Filter.eq("sys/owner", "owner"),
+            _Filter.eq(_Attribute("sys/owner", type="string"), "owner"),
+        ),
+        (
+            _Filter.eq("sys/family", "family"),
+            _Filter.eq(_Attribute("sys/family", type="string"), "family"),
+        ),
+        (
+            _Filter.eq("sys/custom_run_id", "custom_run_id"),
+            _Filter.eq(_Attribute("sys/custom_run_id", type="string"), "custom_run_id"),
+        ),
+        (
+            _Filter.eq("sys/archived", True),
+            _Filter.eq(_Attribute("sys/archived", type="bool"), True),
+        ),
+        (
+            _Filter.eq("sys/creation_time", DATETIME_VALUE),
+            _Filter.eq(_Attribute("sys/creation_time", type="datetime"), DATETIME_VALUE),
+        ),
+        (
+            _Filter.eq("sys/experiment/name", "experiment_name"),
+            _Filter.eq(_Attribute("sys/experiment/name", type="string"), "experiment_name"),
+        ),
+        (
+            _Filter.eq("sys/experiment/running_time_seconds", 10.0),
+            _Filter.eq(_Attribute("sys/experiment/running_time_seconds", type="float"), 10.0),
+        ),
+    ],
+)
+def test_infer_attribute_types_in_filter_sys(
+    client, executor, project, run_with_attributes, filter_before, filter_after
+):
+    # given
+    project_identifier = project.project_identifier
+
+    #  when
+    result = infer_attribute_types_in_filter(
+        client,
+        project_identifier,
+        filter_before,
+        executor,
+        executor,
+    )
+
+    # then
+    assert filter_before != filter_after
+    assert result.result == filter_after
+    assert not result.is_run_domain_empty()
+    result.raise_if_incomplete()
+    assert all(attr.success_details == "Inferred as a known system attribute" for attr in result.attributes)
+
+
+@pytest.mark.parametrize(
     "attribute_before, attribute_after",
     [
         (_Attribute(f"{PATH}/int-value"), _Attribute(f"{PATH}/int-value", type="int")),
