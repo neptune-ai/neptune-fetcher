@@ -46,6 +46,7 @@ KNOWN_TYPES = frozenset(
         "string_series",
         "file",
         "histogram_series",
+        "file_series",
     }
 )
 AGGREGATION_LAST = ("last",)
@@ -101,9 +102,9 @@ class AttributeFilter(BaseAttributeFilter):
     # fmt: off
     name: Union[str, list[str], None] = None
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         list[
-            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         ],
         None,
     ] = None
@@ -198,7 +199,7 @@ class Attribute:
     # fmt: off
     name: str
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         None,
     ] = None
     # fmt: on

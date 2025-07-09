@@ -1,6 +1,4 @@
 import os
-import re
-from dataclasses import dataclass
 from datetime import timedelta
 
 import pytest
@@ -20,20 +18,6 @@ from tests.e2e.data import (
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
-
-@dataclass
-class FileMatcher:
-    path_pattern: str
-    size_bytes: int
-    mime_type: str
-
-    def __eq__(self, other):
-        return (
-            self.size_bytes == other.size_bytes
-            and self.mime_type == other.mime_type
-            and re.search(self.path_pattern, other.path) is not None
-        )
 
 
 def test_fetch_series_values_does_not_exist(client, project, experiment_identifier):
@@ -63,18 +47,7 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (
-            FILE_SERIES_PATHS[0],
-            "file_series",
-            [
-                FileMatcher(
-                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
-                    size_bytes=len(value),
-                    mime_type="application/octet-stream",
-                )
-                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
-            ],
-        ),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
     ],
 )
 def test_fetch_series_values_single_series(
@@ -110,18 +83,7 @@ def test_fetch_series_values_single_series(
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (
-            FILE_SERIES_PATHS[0],
-            "file_series",
-            [
-                FileMatcher(
-                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
-                    size_bytes=len(value),
-                    mime_type="application/octet-stream",
-                )
-                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
-            ],
-        ),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
     ],
 )
 @pytest.mark.parametrize(
@@ -175,18 +137,7 @@ def test_fetch_series_values_single_series_stop_range(
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (
-            FILE_SERIES_PATHS[0],
-            "file_series",
-            [
-                FileMatcher(
-                    path_pattern=FILE_SERIES_PATHS[0].rsplit("/", 1)[-1],
-                    size_bytes=len(value),
-                    mime_type="application/octet-stream",
-                )
-                for value in TEST_DATA.experiments[0].file_series[FILE_SERIES_PATHS[0]]
-            ],
-        ),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
     ],
 )
 @pytest.mark.parametrize(

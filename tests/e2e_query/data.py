@@ -1,5 +1,6 @@
 import itertools
 import random
+import re
 import uuid
 from dataclasses import (
     dataclass,
@@ -16,7 +17,7 @@ from neptune_scale.types import Histogram as ScaleHistogram
 
 from neptune_query.internal.retrieval.attribute_types import Histogram as FetcherHistogram
 
-TEST_DATA_VERSION = "2025-06-27"
+TEST_DATA_VERSION = "2025-06-28"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -25,6 +26,20 @@ HISTOGRAM_SERIES_PATHS = [f"{PATH}/metrics/histogram-series-value_{j}" for j in 
 NUMBER_OF_STEPS = 10
 MAX_PATH_LENGTH = 1024
 FILE_SERIES_STEPS = 3
+
+
+@dataclass
+class FileMatcher:
+    path_pattern: str
+    size_bytes: int
+    mime_type: str
+
+    def __eq__(self, other):
+        return (
+            self.size_bytes == other.size_bytes
+            and self.mime_type == other.mime_type
+            and re.search(self.path_pattern, other.path) is not None
+        )
 
 
 @dataclass
@@ -65,6 +80,17 @@ class ExperimentData:
         return {
             key: [FetcherHistogram(type="COUNTING", edges=value.bin_edges, values=value.counts) for value in values]
             for key, values in self.histogram_series.items()
+        }
+
+    def fetcher_file_series(self) -> dict[str, list[FileMatcher]]:
+        return {
+            key: [
+                FileMatcher(
+                    path_pattern=key.rsplit("/", 1)[-1], mime_type="application/octet-stream", size_bytes=len(value)
+                )
+                for value in values
+            ]
+            for key, values in self.file_series.items()
         }
 
 
