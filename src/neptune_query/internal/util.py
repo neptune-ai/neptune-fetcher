@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import (
+    Any,
     Collection,
     Optional,
     Sequence,
@@ -40,9 +41,14 @@ def _validate_string_list(value: Optional[list[str]], field_name: str, disallow_
             raise ValueError(msg)
 
 
+def _is_string_sequence(seq: Any) -> bool:
+    # Since string is itself a sequence, we need to if the sequence is not a string
+    return isinstance(seq, Sequence) and not isinstance(seq, str) and all(isinstance(item, str) for item in seq)
+
+
 def _validate_list_of_allowed_values(value: Sequence[str], allowed_values: Collection[str], field_name: str) -> None:
     """Validate that a value is a list containing only allowed values."""
-    if not isinstance(value, Sequence) or not all(isinstance(v, str) and v in allowed_values for v in value):
+    if not _is_string_sequence(value) or any(v not in allowed_values for v in value):
         raise ValueError(f"{field_name} must be a list of valid values: {sorted(allowed_values)} (got {value!r})")
 
 
