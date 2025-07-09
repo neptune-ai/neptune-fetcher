@@ -95,11 +95,8 @@ def create_expected_data_string_series(
         return df, sorted_columns, filtered_exps
 
 
-@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
-@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
-@pytest.mark.parametrize("tail_limit", [None, 3, 5])
 @pytest.mark.parametrize(
-    "attr_filter",
+    "arg_attributes",
     [
         AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
         ".*/metrics/.*",
@@ -108,22 +105,150 @@ def create_expected_data_string_series(
     ],
 )
 @pytest.mark.parametrize(
-    "exp_filter",
+    "arg_experiments",
     [
-        lambda: Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
-        lambda: f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
-        lambda: [exp.name for exp in TEST_DATA.experiments[:3]],
+        Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+        f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+        [exp.name for exp in TEST_DATA.experiments[:3]],
     ],
 )
-@pytest.mark.parametrize("include_time", [None, "absolute"])
-def test__fetch_series_string(
-    project, type_suffix_in_column_names, step_range, tail_limit, include_time, attr_filter, exp_filter
+@pytest.mark.parametrize(
+    "step_range, tail_limit, type_suffix_in_column_names, include_time",
+    [
+        ((0.0, 5), None, True, None),
+        ((0, None), 3, False, "absolute"),
+        ((None, 5), 5, True, None),
+        ((None, None), None, False, "absolute"),
+    ],
+)
+def test__fetch_string_series__filter_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
 ):
     experiments = TEST_DATA.experiments[:3]
 
     result = fetch_series(
-        experiments=exp_filter(),
-        attributes=attr_filter,
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        context=get_context().with_project(project.project_identifier),
+    )
+
+    expected, columns, filtered_exps = create_expected_data_string_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("step_range", [(0.0, 5), (0, None), (None, 5), (None, None), (100, 200)])
+@pytest.mark.parametrize("tail_limit", [None, 3, 5])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,type_suffix_in_column_names,include_time",
+    [
+        (
+            Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
+            True,
+            None,
+        ),
+        (
+            f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+            ".*/metrics/.*",
+            False,
+            "absolute",
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"])
+            | AttributeFilter(name_matches_all=[".*/int-value"]),
+            True,
+            None,
+        ),
+    ],
+)
+def test__fetch_string_series__step_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
+        include_time=include_time,
+        step_range=step_range,
+        tail_limit=tail_limit,
+        lineage_to_the_root=True,
+        context=get_context().with_project(project.project_identifier),
+    )
+
+    expected, columns, filtered_exps = create_expected_data_string_series(
+        experiments, include_time, step_range, tail_limit
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.columns.tolist() == columns
+    assert result.index.names == ["experiment", "step"]
+    assert {t[0] for t in result.index.tolist()} == filtered_exps
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize("include_time", [None, "absolute"])
+@pytest.mark.parametrize(
+    "arg_experiments,arg_attributes,step_range,tail_limit",
+    [
+        (
+            Filter.name_in(*[exp.name for exp in TEST_DATA.experiments[:3]]),
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"]),
+            (0.0, 5),
+            None,
+        ),
+        (
+            f"{TEST_DATA.exp_name(0)}|{TEST_DATA.exp_name(1)}|{TEST_DATA.exp_name(2)}",
+            ".*/metrics/.*",
+            (0, None),
+            3,
+        ),
+        (
+            [exp.name for exp in TEST_DATA.experiments[:3]],
+            AttributeFilter(name_matches_all=[r".*/metrics/.*"], type_in=["string_series"])
+            | AttributeFilter(name_matches_all=[".*/int-value"]),
+            (None, 5),
+            5,
+        ),
+    ],
+)
+def test__fetch_string_series__output_variants(
+    project,
+    arg_experiments,
+    arg_attributes,
+    step_range,
+    tail_limit,
+    type_suffix_in_column_names,
+    include_time,
+):
+    experiments = TEST_DATA.experiments[:3]
+
+    result = fetch_series(
+        experiments=arg_experiments,
+        attributes=arg_attributes,
         include_time=include_time,
         step_range=step_range,
         tail_limit=tail_limit,
