@@ -224,6 +224,47 @@ def test__fetch_experiments_table_with_attributes_filter_for_histogram_series(
 @pytest.mark.parametrize(
     "attr_filter",
     [
+        AttributeFilter(f"{PATH}/files/file-series-value_0", type=["file_series"])
+        | AttributeFilter(f"{PATH}/files/file-series-value_1", type=["file_series"])
+    ],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_file_series(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name(exp.name for exp in TEST_DATA.experiments[:1]),
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+    )
+
+    suffix = ":file_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:1]],
+            f"{PATH}/files/file-series-value_0"
+            + suffix: [
+                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_0"][-1]
+                for i in range(1)
+            ],
+            f"{PATH}/files/file-series-value_1"
+            + suffix: [
+                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_1"][-1]
+                for i in range(1)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    assert df.shape == expected.shape
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
         AttributeFilter(name=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}"),
         AttributeFilter(name=f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]} & !.*value_[5-9].*"),
         f"{PATH}/metrics/step|{FLOAT_SERIES_PATHS[0]}|{FLOAT_SERIES_PATHS[1]}",
@@ -433,6 +474,10 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
         ),
         # ( # todo: histogram_series not supported yet in the nql
         #     Filter.exists(Attribute(HISTOGRAM_SERIES_PATHS[0], type="histogram_series")),
+        #     TEST_DATA.experiment_names,
+        # ),
+        # ( # todo: histogram_series not supported yet in the nql
+        #     Filter.exists(Attribute(FILE_SERIES_PATHS[0], type="file_series")),
         #     TEST_DATA.experiment_names,
         # ),
     ],
