@@ -9,15 +9,12 @@ style = "semver"
 pattern = "default-unprefixed"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 
 # Base neptune package
 neptune-api = ">=0.17.0,<0.19.0"
 azure-storage-blob = "^12.7.0"
-pandas = [
-    { version = ">=1.4.0,<2.3.0", python = "<3.10" },
-    { version = ">=1.4.0", python = ">=3.10" }
-]
+pandas = ">=1.4.0"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
@@ -29,7 +26,7 @@ repository = "https://github.com/neptune-ai/neptune-fetcher"
 homepage = "https://neptune.ai/"
 documentation = "https://docs.neptune.ai/"
 license = "Apache License 2.0"
-name = "neptune-fetcher"
+name = "neptune-query"
 readme = "README.md"
 version = "0.1.0"
 classifiers = [
@@ -55,7 +52,7 @@ keywords = [
     "ML Metadata Store",
 ]
 packages = [
-    { include = "neptune_fetcher", from = "src" },
+    { include = "neptune_query", from = "src" },
 ]
 
 [tool.poetry.urls]
@@ -88,7 +85,7 @@ extend-ignore = "E203"
 
 [tool.mypy]
 mypy_path = "src/"
-packages = "neptune_fetcher.alpha"
+packages = "neptune_query"
 follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"
