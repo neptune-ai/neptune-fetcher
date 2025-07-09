@@ -1,0 +1,20 @@
+name: Sync all main commits to branch neptune-query
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-to-neptune-query:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync the commit to branch neptune-query
+        run: bash .github/scripts/sync-main-to-neptune-query.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+permissions:
+  contents: write  # Needed to push git changes

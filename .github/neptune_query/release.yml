@@ -1,0 +1,81 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build-neptune-query:
+    runs-on: tools-gha-runners
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install build dependencies
+        run: pip install poetry poetry-dynamic-versioning
+
+      - name: Build package
+        run: |
+          # TODO: Remove this workaround once https://github.com/orgs/community/discussions/4924 gets resolved
+          # poetry-dynamic-versioning requires annotated tags to them by creation time
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          echo "VERSION=${VERSION}"
+          POETRY_DYNAMIC_VERSIONING_BYPASS="$VERSION" poetry build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neptune-query-package
+          path: dist/
+
+  test-install:
+    needs: [ build-neptune-query ]
+    runs-on: tools-gha-runners
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: neptune-query-package
+          path: dist
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install neptune-query package
+        run: pip install --force-reinstall --pre -f ./dist neptune-query
+
+      - name: List dependencies
+        run: pip list
+
+      - name: Test imports
+        run: python -c "from neptune_query import *"
+
+  publish-neptune-query:
+    needs:
+      - build-neptune-query
+      - test-install
+    runs-on: tools-gha-runners
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: neptune-query-package
+          path: dist/
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Uploading to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN_NEPTUNE_QUERY }}
