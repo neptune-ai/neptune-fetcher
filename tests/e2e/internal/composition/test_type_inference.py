@@ -44,7 +44,7 @@ def run_with_attributes(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            _Filter.name_in(EXPERIMENT_NAME),
+            _Filter.name_eq(EXPERIMENT_NAME),
         )
     )
     if existing.items:
@@ -92,7 +92,7 @@ def run_with_attributes_b(client, project):
         fetch_experiment_sys_attrs(
             client,
             identifiers.ProjectIdentifier(project_identifier),
-            _Filter.name_in(EXPERIMENT_NAME_B),
+            _Filter.name_eq(EXPERIMENT_NAME_B),
         )
     )
     if existing.items:
@@ -250,7 +250,7 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
     "attribute,experiment_filter",
     [
         (_Attribute(f"{PATH}/does-not-exist"), None),
-        (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_in(EXPERIMENT_NAME)),
+        (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_eq(EXPERIMENT_NAME)),
     ],
 )
 def test_infer_attribute_types_in_sort_by_missing_attribute(client, executor, project, attribute, experiment_filter):
@@ -373,7 +373,7 @@ def test_infer_attribute_types_in_filter_conflicting_types_int_float(
         (_Attribute(f"{PATH}/conflicting-type-int-str-value"), None),
         (
             _Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            _Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
+            _Filter.any([_Filter.name_eq(EXPERIMENT_NAME), _Filter.name_eq(EXPERIMENT_NAME_B)]),
         ),
     ],
 )
@@ -409,7 +409,7 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_string(
         (_Attribute(f"{PATH}/conflicting-type-int-float-value"), None),
         (
             _Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            _Filter.name_in(EXPERIMENT_NAME, EXPERIMENT_NAME_B),
+            _Filter.any([_Filter.name_eq(EXPERIMENT_NAME), _Filter.name_eq(EXPERIMENT_NAME_B)]),
         ),
     ],
 )
@@ -444,22 +444,22 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_float(
     [
         (
             _Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            _Filter.name_in(EXPERIMENT_NAME),
+            _Filter.name_eq(EXPERIMENT_NAME),
             _Attribute(f"{PATH}/conflicting-type-int-str-value", type="int"),
         ),
         (
             _Attribute(f"{PATH}/conflicting-type-int-str-value"),
-            _Filter.name_in(EXPERIMENT_NAME_B),
+            _Filter.name_eq(EXPERIMENT_NAME_B),
             _Attribute(f"{PATH}/conflicting-type-int-str-value", type="string"),
         ),
         (
             _Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            _Filter.name_in(EXPERIMENT_NAME),
+            _Filter.name_eq(EXPERIMENT_NAME),
             _Attribute(f"{PATH}/conflicting-type-int-float-value", type="int"),
         ),
         (
             _Attribute(f"{PATH}/conflicting-type-int-float-value"),
-            _Filter.name_in(EXPERIMENT_NAME_B),
+            _Filter.name_eq(EXPERIMENT_NAME_B),
             _Attribute(f"{PATH}/conflicting-type-int-float-value", type="float"),
         ),
     ],

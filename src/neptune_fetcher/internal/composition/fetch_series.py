@@ -66,7 +66,7 @@ def fetch_series(
     validation.validate_step_range(step_range)
     validation.validate_tail_limit(tail_limit)
     validation.validate_include_time(include_time)
-    attributes = validation.restrict_attribute_filter_type(attributes, type_in="string_series")
+    attributes = validation.restrict_attribute_filter_type(attributes, type_in={"string_series", "histogram_series"})
 
     valid_context = validate_context(context or get_context())
     client = get_client(context=valid_context)

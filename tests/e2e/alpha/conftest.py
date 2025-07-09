@@ -66,7 +66,7 @@ def new_project_id(client: AuthenticatedClient):
 
     # TODO: account for the case where the file is owned by another user or otherwise not writable
     # TODO: Append a suffix (user id / user name), try path in HOME and project root
-    lockfile_path = Path(tempfile.gettempdir()) / "neptune_e2e.lock"
+    lockfile_path = Path(tempfile.gettempdir()) / "neptune_e2e_alpha.lock"
 
     try:
         with filelock.FileLock(lockfile_path, timeout=300):

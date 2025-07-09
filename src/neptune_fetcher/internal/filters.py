@@ -87,11 +87,6 @@ class _AttributeFilter(_BaseAttributeFilter):
         "string_series", "file"]]):
             A list of allowed attribute types. Defaults to all available types.
             For a reference, see: https://docs.neptune.ai/attribute_types
-        name_matches_all (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            name must match. If `None`, this filter is not applied.
-        name_matches_none (Union[str, list[str], None]): A regular expression or list of expressions that the attribute
-            names mustn't match. Attributes matching any of the regexes are excluded.
-            If `None`, this filter is not applied.
         must_match_any (Optional[list[_AttributeNameFilter]]):
             If `None`, this filter is not applied. Otherwise, it's a list of `_AttributeNameFilter` instances.
             Each instance specifies a set of regexes that the attribute name must match or not match.
@@ -369,14 +364,6 @@ class _Filter(ABC):
     def name_eq(name: str) -> "_Filter":
         name_attribute = _Attribute(name="sys/name", type="string")
         return _Filter.eq(name_attribute, name)
-
-    @staticmethod
-    def name_in(*names: str) -> "_Filter":
-        if len(names) == 1:
-            return _Filter.name_eq(names[0])
-        else:
-            filters = [_Filter.name_eq(name) for name in names]
-            return _Filter.any(filters)
 
     @abc.abstractmethod
     def to_query(self) -> str:

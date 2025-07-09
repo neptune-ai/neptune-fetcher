@@ -11,15 +11,15 @@ from neptune_scale import Run
 
 from neptune_fetcher import ReadOnlyProject
 from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.api_utils import (
+    create_auth_api_client,
+    get_config_and_token_urls,
+)
 from neptune_fetcher.internal.composition import concurrency
 from neptune_fetcher.internal.context import set_project
 from neptune_fetcher.internal.filters import _Filter
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
-from neptune_fetcher.util import (
-    create_auth_api_client,
-    get_config_and_token_urls,
-)
 from tests.e2e.data import (
     FILE_SERIES_STEPS,
     NOW,
@@ -76,7 +76,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project_id),
-                _Filter.name_in(experiment.name),
+                _Filter.name_eq(experiment.name),
             )
         )
         if existing.items:
@@ -123,7 +123,7 @@ def run_with_attributes(project, client):
             fetch_experiment_sys_attrs(
                 client,
                 identifiers.ProjectIdentifier(project.project_identifier),
-                _Filter.name_in(*TEST_DATA.experiment_names),
+                _Filter.any([_Filter.name_eq(experiment_name) for experiment_name in TEST_DATA.experiment_names]),
             )
         )
 
@@ -142,7 +142,9 @@ def experiment_identifiers(client, project, run_with_attributes) -> list[RunIden
 
     project_identifier = project.project_identifier
 
-    experiment_filter = _Filter.name_in(*TEST_DATA.experiment_names)
+    experiment_filter = _Filter.any(
+        [_Filter.name_eq(experiment_name) for experiment_name in TEST_DATA.experiment_names]
+    )
     experiment_attrs = extract_pages(
         fetch_experiment_sys_attrs(client, project_identifier=project_identifier, filter_=experiment_filter)
     )

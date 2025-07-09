@@ -35,9 +35,13 @@ from neptune_fetcher.internal.util import (
     _validate_string_or_string_list,
 )
 
-__all__ = ["Filter", "AttributeFilter", "Attribute"]
+__all__ = ["Filter", "AttributeFilter", "Attribute", "KNOWN_TYPES"]
 
 
+KNOWN_TYPES = frozenset(
+    {"float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file"}
+)
+ALL_AGGREGATIONS = types.FLOAT_SERIES_AGGREGATIONS | types.STRING_SERIES_AGGREGATIONS
 ATTRIBUTE_LITERAL = Literal[
     "float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series", "file"
 ]
@@ -97,7 +101,7 @@ class AttributeFilter(BaseAttributeFilter):
     """
 
     name_eq: Union[str, list[str], None] = None
-    type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(types.ALL_TYPES))  # type: ignore
+    type_in: list[ATTRIBUTE_LITERAL] = field(default_factory=lambda: list(KNOWN_TYPES))  # type: ignore
     name_matches_all: Union[str, list[str], None] = None
     name_matches_none: Union[str, list[str], None] = None
     aggregations: list[AGGREGATION_LITERAL] = field(default_factory=lambda: ["last"])
@@ -107,8 +111,8 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_string_or_string_list(self.name_matches_all, "name_matches_all")
         _validate_string_or_string_list(self.name_matches_none, "name_matches_none")
 
-        _validate_list_of_allowed_values(self.type_in, types.ALL_TYPES, "type_in")
-        _validate_list_of_allowed_values(self.aggregations, types.ALL_AGGREGATIONS, "aggregations")
+        _validate_list_of_allowed_values(self.type_in, KNOWN_TYPES, "type_in")
+        _validate_list_of_allowed_values(self.aggregations, ALL_AGGREGATIONS, "aggregations")
 
     def _to_internal(self) -> _filters._AttributeFilter:
         matches_all = [self.name_matches_all] if isinstance(self.name_matches_all, str) else self.name_matches_all
@@ -186,8 +190,8 @@ class Attribute:
     type: Optional[ATTRIBUTE_LITERAL] = None
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.aggregation, types.ALL_AGGREGATIONS, "aggregation")
-        _validate_allowed_value(self.type, types.ALL_TYPES, "type")
+        _validate_allowed_value(self.aggregation, ALL_AGGREGATIONS, "aggregation")
+        _validate_allowed_value(self.type, KNOWN_TYPES, "type")
 
     def to_query(self) -> str:
         query = f"`{self.name}`"
