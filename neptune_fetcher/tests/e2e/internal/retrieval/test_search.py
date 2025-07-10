@@ -8,6 +8,14 @@ from typing import Generator
 
 import pytest
 import pytz
+from e2e.data import (
+    FILE_SERIES_PATHS,
+    FLOAT_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
+    PATH,
+    STRING_SERIES_PATHS,
+    TEST_DATA,
+)
 
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.internal.filters import (
@@ -19,14 +27,6 @@ from neptune_fetcher.internal.retrieval import util
 from neptune_fetcher.internal.retrieval.search import (
     ExperimentSysAttrs,
     fetch_experiment_sys_attrs,
-)
-from tests.e2e.data import (
-    FILE_SERIES_PATHS,
-    FLOAT_SERIES_PATHS,
-    HISTOGRAM_SERIES_PATHS,
-    PATH,
-    STRING_SERIES_PATHS,
-    TEST_DATA,
 )
 
 try:

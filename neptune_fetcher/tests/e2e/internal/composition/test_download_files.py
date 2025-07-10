@@ -4,6 +4,10 @@ import tempfile
 
 import pandas as pd
 import pytest
+from e2e.data import (
+    PATH,
+    TEST_DATA,
+)
 
 from neptune_fetcher.internal.composition.download_files import download_files
 from neptune_fetcher.internal.filters import (
@@ -11,10 +15,6 @@ from neptune_fetcher.internal.filters import (
     _Filter,
 )
 from neptune_fetcher.internal.retrieval.search import ContainerType
-from tests.e2e.data import (
-    PATH,
-    TEST_DATA,
-)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = TEST_DATA.experiment_names[0]

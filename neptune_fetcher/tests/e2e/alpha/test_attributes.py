@@ -3,19 +3,19 @@ import os
 from typing import Iterable
 
 import pytest
+from e2e.data import (
+    FLOAT_SERIES_PATHS,
+    PATH,
+    STRING_SERIES_PATHS,
+    TEST_DATA,
+    TEST_DATA_VERSION,
+)
 
 from neptune_fetcher.alpha import list_attributes
 from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
     Filter,
-)
-from tests.e2e.data import (
-    FLOAT_SERIES_PATHS,
-    PATH,
-    STRING_SERIES_PATHS,
-    TEST_DATA,
-    TEST_DATA_VERSION,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")

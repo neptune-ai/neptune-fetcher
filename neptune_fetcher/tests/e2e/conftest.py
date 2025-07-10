@@ -5,6 +5,12 @@ from concurrent.futures import Executor
 from datetime import timedelta
 
 import pytest
+from e2e.data import (
+    FILE_SERIES_STEPS,
+    NOW,
+    PATH,
+    TEST_DATA,
+)
 from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 from neptune_scale import Run
@@ -20,12 +26,6 @@ from neptune_fetcher.internal.context import set_project
 from neptune_fetcher.internal.filters import _Filter
 from neptune_fetcher.internal.identifiers import RunIdentifier
 from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
-from tests.e2e.data import (
-    FILE_SERIES_STEPS,
-    NOW,
-    PATH,
-    TEST_DATA,
-)
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
 

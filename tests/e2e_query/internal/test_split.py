@@ -318,4 +318,4 @@ def test_fetch_float_series_values_composition(client, project, experiment_ident
 
 def _attribute_filter(name, limit):
     id_regex = "|".join(str(n) for n in range(limit))
-    return AttributeFilter(name_matches_all=f"^{PATH}/long/{name}-0+0({id_regex})$")
+    return AttributeFilter(name=f"^{PATH}/long/{name}-0+0({id_regex})$")

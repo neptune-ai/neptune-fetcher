@@ -7,6 +7,7 @@ from datetime import (
 )
 
 import pytest
+from e2e.conftest import extract_pages
 
 from neptune_fetcher.internal.composition.attributes import fetch_attribute_definitions
 from neptune_fetcher.internal.filters import (
@@ -17,7 +18,6 @@ from neptune_fetcher.internal.identifiers import (
     AttributeDefinition,
     RunIdentifier,
 )
-from tests.e2e.conftest import extract_pages
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"

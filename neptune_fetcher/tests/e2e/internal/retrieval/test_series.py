@@ -2,19 +2,19 @@ import os
 from datetime import timedelta
 
 import pytest
-
-from neptune_fetcher.internal.identifiers import AttributeDefinition
-from neptune_fetcher.internal.retrieval.series import (
-    RunAttributeDefinition,
-    fetch_series_values,
-)
-from tests.e2e.conftest import extract_pages
-from tests.e2e.data import (
+from e2e.conftest import extract_pages
+from e2e.data import (
     FILE_SERIES_PATHS,
     HISTOGRAM_SERIES_PATHS,
     NOW,
     STRING_SERIES_PATHS,
     TEST_DATA,
+)
+
+from neptune_fetcher.internal.identifiers import AttributeDefinition
+from neptune_fetcher.internal.retrieval.series import (
+    RunAttributeDefinition,
+    fetch_series_values,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")

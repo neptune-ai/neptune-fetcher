@@ -40,14 +40,19 @@ trap cleanup SIGINT SIGTERM EXIT ERR
 run_tests() {
   export NEPTUNE_E2E_PROJECT_PREPOPULATED="$NEPTUNE_WORKSPACE/$PROJECT"
 
+  # Our setup script requires neptune_fetcher, which is unfortunate...
+  # TODO: rewrite test setup
+
+  UV_PYTHON="uv run --no-project --with=ipython,neptune_fetcher,neptune_scale"
+
   echo "Creating project $NEPTUNE_E2E_PROJECT_PREPOPULATED"
-  python .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
+  $UV_PYTHON .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
 
   echo "Preparing test data"
-  NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" python tests/populate_projects.py
+  NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" $UV_PYTHON tests/populate_projects.py
 
   echo "Running tests..."
-  pytest --junitxml="test-results/test-e2e.xml" tests/e2e
+  pytest --junitxml="test-results/test-e2e.xml" tests/e2e_query
 
   EXIT_CODE=$?
 }

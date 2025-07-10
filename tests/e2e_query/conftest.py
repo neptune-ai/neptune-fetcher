@@ -2,6 +2,7 @@ import itertools as it
 import os
 import time
 from concurrent.futures import Executor
+from dataclasses import dataclass
 from datetime import timedelta
 
 import pytest
@@ -9,7 +10,6 @@ from neptune_api import AuthenticatedClient
 from neptune_api.credentials import Credentials
 from neptune_scale import Run
 
-from neptune_fetcher import ReadOnlyProject
 from neptune_query.internal import identifiers
 from neptune_query.internal.api_utils import (
     create_auth_api_client,
@@ -28,6 +28,11 @@ from tests.e2e_query.data import (
 )
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
+
+
+@dataclass
+class Project:
+    project_identifier: str
 
 
 @pytest.fixture(scope="session")
@@ -57,13 +62,9 @@ def project(request):
     # Assume the project name and API token are set in the environment using the standard
     # NEPTUNE_PROJECT and NEPTUNE_API_TOKEN variables.
     #
-    # Since ReadOnlyProject is essentially stateless, we can reuse the same
-    # instance across all tests in a module.
-    #
     # We also allow overriding the project name per module by setting the
     # module-level `NEPTUNE_PROJECT` variable.
-    project_name = getattr(request.module, "NEPTUNE_PROJECT", None)
-    return ReadOnlyProject(project=project_name)
+    return Project(project_identifier=getattr(request.module, "NEPTUNE_PROJECT", None))
 
 
 @pytest.fixture(scope="module")

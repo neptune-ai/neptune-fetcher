@@ -1,5 +1,5 @@
-# This is pyproject.toml for neptune_query
-# neptune_fetcher's pyproject.toml is located in a subdirectory
+# This is pyproject.toml for neptune_fetcher
+# neptune_query's pyproject.toml is located in the repository root
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
@@ -12,12 +12,15 @@ style = "semver"
 pattern = "default-unprefixed"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 
 # Base neptune package
 neptune-api = ">=0.17.0,<0.19.0"
 azure-storage-blob = "^12.7.0"
-pandas = ">=1.4.0"
+pandas = [
+    { version = ">=1.4.0,<2.3.0", python = "<3.10" },
+    { version = ">=1.4.0", python = ">=3.10" }
+]
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
@@ -29,7 +32,7 @@ repository = "https://github.com/neptune-ai/neptune-fetcher"
 homepage = "https://neptune.ai/"
 documentation = "https://docs.neptune.ai/"
 license = "Apache License 2.0"
-name = "neptune-query"
+name = "neptune-fetcher"
 readme = "README.md"
 version = "0.1.0"
 classifiers = [
@@ -55,7 +58,7 @@ keywords = [
     "ML Metadata Store",
 ]
 packages = [
-    { include = "neptune_query", from = "src" },
+    { include = "neptune_fetcher", from = "src" },
 ]
 
 [tool.poetry.urls]
@@ -87,8 +90,7 @@ max-line-length = 120
 extend-ignore = "E203"
 
 [tool.mypy]
-mypy_path = "neptune_fetcher/src"
-packages = "neptune_fetcher.alpha"
+mypy_path = "src/"
 follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"

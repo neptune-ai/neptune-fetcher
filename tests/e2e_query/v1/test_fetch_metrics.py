@@ -216,7 +216,7 @@ def test__fetch_metrics_unique__step_variants(
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    with patch("neptune_fetcher.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
+    with patch("neptune_query.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
         result = fetch_metrics(
             experiments=arg_experiments,
             attributes=arg_attributes,
@@ -278,7 +278,7 @@ def test__fetch_metrics_unique__output_format_variants(
 ):
     experiments = TEST_DATA.experiments[:3]
 
-    with patch("neptune_fetcher.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
+    with patch("neptune_query.internal.retrieval.metrics.TOTAL_POINT_LIMIT", page_point_limit):
         result = fetch_metrics(
             experiments=arg_experiments,
             attributes=arg_attributes,

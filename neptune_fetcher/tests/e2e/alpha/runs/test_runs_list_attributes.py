@@ -1,6 +1,10 @@
 import os
 
 import pytest
+from e2e.alpha.generator import (
+    ALL_STATIC_RUNS,
+    LINEAR_HISTORY_TREE,
+)
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
@@ -8,10 +12,6 @@ from neptune_fetcher.alpha.filters import (
     Attribute,
     AttributeFilter,
     Filter,
-)
-from tests.e2e.alpha.generator import (
-    ALL_STATIC_RUNS,
-    LINEAR_HISTORY_TREE,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")

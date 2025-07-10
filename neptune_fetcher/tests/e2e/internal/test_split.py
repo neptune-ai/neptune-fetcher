@@ -1,6 +1,12 @@
 import os
 
 import pytest
+from e2e.conftest import extract_pages
+from e2e.data import (
+    NOW,
+    PATH,
+    TEST_DATA,
+)
 
 from neptune_fetcher import alpha as npt
 from neptune_fetcher.alpha.filters import AttributeFilter
@@ -22,12 +28,6 @@ from neptune_fetcher.internal.retrieval.metrics import fetch_multiple_series_val
 from neptune_fetcher.internal.retrieval.series import (
     SeriesValue,
     fetch_series_values,
-)
-from tests.e2e.conftest import extract_pages
-from tests.e2e.data import (
-    NOW,
-    PATH,
-    TEST_DATA,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")

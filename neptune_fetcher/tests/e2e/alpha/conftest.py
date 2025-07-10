@@ -11,18 +11,18 @@ from datetime import (
 from pathlib import Path
 from typing import Any
 
+import e2e.alpha.generator as data
 import filelock
 import pytest
 from _pytest.outcomes import Failed
+from e2e.alpha.generator import ALL_STATIC_RUNS
 from neptune_api import AuthenticatedClient
 from pytest import fixture
 
-import tests.e2e.alpha.generator as data
 from neptune_fetcher.alpha import (
     get_context,
     set_project,
 )
-from tests.e2e.alpha.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
 NEPTUNE_E2E_REUSE_PROJECT = os.environ.get("NEPTUNE_E2E_REUSE_PROJECT", "False").lower() in {"true", "1"}
