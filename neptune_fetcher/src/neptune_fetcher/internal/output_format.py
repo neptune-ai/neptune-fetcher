@@ -169,10 +169,11 @@ def convert_table_to_dataframe(
     dataframe = pd.DataFrame(rows)
     dataframe = transform_column_names(dataframe)
     dataframe.set_index(index_column_name, drop=True, inplace=True)
+
     if not flatten_aggregations:
         dataframe.columns = pd.MultiIndex.from_tuples(dataframe.columns, names=["attribute", "aggregation"])
 
-    sorted_columns = sorted(dataframe.columns, key=lambda x: (x[0], x[1]))
+    sorted_columns = sorted(dataframe.columns)
     dataframe = dataframe[sorted_columns]
 
     return dataframe

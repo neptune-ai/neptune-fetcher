@@ -158,7 +158,7 @@ def test_fetch_attribute_values_composition(client, project, experiment_identifi
     # then
     assert result.shape == (exp_limit, attr_limit)
     assert result.index.tolist() == exp_names
-    assert result.columns.tolist() == [(attr, "") for attr in attribute_paths]
+    assert result.columns.tolist() == attribute_paths
 
 
 @pytest.mark.parametrize(
