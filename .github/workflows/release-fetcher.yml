@@ -3,7 +3,7 @@ name: release neptune-fetcher
 on:
   push:
     tags:
-      - "*"
+      - "neptune_fetcher/*"
 
 jobs:
   build-neptune-fetcher:

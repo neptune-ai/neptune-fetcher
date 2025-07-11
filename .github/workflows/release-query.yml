@@ -3,7 +3,7 @@ name: release neptune-query
 on:
   push:
     tags:
-      - "*"
+      - "neptune_query/*"
 
 jobs:
   build-neptune-query:
