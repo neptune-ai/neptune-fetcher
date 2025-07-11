@@ -28,6 +28,7 @@ from neptune_query.internal.identifiers import (
 )
 from neptune_query.internal.output_format import create_metrics_dataframe
 from neptune_query.internal.retrieval.metrics import FloatPointValue
+from tests.e2e_query.conftest import Project
 from tests.e2e_query.data import (
     NOW,
     PATH,
@@ -39,7 +40,7 @@ NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 
 
 def create_expected_data(
-    project: str,
+    project: Project,
     experiments: list[ExperimentData],
     type_suffix_in_column_names: bool,
     include_time: Union[Literal["absolute"], None],
@@ -77,7 +78,7 @@ def create_expected_data(
             limited = filtered[-tail_limit:] if tail_limit is not None else filtered
 
             attribute_run = RunAttributeDefinition(
-                RunIdentifier(ProjectIdentifier(project), SysId(experiment.name)),
+                RunIdentifier(ProjectIdentifier(project.project_identifier), SysId(experiment.name)),
                 AttributeDefinition(path, "float_series"),
             )
             metrics_data.setdefault(attribute_run, []).extend(limited)
