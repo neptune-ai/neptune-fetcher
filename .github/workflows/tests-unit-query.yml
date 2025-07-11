@@ -1,4 +1,4 @@
-name: Run unit tests
+name: Run unit tests - neptune-query
 
 on:
   workflow_call:
