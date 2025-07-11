@@ -2,37 +2,32 @@ import itertools as it
 import os
 import time
 from concurrent.futures import Executor
-from dataclasses import dataclass
 from datetime import timedelta
 
 import pytest
-from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
-from neptune_scale import Run
-
-from neptune_query.internal import identifiers
-from neptune_query.internal.api_utils import (
-    create_auth_api_client,
-    get_config_and_token_urls,
-)
-from neptune_query.internal.composition import concurrency
-from neptune_query.internal.context import set_project
-from neptune_query.internal.filters import _Filter
-from neptune_query.internal.identifiers import RunIdentifier
-from neptune_query.internal.retrieval.search import fetch_experiment_sys_attrs
-from tests.e2e_query.data import (
+from e2e.data import (
     FILE_SERIES_STEPS,
     NOW,
     PATH,
     TEST_DATA,
 )
+from neptune_api import AuthenticatedClient
+from neptune_api.credentials import Credentials
+from neptune_scale import Run
+
+from neptune_fetcher import ReadOnlyProject
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.api_utils import (
+    create_auth_api_client,
+    get_config_and_token_urls,
+)
+from neptune_fetcher.internal.composition import concurrency
+from neptune_fetcher.internal.context import set_project
+from neptune_fetcher.internal.filters import _Filter
+from neptune_fetcher.internal.identifiers import RunIdentifier
+from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"
-
-
-@dataclass
-class Project:
-    project_identifier: str
 
 
 @pytest.fixture(scope="session")
@@ -62,9 +57,13 @@ def project(request):
     # Assume the project name and API token are set in the environment using the standard
     # NEPTUNE_PROJECT and NEPTUNE_API_TOKEN variables.
     #
+    # Since ReadOnlyProject is essentially stateless, we can reuse the same
+    # instance across all tests in a module.
+    #
     # We also allow overriding the project name per module by setting the
     # module-level `NEPTUNE_PROJECT` variable.
-    return Project(project_identifier=getattr(request.module, "NEPTUNE_PROJECT", None))
+    project_name = getattr(request.module, "NEPTUNE_PROJECT", None)
+    return ReadOnlyProject(project=project_name)
 
 
 @pytest.fixture(scope="module")
@@ -138,8 +137,8 @@ def run_with_attributes(project, client):
 
 @pytest.fixture(scope="module")
 def experiment_identifiers(client, project, run_with_attributes) -> list[RunIdentifier]:
-    from neptune_query.internal.filters import _Filter
-    from neptune_query.internal.retrieval.search import fetch_experiment_sys_attrs
+    from neptune_fetcher.internal.filters import _Filter
+    from neptune_fetcher.internal.retrieval.search import fetch_experiment_sys_attrs
 
     project_identifier = project.project_identifier
 

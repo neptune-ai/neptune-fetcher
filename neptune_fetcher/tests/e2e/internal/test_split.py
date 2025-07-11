@@ -1,33 +1,33 @@
 import os
 
 import pytest
-
-import neptune_query as npt
-from neptune_query.exceptions import (
-    NeptuneRetryError,
-    NeptuneUnexpectedResponseError,
-)
-from neptune_query.filters import AttributeFilter
-from neptune_query.internal import identifiers
-from neptune_query.internal.identifiers import (
-    AttributeDefinition,
-    RunAttributeDefinition,
-)
-from neptune_query.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
-from neptune_query.internal.retrieval.attribute_values import (
-    AttributeValue,
-    fetch_attribute_values,
-)
-from neptune_query.internal.retrieval.metrics import fetch_multiple_series_values
-from neptune_query.internal.retrieval.series import (
-    SeriesValue,
-    fetch_series_values,
-)
-from tests.e2e_query.conftest import extract_pages
-from tests.e2e_query.data import (
+from e2e.conftest import extract_pages
+from e2e.data import (
     NOW,
     PATH,
     TEST_DATA,
+)
+
+from neptune_fetcher import alpha as npt
+from neptune_fetcher.alpha.filters import AttributeFilter
+from neptune_fetcher.exceptions import (
+    NeptuneRetryError,
+    NeptuneUnexpectedResponseError,
+)
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.identifiers import (
+    AttributeDefinition,
+    RunAttributeDefinition,
+)
+from neptune_fetcher.internal.retrieval.attribute_definitions import fetch_attribute_definitions_single_filter
+from neptune_fetcher.internal.retrieval.attribute_values import (
+    AttributeValue,
+    fetch_attribute_values,
+)
+from neptune_fetcher.internal.retrieval.metrics import fetch_multiple_series_values
+from neptune_fetcher.internal.retrieval.series import (
+    SeriesValue,
+    fetch_series_values,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
@@ -158,7 +158,7 @@ def test_fetch_attribute_values_composition(client, project, experiment_identifi
     # then
     assert result.shape == (exp_limit, attr_limit)
     assert result.index.tolist() == exp_names
-    assert result.columns.tolist() == attribute_paths
+    assert result.columns.tolist() == [(attr, "") for attr in attribute_paths]
 
 
 @pytest.mark.parametrize(
@@ -318,4 +318,4 @@ def test_fetch_float_series_values_composition(client, project, experiment_ident
 
 def _attribute_filter(name, limit):
     id_regex = "|".join(str(n) for n in range(limit))
-    return AttributeFilter(name=f"^{PATH}/long/{name}-0+0({id_regex})$")
+    return AttributeFilter(name_matches_all=f"^{PATH}/long/{name}-0+0({id_regex})$")
