@@ -64,7 +64,7 @@ if [ "$PKG_NAME" = "neptune_fetcher" ]; then
 fi
 
 echo "Build completed. Here are the built files:"
-tree dist/
+ls -lR dist/
 
 # Fail the script if dist is empty:
 ls dist/* 1>/dev/null
