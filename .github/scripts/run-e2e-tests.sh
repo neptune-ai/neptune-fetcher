@@ -26,8 +26,6 @@ PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM-$UTF8_CHARS"
 # Our setup script requires neptune_fetcher, which is unfortunate...
 # TODO: rewrite test setup
 
-UV_PYTHON="uv run --no-project --with=ipython,neptune_fetcher,neptune_scale"
-
 cleanup() {
   # Don't fail tests if cleanup fails
   set +e
@@ -35,7 +33,7 @@ cleanup() {
   echo "Cleaning up..."
 
   echo "Deleting project $NEPTUNE_WORKSPACE/$PROJECT"
-  $UV_PYTHON .github/scripts/rest.py delete_project "$NEPTUNE_WORKSPACE" "$PROJECT"
+  python .github/scripts/rest.py delete_project "$NEPTUNE_WORKSPACE" "$PROJECT"
 
   echo "Exiting with code $EXIT_CODE"
   exit $EXIT_CODE
@@ -48,10 +46,10 @@ run_tests() {
   export NEPTUNE_E2E_PROJECT_PREPOPULATED="$NEPTUNE_WORKSPACE/$PROJECT"
 
   echo "Creating project $NEPTUNE_E2E_PROJECT_PREPOPULATED"
-  $UV_PYTHON .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
+  python .github/scripts/rest.py create_project "$NEPTUNE_WORKSPACE" "$PROJECT"
 
   echo "Preparing test data"
-  NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" $UV_PYTHON tests/populate_projects.py
+  NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" python tests/populate_projects.py
 
   echo "Running tests..."
   cd "$PROJECT_DIR" &&

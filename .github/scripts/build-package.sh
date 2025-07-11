@@ -21,14 +21,14 @@ if [ "$PKG_NAME" != "neptune_fetcher" ] && [ "$PKG_NAME" != "neptune_query" ]; t
 fi
 
 case "$GIT_REF" in
-  neptune_fetcher/*)
+  refs/tags/neptune_fetcher/*)
     GIT_REF_PKG=neptune_fetcher
   ;;
-  neptune_query/*)
+  refs/tags/neptune_query/*)
     GIT_REF_PKG=neptune_query
   ;;
   *)
-    echo "Invalid GIT_REF: $GIT_REF (expected neptune_fetcher/* or neptune_query/*)"
+    echo "Invalid GIT_REF: $GIT_REF (expected refs/tags/neptune_fetcher/* or refs/tags/neptune_query/*)"
     exit 1
   ;;
 esac

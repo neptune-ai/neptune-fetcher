@@ -1,10 +1,22 @@
 import os
 import sys
 
-from neptune_fetcher.api.api_client import ApiClient
+import httpx
+from neptune_api.credentials import Credentials
+
+try:
+    from neptune_fetcher.internal.api_utils import (
+        create_auth_api_client,
+        get_config_and_token_urls,
+    )
+except ImportError:
+    from neptune_query.internal.api_utils import (
+        create_auth_api_client,
+        get_config_and_token_urls,
+    )
 
 
-def create_project(backend: ApiClient, organization, name):
+def create_project(client: httpx.Client, organization, name):
     body = {"organizationIdentifier": organization, "name": name, "visibility": "priv"}
     args = {
         "method": "post",
@@ -12,18 +24,18 @@ def create_project(backend: ApiClient, organization, name):
         "json": body,
     }
 
-    response = backend._backend.get_httpx_client().request(**args)
+    response = client.request(**args)
     response.raise_for_status()
 
 
-def delete_project(backend, organization, name):
+def delete_project(client: httpx.Client, organization, name):
     project_identifier = f"{organization}/{name}"
     args = {
         "method": "delete",
         "url": "/api/backend/v1/projects",
         "params": {"projectIdentifier": project_identifier},
     }
-    response = backend._backend.get_httpx_client().request(**args)
+    response = client.request(**args)
     response.raise_for_status()
 
 
@@ -32,13 +44,16 @@ if __name__ == "__main__":
     if api_token is None:
         raise ValueError("NEPTUNE_API_TOKEN not set")
 
-    backend = ApiClient(api_token=api_token)
+    credentials = Credentials.from_api_key(api_key=api_token)
+    config, token_urls = get_config_and_token_urls(credentials=credentials)
+    api_client = create_auth_api_client(credentials=credentials, config=config, token_refreshing_urls=token_urls)
+    httpx_client = api_client.get_httpx_client()
 
     cmd = sys.argv[1]
     if cmd == "create_project":
-        create_project(backend, *sys.argv[2:4])
+        create_project(httpx_client, *sys.argv[2:4])
     elif cmd == "delete_project":
-        delete_project(backend, *sys.argv[2:4])
+        delete_project(httpx_client, *sys.argv[2:4])
     else:
         print("Unknown command")
         sys.exit(1)
