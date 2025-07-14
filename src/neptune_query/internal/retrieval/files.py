@@ -21,14 +21,16 @@ from typing import (
 )
 
 import azure.core.exceptions
-from azure.storage.blob import BlobClient
-from neptune_api.api.storage import signed_url
+import requests
+from azure.storage.blob import BlobClient as AzureBlobClient
+from google.cloud.storage import Blob as GcsBlob
+from neptune_api.api.storage import signed_url_generic
 from neptune_api.client import AuthenticatedClient
 from neptune_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
     FileToSign,
-    Permission,
+    Permission, Provider,
 )
 
 from .. import (
@@ -42,6 +44,7 @@ from ..retrieval import retry
 class SignedFile:
     url: str
     path: str
+    provider: Literal["azure", "gcp"]
 
 
 def fetch_signed_urls(
@@ -57,24 +60,41 @@ def fetch_signed_urls(
         ]
     )
 
-    response = retry.handle_errors_default(signed_url.sync_detailed)(client=client, body=body)
+    response = retry.handle_errors_default(signed_url_generic.sync_detailed)(client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
-    return [SignedFile(url=file_.url, path=file_.path) for file_ in data.files]
+    return [SignedFile(url=file_.url, path=file_.path, provider=_verify_provider(file_.provider)) for file_ in data.files]
+
+
+def _verify_provider(provider: Provider) -> Literal["azure", "gcp"]:
+    if provider == Provider.AZURE:
+        return "azure"
+    elif provider == Provider.GCP:
+        return "gcp"
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
 
 
 def download_file(
-    signed_url: str,
+    signed_file: SignedFile,
     target_path: pathlib.Path,
     max_concurrency: int = env.NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY.get(),
     timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
 ) -> pathlib.Path:
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(target_path, mode="wb") as opened:
-        blob_client = BlobClient.from_blob_url(signed_url)
-        download_stream = blob_client.download_blob(max_concurrency=max_concurrency, timeout=timeout)
-        for chunk in download_stream.chunks():
-            opened.write(chunk)
+
+    if signed_file.provider == "azure":
+        with open(target_path, mode="wb") as opened:
+            blob_client = AzureBlobClient.from_blob_url(signed_file.url)
+            download_stream = blob_client.download_blob(max_concurrency=max_concurrency, timeout=timeout)
+            for chunk in download_stream.chunks():
+                opened.write(chunk)
+    elif signed_file.provider == "gcp":
+        with open(target_path, mode="wb") as file:
+            response = requests.get(signed_file.url, stream=True, timeout=timeout)
+            for chunk in response.iter_content(chunk_size=4 * 1024 * 1024):
+                file.write(chunk)
+
     return target_path
 
 
@@ -89,7 +109,7 @@ def download_file_retry(
     while True:
         try:
             return download_file(
-                signed_url=signed_file.url,
+                signed_file=signed_file,
                 target_path=target_path,
             )
         except azure.core.exceptions.ResourceNotFoundError:
