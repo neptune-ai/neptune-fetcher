@@ -26,6 +26,7 @@ def temp_dir():
         yield pathlib.Path(temp_dir)
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_files_missing(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
@@ -50,6 +51,7 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
     assert result_df.equals(expected_df)
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_files_no_permission(client, project, experiment_identifier, temp_dir):
     os.chmod(temp_dir, 0o000)  # No permissions
 
@@ -66,6 +68,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
+@pytest.mark.files(platform="gcp")
 @pytest.mark.parametrize(
     "attributes",
     [
@@ -114,6 +117,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir,
         assert content == b"Text content"
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_files_multiple(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
@@ -150,6 +154,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
                     assert content == b"Text content"
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_files_destination_a_file(client, project, experiment_identifier, temp_dir):
     destination = temp_dir / "file"
     with open(destination, "wb") as file:

@@ -10,6 +10,7 @@ from datetime import (
 
 import azure.core.exceptions
 import pytest
+import requests.exceptions
 
 from neptune_query.internal.identifiers import AttributeDefinition
 from neptune_query.internal.retrieval.attribute_values import fetch_attribute_values
@@ -44,6 +45,7 @@ def file_path(client, project, experiment_identifier):
     )[0].value.path
 
 
+@pytest.mark.files(platform="gcp")
 def test_fetch_signed_url_missing(client, project, experiment_identifier):
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")
@@ -52,6 +54,7 @@ def test_fetch_signed_url_missing(client, project, experiment_identifier):
     assert len(signed_urls) == 1
 
 
+@pytest.mark.files(platform="gcp")
 def test_fetch_signed_url_single(client, project, experiment_identifier, file_path):
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, [file_path], "read")
@@ -60,6 +63,7 @@ def test_fetch_signed_url_single(client, project, experiment_identifier, file_pa
     assert len(signed_urls) == 1
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_file_missing(client, project, experiment_identifier, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")[0]
@@ -67,9 +71,10 @@ def test_download_file_missing(client, project, experiment_identifier, temp_dir)
 
     # then
     with pytest.raises(azure.core.exceptions.ResourceNotFoundError):
-        download_file(signed_url=signed_file.url, target_path=target_path)
+        download_file(signed_file=signed_file, target_path=target_path)
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_file_no_permission(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
@@ -78,18 +83,19 @@ def test_download_file_no_permission(client, project, experiment_identifier, fil
 
     # then
     with pytest.raises(PermissionError):
-        download_file(signed_url=signed_file.url, target_path=target_path)
+        download_file(signed_file=signed_file, target_path=target_path)
 
     os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
+@pytest.mark.files(platform="gcp")
 def test_download_file_single(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
 
     # when
-    download_file(signed_url=signed_file.url, target_path=target_path)
+    download_file(signed_file=signed_file, target_path=target_path)
 
     # then
     with open(target_path, "rb") as file:
@@ -97,6 +103,7 @@ def test_download_file_single(client, project, experiment_identifier, file_path,
         assert content == b"Text content"
 
 
+# @pytest.mark.files(platform="gcp")
 def test_download_file_expired(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
@@ -104,14 +111,16 @@ def test_download_file_expired(client, project, experiment_identifier, file_path
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
+    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
 
     # then
     with pytest.raises(azure.core.exceptions.ClientAuthenticationError) as exc_info:
-        download_file(signed_url=expired_url, target_path=target_path)
+        download_file(signed_file=expired_file, target_path=target_path)
 
     assert "Signed expiry time" in str(exc_info.value)
 
 
+# @pytest.mark.files(platform="gcp")
 def test_download_file_retry(client, project, experiment_identifier, file_path, temp_dir):
     # given
     project_identifier = project.project_identifier
@@ -120,7 +129,7 @@ def test_download_file_retry(client, project, experiment_identifier, file_path, 
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
-    expired_file = SignedFile(url=expired_url, path=signed_file.path)
+    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
 
     # when
     download_file_retry(
@@ -133,6 +142,7 @@ def test_download_file_retry(client, project, experiment_identifier, file_path, 
         assert content == b"Text content"
 
 
+# @pytest.mark.files(platform="gcp")
 def test_download_file_no_retries(client, project, experiment_identifier, file_path, temp_dir):
     # given
     project_identifier = project.project_identifier
@@ -141,7 +151,7 @@ def test_download_file_no_retries(client, project, experiment_identifier, file_p
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
-    expired_file = SignedFile(url=expired_url, path=signed_file.path)
+    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
 
     # then
     with pytest.raises(azure.core.exceptions.ClientAuthenticationError):
@@ -154,15 +164,30 @@ def test_download_file_no_retries(client, project, experiment_identifier, file_p
         )
 
 
-def test_download_file_retry_failed(client, project, experiment_identifier, file_path, temp_dir):
+def test_download_file_retry_failed_azure(client, project, experiment_identifier, file_path, temp_dir):
     # given
     project_identifier = project.project_identifier
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
-    invalid_file = SignedFile(url="https://invalid", path=signed_file.path)
+    invalid_file = SignedFile(url="https://invalid", path=signed_file.path, provider="azure")
 
     # then
     with pytest.raises(ValueError):
+        download_file_retry(
+            client=client, project_identifier=project_identifier, signed_file=invalid_file, target_path=target_path
+        )
+
+
+@pytest.mark.files(platform="gcp")
+def test_download_file_retry_failed_gcp(client, project, experiment_identifier, file_path, temp_dir):
+    # given
+    project_identifier = project.project_identifier
+    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    target_path = temp_dir / "test_download_file"
+    invalid_file = SignedFile(url="https://invalid", path=signed_file.path, provider="gcp")
+
+    # then
+    with pytest.raises(requests.exceptions.ConnectionError):
         download_file_retry(
             client=client, project_identifier=project_identifier, signed_file=invalid_file, target_path=target_path
         )

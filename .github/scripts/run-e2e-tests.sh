@@ -53,6 +53,7 @@ run_tests() {
 
   echo "Running tests..."
   cd "$PROJECT_DIR" &&
+
   pytest --junitxml="test-results/test-e2e.xml" "$TESTS_DIR"
 
   EXIT_CODE=$?
