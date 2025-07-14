@@ -23,14 +23,14 @@ from typing import (
 import azure.core.exceptions
 import requests
 from azure.storage.blob import BlobClient as AzureBlobClient
-from google.cloud.storage import Blob as GcsBlob
 from neptune_api.api.storage import signed_url_generic
 from neptune_api.client import AuthenticatedClient
 from neptune_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
     FileToSign,
-    Permission, Provider,
+    Permission,
+    Provider,
 )
 
 from .. import (
@@ -63,7 +63,9 @@ def fetch_signed_urls(
     response = retry.handle_errors_default(signed_url_generic.sync_detailed)(client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
-    return [SignedFile(url=file_.url, path=file_.path, provider=_verify_provider(file_.provider)) for file_ in data.files]
+    return [
+        SignedFile(url=file_.url, path=file_.path, provider=_verify_provider(file_.provider)) for file_ in data.files
+    ]
 
 
 def _verify_provider(provider: Provider) -> Literal["azure", "gcp"]:

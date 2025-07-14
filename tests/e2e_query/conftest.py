@@ -64,7 +64,15 @@ def project(request):
     #
     # We also allow overriding the project name per module by setting the
     # module-level `NEPTUNE_PROJECT` variable.
-    return Project(project_identifier=getattr(request.module, "NEPTUNE_PROJECT", None))
+    project_identifier = getattr(request.module, "NEPTUNE_PROJECT", None)
+    if project_identifier is None:
+        project_identifier = os.getenv("NEPTUNE_PROJECT")
+        if project_identifier is None:
+            raise ValueError(
+                "Project identifier not provided. Set NEPTUNE_PROJECT environment variable or "
+                "define it in the module using `NEPTUNE_PROJECT = 'your_project_name'`."
+            )
+    return Project(project_identifier=project_identifier)
 
 
 @pytest.fixture(scope="module")
