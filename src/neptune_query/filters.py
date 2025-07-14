@@ -117,7 +117,7 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
-    def _to_internal(self) -> Union[_filters._AttributeFilter, _filters._EmptyAttributeFilter]:
+    def _to_internal(self) -> _filters._BaseAttributeFilter:
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
@@ -130,9 +130,6 @@ class AttributeFilter(BaseAttributeFilter):
                 type_in=self.type,
                 aggregations=AGGREGATION_LAST,
             )
-
-        if self.name == []:
-            return _filters._EmptyAttributeFilter()
 
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
