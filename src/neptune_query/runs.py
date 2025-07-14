@@ -165,7 +165,7 @@ def fetch_runs_table(
     *,
     project: Optional[str] = None,
     runs: Optional[Union[str, list[str], filters.Filter]] = None,
-    attributes: Union[str, list[str], filters.AttributeFilter] = "^sys/name$",
+    attributes: Union[str, list[str], filters.AttributeFilter] = [],
     sort_by: Union[str, filters.Attribute] = filters.Attribute("sys/creation_time", type="datetime"),
     sort_direction: Literal["asc", "desc"] = "desc",
     limit: Optional[int] = None,

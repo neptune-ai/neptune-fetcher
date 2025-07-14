@@ -43,7 +43,9 @@ from ..retrieval import retry
 def split_attribute_filters(
     _attribute_filter: filters._BaseAttributeFilter,
 ) -> list[filters._AttributeFilter]:
-    if isinstance(_attribute_filter, filters._AttributeFilter):
+    if isinstance(_attribute_filter, filters._EmptyAttributeFilter):
+        return []
+    elif isinstance(_attribute_filter, filters._AttributeFilter):
         return [_attribute_filter]
     elif isinstance(_attribute_filter, filters._AttributeFilterAlternative):
         return list(it.chain.from_iterable(split_attribute_filters(child) for child in _attribute_filter.filters))

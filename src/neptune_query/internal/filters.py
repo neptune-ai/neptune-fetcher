@@ -158,6 +158,13 @@ class _AttributeFilterAlternative(_BaseAttributeFilter):
         return _AttributeFilterAlternative(transformed_filters)
 
 
+class _EmptyAttributeFilter(_BaseAttributeFilter):
+    def transform(
+        self, map_attribute_filter: Callable[["_AttributeFilter"], "_AttributeFilter"]
+    ) -> "_BaseAttributeFilter":
+        return self
+
+
 @dataclass
 class _Attribute:
     """Helper for specifying an attribute and picking a metric aggregation function.

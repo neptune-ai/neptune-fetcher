@@ -58,16 +58,13 @@ def resolve_experiments_filter(
 
 def resolve_attributes_filter(
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]],
-) -> _filters._AttributeFilter:
+) -> Union[_filters._AttributeFilter, _filters._EmptyAttributeFilter]:
     if attributes is None:
         return filters.AttributeFilter()._to_internal()
     if isinstance(attributes, str):
         return filters.AttributeFilter(name=attributes)._to_internal()
     if attributes == []:
-        raise ValueError(
-            "Invalid type for `attributes` filter. Expected str, non-empty list of str, or AttributeFilter object, "
-            "but got empty list."
-        )
+        return _filters._EmptyAttributeFilter()
     if isinstance(attributes, list):
         return filters.AttributeFilter(name=attributes)._to_internal()
     if isinstance(attributes, filters.BaseAttributeFilter):

@@ -128,7 +128,9 @@ def _fetch_attribute_definitions(
 
     filters_ = att_defs.split_attribute_filters(attribute_filter)
 
-    if len(filters_) == 1:
+    if len(filters_) == 0:
+        yield from []
+    elif len(filters_) == 1:
         head = filters_[0]
         for page in go_fetch_single(head):
             yield page, head
