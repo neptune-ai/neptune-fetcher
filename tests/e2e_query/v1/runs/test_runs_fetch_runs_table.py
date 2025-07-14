@@ -33,6 +33,13 @@ NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
             },
         ),
         (
+            r"^linear_history_root$",
+            [],
+            {
+                "run": ["linear_history_root"],
+            },
+        ),
+        (
             "^non_exist$",
             "^foo0$",
             {

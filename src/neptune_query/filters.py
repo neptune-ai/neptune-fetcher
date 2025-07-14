@@ -117,7 +117,7 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
-    def _to_internal(self) -> _filters._AttributeFilter:
+    def _to_internal(self) -> Union[_filters._AttributeFilter, _filters._EmptyAttributeFilter]:
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
@@ -132,9 +132,7 @@ class AttributeFilter(BaseAttributeFilter):
             )
 
         if self.name == []:
-            raise ValueError(
-                "Invalid type for `name` attribute. Expected str, non-empty list of str, or None, but got empty list."
-            )
+            return _filters._EmptyAttributeFilter()
 
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
