@@ -108,5 +108,5 @@ retries = 3
 retry_delay = 2
 addopts = "--dist=loadfile"
 markers = [
-    "files(platform): mark test as downloading files using the neptune storage api",
+    "files: mark test as downloading files using the neptune storage api",
 ]
