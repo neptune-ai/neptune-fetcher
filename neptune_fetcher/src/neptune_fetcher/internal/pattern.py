@@ -18,12 +18,12 @@ from dataclasses import dataclass
 
 from .filters import (
     AGGREGATION_LITERAL,
-    ATTRIBUTE_LITERAL,
     _Attribute,
     _AttributeFilter,
     _AttributeNameFilter,
     _Filter,
 )
+from .retrieval.attribute_types import ATTRIBUTE_LITERAL
 
 _WS_PATTERN = re.compile(r"[ \t\r\n]")
 _OR_PATTERN = re.compile(rf"{_WS_PATTERN.pattern}+\|{_WS_PATTERN.pattern}+")

@@ -16,7 +16,9 @@ import datetime
 from dataclasses import dataclass
 from typing import (
     Any,
+    Literal,
     Optional,
+    Sequence,
 )
 
 from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
@@ -30,7 +32,20 @@ from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
 
 from ...exceptions import warn_unsupported_value_type
 
-ALL_TYPES = (
+ATTRIBUTE_LITERAL = Literal[
+    "float",
+    "int",
+    "string",
+    "bool",
+    "datetime",
+    "float_series",
+    "string_set",
+    "string_series",
+    "file",
+    "file_series",
+    "histogram_series",
+]
+ALL_TYPES: Sequence[ATTRIBUTE_LITERAL] = (
     "float",
     "int",
     "string",
@@ -92,7 +107,7 @@ class File:
     size_bytes: int
     mime_type: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"File({self.mime_type}, size={humanize_size(self.size_bytes)})"
 
 

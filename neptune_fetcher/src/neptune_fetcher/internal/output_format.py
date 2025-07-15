@@ -19,7 +19,6 @@ from typing import (
     Generator,
     Optional,
     Tuple,
-    Union,
 )
 
 import numpy as np
@@ -155,9 +154,9 @@ def convert_table_to_dataframe(
 
         return df
 
-    rows: list[dict[Union[str, tuple[str, str]], Any]] = []
+    rows = []
     for label, values in table_data.items():
-        row: dict[Union[str, Union[str, tuple[str, str]]], Any] = convert_row(values)  # type: ignore
+        row: Any = convert_row(values)
         if flatten_aggregations:
             # Note for future optimization:
             # flatten_aggregations is always True in v1

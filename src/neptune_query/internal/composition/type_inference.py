@@ -21,6 +21,7 @@ from typing import (
     Generic,
     Iterable,
     Optional,
+    Sequence,
     TypeVar,
     Union,
 )
@@ -34,12 +35,12 @@ from .. import (
 )
 from ..composition import attribute_components as _components
 from ..composition import concurrency
-from ..filters import ATTRIBUTE_LITERAL
 from ..retrieval import (
     search,
     util,
 )
 from ..retrieval.attribute_types import (
+    ATTRIBUTE_LITERAL,
     FILE_SERIES_AGGREGATIONS,
     FLOAT_SERIES_AGGREGATIONS,
     HISTOGRAM_SERIES_AGGREGATIONS,
@@ -219,7 +220,7 @@ def _infer_attribute_types_locally(
 ) -> None:
     for state in inference_state.incomplete_attributes():
         attribute = state.attribute
-        matches = []
+        matches: Sequence[ATTRIBUTE_LITERAL] = []
         if all(agg in FLOAT_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("float_series")
         if all(agg in STRING_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):

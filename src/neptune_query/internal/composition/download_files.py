@@ -59,7 +59,7 @@ def download_files(
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
 
-    attributes = validation.restrict_attribute_filter_type(attributes, type_in={"file"})
+    attributes_restricted = validation.restrict_attribute_filter_type(attributes, type_in={"file"})
     validation.ensure_write_access(destination)
 
     with (
@@ -102,7 +102,7 @@ def download_files(
             downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
                 client=client,
                 project_identifier=project_identifier,
-                attribute_filter=attributes,
+                attribute_filter=attributes_restricted,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
