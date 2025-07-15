@@ -68,7 +68,10 @@ def fetch_signed_urls(
 
     data: CreateSignedUrlsResponse = response.parsed
     if len(data.files) != len(file_paths):
-        raise ValueError(f"Expected {len(file_paths)} signed URLs, but got {len(data.files)}. ")
+        missing_paths = set(file_paths) - {file_.path for file_ in data.files}
+        raise ValueError(
+            f"Server returned {len(data.files)} / {len(file_paths)} signed urls. " f"Missing paths: {missing_paths}"
+        )
     return [
         SignedFile(
             url=file_.url,
@@ -169,6 +172,12 @@ def _download_file_requests(
                 file.write(chunk)
         return DownloadResult(status="success")
     except requests.exceptions.HTTPError as e:
+        try:
+            if target_path.exists():
+                target_path.unlink()
+        except OSError:
+            pass
+
         if e.response.status_code == 404:
             return DownloadResult(status="not_found", status_code=e.response.status_code, content=e.response.content)
         elif e.response.status_code == 403:
