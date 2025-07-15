@@ -121,18 +121,18 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
     def _to_internal(self) -> _filters._AttributeFilter:
-        type: Sequence[KNOWN_TYPES_LITERAL] = self.type
+        types: Sequence[KNOWN_TYPES_LITERAL] = self.type
 
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
-                type_in=type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
-                type_in=type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
@@ -144,7 +144,7 @@ class AttributeFilter(BaseAttributeFilter):
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
                 name_eq=self.name,
-                type_in=type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
