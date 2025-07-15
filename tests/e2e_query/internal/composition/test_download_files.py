@@ -48,7 +48,7 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
 
 @pytest.mark.files(platform="gcp")
@@ -108,7 +108,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir,
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
     target_path = result_df.loc[EXPERIMENT_NAME, f"{PATH}/files/file-value.txt"]
     assert pathlib.Path(target_path).exists()
@@ -140,7 +140,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
     for row in result_df.iterrows():
         for attr, path_value in row[1].items():

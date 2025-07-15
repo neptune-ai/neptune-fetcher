@@ -21,6 +21,7 @@ from typing import (
     Iterable,
     Optional,
     Sequence,
+    Union,
 )
 
 from neptune_query.internal import env
@@ -215,6 +216,30 @@ class NeptuneRetryError(NeptuneError):
             time=time,
             status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
             content_line=f"Last response content: {content_str}" if last_content is not None else "",
+        )
+
+
+class NeptuneFileDownloadError(NeptuneError):
+    def __init__(
+        self,
+        details: Optional[str] = None,
+        last_status_code: Optional[int] = None,
+        last_content: Optional[Union[str, bytes]] = None,
+    ) -> None:
+        if isinstance(last_content, bytes):
+            last_content = _decode_content(last_content)
+
+        super().__init__(
+            """
+{h1}NeptuneFileDownloadError: File download ended in an unexpected error.{end}
+
+{details}
+{status_code_line}
+{content_line}
+""",
+            details=details,
+            status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
+            content_line=f"Last response content: {last_content}" if last_content is not None else "",
         )
 
 

@@ -1,3 +1,4 @@
+import dataclasses
 import os
 import pathlib
 import tempfile
@@ -8,16 +9,14 @@ from datetime import (
     timezone,
 )
 
-import azure.core.exceptions
 import pytest
-import requests.exceptions
 
+import neptune_query.exceptions
 from neptune_query.internal.identifiers import AttributeDefinition
 from neptune_query.internal.retrieval.attribute_values import fetch_attribute_values
 from neptune_query.internal.retrieval.files import (
-    SignedFile,
     download_file,
-    download_file_retry,
+    download_file_complete,
     fetch_signed_urls,
 )
 from tests.e2e_query.conftest import extract_pages
@@ -52,6 +51,7 @@ def test_fetch_signed_url_missing(client, project, experiment_identifier):
 
     # then
     assert len(signed_urls) == 1
+    assert signed_urls[0].path == "does-not-exist"
 
 
 @pytest.mark.files(platform="gcp")
@@ -61,6 +61,7 @@ def test_fetch_signed_url_single(client, project, experiment_identifier, file_pa
 
     # then
     assert len(signed_urls) == 1
+    assert signed_urls[0].path == file_path
 
 
 @pytest.mark.files(platform="gcp")
@@ -69,9 +70,11 @@ def test_download_file_missing(client, project, experiment_identifier, temp_dir)
     signed_file = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")[0]
     target_path = temp_dir / "test_download_file"
 
+    # when
+    result = download_file(signed_file=signed_file, target_path=target_path)
+
     # then
-    with pytest.raises(azure.core.exceptions.ResourceNotFoundError):
-        download_file(signed_file=signed_file, target_path=target_path)
+    assert result.status == "not_found"
 
 
 @pytest.mark.files(platform="gcp")
@@ -103,7 +106,7 @@ def test_download_file_single(client, project, experiment_identifier, file_path,
         assert content == b"Text content"
 
 
-# @pytest.mark.files(platform="gcp")
+@pytest.mark.files(platform="gcp")
 def test_download_file_expired(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
@@ -111,30 +114,27 @@ def test_download_file_expired(client, project, experiment_identifier, file_path
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
-    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
+    expired_file = dataclasses.replace(signed_file, url=expired_url)
+
+    # when
+    result = download_file(signed_file=expired_file, target_path=target_path)
 
     # then
-    with pytest.raises(azure.core.exceptions.ClientAuthenticationError) as exc_info:
-        download_file(signed_file=expired_file, target_path=target_path)
-
-    assert "Signed expiry time" in str(exc_info.value)
+    assert result.status == "expired"
 
 
-# @pytest.mark.files(platform="gcp")
+@pytest.mark.files(platform="gcp")
 def test_download_file_retry(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    project_identifier = project.project_identifier
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
-    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
+    expired_file = dataclasses.replace(signed_file, url=expired_url)
 
     # when
-    download_file_retry(
-        client=client, project_identifier=project_identifier, signed_file=expired_file, target_path=target_path
-    )
+    download_file_complete(client=client, signed_file=expired_file, target_path=target_path)
 
     # then
     with open(target_path, "rb") as file:
@@ -142,55 +142,48 @@ def test_download_file_retry(client, project, experiment_identifier, file_path, 
         assert content == b"Text content"
 
 
-# @pytest.mark.files(platform="gcp")
+@pytest.mark.files(platform="gcp")
 def test_download_file_no_retries(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    project_identifier = project.project_identifier
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
     expired_url = _modify_signed_url(
         signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
     )
-    expired_file = SignedFile(url=expired_url, path=signed_file.path, provider="azure")
+    expired_file = dataclasses.replace(signed_file, url=expired_url)
 
     # then
-    with pytest.raises(azure.core.exceptions.ClientAuthenticationError):
-        download_file_retry(
+    with pytest.raises(neptune_query.exceptions.NeptuneFileDownloadError):
+        download_file_complete(
             client=client,
-            project_identifier=project_identifier,
             signed_file=expired_file,
             target_path=target_path,
-            retries=0,
-        )
-
-
-def test_download_file_retry_failed_azure(client, project, experiment_identifier, file_path, temp_dir):
-    # given
-    project_identifier = project.project_identifier
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
-    target_path = temp_dir / "test_download_file"
-    invalid_file = SignedFile(url="https://invalid", path=signed_file.path, provider="azure")
-
-    # then
-    with pytest.raises(ValueError):
-        download_file_retry(
-            client=client, project_identifier=project_identifier, signed_file=invalid_file, target_path=target_path
+            max_tries=0,
         )
 
 
 @pytest.mark.files(platform="gcp")
-def test_download_file_retry_failed_gcp(client, project, experiment_identifier, file_path, temp_dir):
+def test_download_file_retry_failed(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    project_identifier = project.project_identifier
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
-    invalid_file = SignedFile(url="https://invalid", path=signed_file.path, provider="gcp")
+    invalid_file = dataclasses.replace(signed_file, url="https://invalid")
 
     # then
-    with pytest.raises(requests.exceptions.ConnectionError):
-        download_file_retry(
-            client=client, project_identifier=project_identifier, signed_file=invalid_file, target_path=target_path
+    with pytest.raises(neptune_query.exceptions.NeptuneFileDownloadError):
+        download_file_complete(client=client, signed_file=invalid_file, target_path=target_path)
+
+
+def _expire_signed_url(provider: str, signed_url: str) -> str:
+    expired_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+    if provider == "azure":
+        return _modify_signed_url(signed_url, se=[expired_time.strftime("%Y-%m-%dT%H:%M:%SZ")])
+    elif provider == "gcp":
+        return _modify_signed_url(
+            signed_url, **{"X-Goog-Date": [expired_time.strftime("%Y%m%dT%H%M%SZ")], "X-Goog-Expires": ["1"]}
         )
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
 
 
 def _modify_signed_url(signed_url: str, **kwargs) -> str:
