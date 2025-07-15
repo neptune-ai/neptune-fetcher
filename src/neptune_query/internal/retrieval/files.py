@@ -180,7 +180,7 @@ def _download_file_requests(
 
         if e.response.status_code == 404:
             return DownloadResult(status="not_found", status_code=e.response.status_code, content=e.response.content)
-        elif e.response.status_code == 403:
+        elif e.response.status_code == 400:
             return DownloadResult(status="expired", status_code=e.response.status_code, content=e.response.content)
         else:
             return DownloadResult(status="transient", status_code=e.response.status_code, content=e.response.content)

@@ -44,7 +44,7 @@ def file_path(client, project, experiment_identifier):
     )[0].value.path
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_fetch_signed_url_missing(client, project, experiment_identifier):
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")
@@ -54,7 +54,7 @@ def test_fetch_signed_url_missing(client, project, experiment_identifier):
     assert signed_urls[0].path == "does-not-exist"
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_fetch_signed_url_single(client, project, experiment_identifier, file_path):
     # when
     signed_urls = fetch_signed_urls(client, project.project_identifier, [file_path], "read")
@@ -64,7 +64,7 @@ def test_fetch_signed_url_single(client, project, experiment_identifier, file_pa
     assert signed_urls[0].path == file_path
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_missing(client, project, experiment_identifier, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")[0]
@@ -77,7 +77,7 @@ def test_download_file_missing(client, project, experiment_identifier, temp_dir)
     assert result.status == "not_found"
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_no_permission(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
@@ -91,7 +91,7 @@ def test_download_file_no_permission(client, project, experiment_identifier, fil
     os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_single(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
@@ -106,15 +106,12 @@ def test_download_file_single(client, project, experiment_identifier, file_path,
         assert content == b"Text content"
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_expired(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
-    expired_url = _modify_signed_url(
-        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
-    )
-    expired_file = dataclasses.replace(signed_file, url=expired_url)
+    expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
     # when
     result = download_file(signed_file=expired_file, target_path=target_path)
@@ -123,15 +120,12 @@ def test_download_file_expired(client, project, experiment_identifier, file_path
     assert result.status == "expired"
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_retry(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
-    expired_url = _modify_signed_url(
-        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
-    )
-    expired_file = dataclasses.replace(signed_file, url=expired_url)
+    expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
     # when
     download_file_complete(client=client, signed_file=expired_file, target_path=target_path)
@@ -142,15 +136,12 @@ def test_download_file_retry(client, project, experiment_identifier, file_path, 
         assert content == b"Text content"
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_no_retries(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
     target_path = temp_dir / "test_download_file"
-    expired_url = _modify_signed_url(
-        signed_file.url, se=[(datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")]
-    )
-    expired_file = dataclasses.replace(signed_file, url=expired_url)
+    expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
     # then
     with pytest.raises(neptune_query.exceptions.NeptuneFileDownloadError):
@@ -162,7 +153,7 @@ def test_download_file_no_retries(client, project, experiment_identifier, file_p
         )
 
 
-@pytest.mark.files(platform="gcp")
+@pytest.mark.files
 def test_download_file_retry_failed(client, project, experiment_identifier, file_path, temp_dir):
     # given
     signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]

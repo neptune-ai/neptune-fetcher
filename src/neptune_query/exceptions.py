@@ -238,8 +238,8 @@ class NeptuneFileDownloadError(NeptuneError):
 {content_line}
 """,
             details=details,
-            status_code_line=f"Last response status: {last_status_code}" if last_status_code is not None else "",
-            content_line=f"Last response content: {last_content}" if last_content is not None else "",
+            status_code_line=f"Response status: {last_status_code}" if last_status_code is not None else "",
+            content_line=f"Response content: {last_content}" if last_content is not None else "",
         )
 
 
