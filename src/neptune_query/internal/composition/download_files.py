@@ -129,9 +129,8 @@ def download_files(
                             (
                                 run_file_tuple[0].run_identifier,
                                 run_file_tuple[0].attribute_definition,
-                                files.download_file_retry(
+                                files.download_file_complete(
                                     client=client,
-                                    project_identifier=project_identifier,
                                     signed_file=run_file_tuple[1],
                                     target_path=files.create_target_path(
                                         destination=destination,

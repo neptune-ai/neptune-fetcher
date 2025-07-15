@@ -17,7 +17,7 @@ from neptune_scale.types import Histogram as ScaleHistogram
 
 from neptune_query.internal.retrieval.attribute_types import Histogram as FetcherHistogram
 
-TEST_DATA_VERSION = "2025-06-28"
+TEST_DATA_VERSION = "2025-07-14"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
