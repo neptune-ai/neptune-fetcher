@@ -38,6 +38,7 @@ from ..context import (
 )
 from ..filters import (
     _AttributeFilter,
+    _BaseAttributeFilter,
     _Filter,
 )
 from ..output_format import create_metrics_dataframe
@@ -57,7 +58,7 @@ __all__ = ("fetch_metrics",)
 def fetch_metrics(
     *,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: _Filter,
+    filter_: Optional[_Filter],
     attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: tuple[Optional[float], Optional[float]],
@@ -71,7 +72,7 @@ def fetch_metrics(
     validation.validate_step_range(step_range)
     validation.validate_tail_limit(tail_limit)
     validation.validate_include_time(include_time)
-    attributes = validation.restrict_attribute_filter_type(attributes, type_in={"float_series"})
+    restricted_attributes = validation.restrict_attribute_filter_type(attributes, type_in={"float_series"})
 
     valid_context = validate_context(context or get_context())
     client = get_client(context=valid_context)
@@ -97,11 +98,11 @@ def fetch_metrics(
                 include_point_previews=include_point_previews,
                 type_suffix_in_column_names=type_suffix_in_column_names,
             )
-        filter_ = inference_result.get_result_or_raise()
+        inferred_filter = inference_result.get_result_or_raise()
 
         metrics_data, sys_id_to_label_mapping = _fetch_metrics(
-            filter_=filter_,
-            attributes=attributes,
+            filter_=inferred_filter,
+            attributes=restricted_attributes,
             client=client,
             project_identifier=project_identifier,
             step_range=step_range,
@@ -126,8 +127,8 @@ def fetch_metrics(
 
 
 def _fetch_metrics(
-    filter_: _Filter,
-    attributes: _AttributeFilter,
+    filter_: Optional[_Filter],
+    attributes: _BaseAttributeFilter,
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     executor: Executor,

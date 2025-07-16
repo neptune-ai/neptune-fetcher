@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import (
     Iterable,
     Literal,
+    Sequence,
     Union,
 )
 
@@ -34,22 +35,24 @@ from neptune_query.internal.util import (
 __all__ = ["Filter", "AttributeFilter", "Attribute", "KNOWN_TYPES"]
 
 
-KNOWN_TYPES = frozenset(
-    {
-        "float",
-        "int",
-        "string",
-        "bool",
-        "datetime",
-        "float_series",
-        "string_set",
-        "string_series",
-        "file",
-        "histogram_series",
-        "file_series",
-    }
+# fmt: off
+KNOWN_TYPES_LITERAL = Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"]  # noqa: E501
+# fmt: on
+
+KNOWN_TYPES: Sequence[KNOWN_TYPES_LITERAL] = (
+    "float",
+    "int",
+    "string",
+    "bool",
+    "datetime",
+    "float_series",
+    "string_set",
+    "string_series",
+    "file",
+    "histogram_series",
+    "file_series",
 )
-AGGREGATION_LAST = ("last",)
+AGGREGATION_LAST: Sequence[Literal["last"]] = ("last",)
 
 
 class BaseAttributeFilter(ABC):
@@ -111,30 +114,33 @@ class AttributeFilter(BaseAttributeFilter):
     # fmt: on
 
     def __post_init__(self) -> None:
-        self.type = self.type or list(KNOWN_TYPES)
-        if isinstance(self.type, str):
+        if self.type is None:
+            self.type = list(KNOWN_TYPES)
+        elif isinstance(self.type, str):
             self.type = [self.type]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
     def _to_internal(self) -> _filters._BaseAttributeFilter:
+        types: Sequence[KNOWN_TYPES_LITERAL] = self.type  # type: ignore  # it's converted into seq in __post_init__
+
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
                 name_eq=self.name,
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
@@ -200,7 +206,7 @@ class Attribute:
     # fmt: on
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")
 
     def _to_internal(self) -> _filters._Attribute:
         return _filters._Attribute(
@@ -265,7 +271,7 @@ class Filter:
         if isinstance(name, str):
             return Filter.matches(name_attribute, name)
         else:
-            return Filter(_filters._Filter.any([_filters._Filter.eq(name_attribute, n) for n in name]))
+            return Filter(_filters._Filter.any([_filters._Filter.eq(name_attribute._to_internal(), n) for n in name]))
 
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":

@@ -19,7 +19,6 @@ from typing import (
     Generator,
     Optional,
     Tuple,
-    Union,
 )
 
 import numpy as np
@@ -134,15 +133,18 @@ def convert_table_to_dataframe(
 
         # Transform the column by removing the type
         original_columns = df.columns
-        df.columns = [
-            (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
-            for col in df.columns
-        ]
+        df.columns = pd.Index(
+            [
+                (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
+                for col in df.columns
+            ]
+        )
 
         # Check for duplicate names
-        duplicated_names = df.columns[df.columns.duplicated(keep=False)]  # type: ignore
-        duplicated_names_set = set(duplicated_names)
-        if duplicated_names.any():
+        duplicated = df.columns.duplicated(keep=False)
+        if duplicated.any():
+            duplicated_names = df.columns[duplicated]
+            duplicated_names_set = set(duplicated_names)
             conflicting_types: dict[str, set[str]] = {}
             for original_col, new_col in zip(original_columns, df.columns):
                 if isinstance(new_col, str):
@@ -155,9 +157,9 @@ def convert_table_to_dataframe(
 
         return df
 
-    rows: list[dict[Union[str, tuple[str, str]], Any]] = []
+    rows = []
     for label, values in table_data.items():
-        row: dict[Union[str, Union[str, tuple[str, str]]], Any] = convert_row(values)  # type: ignore
+        row: Any = convert_row(values)
         if flatten_aggregations:
             # Note for future optimization:
             # flatten_aggregations is always True in v1

@@ -194,13 +194,13 @@ def fetch_runs_table(
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
     attributes_filter = resolve_attributes_filter(attributes)
-    sort_by = resolve_sort_by(sort_by)
+    resolved_sort_by = resolve_sort_by(sort_by)
 
     return _fetch_table.fetch_table(
         project_identifier=project_identifier,
         filter_=runs_filter,
         attributes=attributes_filter,
-        sort_by=sort_by,
+        sort_by=resolved_sort_by,
         sort_direction=sort_direction,
         limit=limit,
         type_suffix_in_column_names=type_suffix_in_column_names,

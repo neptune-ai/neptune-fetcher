@@ -34,12 +34,12 @@ from .. import (
 )
 from ..composition import attribute_components as _components
 from ..composition import concurrency
-from ..filters import ATTRIBUTE_LITERAL
 from ..retrieval import (
     search,
     util,
 )
 from ..retrieval.attribute_types import (
+    ATTRIBUTE_LITERAL,
     FILE_SERIES_AGGREGATIONS,
     FLOAT_SERIES_AGGREGATIONS,
     HISTOGRAM_SERIES_AGGREGATIONS,
@@ -47,7 +47,7 @@ from ..retrieval.attribute_types import (
 )
 from ..retrieval.search import ContainerType
 
-T = TypeVar("T")
+T = TypeVar("T", covariant=True)
 
 
 @dataclass
@@ -76,12 +76,12 @@ class AttributeInferenceState:
 @dataclass
 class InferenceState(Generic[T]):
     attributes: list[AttributeInferenceState]
+    result: T
     run_domain_empty: Optional[bool] = None
-    result: Optional[T] = None
 
     @staticmethod
-    def empty() -> "InferenceState":
-        return InferenceState(attributes=[])
+    def empty() -> "InferenceState[None]":
+        return InferenceState(attributes=[], result=None)
 
     @staticmethod
     def from_attribute(attribute: filters._Attribute) -> "InferenceState[filters._Attribute]":
@@ -149,7 +149,7 @@ class InferenceState(Generic[T]):
 
             raise AttributeTypeInferenceError(attribute_names=attribute_names, details=details)
 
-    def get_result_or_raise(self) -> Optional[T]:
+    def get_result_or_raise(self) -> T:
         self.raise_if_incomplete()
         return self.result
 
@@ -161,7 +161,7 @@ def infer_attribute_types_in_filter(
     executor: Executor,
     fetch_attribute_definitions_executor: Executor,
     container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
-) -> InferenceState:
+) -> InferenceState[Optional[filters._Filter]]:
     if filter_ is None:
         return InferenceState.empty()
 
@@ -219,7 +219,7 @@ def _infer_attribute_types_locally(
 ) -> None:
     for state in inference_state.incomplete_attributes():
         attribute = state.attribute
-        matches = []
+        matches: list[ATTRIBUTE_LITERAL] = []
         if all(agg in FLOAT_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("float_series")
         if all(agg in STRING_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):

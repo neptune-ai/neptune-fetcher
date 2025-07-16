@@ -15,15 +15,16 @@
 
 import re
 from dataclasses import dataclass
+from typing import Sequence
 
 from .filters import (
     AGGREGATION_LITERAL,
-    ATTRIBUTE_LITERAL,
     _Attribute,
     _AttributeFilter,
     _AttributeNameFilter,
     _Filter,
 )
+from .retrieval.attribute_types import ATTRIBUTE_LITERAL
 
 _WS_PATTERN = re.compile(r"[ \t\r\n]")
 _OR_PATTERN = re.compile(rf"{_WS_PATTERN.pattern}+\|{_WS_PATTERN.pattern}+")
@@ -95,8 +96,8 @@ def build_extended_regex_filter(attribute: _Attribute, pattern: str) -> _Filter:
 
 def build_extended_regex_attribute_filter(
     pattern: str,
-    type_in: list[ATTRIBUTE_LITERAL],
-    aggregations: list[AGGREGATION_LITERAL],
+    type_in: Sequence[ATTRIBUTE_LITERAL],
+    aggregations: Sequence[AGGREGATION_LITERAL],
 ) -> _AttributeFilter:
     parsed = parse_extended_regex(pattern)
 

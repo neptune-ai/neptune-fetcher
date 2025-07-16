@@ -23,10 +23,12 @@ from typing import (
 )
 
 from .. import filters
+from ..retrieval.attribute_types import ATTRIBUTE_LITERAL
 
 
 def restrict_attribute_filter_type(
-    attribute_filter: filters._BaseAttributeFilter, type_in: Iterable[filters.ATTRIBUTE_LITERAL]
+    attribute_filter: filters._BaseAttributeFilter,
+    type_in: Iterable[ATTRIBUTE_LITERAL],
 ) -> filters._BaseAttributeFilter:
     def restrict_type(leaf: filters._AttributeFilter) -> filters._AttributeFilter:
         # user: [A], type_in: [A, B] => [A]  # it's ok for user to request less types
