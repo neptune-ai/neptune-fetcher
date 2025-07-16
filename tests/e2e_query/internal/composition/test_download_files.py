@@ -26,6 +26,7 @@ def temp_dir():
         yield pathlib.Path(temp_dir)
 
 
+@pytest.mark.files
 def test_download_files_missing(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
@@ -47,9 +48,10 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
 
+@pytest.mark.files
 def test_download_files_no_permission(client, project, experiment_identifier, temp_dir):
     os.chmod(temp_dir, 0o000)  # No permissions
 
@@ -66,6 +68,7 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     os.chmod(temp_dir, 0o755)  # Reset permissions
 
 
+@pytest.mark.files
 @pytest.mark.parametrize(
     "attributes",
     [
@@ -105,7 +108,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir,
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
     target_path = result_df.loc[EXPERIMENT_NAME, f"{PATH}/files/file-value.txt"]
     assert pathlib.Path(target_path).exists()
@@ -114,6 +117,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir,
         assert content == b"Text content"
 
 
+@pytest.mark.files
 def test_download_files_multiple(client, project, experiment_identifier, temp_dir):
     # when
     result_df = download_files(
@@ -136,7 +140,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
         ]
     ).set_index("experiment")
     expected_df.columns.names = ["attribute"]
-    assert result_df.equals(expected_df)
+    pd.testing.assert_frame_equal(result_df, expected_df)
 
     for row in result_df.iterrows():
         for attr, path_value in row[1].items():
@@ -150,6 +154,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
                     assert content == b"Text content"
 
 
+@pytest.mark.files
 def test_download_files_destination_a_file(client, project, experiment_identifier, temp_dir):
     destination = temp_dir / "file"
     with open(destination, "wb") as file:
