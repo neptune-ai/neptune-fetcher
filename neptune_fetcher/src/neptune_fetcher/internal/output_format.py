@@ -139,7 +139,7 @@ def convert_table_to_dataframe(
         ]
 
         # Check for duplicate names
-        duplicated_names = df.columns[df.columns.duplicated(keep=False)]  # type: ignore
+        duplicated_names = df.columns[df.columns.duplicated(keep=False)]
         duplicated_names_set = set(duplicated_names)
         if duplicated_names.any():
             conflicting_types: dict[str, set[str]] = {}

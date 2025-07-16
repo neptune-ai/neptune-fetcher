@@ -114,14 +114,15 @@ class AttributeFilter(BaseAttributeFilter):
     # fmt: on
 
     def __post_init__(self) -> None:
-        self.type = self.type or list(KNOWN_TYPES)
-        if isinstance(self.type, str):
+        if self.type is None:
+            self.type = list(KNOWN_TYPES)
+        elif isinstance(self.type, str):
             self.type = [self.type]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
     def _to_internal(self) -> _filters._AttributeFilter:
-        types: Sequence[KNOWN_TYPES_LITERAL] = self.type
+        types: Sequence[KNOWN_TYPES_LITERAL] = self.type  # type: ignore  # it's converted into seq in __post_init__
 
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(

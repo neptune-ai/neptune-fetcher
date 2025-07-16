@@ -127,7 +127,7 @@ def fetch_metrics(
 
 
 def _fetch_metrics(
-    filter_: _Filter,
+    filter_: Optional[_Filter],
     attributes: _BaseAttributeFilter,
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,

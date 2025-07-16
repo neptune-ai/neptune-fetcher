@@ -90,8 +90,8 @@ max-line-length = 120
 extend-ignore = "E203"
 
 [tool.mypy]
-mypy_path = "neptune_fetcher/src"
-packages = "neptune_fetcher.alpha"
+mypy_path = "src/"
+packages = "neptune_query"
 follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"

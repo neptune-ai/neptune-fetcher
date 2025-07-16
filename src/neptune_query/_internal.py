@@ -32,6 +32,8 @@ from neptune_query.internal.identifiers import ProjectIdentifier
 def resolve_experiments_filter(
     experiments: Optional[Union[str, list[str], filters.Filter]],
 ) -> Optional[_filters._Filter]:
+    if experiments is None:
+        return None
     if isinstance(experiments, str):
         return filters.Filter.name(experiments)._to_internal()
     if experiments == []:
@@ -51,8 +53,6 @@ def resolve_experiments_filter(
         )
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
-    if experiments is None:
-        return None
     raise ValueError(
         "Invalid type for `experiments` filter. Expected str, non-empty list of str, or Filter object, but got "
         f"{type(experiments)}."
