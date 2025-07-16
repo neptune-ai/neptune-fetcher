@@ -133,15 +133,18 @@ def convert_table_to_dataframe(
 
         # Transform the column by removing the type
         original_columns = df.columns
-        df.columns = [
-            (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
-            for col in df.columns
-        ]
+        df.columns = pd.Index(
+            [
+                (col[0].rsplit(":", 1)[0], col[1]) if isinstance(col, tuple) else col.rsplit(":", 1)[0]
+                for col in df.columns
+            ]
+        )
 
         # Check for duplicate names
-        duplicated_names = df.columns[df.columns.duplicated(keep=False)]
-        duplicated_names_set = set(duplicated_names)
-        if duplicated_names.any():
+        duplicated = df.columns.duplicated(keep=False)
+        if duplicated.any():
+            duplicated_names = df.columns[duplicated]
+            duplicated_names_set = set(duplicated_names)
             conflicting_types: dict[str, set[str]] = {}
             for original_col, new_col in zip(original_columns, df.columns):
                 if isinstance(new_col, str):
