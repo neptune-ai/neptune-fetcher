@@ -32,6 +32,8 @@ from neptune_query.internal.identifiers import ProjectIdentifier
 def resolve_experiments_filter(
     experiments: Optional[Union[str, list[str], filters.Filter]],
 ) -> Optional[_filters._Filter]:
+    if experiments is None:
+        return None
     if isinstance(experiments, str):
         return filters.Filter.name(experiments)._to_internal()
     if experiments == []:
@@ -44,12 +46,13 @@ def resolve_experiments_filter(
         # (The reason for not having Filter.any() is that we cannot express TRUE/FALSE in NQL
         # which would be the equivalent of Filter.any with an empty list)
         return _filters._Filter.any(
-            [_filters._Filter.eq(filters.Attribute("sys/name", type="string"), exp_name) for exp_name in experiments]
+            [
+                _filters._Filter.eq(filters.Attribute("sys/name", type="string")._to_internal(), exp_name)
+                for exp_name in experiments
+            ]
         )
     if isinstance(experiments, filters.Filter):
         return experiments._to_internal()
-    if experiments is None:
-        return None
     raise ValueError(
         "Invalid type for `experiments` filter. Expected str, non-empty list of str, or Filter object, but got "
         f"{type(experiments)}."
@@ -107,7 +110,7 @@ def resolve_runs_filter(runs: Optional[Union[str, list[str], filters.Filter]]) -
     )
 
 
-def get_default_project_identifier(project: str = None) -> ProjectIdentifier:
+def get_default_project_identifier(project: Optional[str] = None) -> ProjectIdentifier:
     """
     Pass through the project name from the argument if set, otherwise, get one from env.
     """

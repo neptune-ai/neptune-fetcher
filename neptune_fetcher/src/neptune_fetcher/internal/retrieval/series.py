@@ -123,6 +123,7 @@ def _process_series_page(
 
 
 def _extract_series_value(value_dto: ProtoPointValueDTO) -> SeriesValue:
+    value: Union[str, File, Histogram]
     obj = value_dto.object
     if obj.HasField("stringValue"):
         value = str(obj.stringValue)

@@ -54,7 +54,7 @@ __all__ = ("fetch_series",)
 def fetch_series(
     *,
     project_identifier: ProjectIdentifier,
-    filter_: _Filter,
+    filter_: Optional[_Filter],
     attributes: _AttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
@@ -66,7 +66,7 @@ def fetch_series(
     validation.validate_step_range(step_range)
     validation.validate_tail_limit(tail_limit)
     validation.validate_include_time(include_time)
-    attributes = validation.restrict_attribute_filter_type(
+    attributes_restricted = validation.restrict_attribute_filter_type(
         attributes, type_in={"string_series", "histogram_series", "file_series"}
     )
 
@@ -92,7 +92,7 @@ def fetch_series(
                 index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
                 timestamp_column_name="absolute_time" if include_time == "absolute" else None,
             )
-        filter_ = inference_result.get_result_or_raise()
+        inferred_filter = inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
@@ -100,7 +100,7 @@ def fetch_series(
             for page in search.fetch_sys_id_labels(container_type)(
                 client=client,
                 project_identifier=project_identifier,
-                filter_=filter_,
+                filter_=inferred_filter,
             ):
                 sys_ids = []
                 for item in page.items:
@@ -114,7 +114,7 @@ def fetch_series(
             downstream=lambda sys_ids: _components.fetch_attribute_definitions_split(
                 client=client,
                 project_identifier=project_identifier,
-                attribute_filter=attributes,
+                attribute_filter=attributes_restricted,
                 executor=executor,
                 fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
                 sys_ids=sys_ids,
