@@ -58,7 +58,8 @@ nq.fetch_metrics(
 ```
 
 ```pycon
-experiment  step  metrics/val_accuracy_estimated  metrics/val_loss_estimated
+                  metrics/val_accuracy_estimated  metrics/val_loss_estimated
+experiment  step
 exp_dczjz    1.0                        0.432187                    0.823375
              2.0                        0.649685                    0.971732
              3.0                        0.760142                    0.154741
@@ -77,11 +78,11 @@ nq.fetch_experiments_table(
 ```
 
 ```pycon
-           metrics/train_accuracy   metrics/train_loss   learning_rate
+            metrics/train_accuracy   metrics/train_loss   learning_rate
 experiment
-exp_ergwq                0.278149             0.336344            0.01
-exp_qgguv                0.160260             0.790268            0.02
-exp_hstrj                0.365521             0.459901            0.01
+exp_ergwq                 0.278149             0.336344            0.01
+exp_qgguv                 0.160260             0.790268            0.02
+exp_hstrj                 0.365521             0.459901            0.01
 ```
 
 > For series attributes, the value of the last logged step is returned.
