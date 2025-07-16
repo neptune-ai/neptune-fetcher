@@ -192,6 +192,7 @@ def download_file_complete(
     target_path: pathlib.Path,
     max_tries: int = 3,
 ) -> Optional[pathlib.Path]:
+    assert max_tries > 0, "max_tries must allow for at least one attempt"
     attempt = 1
     result = None
     try:

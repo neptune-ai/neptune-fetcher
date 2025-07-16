@@ -149,7 +149,7 @@ def test_download_file_no_retries(client, project, experiment_identifier, file_p
             client=client,
             signed_file=expired_file,
             target_path=target_path,
-            max_tries=0,
+            max_tries=1,
         )
 
 
