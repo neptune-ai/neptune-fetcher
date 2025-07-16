@@ -59,7 +59,7 @@ nq.fetch_metrics(
 
 ```pycon
 experiment  step  metrics/val_accuracy_estimated  metrics/val_loss_estimated
-exp_dczjz    1.0                        0.432187                    0.823375              
+exp_dczjz    1.0                        0.432187                    0.823375
              2.0                        0.649685                    0.971732
              3.0                        0.760142                    0.154741
              4.0                        0.719508                    0.504652
