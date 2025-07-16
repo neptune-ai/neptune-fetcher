@@ -121,7 +121,7 @@ class AttributeFilter(BaseAttributeFilter):
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
-    def _to_internal(self) -> _filters._AttributeFilter:
+    def _to_internal(self) -> _filters._BaseAttributeFilter:
         types: Sequence[KNOWN_TYPES_LITERAL] = self.type  # type: ignore  # it's converted into seq in __post_init__
 
         if isinstance(self.name, str):
@@ -135,11 +135,6 @@ class AttributeFilter(BaseAttributeFilter):
             return _filters._AttributeFilter(
                 type_in=types,
                 aggregations=AGGREGATION_LAST,
-            )
-
-        if self.name == []:
-            raise ValueError(
-                "Invalid type for `name` attribute. Expected str, non-empty list of str, or None, but got empty list."
             )
 
         if isinstance(self.name, list):

@@ -37,7 +37,7 @@ from ..composition import (
 from ..composition.attributes import AttributeDefinitionAggregation
 from ..filters import (
     _Attribute,
-    _AttributeFilter,
+    _BaseAttributeFilter,
     _Filter,
 )
 from ..identifiers import ProjectIdentifier
@@ -54,7 +54,7 @@ def fetch_table(
     *,
     project_identifier: ProjectIdentifier,
     filter_: Optional[_Filter],
-    attributes: _AttributeFilter,
+    attributes: _BaseAttributeFilter,
     sort_by: _Attribute,
     sort_direction: Literal["asc", "desc"],
     limit: Optional[int],

@@ -34,7 +34,7 @@ from ..context import (
     validate_context,
 )
 from ..filters import (
-    _AttributeFilter,
+    _BaseAttributeFilter,
     _Filter,
 )
 from ..retrieval import (
@@ -47,7 +47,7 @@ def list_attributes(
     *,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[_Filter],
-    attributes: _AttributeFilter,
+    attributes: _BaseAttributeFilter,
     context: Optional[Context] = None,
     container_type: search.ContainerType,
 ) -> list[str]:
