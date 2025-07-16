@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pathlib
+from dataclasses import dataclass
 from typing import (
     Generator,
     Optional,
@@ -44,7 +45,45 @@ from ..retrieval import (
     files,
     search,
 )
+from ..retrieval.attribute_types import File
 from ..retrieval.search import ContainerType
+
+
+@dataclass
+class DownloadableFile:
+    label: str
+    attribute_path: str
+    step: Optional[float]
+    path: str
+    size_bytes: int
+    mime_type: str
+
+    @staticmethod
+    def from_file(file: File, label: str, attribute_definition: identifiers.AttributeDefinition, step: Optional[float] = None) -> "DownloadableFile":
+        return DownloadableFile(
+            label=label,
+            attribute_path=attribute_definition.name,
+            step=step,
+            path=file.path,
+            size_bytes=file.size_bytes,
+            mime_type=file.mime_type,
+        )
+
+    def __repr__(self):
+        return (f"DownloadableFile({self.label}, attribute_path={self.attribute_path}, step={self.step}, "
+                f"size={humanize_size(self.size_bytes)}, mime_type={self.mime_type})")
+
+
+def humanize_size(size_bytes: int) -> str:
+    """Convert bytes to a human-readable format."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024**2:
+        return f"{size_bytes / 1024:.2f} KB"
+    elif size_bytes < 1024**3:
+        return f"{size_bytes / (1024 ** 2):.2f} MB"
+    else:
+        return f"{size_bytes / (1024 ** 3):.2f} GB"
 
 
 def download_files(

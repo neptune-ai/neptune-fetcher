@@ -25,6 +25,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from .composition.download_files import DownloadableFile
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
 from .retrieval import (
@@ -80,7 +81,7 @@ def convert_table_to_dataframe(
             columns=[],
         )
 
-    def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
+    def convert_row(label: str, values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
         row = {}
         for value in values:
             column_name = get_column_name(value)
@@ -95,11 +96,18 @@ def convert_table_to_dataframe(
 
                 for agg_name, agg_value in agg_subset_values.items():
                     row[(column_name, agg_name)] = agg_value
-            elif flatten_file_properties and value.attribute_definition.type == "file":
+            elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
-                row[(column_name, "path")] = file_properties.path
-                row[(column_name, "size_bytes")] = file_properties.size_bytes
-                row[(column_name, "mime_type")] = file_properties.mime_type
+                if flatten_file_properties:
+                    row[(column_name, "path")] = file_properties.path
+                    row[(column_name, "size_bytes")] = file_properties.size_bytes
+                    row[(column_name, "mime_type")] = file_properties.mime_type
+                else:
+                    row[(column_name, "")] = DownloadableFile.from_file(
+                        file=file_properties,
+                        label=label,
+                        attribute_definition=value.attribute_definition,
+                    )
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -157,7 +165,7 @@ def convert_table_to_dataframe(
 
     rows: list[dict[Union[str, tuple[str, str]], Any]] = []
     for label, values in table_data.items():
-        row: dict[Union[str, Union[str, tuple[str, str]]], Any] = convert_row(values)  # type: ignore
+        row: dict[Union[str, Union[str, tuple[str, str]]], Any] = convert_row(label, values)  # type: ignore
         if flatten_aggregations:
             # Note for future optimization:
             # flatten_aggregations is always True in v1
@@ -306,16 +314,39 @@ def create_series_dataframe(
         if run_attr_definition.attribute_definition.name not in path_mapping:
             path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
+    def convert_values(
+        run_attribute_definition: identifiers.RunAttributeDefinition,
+        values: list[series.SeriesValue]
+    ) -> list[series.SeriesValue]:
+        if run_attribute_definition.attribute_definition.type == "file_series":
+            label = sys_id_label_mapping[run_attribute_definition.run_identifier.sys_id]
+            return [
+                series.SeriesValue(
+                    step=point.step,
+                    value=DownloadableFile.from_file(
+                        file=point.value,
+                        label=label,
+                        attribute_definition=run_attribute_definition.attribute_definition,
+                        step=point.step
+                    ),
+                    timestamp_millis=point.timestamp_millis,
+                )
+                for point in values
+            ]
+        else:
+            return values
+
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, values in series_data.items():
             exp_category = experiment_mapping[attribute.run_identifier.sys_id]
             path_category = path_mapping[attribute.attribute_definition.name]
+            converted_values = convert_values(attribute, values)
 
             if timestamp_column_name:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value, point.timestamp_millis
             else:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value
 
     types = [

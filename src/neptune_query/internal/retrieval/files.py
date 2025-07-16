@@ -230,8 +230,12 @@ def download_file_complete(
         raise NeptuneFileDownloadError(details=f"Failed to download file after {max_tries} attempts.")
 
 
-def create_target_path(destination: pathlib.Path, experiment_name: str, attribute_path: str) -> pathlib.Path:
+def create_target_path(
+    destination: pathlib.Path, experiment_name: str, attribute_path: str, step: Optional[float]
+) -> pathlib.Path:
     relative_target_path = pathlib.Path(".") / experiment_name / attribute_path
+    if step is not None:
+        relative_target_path = relative_target_path / f"step_{step:f}"
 
     sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
     relative_target_path = pathlib.Path(*sanitized_parts)
