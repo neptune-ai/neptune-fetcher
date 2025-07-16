@@ -37,7 +37,6 @@ from ..context import (
     validate_context,
 )
 from ..filters import (
-    _AttributeFilter,
     _BaseAttributeFilter,
     _Filter,
 )
@@ -59,7 +58,7 @@ def fetch_metrics(
     *,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[_Filter],
-    attributes: _AttributeFilter,
+    attributes: _BaseAttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,

@@ -35,7 +35,7 @@ from ..context import (
     validate_context,
 )
 from ..filters import (
-    _AttributeFilter,
+    _BaseAttributeFilter,
     _Filter,
 )
 from ..identifiers import ProjectIdentifier
@@ -55,7 +55,7 @@ def fetch_series(
     *,
     project_identifier: ProjectIdentifier,
     filter_: Optional[_Filter],
-    attributes: _AttributeFilter,
+    attributes: _BaseAttributeFilter,
     include_time: Optional[Literal["absolute"]],
     step_range: Tuple[Optional[float], Optional[float]],
     lineage_to_the_root: bool,
