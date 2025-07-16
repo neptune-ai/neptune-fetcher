@@ -1,6 +1,6 @@
 # Neptune Query API
 
-The `neptune_query` package is a read-only API for fetching metadata logged with the [Neptune Python client][neptune-client-scale].
+The `neptune_query` package is a read-only API for fetching metadata tracked with the [Neptune logging client][neptune-client-scale].
 
 With the Query API, you can:
 
@@ -17,7 +17,7 @@ pip install "neptune-query>=1.0.0,<2.0.0"
 Set your Neptune API token and project name as environment variables:
 
 ```bash
-export NEPTUNE_API_TOKEN="h0dHBzOi8aHR0cHM.4kl0jvYh3Kb8...ifQ=="
+export NEPTUNE_API_TOKEN="ApiTokenFromYourNeptuneProfile"
 ```
 
 ```bash
@@ -41,6 +41,7 @@ Available functions:
 - `fetch_series()` &ndash; for series of strings or histograms.
 - `list_attributes()` &ndash; all logged attributes of the target project's experiment runs.
 - `list_experiments()` &ndash; names of experiments in the target project.
+- `set_api_token()` &ndash; set the Neptune API token to use for the session.
 
 ### Example 1: Fetch metric values
 
@@ -90,7 +91,6 @@ exp_hstrj                0.365521             0.459901            0.01
 ## License
 
 This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
-
 
 
 [setup]: https://docs.neptune.ai/setup
