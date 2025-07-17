@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024, Neptune Labs Sp. z o.o.
+# Copyright (c) 2025, Neptune Labs Sp. z o.o.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,19 +17,17 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import threading
 from dataclasses import dataclass
 from typing import (
     Callable,
     Generator,
-    Optional,
     ParamSpec,
     TypeVar,
 )
 
 from neptune_api.types import Response
 
-_thread_local_storage = threading.local()
+from neptune_query.internal.composition import concurrency
 
 
 @dataclass
@@ -38,17 +36,9 @@ class QueryMetadata:
 
 
 @contextlib.contextmanager
-def use_query_metadata(ctx: QueryMetadata) -> Generator[None, None, None]:
-    _thread_local_storage.query_metadata = ctx
-    try:
+def use_query_metadata(query_metadata: QueryMetadata) -> Generator[None, None, None]:
+    with concurrency.use_thread_local({"query_metadata": query_metadata}):
         yield
-    finally:
-        if hasattr(_thread_local_storage, "query_metadata"):
-            del _thread_local_storage.query_metadata
-
-
-def get_query_metadata() -> Optional[QueryMetadata]:
-    return getattr(_thread_local_storage, "query_metadata", None)
 
 
 T = ParamSpec("T")
@@ -56,14 +46,9 @@ R = TypeVar("R")
 
 
 def with_neptune_client_metadata(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
-    """
-    Decorator to add query metadata to the function.
-    The metadata is stored in thread-local storage.
-    """
-
     @functools.wraps(func)
     def wrapper(*args: T.args, **kwargs: T.kwargs) -> Response[R]:
-        query_metadata = get_query_metadata()
+        query_metadata: QueryMetadata = concurrency.get_thread_local("query_metadata", expected_type=QueryMetadata)
         if query_metadata:
             kwargs["x_neptune_client_metadata"] = query_metadata
         return func(*args, **kwargs)
