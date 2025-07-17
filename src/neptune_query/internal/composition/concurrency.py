@@ -39,7 +39,7 @@ from .. import env
 T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
-OUT = tuple[set[Future], Optional[R]]
+OUT = tuple[set[Future[R]], Optional[R]]
 
 
 def create_thread_pool_executor() -> Executor:
