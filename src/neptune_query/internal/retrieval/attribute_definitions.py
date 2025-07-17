@@ -30,6 +30,8 @@ from neptune_api.models import (
     QueryAttributeDefinitionsResultDTO,
 )
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from .. import filters  # noqa: E402
 from .. import (  # noqa: E402
     env,
@@ -111,10 +113,11 @@ def _fetch_attribute_definitions_page(
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-    response = retry.handle_errors_default(query_attribute_definitions_within_project.sync_detailed)(
-        client=client,
-        body=body,
+    call_api = retry.handle_errors_default(
+        with_neptune_client_metadata(query_attribute_definitions_within_project.sync_detailed)
     )
+
+    response = call_api(client=client, body=body)
 
     return response.parsed
 

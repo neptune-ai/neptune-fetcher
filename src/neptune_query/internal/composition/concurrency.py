@@ -22,20 +22,26 @@ from concurrent.futures import (
     ThreadPoolExecutor,
 )
 from typing import (
-    Any,
     Callable,
     Generator,
     Iterable,
     Optional,
+    ParamSpec,
     TypeVar,
+)
+
+from neptune_query.internal.query_metadata_context import (
+    QueryMetadata,
+    get_query_metadata,
+    use_query_metadata,
 )
 
 from .. import env
 
 T = TypeVar("T")
+P = ParamSpec("P")
 R = TypeVar("R")
 OUT = tuple[set[Future], Optional[R]]
-_Params = dict[str, Any]
 
 
 def create_thread_pool_executor() -> Executor:
@@ -43,16 +49,35 @@ def create_thread_pool_executor() -> Executor:
     return ThreadPoolExecutor(max_workers=max_workers)
 
 
+def _use_query_metadata_context(
+    query_metadata: Optional[QueryMetadata], downstream: Callable[P, OUT], *args: P.args, **kwargs: P.kwargs
+) -> OUT:
+    if not query_metadata:
+        return downstream(*args, **kwargs)
+
+    with use_query_metadata(query_metadata):
+        return downstream(*args, **kwargs)
+
+
 def generate_concurrently(
     items: Generator[T, None, None],
     executor: Executor,
     downstream: Callable[[T], OUT],
 ) -> OUT:
+    query_metadata = get_query_metadata()
     try:
-        head = next(items)
+        head: T = next(items)
         futures = {
-            executor.submit(downstream, head),
-            executor.submit(generate_concurrently, items, executor, downstream),
+            executor.submit(_use_query_metadata_context, query_metadata, downstream, head),
+            executor.submit(
+                _use_query_metadata_context,
+                query_metadata,
+                lambda: generate_concurrently(
+                    items,
+                    executor,
+                    downstream,
+                ),
+            ),
         }
         return futures, None
     except StopIteration:
@@ -60,7 +85,8 @@ def generate_concurrently(
 
 
 def fork_concurrently(executor: Executor, downstreams: Iterable[Callable[[], OUT]]) -> OUT:
-    futures = {executor.submit(downstream) for downstream in downstreams}
+    query_metadata = get_query_metadata()
+    futures = {executor.submit(_use_query_metadata_context, query_metadata, downstream) for downstream in downstreams}
     return futures, None
 
 
