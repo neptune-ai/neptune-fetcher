@@ -13,20 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-# This module contains utility functions to resolve parameters to public functions from neptune_query
-# and translates them to internal objects like _Filter and _Attribute that are used in the internal API.
-
+import pathlib
 from typing import (
+    Iterable,
     Optional,
     Union,
 )
 
+import pandas as pd
+
 from neptune_query import filters
 from neptune_query.exceptions import NeptuneProjectNotProvided
 from neptune_query.internal import filters as _filters
+from neptune_query.internal.composition.download_files import DownloadableFile
 from neptune_query.internal.context import get_context
 from neptune_query.internal.identifiers import ProjectIdentifier
+
+# This module contains utility functions to resolve parameters to public functions from neptune_query
+# and translates them to internal objects like _Filter and _Attribute that are used in the internal API.
 
 
 def resolve_experiments_filter(
@@ -116,3 +120,32 @@ def get_default_project_identifier(project: Optional[str] = None) -> ProjectIden
         raise NeptuneProjectNotProvided()
 
     return ProjectIdentifier(project)
+
+
+def resolve_downloadable_files(
+    files: Union[DownloadableFile, Iterable[DownloadableFile], pd.Series, pd.DataFrame],
+) -> list[DownloadableFile]:
+    """
+    Resolves the input files to a list of DownloadableFile objects.
+    If a DataFrame is provided, it is converted to a DownloadableFile.
+    """
+    if isinstance(files, DownloadableFile):
+        return [files]
+    elif isinstance(files, pd.Series):
+        return [file for file in files if isinstance(file, DownloadableFile)]
+    elif isinstance(files, pd.DataFrame):
+        return [file for _, col in files.items() for file in col if isinstance(file, DownloadableFile)]
+    elif isinstance(files, Iterable):
+        return [file for file in files if isinstance(file, DownloadableFile)]
+    else:
+        raise ValueError(
+            f"Invalid type for `files`. Expected DownloadableFile, DataFrame, "
+            f"or iterable of DownloadableFiles, but got {type(files)}."
+        )
+
+
+def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
+    if destination is None:
+        return pathlib.Path.cwd()
+    else:
+        return pathlib.Path(destination).resolve()

@@ -21,9 +21,11 @@ __all__ = [
     "fetch_experiments_table",
     "fetch_metrics",
     "fetch_series",
+    "download_files",
 ]
 
 from typing import (
+    Iterable,
     Literal,
     Optional,
     Tuple,
@@ -36,9 +38,12 @@ from neptune_query import filters
 from neptune_query._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
+    resolve_destination_path,
+    resolve_downloadable_files,
     resolve_experiments_filter,
     resolve_sort_by,
 )
+from neptune_query.internal.composition import download_files as _download_files
 from neptune_query.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_query.internal.composition import fetch_series as _fetch_series
 from neptune_query.internal.composition import fetch_table as _fetch_table
@@ -257,5 +262,40 @@ def fetch_series(
         step_range=step_range,
         lineage_to_the_root=lineage_to_the_root,
         tail_limit=tail_limit,
+        container_type=_search.ContainerType.EXPERIMENT,
+    )
+
+
+def download_files(
+    *,
+    project: Optional[str] = None,
+    files: Union[
+        _download_files.DownloadableFile, Iterable[_download_files.DownloadableFile], _pandas.Series, _pandas.DataFrame
+    ],
+    destination: Optional[str] = None,
+) -> _pandas.DataFrame:
+    """
+    Downloads files specified by the `files` parameter.
+
+    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
+    `files` - the list of files to download
+        - a single DownloadableFile object, or
+        - an Iterable of DownloadableFile objects, or
+        - a pandas Series containing, non-exclusively, DownloadableFile objects, or
+        - a pandas DataFrame containing, among other data, DownloadableFile objects.
+    `destination`: the directory where files will be downloaded.
+        - If `None`, the current working directory (CWD) is used as the default.
+        - The path can be relative or absolute.
+
+    Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
+    """
+    project_identifier = get_default_project_identifier(project)
+    file_list = resolve_downloadable_files(files)
+    destination_path = resolve_destination_path(destination)
+
+    return _download_files.download_files(
+        project_identifier=project_identifier,
+        files=file_list,
+        destination=destination_path,
         container_type=_search.ContainerType.EXPERIMENT,
     )

@@ -22,14 +22,9 @@ from typing import (
 import pandas as pd
 
 from .. import client as _client
-from .. import (
-    identifiers,
-    output_format,
-)
-from ..composition import attribute_components as _components
+from .. import identifiers
 from ..composition import (
     concurrency,
-    type_inference,
     validation,
 )
 from ..context import (
@@ -37,44 +32,42 @@ from ..context import (
     get_context,
     validate_context,
 )
-from ..filters import (
-    _AttributeFilter,
-    _Filter,
-)
-from ..retrieval import (
-    files,
-    search,
-)
+from ..output_format import create_files_dataframe
+from ..retrieval import files as _files
 from ..retrieval.attribute_types import File
 from ..retrieval.search import ContainerType
+from ..retrieval.split import split_files
+
+
+@dataclass
+class FileAttribute:
+    label: str
+    attribute_path: str
+    step: Optional[float]
 
 
 @dataclass
 class DownloadableFile:
-    label: str
-    attribute_path: str
-    step: Optional[float]
-    path: str
-    size_bytes: int
-    mime_type: str
+    attribute: FileAttribute
+    file: File
 
     @staticmethod
     def from_file(
         file: File, label: str, attribute_definition: identifiers.AttributeDefinition, step: Optional[float] = None
     ) -> "DownloadableFile":
         return DownloadableFile(
-            label=label,
-            attribute_path=attribute_definition.name,
-            step=step,
-            path=file.path,
-            size_bytes=file.size_bytes,
-            mime_type=file.mime_type,
+            attribute=FileAttribute(
+                label=label,
+                attribute_path=attribute_definition.name,
+                step=step,
+            ),
+            file=file,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
-            f"DownloadableFile({self.label}, attribute_path={self.attribute_path}, step={self.step}, "
-            f"size={humanize_size(self.size_bytes)}, mime_type={self.mime_type})"
+            f"DownloadableFile({self.attribute.label}, attribute_path={self.attribute.attribute_path}, "
+            f"step={self.attribute.step}, size={humanize_size(self.file.size_bytes)}, mime_type={self.file.mime_type})"
         )
 
 
@@ -92,111 +85,57 @@ def humanize_size(size_bytes: int) -> str:
 
 def download_files(
     *,
-    project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[_Filter],
-    attributes: _AttributeFilter,
+    files: list[DownloadableFile],
     destination: pathlib.Path,
-    context: Optional[Context],
+    project_identifier: identifiers.ProjectIdentifier,
     container_type: ContainerType,
+    context: Optional[Context] = None,
 ) -> pd.DataFrame:
+    validation.ensure_write_access(destination)
     valid_context = validate_context(context or get_context())
     client = _client.get_client(context=valid_context)
 
-    attributes_restricted = validation.restrict_attribute_filter_type(attributes, type_in={"file"})
-    validation.ensure_write_access(destination)
+    with concurrency.create_thread_pool_executor() as executor:
 
-    with (
-        concurrency.create_thread_pool_executor() as executor,
-        concurrency.create_thread_pool_executor() as fetch_attribute_definitions_executor,
-    ):
-        inference_result = type_inference.infer_attribute_types_in_filter(
-            client=client,
-            project_identifier=project_identifier,
-            filter_=filter_,
-            executor=executor,
-            fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
-        )
-        if inference_result.is_run_domain_empty():
-            return output_format.create_files_dataframe(
-                [],
-                {},
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-            )
-        filter_ = inference_result.get_result_or_raise()
-
-        sys_id_label_mapping: dict[identifiers.SysId, str] = {}
-
-        def go_fetch_sys_attrs() -> Generator[list[identifiers.SysId], None, None]:
-            for page in search.fetch_sys_id_labels(container_type)(
-                client=client,
-                project_identifier=project_identifier,
-                filter_=filter_,
-            ):
-                sys_ids = []
-                for item in page.items:
-                    sys_id_label_mapping[item.sys_id] = item.label
-                    sys_ids.append(item.sys_id)
-                yield sys_ids
-
-        output = concurrency.generate_concurrently(
-            items=go_fetch_sys_attrs(),
-            executor=executor,
-            downstream=lambda sys_ids: _components.fetch_attribute_definition_aggregations_split(
-                client=client,
-                project_identifier=project_identifier,
-                attribute_filter=attributes_restricted,
-                executor=executor,
-                fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                sys_ids=sys_ids,
-                downstream=lambda sys_ids_split, definitions_page, _: _components.fetch_attribute_values_split(
+        def generate_signed_files() -> Generator[tuple[DownloadableFile, _files.SignedFile], None, None]:
+            for file_group in split_files(files):
+                signed_files = _files.fetch_signed_urls(
                     client=client,
                     project_identifier=project_identifier,
-                    executor=executor,
-                    sys_ids=sys_ids_split,
-                    attribute_definitions=definitions_page.items,
-                    downstream=lambda values_page: concurrency.generate_concurrently(
-                        items=(
-                            (value, file_)
-                            for value, file_ in zip(
-                                values_page.items,
-                                files.fetch_signed_urls(
-                                    client=client,
-                                    project_identifier=project_identifier,
-                                    file_paths=[value.value.path for value in values_page.items],
-                                ),
-                            )
-                        ),
-                        executor=executor,
-                        downstream=lambda run_file_tuple: concurrency.return_value(
-                            (
-                                run_file_tuple[0].run_identifier,
-                                run_file_tuple[0].attribute_definition,
-                                files.download_file_complete(
-                                    client=client,
-                                    signed_file=run_file_tuple[1],
-                                    target_path=files.create_target_path(
-                                        destination=destination,
-                                        experiment_name=sys_id_label_mapping[run_file_tuple[0].run_identifier.sys_id],
-                                        attribute_path=run_file_tuple[0].attribute_definition.name,
-                                    ),
-                                ),
-                            )
+                    file_paths=[file.file.path for file in file_group],
+                )
+                for file, signed_file in zip(file_group, signed_files):
+                    yield file, signed_file
+
+        output = concurrency.generate_concurrently(
+            items=generate_signed_files(),
+            executor=executor,
+            downstream=lambda file_tuple: concurrency.return_value(
+                (
+                    file_tuple[0].attribute,
+                    _files.download_file_complete(
+                        client=client,
+                        signed_file=file_tuple[1],
+                        target_path=_files.create_target_path(
+                            destination=destination,
+                            experiment_label=file_tuple[0].attribute.label,
+                            attribute_path=file_tuple[0].attribute.attribute_path,
+                            step=file_tuple[0].attribute.step,
                         ),
                     ),
-                ),
+                )
             ),
         )
 
         results: Generator[
-            tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]],
+            tuple[FileAttribute, Optional[pathlib.Path]],
             None,
             None,
         ] = concurrency.gather_results(output)
-        file_list = list(results)
 
-        return output_format.create_files_dataframe(
-            file_list,
-            sys_id_label_mapping,
-            index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+        attribute_paths: dict[FileAttribute, Optional[pathlib.Path]] = {}
+        for attribute, path in results:
+            attribute_paths[attribute] = path
+        return create_files_dataframe(
+            attribute_paths, index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run"
         )

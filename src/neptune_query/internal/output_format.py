@@ -26,7 +26,10 @@ import pandas as pd
 
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
-from .composition.download_files import DownloadableFile
+from .composition.download_files import (
+    DownloadableFile,
+    FileAttribute,
+)
 from .retrieval import (
     metrics,
     series,
@@ -429,26 +432,31 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]]],
-    sys_id_label_mapping: dict[identifiers.SysId, str],
+    file_data: dict[FileAttribute, Optional[pathlib.Path]],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    if not files_data:
+    if not file_data:
         return pd.DataFrame(
-            index=pd.Index([], name=index_column_name),
+            index=pd.MultiIndex.from_tuples([], names=[index_column_name, "step"]),
+            columns=pd.Index([], name="attribute"),
         )
 
-    rows: list[dict[str, Optional[str]]] = []
-    for run_identifier, attribute_definition, target_path in files_data:
+    rows: list[dict[str, Any]] = []
+    for attribute, path in file_data.items():
         row = {
-            index_column_name: sys_id_label_mapping[run_identifier.sys_id],
-            "attribute": attribute_definition.name,
-            "file_path": str(target_path) if target_path else None,
+            index_column_name: attribute.label,
+            "attribute": attribute.attribute_path,
+            "step": attribute.step,
+            "path": path.as_posix() if path else None,
         }
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
-    dataframe = dataframe.pivot(index=[index_column_name], columns="attribute", values="file_path")
+    dataframe = dataframe.pivot(index=[index_column_name, "step"], columns="attribute", values="path")
+
+    dataframe = dataframe.reset_index()
+    dataframe = dataframe.sort_values(by=[index_column_name, "step"], ignore_index=True)
+    dataframe = dataframe.set_index([index_column_name, "step"])
 
     sorted_columns = sorted(dataframe.columns)
     return dataframe[sorted_columns]

@@ -232,9 +232,9 @@ def download_file_complete(
 
 
 def create_target_path(
-    destination: pathlib.Path, experiment_name: str, attribute_path: str, step: Optional[float]
+    destination: pathlib.Path, experiment_label: str, attribute_path: str, step: Optional[float]
 ) -> pathlib.Path:
-    relative_target_path = pathlib.Path(".") / experiment_name / attribute_path
+    relative_target_path = pathlib.Path(".") / experiment_label / attribute_path
     if step is not None:
         relative_target_path = relative_target_path / f"step_{step:f}"
 
