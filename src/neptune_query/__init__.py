@@ -45,6 +45,10 @@ from neptune_query.internal.composition import fetch_table as _fetch_table
 from neptune_query.internal.composition import list_attributes as _list_attributes
 from neptune_query.internal.composition import list_containers as _list_containers
 from neptune_query.internal.context import set_api_token
+from neptune_query.internal.query_metadata_context import (
+    QueryMetadata,
+    use_query_metadata,
+)
 from neptune_query.internal.retrieval import search as _search
 
 
@@ -62,14 +66,15 @@ def list_experiments(
         - a regex that the experiment name must match, or
         - a Filter object
     """
-    project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
+    with use_query_metadata(QueryMetadata(api_method="list_experiments")):
+        project_identifier = get_default_project_identifier(project)
+        experiments_filter = resolve_experiments_filter(experiments)
 
-    return _list_containers.list_containers(
-        project_identifier=project_identifier,
-        filter_=experiments_filter,
-        container_type=_search.ContainerType.EXPERIMENT,
-    )
+        return _list_containers.list_containers(
+            project_identifier=project_identifier,
+            filter_=experiments_filter,
+            container_type=_search.ContainerType.EXPERIMENT,
+        )
 
 
 def list_attributes(
@@ -95,16 +100,17 @@ def list_attributes(
     Returns a list of unique attribute names in experiments matching the filter.
     """
 
-    project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes)
+    with use_query_metadata(QueryMetadata(api_method="list_attributes")):
+        project_identifier = get_default_project_identifier(project)
+        experiments_filter = resolve_experiments_filter(experiments)
+        attributes_filter = resolve_attributes_filter(attributes)
 
-    return _list_attributes.list_attributes(
-        project_identifier=project_identifier,
-        filter_=experiments_filter,
-        attributes=attributes_filter,
-        container_type=_search.ContainerType.EXPERIMENT,
-    )
+        return _list_attributes.list_attributes(
+            project_identifier=project_identifier,
+            filter_=experiments_filter,
+            attributes=attributes_filter,
+            container_type=_search.ContainerType.EXPERIMENT,
+        )
 
 
 def fetch_metrics(
@@ -145,22 +151,24 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes)
 
-    return _fetch_metrics.fetch_metrics(
-        project_identifier=project_identifier,
-        filter_=experiments_filter,
-        attributes=attributes_filter,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        include_point_previews=include_point_previews,
-        container_type=_search.ContainerType.EXPERIMENT,
-    )
+    with use_query_metadata(QueryMetadata(api_method="fetch_metrics")):
+        project_identifier = get_default_project_identifier(project)
+        experiments_filter = resolve_experiments_filter(experiments)
+        attributes_filter = resolve_attributes_filter(attributes)
+
+        return _fetch_metrics.fetch_metrics(
+            project_identifier=project_identifier,
+            filter_=experiments_filter,
+            attributes=attributes_filter,
+            include_time=include_time,
+            step_range=step_range,
+            lineage_to_the_root=lineage_to_the_root,
+            tail_limit=tail_limit,
+            type_suffix_in_column_names=type_suffix_in_column_names,
+            include_point_previews=include_point_previews,
+            container_type=_search.ContainerType.EXPERIMENT,
+        )
 
 
 def fetch_experiments_table(
@@ -193,22 +201,23 @@ def fetch_experiments_table(
     Returns a DataFrame similar to the Experiments Table in the UI.
     (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
-    project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes)
-    resolved_sort_by = resolve_sort_by(sort_by)
+    with use_query_metadata(QueryMetadata(api_method="fetch_experiments_table")):
+        project_identifier = get_default_project_identifier(project)
+        experiments_filter = resolve_experiments_filter(experiments)
+        attributes_filter = resolve_attributes_filter(attributes)
+        resolved_sort_by = resolve_sort_by(sort_by)
 
-    return _fetch_table.fetch_table(
-        project_identifier=project_identifier,
-        filter_=experiments_filter,
-        attributes=attributes_filter,
-        sort_by=resolved_sort_by,
-        sort_direction=sort_direction,
-        limit=limit,
-        type_suffix_in_column_names=type_suffix_in_column_names,
-        container_type=_search.ContainerType.EXPERIMENT,
-        flatten_aggregations=True,
-    )
+        return _fetch_table.fetch_table(
+            project_identifier=project_identifier,
+            filter_=experiments_filter,
+            attributes=attributes_filter,
+            sort_by=resolved_sort_by,
+            sort_direction=sort_direction,
+            limit=limit,
+            type_suffix_in_column_names=type_suffix_in_column_names,
+            container_type=_search.ContainerType.EXPERIMENT,
+            flatten_aggregations=True,
+        )
 
 
 def fetch_series(
@@ -245,17 +254,18 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified experiments and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    project_identifier = get_default_project_identifier(project)
-    experiments_filter = resolve_experiments_filter(experiments)
-    attributes_filter = resolve_attributes_filter(attributes)
+    with use_query_metadata(QueryMetadata(api_method="fetch_series")):
+        project_identifier = get_default_project_identifier(project)
+        experiments_filter = resolve_experiments_filter(experiments)
+        attributes_filter = resolve_attributes_filter(attributes)
 
-    return _fetch_series.fetch_series(
-        project_identifier=project_identifier,
-        filter_=experiments_filter,
-        attributes=attributes_filter,
-        include_time=include_time,
-        step_range=step_range,
-        lineage_to_the_root=lineage_to_the_root,
-        tail_limit=tail_limit,
-        container_type=_search.ContainerType.EXPERIMENT,
-    )
+        return _fetch_series.fetch_series(
+            project_identifier=project_identifier,
+            filter_=experiments_filter,
+            attributes=attributes_filter,
+            include_time=include_time,
+            step_range=step_range,
+            lineage_to_the_root=lineage_to_the_root,
+            tail_limit=tail_limit,
+            container_type=_search.ContainerType.EXPERIMENT,
+        )
