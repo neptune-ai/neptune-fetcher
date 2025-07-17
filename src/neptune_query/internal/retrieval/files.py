@@ -34,6 +34,8 @@ from neptune_api.models import (
     Provider,
 )
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from ...exceptions import NeptuneFileDownloadError
 from .. import (
     env,
@@ -63,8 +65,8 @@ def fetch_signed_urls(
             for file_path in file_paths
         ]
     )
-
-    response = retry.handle_errors_default(signed_url_generic.sync_detailed)(client=client, body=body)
+    call_api = retry.handle_errors_default(with_neptune_client_metadata(signed_url_generic.sync_detailed))
+    response = call_api(client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
     if len(data.files) != len(file_paths):

@@ -31,6 +31,8 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import SearchLeaderboardEntriesParamsDTO
 from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from .. import (
     env,
     identifiers,
@@ -218,13 +220,8 @@ def _fetch_sys_attrs_page(
     project_identifier: identifiers.ProjectIdentifier,
 ) -> ProtoLeaderboardEntriesSearchResultDTO:
     body = SearchLeaderboardEntriesParamsDTO.from_dict(params)
-
-    response = retry.handle_errors_default(search_leaderboard_entries_proto.sync_detailed)(
-        client=client,
-        project_identifier=project_identifier,
-        type=["run"],
-        body=body,
-    )
+    call_api = retry.handle_errors_default(with_neptune_client_metadata(search_leaderboard_entries_proto.sync_detailed))
+    response = call_api(client=client, project_identifier=project_identifier, type=["run"], body=body)
 
     return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
 

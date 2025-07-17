@@ -112,11 +112,9 @@ def _fetch_attribute_definitions_page(
     params: dict[str, Any],
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
-
     call_api = retry.handle_errors_default(
         with_neptune_client_metadata(query_attribute_definitions_within_project.sync_detailed)
     )
-
     response = call_api(client=client, body=body)
 
     return response.parsed
