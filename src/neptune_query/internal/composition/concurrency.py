@@ -16,6 +16,8 @@
 from __future__ import annotations
 
 import concurrent
+import contextlib
+import threading
 from concurrent.futures import (
     Executor,
     Future,
@@ -27,15 +29,17 @@ from typing import (
     Generator,
     Iterable,
     Optional,
+    ParamSpec,
+    Type,
     TypeVar,
 )
 
 from .. import env
 
 T = TypeVar("T")
+P = ParamSpec("P")
 R = TypeVar("R")
-OUT = tuple[set[Future], Optional[R]]
-_Params = dict[str, Any]
+OUT = tuple[set[Future[R]], Optional[R]]
 
 
 def create_thread_pool_executor() -> Executor:
@@ -49,10 +53,10 @@ def generate_concurrently(
     downstream: Callable[[T], OUT],
 ) -> OUT:
     try:
-        head = next(items)
+        head: T = next(items)
         futures = {
-            executor.submit(downstream, head),
-            executor.submit(generate_concurrently, items, executor, downstream),
+            _submit_with_thread_local_propagation(executor, downstream, head),
+            _submit_with_thread_local_propagation(executor, generate_concurrently, items, executor, downstream),
         }
         return futures, None
     except StopIteration:
@@ -60,7 +64,7 @@ def generate_concurrently(
 
 
 def fork_concurrently(executor: Executor, downstreams: Iterable[Callable[[], OUT]]) -> OUT:
-    futures = {executor.submit(downstream) for downstream in downstreams}
+    futures = {_submit_with_thread_local_propagation(executor, downstream) for downstream in downstreams}
     return futures, None
 
 
@@ -80,3 +84,45 @@ def gather_results(output: OUT) -> Generator[R, None, None]:
             futures.update(new_futures)
             if value is not None:
                 yield value
+
+
+_thread_local_storage = threading.local()
+
+
+THREAD_LOCAL_PREFIX = "neptune_query_"
+
+
+@contextlib.contextmanager
+def use_thread_local(values: dict[str, Any]) -> Generator[None, None, None]:
+    for key, value in values.items():
+        setattr(_thread_local_storage, f"{THREAD_LOCAL_PREFIX}{key}", value)
+    try:
+        yield
+    finally:
+        for key in values.keys():
+            attr = f"{THREAD_LOCAL_PREFIX}{key}"
+            if hasattr(_thread_local_storage, attr):
+                delattr(_thread_local_storage, attr)
+
+
+def get_thread_local(key: str, expected_type: Type[T]) -> Optional[T]:
+    value = getattr(_thread_local_storage, f"{THREAD_LOCAL_PREFIX}{key}", None)
+    if value is not None and not isinstance(value, expected_type):
+        raise RuntimeError(f"Expected {expected_type} for key '{key}', got {type(value)}")
+    return value
+
+
+def _submit_with_thread_local_propagation(
+    executor: Executor, task: Callable[P, OUT], *args: P.args, **kwargs: P.kwargs
+) -> Future[OUT]:
+    thread_local_ctx = {
+        key[len(THREAD_LOCAL_PREFIX) :]: getattr(_thread_local_storage, key)
+        for key in dir(_thread_local_storage)
+        if key.startswith(THREAD_LOCAL_PREFIX)
+    }
+
+    def _use_thread_local_context(downstream: Callable[P, OUT], *args: P.args, **kwargs: P.kwargs) -> OUT:
+        with use_thread_local(thread_local_ctx):
+            return downstream(*args, **kwargs)
+
+    return executor.submit(_use_thread_local_context, task, *args, **kwargs)

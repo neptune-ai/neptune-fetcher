@@ -26,6 +26,8 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import FloatTimeSeriesValuesRequest
 from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from .. import identifiers
 from ..retrieval import (
     retry,
@@ -116,10 +118,10 @@ def _fetch_metrics_page(
     params: dict[str, Any],
 ) -> ProtoFloatSeriesValuesResponseDTO:
     body = FloatTimeSeriesValuesRequest.from_dict(params)
-
-    response = retry.handle_errors_default(get_multiple_float_series_values_proto.sync_detailed)(
-        client=client, body=body
+    call_api = retry.handle_errors_default(
+        with_neptune_client_metadata(get_multiple_float_series_values_proto.sync_detailed)
     )
+    response = call_api(client=client, body=body)
 
     return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
 
