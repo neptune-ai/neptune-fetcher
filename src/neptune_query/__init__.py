@@ -53,14 +53,35 @@ def list_experiments(
     project: Optional[str] = None,
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
 ) -> list[str]:
-    """
-     Returns a list of experiment names in a project.
+    """List the names of all experiments in a Neptune project.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying which experiments to include
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        experiments: Filter specifying which experiments to include.
+            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a list of strings are provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+
+    Examples:
+        List all experiments whose names begin with "sigurd":
+        ```
+        import neptune_query as nq
+
+
+        nq.list_experiments(experiments=r"^sigurd")
+        ```
+
+        Search a specific project for experiments with a learning rate less than 0.01:
+        ```
+        from neptune_query import Filter
+
+
+        nq.list_experiments(
+            project="team-alpha/sandbox",
+            experiments=Filter.lt("config/lr", 0.01),
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
@@ -78,21 +99,43 @@ def list_attributes(
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
 ) -> list[str]:
-    """
-    List attributes' names in project.
-    Optionally filter by experiments and attributes.
+    """List all attributes in the experiments of a Neptune project.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying experiments to which the attributes belong
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
+    To limit the results, define filters for the experiments to search or the attributes to include.
 
-    Returns a list of unique attribute names in experiments matching the filter.
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        experiments: Filter specifying which experiments to include.
+            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a list of strings are provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include in the table.
+            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a list of strings are provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+
+    Examples:
+        List all attributes that begin with "metrics":
+        ```
+        import neptune_query as nq
+
+
+        nq.list_attributes(attributes=r"^metrics")
+        ```
+
+        Search a specific project for experiments with a learning rate less than 0.01 and
+        return all attributes nested under the "config" namespace:
+        ```
+        from neptune_query import Filter
+
+
+        nq.list_attributes(
+            project="team-alpha/sandbox",
+            experiments=Filter.lt("config/lr", 0.01),
+            attributes=r"^config/",
+        )
+        ```
     """
 
     project_identifier = get_default_project_identifier(project)
@@ -122,7 +165,9 @@ def fetch_metrics(
     """
     Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
+    Args:
+        `project`: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
     `experiments` - a filter specifying which experiments to include
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
