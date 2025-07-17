@@ -20,7 +20,10 @@ import dataclasses
 import functools
 import json
 from dataclasses import dataclass
-from importlib.metadata import version
+from importlib.metadata import (
+    PackageNotFoundError,
+    version,
+)
 from typing import (
     Callable,
     Generator,
@@ -34,7 +37,10 @@ from neptune_api.types import Response
 from neptune_query.internal.composition import concurrency
 
 package_name = "neptune-query"
-package_version = version(package_name)
+try:
+    package_version = version(package_name)
+except PackageNotFoundError:
+    package_version = "unknown"
 
 
 @dataclass
