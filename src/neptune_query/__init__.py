@@ -66,7 +66,7 @@ def list_experiments(
         - a regex that the experiment name must match, or
         - a Filter object
     """
-    with use_query_metadata(QueryMetadata(api_method="list_experiments")):
+    with use_query_metadata(QueryMetadata(api_function="list_experiments")):
         project_identifier = get_default_project_identifier(project)
         experiments_filter = resolve_experiments_filter(experiments)
 
@@ -100,7 +100,7 @@ def list_attributes(
     Returns a list of unique attribute names in experiments matching the filter.
     """
 
-    with use_query_metadata(QueryMetadata(api_method="list_attributes")):
+    with use_query_metadata(QueryMetadata(api_function="list_attributes")):
         project_identifier = get_default_project_identifier(project)
         experiments_filter = resolve_experiments_filter(experiments)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -152,7 +152,7 @@ def fetch_metrics(
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
 
-    with use_query_metadata(QueryMetadata(api_method="fetch_metrics")):
+    with use_query_metadata(QueryMetadata(api_function="fetch_metrics")):
         project_identifier = get_default_project_identifier(project)
         experiments_filter = resolve_experiments_filter(experiments)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -201,7 +201,7 @@ def fetch_experiments_table(
     Returns a DataFrame similar to the Experiments Table in the UI.
     (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
-    with use_query_metadata(QueryMetadata(api_method="fetch_experiments_table")):
+    with use_query_metadata(QueryMetadata(api_function="fetch_experiments_table")):
         project_identifier = get_default_project_identifier(project)
         experiments_filter = resolve_experiments_filter(experiments)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -254,7 +254,7 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified experiments and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    with use_query_metadata(QueryMetadata(api_method="fetch_series")):
+    with use_query_metadata(QueryMetadata(api_function="fetch_series")):
         project_identifier = get_default_project_identifier(project)
         experiments_filter = resolve_experiments_filter(experiments)
         attributes_filter = resolve_attributes_filter(attributes)

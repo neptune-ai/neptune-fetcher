@@ -64,7 +64,7 @@ def list_runs(
         - a regex that the run ID must match, or
         - a Filter object
     """
-    with use_query_metadata(QueryMetadata(api_method="runs.list_runs")):
+    with use_query_metadata(QueryMetadata(api_function="runs.list_runs")):
         project_identifier = get_default_project_identifier(project)
         runs_filter = resolve_runs_filter(runs)
 
@@ -97,7 +97,7 @@ def list_attributes(
 
     Returns a list of unique attribute names in runs matching the filter.
     """
-    with use_query_metadata(QueryMetadata(api_method="runs.list_attributes")):
+    with use_query_metadata(QueryMetadata(api_function="runs.list_attributes")):
         project_identifier = get_default_project_identifier(project)
         runs_filter = resolve_runs_filter(runs)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -148,7 +148,7 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    with use_query_metadata(QueryMetadata(api_method="runs.fetch_metrics")):
+    with use_query_metadata(QueryMetadata(api_function="runs.fetch_metrics")):
         project_identifier = get_default_project_identifier(project)
         runs_filter = resolve_runs_filter(runs)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -197,7 +197,7 @@ def fetch_runs_table(
     Returns a DataFrame similar to the Runs Table in the UI.
     (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
-    with use_query_metadata(QueryMetadata(api_method="runs.fetch_runs_table")):
+    with use_query_metadata(QueryMetadata(api_function="runs.fetch_runs_table")):
         project_identifier = get_default_project_identifier(project)
         runs_filter = resolve_runs_filter(runs)
         attributes_filter = resolve_attributes_filter(attributes)
@@ -249,7 +249,7 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified runs and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    with use_query_metadata(QueryMetadata(api_method="runs.fetch_series")):
+    with use_query_metadata(QueryMetadata(api_function="runs.fetch_series")):
         project_identifier = get_default_project_identifier(project)
         runs_filter = resolve_runs_filter(runs)
         attributes_filter = resolve_attributes_filter(attributes)

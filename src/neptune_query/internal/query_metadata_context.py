@@ -16,8 +16,11 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import functools
+import json
 from dataclasses import dataclass
+from importlib.metadata import version
 from typing import (
     Callable,
     Generator,
@@ -29,10 +32,18 @@ from neptune_api.types import Response
 
 from neptune_query.internal.composition import concurrency
 
+package_name = "neptune-query"
+package_version = version(package_name)
+
 
 @dataclass
 class QueryMetadata:
-    api_method: str
+    api_function: str
+    client_version: str = f"{package_name}/{package_version}"
+
+    def __post_init__(self) -> None:
+        self.api_function = self.api_function[:50]
+        self.client_version = self.client_version[:50]
 
 
 @contextlib.contextmanager
@@ -50,7 +61,7 @@ def with_neptune_client_metadata(func: Callable[T, Response[R]]) -> Callable[T, 
     def wrapper(*args: T.args, **kwargs: T.kwargs) -> Response[R]:
         query_metadata: QueryMetadata = concurrency.get_thread_local("query_metadata", expected_type=QueryMetadata)
         if query_metadata:
-            kwargs["x_neptune_client_metadata"] = query_metadata
+            kwargs["x_neptune_client_metadata"] = json.dumps(dataclasses.asdict(query_metadata))
         return func(*args, **kwargs)
 
     return wrapper
