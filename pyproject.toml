@@ -12,15 +12,12 @@ style = "semver"
 pattern = "default-unprefixed"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 
 # Base neptune package
 neptune-api = ">=0.17.0,<0.19.0"
 azure-storage-blob = "^12.7.0"
-pandas = [
-    { version = ">=1.4.0,<2.3.0", python = "<3.10" },
-    { version = ">=1.4.0", python = ">=3.10" }
-]
+pandas = ">=1.4.0"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
@@ -33,7 +30,7 @@ homepage = "https://neptune.ai/"
 documentation = "https://docs.neptune.ai/"
 license = "Apache License 2.0"
 name = "neptune-query"
-readme = "README.md"
+readme = "README-neptune-query.md"
 version = "0.1.0"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -67,7 +64,7 @@ packages = [
 
 [tool.black]
 line-length = 120
-target-version = ["py39", "py310", "py311"]
+target-version = ["py310", "py311"]
 include = '\.pyi?$'
 exclude = '''
 /(

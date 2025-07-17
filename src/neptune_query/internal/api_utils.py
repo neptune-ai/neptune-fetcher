@@ -123,7 +123,7 @@ def _generate_user_agent() -> str:
         except Exception:
             return "unknown"
 
-    package_name = "neptune-fetcher"
+    package_name = "neptune-query"
     package_version = sanitize(lambda: version(package_name))
     additional_metadata = {
         "neptune-api": sanitize(lambda: version("neptune-api")),
