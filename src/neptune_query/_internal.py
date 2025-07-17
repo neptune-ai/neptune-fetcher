@@ -25,8 +25,8 @@ import pandas as pd
 from neptune_query import filters
 from neptune_query.exceptions import NeptuneProjectNotProvided
 from neptune_query.internal import filters as _filters
-from neptune_query.internal.composition.download_files import DownloadableFile
 from neptune_query.internal.context import get_context
+from neptune_query.internal.files import DownloadableFile
 from neptune_query.internal.identifiers import ProjectIdentifier
 
 # This module contains utility functions to resolve parameters to public functions from neptune_query

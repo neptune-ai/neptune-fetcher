@@ -26,7 +26,7 @@ import pandas as pd
 
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
-from .composition.download_files import (
+from .files import (
     DownloadableFile,
     FileAttribute,
 )

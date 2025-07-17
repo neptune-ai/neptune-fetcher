@@ -294,5 +294,5 @@ def download_files(
         project_identifier=project_identifier,
         files=file_list,
         destination=destination_path,
-        container_type=_search.ContainerType.EXPERIMENT,
+        container_type=_search.ContainerType.RUN,
     )
