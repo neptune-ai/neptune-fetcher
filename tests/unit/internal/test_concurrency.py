@@ -21,7 +21,7 @@ from typing import Generator
 
 import pytest
 
-from src.neptune_query.internal.composition.concurrency import (
+from neptune_query.internal.composition.concurrency import (
     OUT,
     create_thread_pool_executor,
     fork_concurrently,

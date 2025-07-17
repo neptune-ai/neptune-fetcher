@@ -18,8 +18,8 @@ from __future__ import annotations
 import json
 from unittest.mock import Mock
 
-from src.neptune_query.internal.composition.concurrency import get_thread_local
-from src.neptune_query.internal.query_metadata_context import (
+from neptune_query.internal.composition.concurrency import get_thread_local
+from neptune_query.internal.query_metadata_context import (
     QueryMetadata,
     use_query_metadata,
     with_neptune_client_metadata,
