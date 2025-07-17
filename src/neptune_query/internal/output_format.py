@@ -84,7 +84,7 @@ def convert_table_to_dataframe(
         )
 
     def convert_row(label: str, values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
-        row = {}
+        row: dict[tuple[str, str], Any] = {}
         for value in values:
             column_name = get_column_name(value)
             if column_name in row:
@@ -97,7 +97,15 @@ def convert_table_to_dataframe(
                 agg_subset_values = get_aggregation_subset(aggregation_value, selected_subset, aggregations_set)
 
                 for agg_name, agg_value in agg_subset_values.items():
-                    row[(column_name, agg_name)] = agg_value
+                    if value.attribute_definition.type == "file_series" and agg_name == "last":
+                        row[(column_name, "last")] = DownloadableFile.from_file(
+                            file=agg_value,
+                            label=label,
+                            attribute_definition=value.attribute_definition,
+                            step=getattr(aggregation_value, "last_step", None),
+                        )
+                    else:
+                        row[(column_name, agg_name)] = agg_value
             elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
                 if flatten_file_properties:

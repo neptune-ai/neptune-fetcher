@@ -13,6 +13,10 @@ from neptune_query.filters import (
     AttributeFilter,
     Filter,
 )
+from neptune_query.internal.files import (
+    DownloadableFile,
+    FileAttribute,
+)
 from tests.e2e_query.data import (
     FLOAT_SERIES_PATHS,
     PATH,
@@ -251,7 +255,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_file_series(
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name(exp.name for exp in TEST_DATA.experiments[:1]),
+        experiments=Filter.name(TEST_DATA.experiments[0].name),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -264,13 +268,25 @@ def test__fetch_experiments_table_with_attributes_filter_for_file_series(
             "experiment": [exp.name for exp in TEST_DATA.experiments[:1]],
             f"{PATH}/files/file-series-value_0"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_0"][-1]
-                for i in range(1)
+                DownloadableFile(
+                    attribute=FileAttribute(
+                        label=TEST_DATA.experiments[0].name,
+                        attribute_path=f"{PATH}/files/file-series-value_0",
+                        step=2.0,
+                    ),
+                    file=TEST_DATA.experiments[0].fetcher_file_series()[f"{PATH}/files/file-series-value_0"][-1],
+                )
             ],
             f"{PATH}/files/file-series-value_1"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_1"][-1]
-                for i in range(1)
+                DownloadableFile(
+                    attribute=FileAttribute(
+                        label=TEST_DATA.experiments[0].name,
+                        attribute_path=f"{PATH}/files/file-series-value_1",
+                        step=2.0,
+                    ),
+                    file=TEST_DATA.experiments[0].fetcher_file_series()[f"{PATH}/files/file-series-value_1"][-1],
+                )
             ],
         }
     ).set_index("experiment", drop=True)
