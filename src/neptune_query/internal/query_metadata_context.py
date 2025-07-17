@@ -24,6 +24,7 @@ from importlib.metadata import version
 from typing import (
     Callable,
     Generator,
+    Optional,
     ParamSpec,
     TypeVar,
 )
@@ -59,7 +60,9 @@ R = TypeVar("R")
 def with_neptune_client_metadata(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
     @functools.wraps(func)
     def wrapper(*args: T.args, **kwargs: T.kwargs) -> Response[R]:
-        query_metadata: QueryMetadata = concurrency.get_thread_local("query_metadata", expected_type=QueryMetadata)
+        query_metadata: Optional[QueryMetadata] = concurrency.get_thread_local(
+            "query_metadata", expected_type=QueryMetadata
+        )
         if query_metadata:
             kwargs["x_neptune_client_metadata"] = json.dumps(dataclasses.asdict(query_metadata))
         return func(*args, **kwargs)

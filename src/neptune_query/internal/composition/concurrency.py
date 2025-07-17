@@ -105,9 +105,9 @@ def use_thread_local(values: dict[str, Any]) -> Generator[None, None, None]:
                 delattr(_thread_local_storage, attr)
 
 
-def get_thread_local(key: str, expected_type: Type[T]) -> T:
+def get_thread_local(key: str, expected_type: Type[T]) -> Optional[T]:
     value = getattr(_thread_local_storage, f"{THREAD_LOCAL_PREFIX}{key}", None)
-    if not isinstance(value, expected_type):
+    if value is not None and not isinstance(value, expected_type):
         raise RuntimeError(f"Expected {expected_type} for key '{key}', got {type(value)}")
     return value
 
