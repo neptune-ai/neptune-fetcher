@@ -26,6 +26,10 @@ import pandas as pd
 
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
+from .files import (
+    DownloadableFile,
+    FileAttribute,
+)
 from .retrieval import (
     metrics,
     series,
@@ -79,8 +83,8 @@ def convert_table_to_dataframe(
             columns=[],
         )
 
-    def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
-        row = {}
+    def convert_row(label: str, values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
+        row: dict[tuple[str, str], Any] = {}
         for value in values:
             column_name = get_column_name(value)
             if column_name in row:
@@ -93,12 +97,27 @@ def convert_table_to_dataframe(
                 agg_subset_values = get_aggregation_subset(aggregation_value, selected_subset, aggregations_set)
 
                 for agg_name, agg_value in agg_subset_values.items():
-                    row[(column_name, agg_name)] = agg_value
-            elif flatten_file_properties and value.attribute_definition.type == "file":
+                    if value.attribute_definition.type == "file_series" and agg_name == "last":
+                        row[(column_name, "last")] = DownloadableFile.from_file(
+                            file=agg_value,
+                            label=label,
+                            attribute_definition=value.attribute_definition,
+                            step=getattr(aggregation_value, "last_step", None),
+                        )
+                    else:
+                        row[(column_name, agg_name)] = agg_value
+            elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
-                row[(column_name, "path")] = file_properties.path
-                row[(column_name, "size_bytes")] = file_properties.size_bytes
-                row[(column_name, "mime_type")] = file_properties.mime_type
+                if flatten_file_properties:
+                    row[(column_name, "path")] = file_properties.path
+                    row[(column_name, "size_bytes")] = file_properties.size_bytes
+                    row[(column_name, "mime_type")] = file_properties.mime_type
+                else:
+                    row[(column_name, "")] = DownloadableFile.from_file(
+                        file=file_properties,
+                        label=label,
+                        attribute_definition=value.attribute_definition,
+                    )
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -159,7 +178,7 @@ def convert_table_to_dataframe(
 
     rows = []
     for label, values in table_data.items():
-        row: Any = convert_row(values)
+        row: Any = convert_row(label, values)
         if flatten_aggregations:
             # Note for future optimization:
             # flatten_aggregations is always True in v1
@@ -308,16 +327,38 @@ def create_series_dataframe(
         if run_attr_definition.attribute_definition.name not in path_mapping:
             path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
+    def convert_values(
+        run_attribute_definition: identifiers.RunAttributeDefinition, values: list[series.SeriesValue]
+    ) -> list[series.SeriesValue]:
+        if run_attribute_definition.attribute_definition.type == "file_series":
+            label = sys_id_label_mapping[run_attribute_definition.run_identifier.sys_id]
+            return [
+                series.SeriesValue(
+                    step=point.step,
+                    value=DownloadableFile.from_file(
+                        file=point.value,
+                        label=label,
+                        attribute_definition=run_attribute_definition.attribute_definition,
+                        step=point.step,
+                    ),
+                    timestamp_millis=point.timestamp_millis,
+                )
+                for point in values
+            ]
+        else:
+            return values
+
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, values in series_data.items():
             exp_category = experiment_mapping[attribute.run_identifier.sys_id]
             path_category = path_mapping[attribute.attribute_definition.name]
+            converted_values = convert_values(attribute, values)
 
             if timestamp_column_name:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value, point.timestamp_millis
             else:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value
 
     types = [
@@ -399,26 +440,28 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]]],
-    sys_id_label_mapping: dict[identifiers.SysId, str],
+    file_data: dict[FileAttribute, Optional[pathlib.Path]],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    if not files_data:
+    if not file_data:
         return pd.DataFrame(
-            index=pd.Index([], name=index_column_name),
+            index=pd.MultiIndex.from_tuples([], names=[index_column_name, "step"]),
+            columns=pd.Index([], name="attribute"),
         )
 
-    rows: list[dict[str, Optional[str]]] = []
-    for run_identifier, attribute_definition, target_path in files_data:
+    rows: list[dict[str, Any]] = []
+    for attribute, path in file_data.items():
         row = {
-            index_column_name: sys_id_label_mapping[run_identifier.sys_id],
-            "attribute": attribute_definition.name,
-            "file_path": str(target_path) if target_path else None,
+            index_column_name: attribute.label,
+            "attribute": attribute.attribute_path,
+            "step": attribute.step,
+            "path": str(path) if path else None,
         }
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
-    dataframe = dataframe.pivot(index=[index_column_name], columns="attribute", values="file_path")
+    dataframe = dataframe.pivot(index=[index_column_name, "step"], columns="attribute", values="path")
 
+    dataframe = dataframe.sort_index()
     sorted_columns = sorted(dataframe.columns)
     return dataframe[sorted_columns]

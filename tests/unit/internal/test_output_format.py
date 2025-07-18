@@ -13,6 +13,10 @@ from pandas._testing import assert_frame_equal
 
 from neptune_query.exceptions import ConflictingAttributeTypes
 from neptune_query.internal import identifiers
+from neptune_query.internal.files import (
+    DownloadableFile,
+    FileAttribute,
+)
 from neptune_query.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
@@ -196,17 +200,22 @@ def test_convert_experiment_table_to_dataframe_single_file_series():
 
     # then
     assert dataframe.to_dict() == {
-        ("attr1", "last"): {"exp1": last_file},
+        ("attr1", "last"): {
+            "exp1": DownloadableFile(
+                attribute=FileAttribute(label="exp1", attribute_path="attr1", step=10.0), file=last_file
+            )
+        },
     }
 
 
 def test_convert_experiment_table_to_dataframe_single_file():
     # given
+    file = File(path="path/to/file", size_bytes=1024, mime_type="text/plain")
     experiment_data = {
         identifiers.SysName("exp1"): [
             AttributeValue(
                 AttributeDefinition("attr1", "file"),
-                File(path="path/to/file", size_bytes=1024, mime_type="text/plain"),
+                file,
                 EXPERIMENT_IDENTIFIER,
             ),
         ],
@@ -233,7 +242,11 @@ def test_convert_experiment_table_to_dataframe_single_file():
     }
 
     assert dataframe_unflattened.to_dict() == {
-        ("attr1", ""): {"exp1": File(path="path/to/file", size_bytes=1024, mime_type="text/plain")},
+        ("attr1", ""): {
+            "exp1": DownloadableFile(
+                attribute=FileAttribute(label="exp1", attribute_path="attr1", step=None), file=file
+            )
+        },
     }
 
 
@@ -670,9 +683,15 @@ def test_create_histogram_dataframe_with_absolute_timestamp():
         Histogram(type="COUNTING", edges=[1, 2, 3], values=[11, 19]),
     ]
     series_data = {
-        _run_definition("expid1", "path1"): [SeriesValue(1, histograms[0], _make_timestamp(2023, 1, 1))],
-        _run_definition("expid1", "path2"): [SeriesValue(2, histograms[1], _make_timestamp(2023, 1, 3))],
-        _run_definition("expid2", "path1"): [SeriesValue(1, histograms[2], _make_timestamp(2023, 1, 2))],
+        _run_definition("expid1", "path1", "histogram_series"): [
+            SeriesValue(1, histograms[0], _make_timestamp(2023, 1, 1))
+        ],
+        _run_definition("expid1", "path2", "histogram_series"): [
+            SeriesValue(2, histograms[1], _make_timestamp(2023, 1, 3))
+        ],
+        _run_definition("expid2", "path1", "histogram_series"): [
+            SeriesValue(1, histograms[2], _make_timestamp(2023, 1, 2))
+        ],
     }
     sys_id_label_mapping = {
         SysId("expid1"): "exp1",
@@ -700,6 +719,66 @@ def test_create_histogram_dataframe_with_absolute_timestamp():
             np.nan,
         ],
         ("path2", "value"): [np.nan, histograms[1], np.nan],
+    }
+    expected_df = pd.DataFrame(
+        dict(sorted(expected.items())),
+        index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
+    )
+    pd.testing.assert_frame_equal(df, expected_df)
+
+
+def test_create_file_series_dataframe_with_absolute_timestamp():
+    # Given
+    files = [
+        File(path="path/to/file1", size_bytes=1024, mime_type="text/plain"),
+        File(path="path/to/file2", size_bytes=2048, mime_type="image/png"),
+        File(path="path/to/file3", size_bytes=512, mime_type="application/json"),
+    ]
+    series_data = {
+        _run_definition("expid1", "path1", "file_series"): [SeriesValue(1, files[0], _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2", "file_series"): [SeriesValue(2, files[1], _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1", "file_series"): [SeriesValue(1, files[2], _make_timestamp(2023, 1, 2))],
+    }
+    sys_id_label_mapping = {
+        SysId("expid1"): "exp1",
+        SysId("expid2"): "exp2",
+    }
+
+    df = create_series_dataframe(
+        series_data=series_data,
+        sys_id_label_mapping=sys_id_label_mapping,
+        index_column_name="experiment",
+        timestamp_column_name="absolute_time",
+    )
+
+    # Then
+    downloadable_files = [
+        DownloadableFile(
+            attribute=FileAttribute(label="exp1", attribute_path="path1", step=1.0),
+            file=files[0],
+        ),
+        DownloadableFile(
+            attribute=FileAttribute(label="exp1", attribute_path="path2", step=2.0),
+            file=files[1],
+        ),
+        DownloadableFile(
+            attribute=FileAttribute(label="exp2", attribute_path="path1", step=1.0),
+            file=files[2],
+        ),
+    ]
+    expected = {
+        ("path1", "absolute_time"): [
+            datetime(2023, 1, 1, tzinfo=timezone.utc),
+            np.nan,
+            datetime(2023, 1, 2, tzinfo=timezone.utc),
+        ],
+        ("path1", "value"): [downloadable_files[0], np.nan, downloadable_files[2]],
+        ("path2", "absolute_time"): [
+            np.nan,
+            datetime(2023, 1, 3, tzinfo=timezone.utc),
+            np.nan,
+        ],
+        ("path2", "value"): [np.nan, downloadable_files[1], np.nan],
     }
     expected_df = pd.DataFrame(
         dict(sorted(expected.items())),
@@ -1006,82 +1085,58 @@ def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str,
 
 def test_create_files_dataframe_empty():
     # given
-    files_data = []
-    sys_id_label_mapping = {}
+    files_data = {}
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(
-        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
-    )
+    dataframe = create_files_dataframe(file_data=files_data, index_column_name=index_column_name)
 
     # then
     assert dataframe.empty
-    assert dataframe.index.name == index_column_name
-    assert dataframe.columns.names == [None]
+    assert dataframe.index.names == [index_column_name, "step"]
+    assert dataframe.columns.names == ["attribute"]
 
 
 def test_create_files_dataframe():
     # given
-    files_data = [
-        (
-            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
-            AttributeDefinition("attr1", "file"),
-            pathlib.Path("/path/to/file1"),
-        ),
-        (
-            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp2")),
-            AttributeDefinition("attr2", "file"),
-            pathlib.Path("/path/to/file2"),
-        ),
-    ]
-    sys_id_label_mapping = {
-        SysId("exp1"): "experiment_1",
-        SysId("exp2"): "experiment_2",
+    file_data = {
+        FileAttribute(label="experiment_1", attribute_path="attr1", step=None): pathlib.Path("/path/to/file1"),
+        FileAttribute(label="experiment_2", attribute_path="attr2", step=None): pathlib.Path("/path/to/file2"),
+        FileAttribute(label="experiment_3", attribute_path="series1", step=1.0): pathlib.Path("/path/to/file3"),
+        FileAttribute(label="experiment_4", attribute_path="attr1", step=None): None,
     }
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(
-        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
-    )
+    dataframe = create_files_dataframe(file_data=file_data, index_column_name=index_column_name)
 
     # then
     expected_data = [
-        {index_column_name: "experiment_1", "attr1": str(pathlib.Path("/path/to/file1"))},
-        {index_column_name: "experiment_2", "attr2": str(pathlib.Path("/path/to/file2"))},
+        {index_column_name: "experiment_1", "step": None, "attr1": str(pathlib.Path("/path/to/file1"))},
+        {index_column_name: "experiment_2", "step": None, "attr2": str(pathlib.Path("/path/to/file2"))},
+        {index_column_name: "experiment_3", "step": 1.0, "series1": str(pathlib.Path("/path/to/file3"))},
+        {index_column_name: "experiment_4", "step": None, "attr1": None},
     ]
-    expected_df = pd.DataFrame(expected_data).set_index(index_column_name)
+    expected_df = pd.DataFrame(expected_data).set_index([index_column_name, "step"])
     expected_df.columns.names = ["attribute"]
-
     assert_frame_equal(dataframe, expected_df)
 
 
 def test_create_files_dataframe_index_name_attribute_conflict():
     # given
-    files_data = [
-        (
-            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
-            AttributeDefinition("experiment", "file"),
-            pathlib.Path("/path/to/file1"),
-        ),
-    ]
-    sys_id_label_mapping = {
-        SysId("exp1"): "experiment_1",
+    file_data = {
+        FileAttribute(label="experiment_1", attribute_path="experiment", step=None): pathlib.Path("/path/to/file1"),
     }
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(
-        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
-    )
+    dataframe = create_files_dataframe(file_data=file_data, index_column_name=index_column_name)
 
     # then
     expected_data = [
-        {"_REPLACE_": "experiment_1", "experiment": str(pathlib.Path("/path/to/file1"))},
+        {"_REPLACE_": "experiment_1", "step": None, "experiment": str(pathlib.Path("/path/to/file1"))},
     ]
-    expected_df = pd.DataFrame(expected_data).set_index("_REPLACE_")
+    expected_df = pd.DataFrame(expected_data).set_index(["_REPLACE_", "step"])
     expected_df.columns.names = ["attribute"]
-    expected_df.index.name = index_column_name
-
+    expected_df.index.names = [index_column_name, "step"]
     assert_frame_equal(dataframe, expected_df)

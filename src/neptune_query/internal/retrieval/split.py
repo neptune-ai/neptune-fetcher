@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import (
     Generator,
     Iterable,
+    TypeVar,
 )
 
 from .. import (
@@ -27,6 +28,9 @@ from .. import (
 from ..identifiers import RunAttributeDefinition
 
 _UUID_SIZE = 50
+
+
+T = TypeVar("T")
 
 
 def _attribute_definition_size(attr: identifiers.AttributeDefinition) -> int:
@@ -165,3 +169,10 @@ def split_series_attributes(items: Iterable[RunAttributeDefinition]) -> Generato
 
 def _ceil_div(a: int, b: int) -> int:
     return (a + b - 1) // b
+
+
+def split_files(items: list[T]) -> Generator[list[T], None, None]:
+    batch_size = env.NEPTUNE_FETCHER_FILES_BATCH_SIZE.get()
+
+    for i in range(0, len(items), batch_size):
+        yield items[i : i + batch_size]
