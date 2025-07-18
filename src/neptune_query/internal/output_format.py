@@ -455,16 +455,13 @@ def create_files_dataframe(
             index_column_name: attribute.label,
             "attribute": attribute.attribute_path,
             "step": attribute.step,
-            "path": path.as_posix() if path else None,
+            "path": str(path) if path else None,
         }
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
     dataframe = dataframe.pivot(index=[index_column_name, "step"], columns="attribute", values="path")
 
-    dataframe = dataframe.reset_index()
-    dataframe = dataframe.sort_values(by=[index_column_name, "step"], ignore_index=True)
-    dataframe = dataframe.set_index([index_column_name, "step"])
-
+    dataframe = dataframe.sort_index()
     sorted_columns = sorted(dataframe.columns)
     return dataframe[sorted_columns]

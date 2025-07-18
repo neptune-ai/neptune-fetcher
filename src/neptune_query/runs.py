@@ -23,6 +23,7 @@ __all__ = [
     "download_files",
 ]
 
+import pathlib
 from typing import (
     Iterable,
     Literal,
@@ -269,7 +270,7 @@ def download_files(
     files: Union[
         _download_files.DownloadableFile, Iterable[_download_files.DownloadableFile], _pandas.Series, _pandas.DataFrame
     ],
-    destination: Optional[str] = None,
+    destination: Optional[Union[str, pathlib.Path]] = None,
 ) -> _pandas.DataFrame:
     """
     Downloads files specified by the `files` parameter.

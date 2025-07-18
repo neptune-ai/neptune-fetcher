@@ -62,8 +62,7 @@ def download_files(
                     project_identifier=project_identifier,
                     file_paths=[file.file.path for file in file_group],
                 )
-                for file, signed_file in zip(file_group, signed_files):
-                    yield file, signed_file
+                yield from zip(file_group, signed_files)
 
         output = concurrency.generate_concurrently(
             items=generate_signed_files(),

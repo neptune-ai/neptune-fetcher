@@ -139,13 +139,15 @@ def resolve_downloadable_files(
         return [file for file in files if isinstance(file, DownloadableFile)]
     else:
         raise ValueError(
-            f"Invalid type for `files`. Expected DownloadableFile, DataFrame, "
+            f"Invalid type for `files`. Expected DownloadableFile, DataFrame, Series, "
             f"or iterable of DownloadableFiles, but got {type(files)}."
         )
 
 
-def resolve_destination_path(destination: Optional[str]) -> pathlib.Path:
+def resolve_destination_path(destination: Optional[Union[str, pathlib.Path]]) -> pathlib.Path:
     if destination is None:
         return pathlib.Path.cwd()
+    elif isinstance(destination, pathlib.Path):
+        return destination.resolve()
     else:
         return pathlib.Path(destination).resolve()
