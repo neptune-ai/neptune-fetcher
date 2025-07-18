@@ -1,6 +1,5 @@
 import os
 import pathlib
-import tempfile
 
 import pandas as pd
 import pytest
@@ -26,12 +25,6 @@ from tests.e2e_query.data import (
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 EXPERIMENT_NAME = TEST_DATA.experiment_names[0]
-
-
-@pytest.fixture
-def temp_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        yield pathlib.Path(temp_dir)
 
 
 @pytest.mark.files
