@@ -296,29 +296,40 @@ def fetch_series(
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
 ) -> _pandas.DataFrame:
-    """
-    Fetches raw values for string series from selected experiments.
+    """Series values per step, for non-numerical series attributes.
 
-    Currently only supports attributes of type string_series.
+    Supports series of histograms, files, and strings.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying which experiments to include
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object for more complex filtering
-    `attributes` - a filter specifying which attributes to include
-        - a list of specific attribute names, or
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
-    `include_time` - whether to include absolute timestamp
-    `step_range` - tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
-        If False, only includes points from the most recent experiment in the lineage.
-    `tail_limit` - from the tail end of each series, maximum number of points to include.
-    `context` - context object to be used; primarily useful for switching projects
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        experiments: Filter specifying which experiments to include.
+            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a list of strings are provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a list of strings are provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        include_time: To include absolute timestamps, pass `"absolute"` as the value.
+            If set, each metric column has an additional sub-column with requested timestamp values.
+        step_range: Tuple specifying the range of steps to include. Can represent an open interval.
+        lineage_to_the_root: If True (default), includes all values from the complete experiment history.
+            If False, only includes values from the most recent experiment in the lineage.
+        tail_limit: From the tail end of each series, how many values to include at most.
 
-    Returns a DataFrame containing string series for the specified experiments and attributes.
-    If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
+    Example:
+        Fetch custom string series of two specific experiments from step 1000 onward:
+        ```
+        import neptune_query as nq
+
+
+        nq.fetch_series(
+            experiments=["seagull-week1", "seagull-week2"],
+            attributes=r"^messages/",
+            step_range=(1000.0, None),
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
