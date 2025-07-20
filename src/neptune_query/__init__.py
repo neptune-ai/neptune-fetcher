@@ -162,33 +162,47 @@ def fetch_metrics(
     type_suffix_in_column_names: bool = False,
     include_point_previews: bool = False,
 ) -> _pandas.DataFrame:
-    """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
+    """Metric values per step.
+
+    The values are raw, without any aggregation, approximation, or interpolation.
 
     Args:
-        `project`: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
-    `experiments` - a filter specifying which experiments to include
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
-    `include_time` - whether to include absolute timestamp
-    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
-        If False, only includes points from the most recent experiment in the lineage.
-    `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
-    `include_point_previews` - False by default. If False the returned results will only contain committed
-        points. If True the results will also include preview points and the returned DataFrame will
-        have additional sub-columns with preview status (is_preview and preview_completion).
+        experiments: Filter specifying which experiments to include.
+            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a list of strings are provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include in the table.
+            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a list of strings are provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        include_time: To include absolute timestamps, pass `"absolute"` as the value.
+            If set, each metric column has an additional sub-column with requested timestamp values.
+        step_range: Tuple specifying the range of steps to include. Can represent an open interval.
+        lineage_to_the_root: If True (default), includes all points from the complete experiment history.
+            If False, only includes points from the most recent experiment in the lineage.
+        tail_limit: From the tail end of each series, how many points to include at most.
+        type_suffix_in_column_names: If True, columns of the returned DataFrame
+            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
+            If False (default), the method throws an exception if there are multiple types under one path.
+        include_point_previews: If False (default), the returned results only contain committed
+            points. If True, the results also include preview points and the returned DataFrame will
+            have additional sub-columns with preview status (is_preview and preview_completion).
 
-    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
+    Example:
+        Fetch losses of two specific experiments from step 1000 onward, including incomplete points:
+        ```
+        import neptune_query as nq
+
+
+        nq.fetch_metrics(
+            experiments=["seagull-week1", "seagull-week2"],
+            attributes=r"^loss/.*",
+            step_range=(1000.0, None),
+            include_point_previews=True,
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
