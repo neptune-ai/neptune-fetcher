@@ -110,7 +110,7 @@ def list_attributes(
             If a string is provided, it's treated as a regex pattern that the name must match.
             If a list of strings are provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
-        attributes: Filter specifying which attributes to include in the table.
+        attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
             If a list of strings are provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
@@ -173,7 +173,7 @@ def fetch_metrics(
             If a string is provided, it's treated as a regex pattern that the name must match.
             If a list of strings are provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
-        attributes: Filter specifying which attributes to include in the table.
+        attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
             If a list of strings are provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
@@ -184,7 +184,7 @@ def fetch_metrics(
             If False, only includes points from the most recent experiment in the lineage.
         tail_limit: From the tail end of each series, how many points to include at most.
         type_suffix_in_column_names: If True, columns of the returned DataFrame
-            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
+            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
             If False (default), the method throws an exception if there are multiple types under one path.
         include_point_previews: If False (default), the returned results only contain committed
             points. If True, the results also include preview points and the returned DataFrame will
@@ -232,25 +232,41 @@ def fetch_experiments_table(
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
 ) -> _pandas.DataFrame:
-    """
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `experiments` - a filter specifying which experiments to include in the table
-        - a list of specific experiment names, or
-        - a regex that the experiment name must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that attribute name must match, or
-        - an AttributeFilter object;
-    `sort_by` - an attribute name or an Attribute object specifying type
-    `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of experiments to return; by default all experiments are returned.
-    `type_suffix_in_column_names` - False by default. If True, columns of the returned DataFrame
-        will be suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string", etc.
-        If set to False, the method throws an exception if there are multiple types under one path.
+    """Experiment metadata, with runs as rows and attributes as columns.
 
-    Returns a DataFrame similar to the Experiments Table in the UI.
-    (Only the last logged value of each metric is returned, no aggregations or approximations)
+    Returns a DataFrame similar to the runs table in the web app.
+    For series attributes, the last logged value is returned.
+
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        experiments: Filter specifying which experiments to include.
+            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a list of strings are provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a list of strings are provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        sort_by: Name of the attribute to sort the table by.
+            Alternatively, an Attribute object that specifies the attribute type.
+        sort_direction: The direction to sort columns by: `"desc"` (default) or `"asc"`.
+        limit: Maximum number of experiments to return. By default, all experiments are included.
+        type_suffix_in_column_names: If True, columns of the returned DataFrame
+            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+            If False (default), the method throws an exception if there are multiple types under one path.
+
+    Example:
+        Fetch attributes matching `loss` or `configs` from two specific experiments:
+        ```
+        import neptune_query as nq
+
+
+        nq.fetch_experiments_table(
+            experiments=["seagull-week1", "seagull-week2"],
+            attributes=r"loss|configs",
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     experiments_filter = resolve_experiments_filter(experiments)
@@ -290,7 +306,7 @@ def fetch_series(
         - a list of specific experiment names, or
         - a regex that the experiment name must match, or
         - a Filter object for more complex filtering
-    `attributes` - a filter specifying which attributes to include in the table
+    `attributes` - a filter specifying which attributes to include
         - a list of specific attribute names, or
         - a regex that attribute name must match, or
         - an AttributeFilter object;
