@@ -60,7 +60,7 @@ def list_experiments(
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
             If a string is provided, it's treated as a regex pattern that the name must match.
-            If a list of strings are provided, it's treated as exact experiment names to match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
 
     Examples:
@@ -108,11 +108,11 @@ def list_attributes(
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
             If a string is provided, it's treated as a regex pattern that the name must match.
-            If a list of strings are provided, it's treated as exact experiment names to match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
-            If a list of strings are provided, it's treated as exact attribute names to match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
 
     Examples:
@@ -171,11 +171,11 @@ def fetch_metrics(
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
             If a string is provided, it's treated as a regex pattern that the name must match.
-            If a list of strings are provided, it's treated as exact experiment names to match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
-            If a list of strings are provided, it's treated as exact attribute names to match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         include_time: To include absolute timestamps, pass `"absolute"` as the value.
             If set, each metric column has an additional sub-column with requested timestamp values.
@@ -242,11 +242,11 @@ def fetch_experiments_table(
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
             If a string is provided, it's treated as a regex pattern that the name must match.
-            If a list of strings are provided, it's treated as exact experiment names to match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
-            If a list of strings are provided, it's treated as exact attribute names to match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         sort_by: Name of the attribute to sort the table by.
             Alternatively, an Attribute object that specifies the attribute type.
@@ -305,11 +305,11 @@ def fetch_series(
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
             If a string is provided, it's treated as a regex pattern that the name must match.
-            If a list of strings are provided, it's treated as exact experiment names to match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
             If a string is provided, it's treated as a regex pattern that the attribute name must match.
-            If a list of strings are provided, it's treated as exact attribute names to match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         include_time: To include absolute timestamps, pass `"absolute"` as the value.
             If set, each metric column has an additional sub-column with requested timestamp values.
