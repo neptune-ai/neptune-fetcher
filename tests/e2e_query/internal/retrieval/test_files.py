@@ -1,7 +1,5 @@
 import dataclasses
 import os
-import pathlib
-import tempfile
 import urllib.parse
 from datetime import (
     datetime,
@@ -23,12 +21,6 @@ from tests.e2e_query.conftest import extract_pages
 from tests.e2e_query.data import PATH
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
-
-
-@pytest.fixture
-def temp_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        yield pathlib.Path(temp_dir)
 
 
 @pytest.fixture

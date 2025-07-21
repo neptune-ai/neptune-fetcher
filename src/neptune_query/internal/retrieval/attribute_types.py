@@ -107,9 +107,6 @@ class File:
     size_bytes: int
     mime_type: str
 
-    def __repr__(self) -> str:
-        return f"File({self.mime_type}, size={humanize_size(self.size_bytes)})"
-
 
 @dataclass(frozen=True)
 class Histogram:
@@ -134,18 +131,6 @@ class FileSeriesAggregations:
 class HistogramSeriesAggregations:
     last: Optional[Histogram]
     last_step: Optional[float]
-
-
-def humanize_size(size_bytes: int) -> str:
-    """Convert bytes to a human-readable format."""
-    if size_bytes < 1024:
-        return f"{size_bytes} B"
-    elif size_bytes < 1024**2:
-        return f"{size_bytes / 1024:.2f} KB"
-    elif size_bytes < 1024**3:
-        return f"{size_bytes / (1024 ** 2):.2f} MB"
-    else:
-        return f"{size_bytes / (1024 ** 3):.2f} GB"
 
 
 def extract_value(attr: ProtoAttributeDTO) -> Optional[Any]:
