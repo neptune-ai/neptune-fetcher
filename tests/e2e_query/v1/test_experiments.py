@@ -223,12 +223,12 @@ def test__fetch_experiments_table_with_attributes_filter_for_histogram_series(
             "experiment": [exp.name for exp in TEST_DATA.experiments[:2]],
             f"{PATH}/metrics/histogram-series-value_0"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
+                TEST_DATA.experiments[i].output_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
                 for i in range(2)
             ],
             f"{PATH}/metrics/histogram-series-value_1"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
+                TEST_DATA.experiments[i].output_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
                 for i in range(2)
             ],
         }
@@ -251,7 +251,7 @@ def test__fetch_experiments_table_with_attributes_filter_for_file_series(
 ):
     df = fetch_experiments_table(
         project=project.project_identifier,
-        experiments=Filter.name(exp.name for exp in TEST_DATA.experiments[:1]),
+        experiments=Filter.name(TEST_DATA.experiments[0].name),
         sort_by=Attribute("sys/name", type="string"),
         sort_direction="asc",
         attributes=attr_filter,
@@ -264,13 +264,11 @@ def test__fetch_experiments_table_with_attributes_filter_for_file_series(
             "experiment": [exp.name for exp in TEST_DATA.experiments[:1]],
             f"{PATH}/files/file-series-value_0"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_0"][-1]
-                for i in range(1)
+                TEST_DATA.experiments[0].file_series_matchers()[f"{PATH}/files/file-series-value_0"][-1],
             ],
             f"{PATH}/files/file-series-value_1"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_file_series()[f"{PATH}/files/file-series-value_1"][-1]
-                for i in range(1)
+                TEST_DATA.experiments[0].file_series_matchers()[f"{PATH}/files/file-series-value_1"][-1],
             ],
         }
     ).set_index("experiment", drop=True)

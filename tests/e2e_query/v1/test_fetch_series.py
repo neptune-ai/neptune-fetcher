@@ -502,7 +502,7 @@ def create_expected_data_file_series(
         steps = range(FILE_SERIES_STEPS)
         sys_id_label_mapping[SysId(experiment.run_id)] = experiment.name
 
-        for path, series in experiment.fetcher_file_series().items():
+        for path, series in experiment.file_series_matchers().items():
             run_attr = RunAttributeDefinition(
                 RunIdentifier(identifiers.ProjectIdentifier(NEPTUNE_PROJECT), SysId(experiment.run_id)),
                 AttributeDefinition(path, type="file_series"),
