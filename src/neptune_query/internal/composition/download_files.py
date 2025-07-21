@@ -20,6 +20,7 @@ from typing import (
 
 import pandas as pd
 
+from ... import types
 from .. import client as _client
 from .. import identifiers
 from ..composition import (
@@ -31,10 +32,6 @@ from ..context import (
     get_context,
     validate_context,
 )
-from ..files import (
-    DownloadableFile,
-    FileAttribute,
-)
 from ..output_format import create_files_dataframe
 from ..retrieval import files as _files
 from ..retrieval.search import ContainerType
@@ -43,7 +40,7 @@ from ..retrieval.split import split_files
 
 def download_files(
     *,
-    files: list[DownloadableFile],
+    files: list[types.File],
     destination: pathlib.Path,
     project_identifier: identifiers.ProjectIdentifier,
     container_type: ContainerType,
@@ -55,12 +52,12 @@ def download_files(
 
     with concurrency.create_thread_pool_executor() as executor:
 
-        def generate_signed_files() -> Generator[tuple[DownloadableFile, _files.SignedFile], None, None]:
+        def generate_signed_files() -> Generator[tuple[types.File, _files.SignedFile], None, None]:
             for file_group in split_files(files):
                 signed_files = _files.fetch_signed_urls(
                     client=client,
                     project_identifier=project_identifier,
-                    file_paths=[file.file.path for file in file_group],
+                    file_paths=[file.path for file in file_group],
                 )
                 yield from zip(file_group, signed_files)
 
@@ -69,15 +66,15 @@ def download_files(
             executor=executor,
             downstream=lambda file_tuple: concurrency.return_value(
                 (
-                    file_tuple[0].attribute,
+                    file_tuple[0],
                     _files.download_file_complete(
                         client=client,
                         signed_file=file_tuple[1],
                         target_path=_files.create_target_path(
                             destination=destination,
-                            experiment_label=file_tuple[0].attribute.label,
-                            attribute_path=file_tuple[0].attribute.attribute_path,
-                            step=file_tuple[0].attribute.step,
+                            experiment_label=file_tuple[0].label,
+                            attribute_path=file_tuple[0].attribute_path,
+                            step=file_tuple[0].step,
                         ),
                     ),
                 )
@@ -85,14 +82,14 @@ def download_files(
         )
 
         results: Generator[
-            tuple[FileAttribute, Optional[pathlib.Path]],
+            tuple[types.File, Optional[pathlib.Path]],
             None,
             None,
         ] = concurrency.gather_results(output)
 
-        attribute_paths: dict[FileAttribute, Optional[pathlib.Path]] = {}
-        for attribute, path in results:
-            attribute_paths[attribute] = path
+        file_paths: dict[types.File, Optional[pathlib.Path]] = {}
+        for file, path in results:
+            file_paths[file] = path
         return create_files_dataframe(
-            attribute_paths, index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run"
+            file_paths, index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run"
         )

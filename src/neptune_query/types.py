@@ -15,43 +15,31 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from neptune_query.internal import identifiers
-from neptune_query.internal.retrieval.attribute_types import File
+
+@dataclass(frozen=True)
+class Histogram:
+    type: str
+    edges: list[float]
+    values: list[float]
 
 
 @dataclass(frozen=True)
-class FileAttribute:
+class File:
     label: str
     attribute_path: str
     step: Optional[float]
-
-
-@dataclass(frozen=True)
-class DownloadableFile:
-    attribute: FileAttribute
-    file: File
-
-    @staticmethod
-    def from_file(
-        file: File, label: str, attribute_definition: identifiers.AttributeDefinition, step: Optional[float] = None
-    ) -> "DownloadableFile":
-        return DownloadableFile(
-            attribute=FileAttribute(
-                label=label,
-                attribute_path=attribute_definition.name,
-                step=step,
-            ),
-            file=file,
-        )
+    path: str
+    size_bytes: int
+    mime_type: str
 
     def __repr__(self) -> str:
         return (
-            f"DownloadableFile({self.attribute.label}, attribute_path={self.attribute.attribute_path}, "
-            f"step={self.attribute.step}, size={humanize_size(self.file.size_bytes)}, mime_type={self.file.mime_type})"
+            f"File({self.label}, attribute_path={self.attribute_path}, "
+            f"step={self.step}, size={_humanize_size(self.size_bytes)}, mime_type={self.mime_type})"
         )
 
 
-def humanize_size(size_bytes: int) -> str:
+def _humanize_size(size_bytes: int) -> str:
     """Convert bytes to a human-readable format."""
     if size_bytes < 1024:
         return f"{size_bytes} B"

@@ -24,12 +24,9 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from .. import types
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
-from .files import (
-    DownloadableFile,
-    FileAttribute,
-)
 from .retrieval import (
     metrics,
     series,
@@ -37,6 +34,7 @@ from .retrieval import (
 from .retrieval.attribute_types import (
     TYPE_AGGREGATIONS,
     File,
+    Histogram,
 )
 from .retrieval.attribute_values import AttributeValue
 from .retrieval.metrics import (
@@ -61,16 +59,12 @@ def convert_table_to_dataframe(
     type_suffix_in_column_names: bool,
     index_column_name: str = "experiment",
     flatten_aggregations: bool = False,
-    flatten_file_properties: bool = False,
 ) -> pd.DataFrame:
 
     if flatten_aggregations:
         has_non_last_aggregations = any(aggregations != {"last"} for aggregations in selected_aggregations.values())
         if has_non_last_aggregations:
             raise ValueError("Cannot flatten aggregations when selected aggregations include more than just 'last'. ")
-
-    if flatten_aggregations and flatten_file_properties:
-        raise ValueError("Cannot set flatten_aggregations and flatten_file_properties at the same time")
 
     if not table_data and not flatten_aggregations:
         return pd.DataFrame(
@@ -98,26 +92,26 @@ def convert_table_to_dataframe(
 
                 for agg_name, agg_value in agg_subset_values.items():
                     if value.attribute_definition.type == "file_series" and agg_name == "last":
-                        row[(column_name, "last")] = DownloadableFile.from_file(
+                        row[(column_name, "last")] = _create_output_file(
                             file=agg_value,
                             label=label,
-                            attribute_definition=value.attribute_definition,
+                            attribute_path=value.attribute_definition.name,
                             step=getattr(aggregation_value, "last_step", None),
                         )
+                    elif value.attribute_definition.type == "histogram_series" and agg_name == "last":
+                        row[(column_name, "last")] = _create_output_histogram(agg_value)
                     else:
                         row[(column_name, agg_name)] = agg_value
             elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
-                if flatten_file_properties:
-                    row[(column_name, "path")] = file_properties.path
-                    row[(column_name, "size_bytes")] = file_properties.size_bytes
-                    row[(column_name, "mime_type")] = file_properties.mime_type
-                else:
-                    row[(column_name, "")] = DownloadableFile.from_file(
-                        file=file_properties,
-                        label=label,
-                        attribute_definition=value.attribute_definition,
-                    )
+                row[(column_name, "")] = _create_output_file(
+                    file=file_properties,
+                    label=label,
+                    attribute_path=value.attribute_definition.name,
+                )
+            elif value.attribute_definition.type == "histogram":
+                histogram: Histogram = value.value
+                row[(column_name, "")] = _create_output_histogram(histogram)
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -335,12 +329,21 @@ def create_series_dataframe(
             return [
                 series.SeriesValue(
                     step=point.step,
-                    value=DownloadableFile.from_file(
+                    value=_create_output_file(
                         file=point.value,
                         label=label,
-                        attribute_definition=run_attribute_definition.attribute_definition,
+                        attribute_path=run_attribute_definition.attribute_definition.name,
                         step=point.step,
                     ),
+                    timestamp_millis=point.timestamp_millis,
+                )
+                for point in values
+            ]
+        elif run_attribute_definition.attribute_definition.type == "histogram_series":
+            return [
+                series.SeriesValue(
+                    step=point.step,
+                    value=_create_output_histogram(point.value),
                     timestamp_millis=point.timestamp_millis,
                 )
                 for point in values
@@ -440,7 +443,7 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    file_data: dict[FileAttribute, Optional[pathlib.Path]],
+    file_data: dict[types.File, Optional[pathlib.Path]],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
     if not file_data:
@@ -450,11 +453,11 @@ def create_files_dataframe(
         )
 
     rows: list[dict[str, Any]] = []
-    for attribute, path in file_data.items():
+    for file, path in file_data.items():
         row = {
-            index_column_name: attribute.label,
-            "attribute": attribute.attribute_path,
-            "step": attribute.step,
+            index_column_name: file.label,
+            "attribute": file.attribute_path,
+            "step": file.step,
             "path": str(path) if path else None,
         }
         rows.append(row)
@@ -465,3 +468,29 @@ def create_files_dataframe(
     dataframe = dataframe.sort_index()
     sorted_columns = sorted(dataframe.columns)
     return dataframe[sorted_columns]
+
+
+def _create_output_file(
+    file: File,
+    label: str,
+    attribute_path: str,
+    step: Optional[float] = None,
+) -> types.File:
+    return types.File(
+        label=label,
+        attribute_path=attribute_path,
+        step=step,
+        path=file.path,
+        size_bytes=file.size_bytes,
+        mime_type=file.mime_type,
+    )
+
+
+def _create_output_histogram(
+    histogram: Histogram,
+) -> types.Histogram:
+    return types.Histogram(
+        type=histogram.type,
+        edges=histogram.edges,
+        values=histogram.values,
+    )

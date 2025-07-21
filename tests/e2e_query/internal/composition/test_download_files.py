@@ -11,12 +11,8 @@ from neptune_query import (
 from neptune_query._internal import resolve_downloadable_files
 from neptune_query.filters import AttributeFilter
 from neptune_query.internal.composition.download_files import download_files
-from neptune_query.internal.files import (
-    DownloadableFile,
-    FileAttribute,
-)
-from neptune_query.internal.retrieval.attribute_types import File
 from neptune_query.internal.retrieval.search import ContainerType
+from neptune_query.types import File
 from tests.e2e_query.data import (
     FILE_SERIES_PATHS,
     PATH,
@@ -32,11 +28,13 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
     # when
     result_df = download_files(
         files=[
-            DownloadableFile(
-                attribute=FileAttribute(
-                    label=EXPERIMENT_NAME, attribute_path=f"{PATH}/files/object-does-not-exist", step=None
-                ),
-                file=File(path="object-does-not-exist", size_bytes=0, mime_type="application/octet-stream"),
+            File(
+                label=EXPERIMENT_NAME,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path="object-does-not-exist",
+                size_bytes=0,
+                mime_type="application/octet-stream",
             ),
         ],
         project_identifier=project.project_identifier,
@@ -66,11 +64,13 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
     with pytest.raises(PermissionError):
         download_files(
             files=[
-                DownloadableFile(
-                    attribute=FileAttribute(
-                        label=EXPERIMENT_NAME, attribute_path=f"{PATH}/files/file-value.txt", step=None
-                    ),
-                    file=File(path="not-real-path", size_bytes=14, mime_type="text/plain"),
+                File(
+                    label=EXPERIMENT_NAME,
+                    attribute_path=f"{PATH}/files/file-value.txt",
+                    step=None,
+                    path="not-real-path",
+                    size_bytes=14,
+                    mime_type="text/plain",
                 ),
             ],
             project_identifier=project.project_identifier,
@@ -91,11 +91,13 @@ def test_download_files_destination_file_type(client, project, experiment_identi
     with pytest.raises(NotADirectoryError):
         download_files(
             files=[
-                DownloadableFile(
-                    attribute=FileAttribute(
-                        label=EXPERIMENT_NAME, attribute_path=f"{PATH}/files/file-value.txt", step=None
-                    ),
-                    file=File(path="not-a-real-path", size_bytes=14, mime_type="text/plain"),
+                File(
+                    label=EXPERIMENT_NAME,
+                    attribute_path=f"{PATH}/files/file-value.txt",
+                    step=None,
+                    path="not-a-real-path",
+                    size_bytes=14,
+                    mime_type="text/plain",
                 ),
             ],
             project_identifier=project.project_identifier,

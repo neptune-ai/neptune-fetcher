@@ -47,7 +47,7 @@ def test_fetch_series_values_does_not_exist(client, project, experiment_identifi
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].file_series_matchers()[FILE_SERIES_PATHS[0]]),
     ],
 )
 def test_fetch_series_values_single_series(
@@ -83,7 +83,7 @@ def test_fetch_series_values_single_series(
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].file_series_matchers()[FILE_SERIES_PATHS[0]]),
     ],
 )
 @pytest.mark.parametrize(
@@ -137,7 +137,7 @@ def test_fetch_series_values_single_series_stop_range(
             "histogram_series",
             TEST_DATA.experiments[0].fetcher_histogram_series()[HISTOGRAM_SERIES_PATHS[0]],
         ),
-        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].fetcher_file_series()[FILE_SERIES_PATHS[0]]),
+        (FILE_SERIES_PATHS[0], "file_series", TEST_DATA.experiments[0].file_series_matchers()[FILE_SERIES_PATHS[0]]),
     ],
 )
 @pytest.mark.parametrize(

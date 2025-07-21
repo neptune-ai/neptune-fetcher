@@ -34,7 +34,10 @@ from typing import (
 
 import pandas as _pandas
 
-from neptune_query import filters
+from neptune_query import (
+    filters,
+    types,
+)
 from neptune_query._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
@@ -267,9 +270,7 @@ def fetch_series(
 def download_files(
     *,
     project: Optional[str] = None,
-    files: Union[
-        _download_files.DownloadableFile, Iterable[_download_files.DownloadableFile], _pandas.Series, _pandas.DataFrame
-    ],
+    files: Union[types.File, Iterable[types.File], _pandas.Series, _pandas.DataFrame],
     destination: Optional[Union[str, pathlib.Path]] = None,
 ) -> _pandas.DataFrame:
     """
@@ -277,10 +278,10 @@ def download_files(
 
     `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
     `files` - the list of files to download
-        - a single DownloadableFile object, or
-        - an Iterable of DownloadableFile objects, or
-        - a pandas Series containing, non-exclusively, DownloadableFile objects, or
-        - a pandas DataFrame containing, among other data, DownloadableFile objects.
+        - a single File object, or
+        - an Iterable of File objects, or
+        - a pandas Series containing, non-exclusively, File objects, or
+        - a pandas DataFrame containing, among other data, File objects.
     `destination`: the directory where files will be downloaded.
         - If `None`, the current working directory (CWD) is used as the default.
         - The path can be relative or absolute.
