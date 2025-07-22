@@ -24,6 +24,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from .. import types
 from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
 from .retrieval import (
@@ -33,6 +34,7 @@ from .retrieval import (
 from .retrieval.attribute_types import (
     TYPE_AGGREGATIONS,
     File,
+    Histogram,
 )
 from .retrieval.attribute_values import AttributeValue
 from .retrieval.metrics import (
@@ -57,16 +59,12 @@ def convert_table_to_dataframe(
     type_suffix_in_column_names: bool,
     index_column_name: str = "experiment",
     flatten_aggregations: bool = False,
-    flatten_file_properties: bool = False,
 ) -> pd.DataFrame:
 
     if flatten_aggregations:
         has_non_last_aggregations = any(aggregations != {"last"} for aggregations in selected_aggregations.values())
         if has_non_last_aggregations:
             raise ValueError("Cannot flatten aggregations when selected aggregations include more than just 'last'. ")
-
-    if flatten_aggregations and flatten_file_properties:
-        raise ValueError("Cannot set flatten_aggregations and flatten_file_properties at the same time")
 
     if not table_data and not flatten_aggregations:
         return pd.DataFrame(
@@ -79,8 +77,8 @@ def convert_table_to_dataframe(
             columns=[],
         )
 
-    def convert_row(values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
-        row = {}
+    def convert_row(label: str, values: list[AttributeValue]) -> dict[tuple[str, str], Any]:
+        row: dict[tuple[str, str], Any] = {}
         for value in values:
             column_name = get_column_name(value)
             if column_name in row:
@@ -93,12 +91,27 @@ def convert_table_to_dataframe(
                 agg_subset_values = get_aggregation_subset(aggregation_value, selected_subset, aggregations_set)
 
                 for agg_name, agg_value in agg_subset_values.items():
-                    row[(column_name, agg_name)] = agg_value
-            elif flatten_file_properties and value.attribute_definition.type == "file":
+                    if value.attribute_definition.type == "file_series" and agg_name == "last":
+                        row[(column_name, "last")] = _create_output_file(
+                            file=agg_value,
+                            label=label,
+                            attribute_path=value.attribute_definition.name,
+                            step=getattr(aggregation_value, "last_step", None),
+                        )
+                    elif value.attribute_definition.type == "histogram_series" and agg_name == "last":
+                        row[(column_name, "last")] = _create_output_histogram(agg_value)
+                    else:
+                        row[(column_name, agg_name)] = agg_value
+            elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
-                row[(column_name, "path")] = file_properties.path
-                row[(column_name, "size_bytes")] = file_properties.size_bytes
-                row[(column_name, "mime_type")] = file_properties.mime_type
+                row[(column_name, "")] = _create_output_file(
+                    file=file_properties,
+                    label=label,
+                    attribute_path=value.attribute_definition.name,
+                )
+            elif value.attribute_definition.type == "histogram":
+                histogram: Histogram = value.value
+                row[(column_name, "")] = _create_output_histogram(histogram)
             else:
                 row[(column_name, "")] = value.value
         return row
@@ -159,7 +172,7 @@ def convert_table_to_dataframe(
 
     rows = []
     for label, values in table_data.items():
-        row: Any = convert_row(values)
+        row: Any = convert_row(label, values)
         if flatten_aggregations:
             # Note for future optimization:
             # flatten_aggregations is always True in v1
@@ -308,16 +321,47 @@ def create_series_dataframe(
         if run_attr_definition.attribute_definition.name not in path_mapping:
             path_mapping[run_attr_definition.attribute_definition.name] = len(path_mapping)
 
+    def convert_values(
+        run_attribute_definition: identifiers.RunAttributeDefinition, values: list[series.SeriesValue]
+    ) -> list[series.SeriesValue]:
+        if run_attribute_definition.attribute_definition.type == "file_series":
+            label = sys_id_label_mapping[run_attribute_definition.run_identifier.sys_id]
+            return [
+                series.SeriesValue(
+                    step=point.step,
+                    value=_create_output_file(
+                        file=point.value,
+                        label=label,
+                        attribute_path=run_attribute_definition.attribute_definition.name,
+                        step=point.step,
+                    ),
+                    timestamp_millis=point.timestamp_millis,
+                )
+                for point in values
+            ]
+        elif run_attribute_definition.attribute_definition.type == "histogram_series":
+            return [
+                series.SeriesValue(
+                    step=point.step,
+                    value=_create_output_histogram(point.value),
+                    timestamp_millis=point.timestamp_millis,
+                )
+                for point in values
+            ]
+        else:
+            return values
+
     def generate_categorized_rows() -> Generator[Tuple, None, None]:
         for attribute, values in series_data.items():
             exp_category = experiment_mapping[attribute.run_identifier.sys_id]
             path_category = path_mapping[attribute.attribute_definition.name]
+            converted_values = convert_values(attribute, values)
 
             if timestamp_column_name:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value, point.timestamp_millis
             else:
-                for point in values:
+                for point in converted_values:
                     yield exp_category, path_category, point.step, point.value
 
     types = [
@@ -399,26 +443,54 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_files_dataframe(
-    files_data: list[tuple[identifiers.RunIdentifier, identifiers.AttributeDefinition, Optional[pathlib.Path]]],
-    sys_id_label_mapping: dict[identifiers.SysId, str],
+    file_data: dict[types.File, Optional[pathlib.Path]],
     index_column_name: str = "experiment",
 ) -> pd.DataFrame:
-    if not files_data:
+    if not file_data:
         return pd.DataFrame(
-            index=pd.Index([], name=index_column_name),
+            index=pd.MultiIndex.from_tuples([], names=[index_column_name, "step"]),
+            columns=pd.Index([], name="attribute"),
         )
 
-    rows: list[dict[str, Optional[str]]] = []
-    for run_identifier, attribute_definition, target_path in files_data:
+    rows: list[dict[str, Any]] = []
+    for file, path in file_data.items():
         row = {
-            index_column_name: sys_id_label_mapping[run_identifier.sys_id],
-            "attribute": attribute_definition.name,
-            "file_path": str(target_path) if target_path else None,
+            index_column_name: file.label,
+            "attribute": file.attribute_path,
+            "step": file.step,
+            "path": str(path) if path else None,
         }
         rows.append(row)
 
     dataframe = pd.DataFrame(rows)
-    dataframe = dataframe.pivot(index=[index_column_name], columns="attribute", values="file_path")
+    dataframe = dataframe.pivot(index=[index_column_name, "step"], columns="attribute", values="path")
 
+    dataframe = dataframe.sort_index()
     sorted_columns = sorted(dataframe.columns)
     return dataframe[sorted_columns]
+
+
+def _create_output_file(
+    file: File,
+    label: str,
+    attribute_path: str,
+    step: Optional[float] = None,
+) -> types.File:
+    return types.File(
+        label=label,
+        attribute_path=attribute_path,
+        step=step,
+        path=file.path,
+        size_bytes=file.size_bytes,
+        mime_type=file.mime_type,
+    )
+
+
+def _create_output_histogram(
+    histogram: Histogram,
+) -> types.Histogram:
+    return types.Histogram(
+        type=histogram.type,
+        edges=histogram.edges,
+        values=histogram.values,
+    )

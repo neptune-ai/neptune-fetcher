@@ -1,5 +1,7 @@
 import itertools as it
 import os
+import pathlib
+import tempfile
 import time
 from concurrent.futures import Executor
 from dataclasses import dataclass
@@ -164,6 +166,12 @@ def experiment_identifiers(client, project, run_with_attributes) -> list[RunIden
 @pytest.fixture(scope="module")
 def experiment_identifier(experiment_identifiers) -> RunIdentifier:
     return experiment_identifiers[0]
+
+
+@pytest.fixture
+def temp_dir():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield pathlib.Path(temp_dir)
 
 
 def extract_pages(generator):
