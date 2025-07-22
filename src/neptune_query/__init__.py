@@ -53,13 +53,13 @@ def list_experiments(
     project: Optional[str] = None,
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
 ) -> list[str]:
-    """List the names of all experiments in a Neptune project.
+    """Lists the names of experiments in a Neptune project.
 
     Args:
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
-            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a string is provided, it's treated as a regex pattern that the names must match.
             If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
 
@@ -99,19 +99,19 @@ def list_attributes(
     experiments: Optional[Union[str, list[str], filters.Filter]] = None,
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
 ) -> list[str]:
-    """List all attributes in the experiments of a Neptune project.
+    """Lists attributes in the experiments of a Neptune project.
 
-    To limit the results, define filters for the experiments to search or the attributes to include.
+    To narrow the results, define filters for experiments to search or attributes to include.
 
     Args:
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
-            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a string is provided, it's treated as a regex pattern that the names must match.
             If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
-            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
             If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
 
@@ -166,15 +166,18 @@ def fetch_metrics(
 
     The values are raw, without any aggregation, approximation, or interpolation.
 
+    To narrow the results, limit the step range or the number of values from the tail end.
+    You can also define filters for experiments to search or attributes to include.
+
     Args:
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
-            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a string is provided, it's treated as a regex pattern that the names must match.
             If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
-            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
             If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         include_time: To include absolute timestamps, pass `"absolute"` as the value.
@@ -234,6 +237,8 @@ def fetch_experiments_table(
 ) -> _pandas.DataFrame:
     """Experiment metadata, with runs as rows and attributes as columns.
 
+    To narrow the results, define filters for experiments to search or attributes to include.
+
     Returns a DataFrame similar to the runs table in the web app.
     For series attributes, the last logged value is returned.
 
@@ -241,11 +246,11 @@ def fetch_experiments_table(
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
-            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a string is provided, it's treated as a regex pattern that the names must match.
             If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
-            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
             If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         sort_by: Name of the attribute to sort the table by.
@@ -298,17 +303,19 @@ def fetch_series(
 ) -> _pandas.DataFrame:
     """Series values per step, for non-numerical series attributes.
 
+    To narrow the results, define filters for experiments to search or attributes to include.
+
     Supports series of histograms, files, and strings.
 
     Args:
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
             If not provided, the NEPTUNE_PROJECT environment variable is used.
         experiments: Filter specifying which experiments to include.
-            If a string is provided, it's treated as a regex pattern that the name must match.
+            If a string is provided, it's treated as a regex pattern that the names must match.
             If a list of strings is provided, it's treated as exact experiment names to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
         attributes: Filter specifying which attributes to include.
-            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
             If a list of strings is provided, it's treated as exact attribute names to match.
             To provide a more complex condition, pass an AttributeFilter object.
         include_time: To include absolute timestamps, pass `"absolute"` as the value.
