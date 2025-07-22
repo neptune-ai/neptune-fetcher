@@ -51,14 +51,15 @@ def list_runs(
     project: Optional[str] = None,
     runs: Optional[Union[str, list[str], filters.Filter]] = None,
 ) -> list[str]:
-    """
-     Returns a list of run IDs in a project.
+    """Lists the IDs of runs in a Neptune project.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `runs` - a filter specifying which runs to include
-        - a list of specific run IDs, or
-        - a regex that the run ID must match, or
-        - a Filter object
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        runs: Filter specifying which runs to include.
+            If a string is provided, it's treated as a regex pattern that the run IDs must match.
+            If a list of strings is provided, it's treated as exact run IDs to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
@@ -76,21 +77,43 @@ def list_attributes(
     runs: Optional[Union[str, list[str], filters.Filter]] = None,
     attributes: Optional[Union[str, list[str], filters.AttributeFilter]] = None,
 ) -> list[str]:
-    """
-    List the names of attributes in a project.
-    Optionally filter by runs and attributes.
+    """Lists attributes in the runs of a Neptune project.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `runs` - a filter specifying runs to which the attributes belong
-        - a list of specific run IDs, or
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
+    To narrow the results, define filters for runs to search or attributes to include.
 
-    Returns a list of unique attribute names in runs matching the filter.
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        runs: Filter specifying which runs to include.
+            If a string is provided, it's treated as a regex pattern that the names must match.
+            If a list of strings is provided, it's treated as exact experiment names to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+
+    Examples:
+        List all attributes that begin with "metrics":
+        ```
+        import neptune_query.runs as nq
+
+
+        nq.list_attributes(attributes=r"^metrics")
+        ```
+
+        Search a specific project for runs with a learning rate less than 0.01 and
+        return all attributes nested under the "config" namespace:
+        ```
+        from neptune_query import Filter
+
+
+        nq.list_attributes(
+            project="team-alpha/sandbox",
+            runs=Filter.lt("config/lr", 0.01),
+            attributes=r"^config/",
+        )
+        ```
     """
 
     project_identifier = get_default_project_identifier(project)
@@ -117,31 +140,50 @@ def fetch_metrics(
     type_suffix_in_column_names: bool = False,
     include_point_previews: bool = False,
 ) -> _pandas.DataFrame:
-    """
-    Returns raw values for the requested metrics (no aggregation, approximation, or interpolation).
+    """Metric values per step.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `runs` - a filter specifying which runs to include
-        - a list of specific run IDs, or
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-    `include_time` - whether to include absolute timestamp
-    `step_range` - a tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete run history.
-        If False, only includes points from the most recent run in the lineage.
-    `tail_limit` - from the tail end of each series, how many points to include at most.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
-    `include_point_previews` - False by default. If False the returned results will only contain committed
-        points. If True the results will also include preview points and the returned DataFrame will
-        have additional sub-columns with preview status (is_preview and preview_completion).
+    The values are raw, without any aggregation, approximation, or interpolation.
 
-    If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
+    To narrow the results, limit the step range or the number of values from the tail end.
+    You can also define filters for runs to search or attributes to include.
+
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        runs: Filter specifying which runs to include.
+            If a string is provided, it's treated as a regex pattern that the run IDs must match.
+            If a list of strings is provided, it's treated as exact run IDs to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        include_time: To include absolute timestamps, pass `"absolute"` as the value.
+            If set, each metric column has an additional sub-column with requested timestamp values.
+        step_range: Tuple specifying the range of steps to include. Can represent an open interval.
+        lineage_to_the_root: If True (default), includes all points from the complete experiment history.
+            If False, only includes points from the most recent experiment in the lineage.
+        tail_limit: From the tail end of each series, how many points to include at most.
+        type_suffix_in_column_names: If True, columns of the returned DataFrame
+            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+            If False (default), the method throws an exception if there are multiple types under one path.
+        include_point_previews: If False (default), the returned results only contain committed
+            points. If True, the results also include preview points and the returned DataFrame will
+            have additional sub-columns with preview status (is_preview and preview_completion).
+
+    Example:
+        Fetch losses of a specific run from step 1000 onward, including incomplete points:
+        ```
+        import neptune_query.runs as nq
+
+
+        nq.fetch_metrics(
+            runs=["prompt-wolf-20250605132116671-2g2r1"],
+            attributes=r"^loss/.*",
+            step_range=(1000.0, None),
+            include_point_previews=True,
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
@@ -171,25 +213,43 @@ def fetch_runs_table(
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
 ) -> _pandas.DataFrame:
-    """
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `runs` - a filter specifying which runs to include in the table
-        - a list of specific run IDs, or
-        - a regex that the run ID must match, or
-        - a Filter object
-    `attributes` - a filter specifying which attributes to include in the table
-        - a list of specific attribute names, or
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object
-    `sort_by` - an attribute name or an Attribute object specifying type
-    `sort_direction` - 'asc' or 'desc'
-    `limit` - maximum number of runs to return; by default all runs are returned.
-    `type_suffix_in_column_names` - False by default. If set to True, columns of the returned DataFrame
-        are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
-        If False, an exception is raised if there are multiple types under one attribute path.
+    """Run metadata, with runs as rows and attributes as columns.
 
-    Returns a DataFrame similar to the Runs Table in the UI.
-    (Only the last logged value of each metric is returned, no aggregations or approximations)
+    To narrow the results, define filters for runs to search or attributes to include.
+
+    Returns a DataFrame similar to the runs table in the web app.
+    For series attributes, the last logged value is returned.
+
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        runs: Filter specifying which runs to include.
+            If a string is provided, it's treated as a regex pattern that the run IDs must match.
+            If a list of strings is provided, it's treated as exact run IDs to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        sort_by: Name of the attribute to sort the table by.
+            Alternatively, an Attribute object that specifies the attribute type.
+        sort_direction: The direction to sort columns by: `"desc"` (default) or `"asc"`.
+        limit: Maximum number of runs to return. By default, all runs are included.
+        type_suffix_in_column_names: If True, columns of the returned DataFrame
+            are suffixed with ":<type>", e.g. "attribute1:float_series", "attribute1:string".
+            If False (default), the method throws an exception if there are multiple types under one path.
+
+    Example:
+        Fetch attributes matching `loss` or `configs` from a specific run:
+        ```
+        import neptune_query.runs as nq
+
+
+        nq.fetch_runs_table(
+            runs=["prompt-wolf-20250605132116671-2g2r1"],
+            attributes=r"loss|configs",
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
@@ -219,28 +279,42 @@ def fetch_series(
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
 ) -> _pandas.DataFrame:
-    """
-    Fetches raw values for string series from selected runs.
+    """Series values per step, for non-numerical series attributes.
 
-    Currently only supports attributes of type string_series.
+    To narrow the results, define filters for runs to search or attributes to include.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `runs` - a filter specifying which runs to include
-        - a list of specific run IDs, or
-        - a regex that experiment name must match, or
-        - a Filter object for more complex filtering
-    `attributes` - a filter specifying which attributes to include
-        - a list of specific attribute names, or
-        - a regex that the attribute name must match, or
-        - an AttributeFilter object;
-    `include_time` - whether to include absolute timestamp
-    `step_range` - tuple specifying the range of steps to include; can represent an open interval
-    `lineage_to_the_root` - if True (default), includes all points from the complete experiment history.
-        If False, only includes points from the most recent experiment in the lineage.
-    `tail_limit` - from the tail end of each series, maximum number of points to include.
+    Supports series of histograms, files, and strings.
 
-    Returns a DataFrame containing string series for the specified runs and attributes.
-    If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        runs: Filter specifying which runs to include.
+            If a string is provided, it's treated as a regex pattern that the run IDs must match.
+            If a list of strings is provided, it's treated as exact run IDs to match.
+            To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+        attributes: Filter specifying which attributes to include.
+            If a string is provided, it's treated as a regex pattern that the attribute names must match.
+            If a list of strings is provided, it's treated as exact attribute names to match.
+            To provide a more complex condition, pass an AttributeFilter object.
+        include_time: To include absolute timestamps, pass `"absolute"` as the value.
+            If set, each metric column has an additional sub-column with requested timestamp values.
+        step_range: Tuple specifying the range of steps to include. Can represent an open interval.
+        lineage_to_the_root: If True (default), includes all values from the complete experiment history.
+            If False, only includes values from the most recent experiment in the lineage.
+        tail_limit: From the tail end of each series, how many values to include at most.
+
+    Example:
+        Fetch custom string series of a specific run from step 1000 onward:
+        ```
+        import neptune_query.runs as nq
+
+
+        nq.fetch_series(
+            runs=["prompt-wolf-20250605132116671-2g2r1"],
+            attributes=r"^messages/",
+            step_range=(1000.0, None),
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
