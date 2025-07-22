@@ -45,21 +45,25 @@ class Context:
     api_token: Optional[str] = None
 
     def with_project(self, project: str) -> "Context":
-        """Copy the set context and overwrite the project."""
+        """
+        Copy the Context overwriting the project field.
+        """
         if not project:
             raise ValueError("Project name must be provided")
         return Context(project=project, api_token=self.api_token)
 
     def with_api_token(self, api_token: str) -> "Context":
-        """Copy the set context and overwrite the API token."""
+        """
+        Copy the Context overwriting the api_token field.
+        """
         if not api_token:
             raise ValueError("API token must be provided")
         return Context(project=self.project, api_token=api_token)
 
 
 def set_project(project: str) -> Context:
-    """Set the project of the context.
-
+    """
+    Set the project in the context.
     Returns the set context.
     """
     global _context
@@ -69,8 +73,8 @@ def set_project(project: str) -> Context:
 
 
 def set_api_token(api_token: str) -> Context:
-    """Set the API token of the context.
-
+    """
+    Set the API token in the context.
     Returns the set context.
     """
     global _context
@@ -80,20 +84,22 @@ def set_api_token(api_token: str) -> Context:
 
 
 def get_context() -> Context:
-    """Return the currently set global Context."""
+    """
+    Return currently set global Context.
+    """
     with _lock:
         return _context
 
 
 def set_context(context: Optional[Context] = None) -> Context:
-    """Set the global context.
+    """
+    The context is automatically set from the environment variables (if they exist) on import of the module,
+    but it's possible to override it with this function.
 
-    On importing the module, the context is automatically set from the NEPTUNE_PROJECT and
-    NEPTUNE_API_TOKEN environment variables.
-
-    Use this function to override the automatically set context.
-
-    If None is provided, the global context is reset from the environment variables.
+    If the argument is None, the global context is reset from environment variables.
+    The following environment variables are used:
+    - NEPTUNE_PROJECT
+    - NEPTUNE_API_TOKEN
 
     Returns the set context.
     """
