@@ -60,6 +60,19 @@ def list_runs(
             If a string is provided, it's treated as a regex pattern that the run IDs must match.
             If a list of strings is provided, it's treated as exact run IDs to match.
             To provide a more complex condition on an arbitrary attribute value, pass a Filter object.
+
+    Examples:
+        List all my runs in a specific project:
+        ```
+        import neptune_query.runs as nqr
+        from neptune_query.filters import Filter
+
+
+        nqr.list_runs(
+            project="team-alpha/sandbox",
+            runs=Filter.eq("sys/owner", "MyUsername"),
+        )
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
@@ -96,22 +109,18 @@ def list_attributes(
     Examples:
         List all attributes that begin with "metrics":
         ```
-        import neptune_query.runs as nq
+        import neptune_query.runs as nqr
 
 
-        nq.list_attributes(attributes=r"^metrics")
+        nqr.list_attributes(attributes=r"^metrics")
         ```
 
-        Search a specific project for runs with a learning rate less than 0.01 and
-        return all attributes nested under the "config" namespace:
+        Search all runs of a specific project and list all attributes, except those in the
+        "parameters" and "sys" namespaces:
         ```
-        from neptune_query import Filter
-
-
-        nq.list_attributes(
+        nqr.list_attributes(
             project="team-alpha/sandbox",
-            runs=Filter.lt("config/lr", 0.01),
-            attributes=r"^config/",
+            attributes=r"!parameters/ & !sys/",
         )
         ```
     """
@@ -174,10 +183,10 @@ def fetch_metrics(
     Example:
         Fetch losses of a specific run from step 1000 onward, including incomplete points:
         ```
-        import neptune_query.runs as nq
+        import neptune_query.runs as nqr
 
 
-        nq.fetch_metrics(
+        nqr.fetch_metrics(
             runs=["prompt-wolf-20250605132116671-2g2r1"],
             attributes=r"^loss/.*",
             step_range=(1000.0, None),
@@ -240,14 +249,15 @@ def fetch_runs_table(
             If False (default), the method throws an exception if there are multiple types under one path.
 
     Example:
-        Fetch attributes matching `loss` or `configs` from a specific run:
+        Fetch constituent runs of an experiment, with attributes matching `loss` or `configs` as columns:
         ```
-        import neptune_query.runs as nq
+        import neptune_query.runs as nqr
+        from neptune_query.filters import Filter
 
 
-        nq.fetch_runs_table(
-            runs=["prompt-wolf-20250605132116671-2g2r1"],
-            attributes=r"loss|configs",
+        nqr.fetch_runs_table(
+            runs=Filter.eq("sys/name", "exp-week9"),
+            attributes=r"loss | configs",
         )
         ```
     """
@@ -304,15 +314,15 @@ def fetch_series(
         tail_limit: From the tail end of each series, how many values to include at most.
 
     Example:
-        Fetch custom string series of a specific run from step 1000 onward:
+        Fetch custom string series of a specific run from step 100 onward:
         ```
-        import neptune_query.runs as nq
+        import neptune_query.runs as nqr
 
 
-        nq.fetch_series(
+        nqr.fetch_series(
             runs=["prompt-wolf-20250605132116671-2g2r1"],
             attributes=r"^messages/",
-            step_range=(1000.0, None),
+            step_range=(100.0, None),
         )
         ```
     """
