@@ -74,7 +74,7 @@ def list_experiments(
 
         Search a specific project for experiments with a learning rate less than 0.01:
         ```
-        from neptune_query import Filter
+        from neptune_query.filters import Filter
 
 
         nq.list_experiments(
@@ -125,15 +125,14 @@ def list_attributes(
         ```
 
         Search a specific project for experiments with a learning rate less than 0.01 and
-        return all attributes nested under the "config" namespace:
+        return the logged attributes:
         ```
-        from neptune_query import Filter
+        from neptune_query.filters import Filter
 
 
         nq.list_attributes(
             project="team-alpha/sandbox",
             experiments=Filter.lt("config/lr", 0.01),
-            attributes=r"^config/",
         )
         ```
     """
