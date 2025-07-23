@@ -72,6 +72,7 @@ def download_files(
                         signed_file=file_tuple[1],
                         target_path=_files.create_target_path(
                             destination=destination,
+                            mime_type=file_tuple[0].mime_type,
                             experiment_label=file_tuple[0].label,
                             attribute_path=file_tuple[0].attribute_path,
                             step=file_tuple[0].step,

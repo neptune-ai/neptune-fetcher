@@ -130,7 +130,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
             {
                 "experiment": EXPERIMENT_NAME,
                 "step": None,
-                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt"),
+                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt.txt"),
             }
         ]
     ).set_index(["experiment", "step"])
@@ -170,8 +170,8 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
             {
                 "experiment": EXPERIMENT_NAME,
                 "step": None,
-                f"{PATH}/files/file-value": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value"),
-                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt"),
+                f"{PATH}/files/file-value": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value.bin"),
+                f"{PATH}/files/file-value.txt": str(temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt.txt"),
             }
         ]
     ).set_index(["experiment", "step"])
@@ -213,10 +213,10 @@ def test_download_file_series(client, project, experiment_identifier, temp_dir):
                 "experiment": EXPERIMENT_NAME,
                 "step": step,
                 f"{PATH}/files/file-series-value_0": str(
-                    temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_0/step_{int(step)}_000000"
+                    temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_0/step_{int(step)}_000000.bin"
                 ),
                 f"{PATH}/files/file-series-value_1": str(
-                    temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_1/step_{int(step)}_000000"
+                    temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_1/step_{int(step)}_000000.bin"
                 ),
             }
             for step in [0.0, 1.0, 2.0]
