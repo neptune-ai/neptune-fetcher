@@ -59,6 +59,7 @@ from neptune_query.internal.query_metadata_context import (
 from neptune_query.internal.retrieval import search as _search
 
 
+@use_query_metadata(QueryMetadata(api_function="runs.list_runs"))
 def list_runs(
     *,
     project: Optional[str] = None,
@@ -73,17 +74,17 @@ def list_runs(
         - a regex that the run ID must match, or
         - a Filter object
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.list_runs")):
-        project_identifier = get_default_project_identifier(project)
-        runs_filter = resolve_runs_filter(runs)
+    project_identifier = get_default_project_identifier(project)
+    runs_filter = resolve_runs_filter(runs)
 
-        return _list_containers.list_containers(
-            project_identifier=project_identifier,
-            filter_=runs_filter,
-            container_type=_search.ContainerType.RUN,
-        )
+    return _list_containers.list_containers(
+        project_identifier=project_identifier,
+        filter_=runs_filter,
+        container_type=_search.ContainerType.RUN,
+    )
 
 
+@use_query_metadata(QueryMetadata(api_function="runs.list_attributes"))
 def list_attributes(
     *,
     project: Optional[str] = None,
@@ -106,19 +107,19 @@ def list_attributes(
 
     Returns a list of unique attribute names in runs matching the filter.
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.list_attributes")):
-        project_identifier = get_default_project_identifier(project)
-        runs_filter = resolve_runs_filter(runs)
-        attributes_filter = resolve_attributes_filter(attributes)
+    project_identifier = get_default_project_identifier(project)
+    runs_filter = resolve_runs_filter(runs)
+    attributes_filter = resolve_attributes_filter(attributes)
 
-        return _list_attributes.list_attributes(
-            project_identifier=project_identifier,
-            filter_=runs_filter,
-            attributes=attributes_filter,
-            container_type=_search.ContainerType.RUN,
-        )
+    return _list_attributes.list_attributes(
+        project_identifier=project_identifier,
+        filter_=runs_filter,
+        attributes=attributes_filter,
+        container_type=_search.ContainerType.RUN,
+    )
 
 
+@use_query_metadata(QueryMetadata(api_function="runs.fetch_metrics"))
 def fetch_metrics(
     *,
     project: Optional[str] = None,
@@ -157,25 +158,24 @@ def fetch_metrics(
 
     If `include_time` is set, each metric column has an additional sub-column with requested timestamp values.
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.fetch_metrics")):
-        project_identifier = get_default_project_identifier(project)
-        runs_filter = resolve_runs_filter(runs)
-        attributes_filter = resolve_attributes_filter(attributes)
+    project_identifier = get_default_project_identifier(project)
+    runs_filter = resolve_runs_filter(runs)
+    attributes_filter = resolve_attributes_filter(attributes)
 
-        return _fetch_metrics.fetch_metrics(
-            project_identifier=project_identifier,
-            filter_=runs_filter,
-            attributes=attributes_filter,
-            include_time=include_time,
-            step_range=step_range,
-            lineage_to_the_root=lineage_to_the_root,
-            tail_limit=tail_limit,
-            type_suffix_in_column_names=type_suffix_in_column_names,
-            include_point_previews=include_point_previews,
-            container_type=_search.ContainerType.RUN,
-        )
+    return _fetch_metrics.fetch_metrics(
+        project_identifier=project_identifier,
+        filter_=runs_filter,
+        attributes=attributes_filter,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        include_point_previews=include_point_previews,
+        container_type=_search.ContainerType.RUN,
+    )
 
-
+@use_query_metadata(QueryMetadata(api_function="runs.fetch_runs_table"))
 def fetch_runs_table(
     *,
     project: Optional[str] = None,
@@ -206,25 +206,25 @@ def fetch_runs_table(
     Returns a DataFrame similar to the Runs Table in the UI.
     (Only the last logged value of each metric is returned, no aggregations or approximations)
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.fetch_runs_table")):
-        project_identifier = get_default_project_identifier(project)
-        runs_filter = resolve_runs_filter(runs)
-        attributes_filter = resolve_attributes_filter(attributes)
-        resolved_sort_by = resolve_sort_by(sort_by)
+    project_identifier = get_default_project_identifier(project)
+    runs_filter = resolve_runs_filter(runs)
+    attributes_filter = resolve_attributes_filter(attributes)
+    resolved_sort_by = resolve_sort_by(sort_by)
 
-        return _fetch_table.fetch_table(
-            project_identifier=project_identifier,
-            filter_=runs_filter,
-            attributes=attributes_filter,
-            sort_by=resolved_sort_by,
-            sort_direction=sort_direction,
-            limit=limit,
-            type_suffix_in_column_names=type_suffix_in_column_names,
-            container_type=_search.ContainerType.RUN,
-            flatten_aggregations=True,
-        )
+    return _fetch_table.fetch_table(
+        project_identifier=project_identifier,
+        filter_=runs_filter,
+        attributes=attributes_filter,
+        sort_by=resolved_sort_by,
+        sort_direction=sort_direction,
+        limit=limit,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+        container_type=_search.ContainerType.RUN,
+        flatten_aggregations=True,
+    )
 
 
+@use_query_metadata(QueryMetadata(api_function="runs.fetch_series"))
 def fetch_series(
     *,
     project: Optional[str] = None,
@@ -258,23 +258,23 @@ def fetch_series(
     Returns a DataFrame containing string series for the specified runs and attributes.
     If include_time is set, each series column will have an additional sub-column with the requested timestamp values.
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.fetch_series")):
-        project_identifier = get_default_project_identifier(project)
-        runs_filter = resolve_runs_filter(runs)
-        attributes_filter = resolve_attributes_filter(attributes)
+    project_identifier = get_default_project_identifier(project)
+    runs_filter = resolve_runs_filter(runs)
+    attributes_filter = resolve_attributes_filter(attributes)
 
-        return _fetch_series.fetch_series(
-            project_identifier=project_identifier,
-            filter_=runs_filter,
-            attributes=attributes_filter,
-            include_time=include_time,
-            step_range=step_range,
-            lineage_to_the_root=lineage_to_the_root,
-            tail_limit=tail_limit,
-            container_type=_search.ContainerType.RUN,
-        )
+    return _fetch_series.fetch_series(
+        project_identifier=project_identifier,
+        filter_=runs_filter,
+        attributes=attributes_filter,
+        include_time=include_time,
+        step_range=step_range,
+        lineage_to_the_root=lineage_to_the_root,
+        tail_limit=tail_limit,
+        container_type=_search.ContainerType.RUN,
+    )
 
 
+@use_query_metadata(QueryMetadata(api_function="runs.download_files"))
 def download_files(
     *,
     project: Optional[str] = None,
@@ -296,14 +296,13 @@ def download_files(
 
     Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
     """
-    with use_query_metadata(QueryMetadata(api_function="runs.download_files")):
-        project_identifier = get_default_project_identifier(project)
-        file_list = resolve_downloadable_files(files)
-        destination_path = resolve_destination_path(destination)
+    project_identifier = get_default_project_identifier(project)
+    file_list = resolve_downloadable_files(files)
+    destination_path = resolve_destination_path(destination)
 
-        return _download_files.download_files(
-            project_identifier=project_identifier,
-            files=file_list,
-            destination=destination_path,
-            container_type=_search.ContainerType.RUN,
-        )
+    return _download_files.download_files(
+        project_identifier=project_identifier,
+        files=file_list,
+        destination=destination_path,
+        container_type=_search.ContainerType.RUN,
+    )
