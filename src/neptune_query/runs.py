@@ -158,7 +158,7 @@ def fetch_metrics(
     type_suffix_in_column_names: bool = False,
     include_point_previews: bool = False,
 ) -> _pandas.DataFrame:
-    """Metric values per step.
+    """Fetches a table of metric values per step.
 
     The values are raw, without any aggregation, approximation, or interpolation.
 
@@ -231,7 +231,7 @@ def fetch_runs_table(
     limit: Optional[int] = None,
     type_suffix_in_column_names: bool = False,
 ) -> _pandas.DataFrame:
-    """Run metadata, with runs as rows and attributes as columns.
+    """Fetches a table of run metadata, with runs as rows and attributes as columns.
 
     To narrow the results, define filters for runs to search or attributes to include.
 
@@ -298,7 +298,7 @@ def fetch_series(
     lineage_to_the_root: bool = True,
     tail_limit: Optional[int] = None,
 ) -> _pandas.DataFrame:
-    """Series values per step, for non-numerical series attributes.
+    """Fetches a table of series values per step, for non-numerical series attributes.
 
     To narrow the results, define filters for runs to search or attributes to include.
 
