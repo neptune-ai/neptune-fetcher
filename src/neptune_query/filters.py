@@ -70,7 +70,6 @@ class BaseAttributeFilter(ABC):
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
     """Specifies criteria for attributes when using a fetching method.
-    # TODO: Update docs post-PY-156
 
     Args:
         name: Criterion for attribute names.
@@ -164,7 +163,6 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 @dataclass
 class Attribute:
     """Specifies an attribute and its type.
-     # TODO: Update docs post-PY-156
 
     When fetching experiments or runs, use this class to filter and sort the returned entries.
 
