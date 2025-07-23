@@ -52,9 +52,11 @@ from neptune_query.internal.composition import fetch_series as _fetch_series
 from neptune_query.internal.composition import fetch_table as _fetch_table
 from neptune_query.internal.composition import list_attributes as _list_attributes
 from neptune_query.internal.composition import list_containers as _list_containers
+from neptune_query.internal.query_metadata_context import use_query_metadata
 from neptune_query.internal.retrieval import search as _search
 
 
+@use_query_metadata(api_function="runs.list_runs")
 def list_runs(
     *,
     project: Optional[str] = None,
@@ -79,6 +81,7 @@ def list_runs(
     )
 
 
+@use_query_metadata(api_function="runs.list_attributes")
 def list_attributes(
     *,
     project: Optional[str] = None,
@@ -101,7 +104,6 @@ def list_attributes(
 
     Returns a list of unique attribute names in runs matching the filter.
     """
-
     project_identifier = get_default_project_identifier(project)
     runs_filter = resolve_runs_filter(runs)
     attributes_filter = resolve_attributes_filter(attributes)
@@ -114,6 +116,7 @@ def list_attributes(
     )
 
 
+@use_query_metadata(api_function="runs.fetch_metrics")
 def fetch_metrics(
     *,
     project: Optional[str] = None,
@@ -170,6 +173,7 @@ def fetch_metrics(
     )
 
 
+@use_query_metadata(api_function="runs.fetch_runs_table")
 def fetch_runs_table(
     *,
     project: Optional[str] = None,
@@ -218,6 +222,7 @@ def fetch_runs_table(
     )
 
 
+@use_query_metadata(api_function="runs.fetch_series")
 def fetch_series(
     *,
     project: Optional[str] = None,
@@ -267,6 +272,7 @@ def fetch_series(
     )
 
 
+@use_query_metadata(api_function="runs.download_files")
 def download_files(
     *,
     project: Optional[str] = None,

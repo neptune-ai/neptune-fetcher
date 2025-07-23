@@ -26,6 +26,8 @@ from neptune_api.client import AuthenticatedClient
 from neptune_api.models import QueryAttributesBodyDTO
 from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from .. import (
     env,
     identifiers,
@@ -86,12 +88,10 @@ def _fetch_attribute_values_page(
     project_identifier: identifiers.ProjectIdentifier,
 ) -> ProtoQueryAttributesResultDTO:
     body = QueryAttributesBodyDTO.from_dict(params)
-
-    response = retry.handle_errors_default(query_attributes_within_project_proto.sync_detailed)(
-        client=client,
-        body=body,
-        project_identifier=project_identifier,
+    call_api = retry.handle_errors_default(
+        with_neptune_client_metadata(query_attributes_within_project_proto.sync_detailed)
     )
+    response = call_api(client=client, body=body, project_identifier=project_identifier)
 
     return ProtoQueryAttributesResultDTO.FromString(response.content)
 
