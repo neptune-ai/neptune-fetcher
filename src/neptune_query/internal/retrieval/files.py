@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import hashlib
+import mimetypes
 import pathlib
 from dataclasses import dataclass
 from typing import (
@@ -232,14 +233,18 @@ def download_file_complete(
 
 
 def create_target_path(
-    destination: pathlib.Path, experiment_label: str, attribute_path: str, step: Optional[float]
+    destination: pathlib.Path, mime_type: str, experiment_label: str, attribute_path: str, step: Optional[float]
 ) -> pathlib.Path:
     relative_target_path = pathlib.Path(".") / experiment_label / attribute_path
     if step is not None:
         relative_target_path = relative_target_path / f"step_{step:f}"
+    extension = _guess_extension(mime_type)
 
     sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
     relative_target_path = pathlib.Path(*sanitized_parts)
+
+    if extension:
+        relative_target_path = relative_target_path.with_suffix(extension)
 
     return destination / relative_target_path
 
@@ -253,3 +258,7 @@ def _sanitize_path_part(part: str, max_part_length: int = 255) -> str:
         part = f"{part[:max_part_length - len(digest) - 1]}_{digest}"
 
     return part
+
+
+def _guess_extension(mime_type: str) -> Optional[str]:
+    return mimetypes.guess_extension(type=mime_type)

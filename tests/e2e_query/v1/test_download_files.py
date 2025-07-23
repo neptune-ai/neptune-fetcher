@@ -38,7 +38,7 @@ def test__download_files_from_table(project, temp_dir):
     )
 
     # then
-    expected_path = (temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt").resolve()
+    expected_path = (temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-value_txt.txt").resolve()
     expected_df = pd.DataFrame(
         [
             {
@@ -83,7 +83,9 @@ def test__download_files_from_file_series(project, temp_dir):
                 "experiment": EXPERIMENT_NAME,
                 "step": step,
                 f"{PATH}/files/file-series-value_0": str(
-                    (temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_0/step_{int(step)}_000000").resolve()
+                    (
+                        temp_dir / EXPERIMENT_NAME / f"{PATH}/files/file-series-value_0/step_{int(step)}_000000.bin"
+                    ).resolve()
                 ),
             }
             for step in [0.0, 1.0, 2.0]
