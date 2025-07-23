@@ -37,7 +37,7 @@ from neptune_api.types import Response
 from neptune_query.internal.composition import concurrency
 
 # This flag is used to control whether query metadata should be added to the request headers
-# Can remove this after backend supports this properly
+# Can remove this after backend supports this properly (under ticket PY-171)
 ADD_QUERY_METADATA = False
 
 
