@@ -357,20 +357,41 @@ def download_files(
     files: Union[types.File, Iterable[types.File], _pandas.Series, _pandas.DataFrame],
     destination: Optional[Union[str, pathlib.Path]] = None,
 ) -> _pandas.DataFrame:
-    """
-    Downloads files specified by the `files` parameter.
+    """Downloads files from a Neptune project.
 
-    `project` - the project name to use; if not provided, NEPTUNE_PROJECT env var is used
-    `files` - the list of files to download
-        - a single File object, or
-        - an Iterable of File objects, or
-        - a pandas Series containing, non-exclusively, File objects, or
-        - a pandas DataFrame containing, among other data, File objects.
-    `destination`: the directory where files will be downloaded.
-        - If `None`, the current working directory (CWD) is used as the default.
-        - The path can be relative or absolute.
+    - For file series, use `fetch_series()` to specify the content containing the files
+    and pass the output to the `files` argument.
+    - For invdividually assigned files, use `fetch_runs_table()`.
 
-    Returns a DataFrame mapping experiments and attributes to the paths of downloaded files.
+    Args:
+        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
+            If not provided, the NEPTUNE_PROJECT environment variable is used.
+        files: Which files to download, specified using one of the following options.
+            - File object
+            - Iterable of File objects
+            - pandas Series containing, non-exclusively, File objects
+            - pandas DataFrame containing, among other data, File objects
+        destination: Directory where files will be downloaded.
+            The path can be relative or absolute.
+            If `None`, the current working directory (CWD) is used as the default.
+
+    Returns:
+        DataFrame mapping runs and attributes to the paths of downloaded files.
+
+    Example:
+        Specify files from a given step range of a series:
+        ```
+        import neptune_query.runs as nqr
+
+
+        interesting_files = nqr.fetch_series(
+            runs=["prompt-wolf-20250605132116671-2g2r1"],
+            attributes=r"^predictions/",
+            step_range=(2050.0, 2056.0),
+        )
+
+        nqr.download_files(files=interesting_files)
+        ```
     """
     project_identifier = get_default_project_identifier(project)
     file_list = resolve_downloadable_files(files)
