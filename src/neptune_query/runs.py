@@ -307,4 +307,3 @@ def download_files(
             destination=destination_path,
             container_type=_search.ContainerType.RUN,
         )
-

@@ -19,7 +19,10 @@ import contextlib
 import dataclasses
 import functools
 import json
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field,
+)
 from importlib.metadata import (
     PackageNotFoundError,
     version,
@@ -36,17 +39,25 @@ from neptune_api.types import Response
 
 from neptune_query.internal.composition import concurrency
 
-package_name = "neptune-query"
-try:
-    package_version = version(package_name)
-except PackageNotFoundError:
-    package_version = "unknown"
+# This flag is used to control whether query metadata should be added to the request headers
+# Can remove this after backend supports this properly
+ADD_QUERY_METADATA = False
+
+
+@functools.cache
+def get_client_version() -> str:
+    package_name = "neptune-query"
+    try:
+        package_version = version(package_name)
+    except PackageNotFoundError:
+        package_version = "unknown"
+    return f"{package_name}/{package_version}"
 
 
 @dataclass
 class QueryMetadata:
     api_function: str
-    client_version: str = f"{package_name}/{package_version}"
+    client_version: str = field(default_factory=get_client_version)
 
     def __post_init__(self) -> None:
         self.api_function = self.api_function[:50]
@@ -69,7 +80,7 @@ def with_neptune_client_metadata(func: Callable[T, Response[R]]) -> Callable[T, 
         query_metadata: Optional[QueryMetadata] = concurrency.get_thread_local(
             "query_metadata", expected_type=QueryMetadata
         )
-        if query_metadata:
+        if ADD_QUERY_METADATA and query_metadata:
             kwargs["x_neptune_client_metadata"] = json.dumps(dataclasses.asdict(query_metadata))
         return func(*args, **kwargs)
 

@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 from unittest.mock import Mock
 
+import mock
+
 from neptune_query.internal.composition.concurrency import get_thread_local
 from neptune_query.internal.query_metadata_context import (
     QueryMetadata,
@@ -74,9 +76,10 @@ def test_with_neptune_client_metadata_with_context() -> None:
     metadata = QueryMetadata(api_function="test_api", client_version="1.2.3")
 
     # when
-    decorated_call = with_neptune_client_metadata(mock_api_call)
-    with use_query_metadata(metadata):
-        decorated_call(arg1="value1")
+    with mock.patch("neptune_query.internal.query_metadata_context.ADD_QUERY_METADATA", True):
+        decorated_call = with_neptune_client_metadata(mock_api_call)
+        with use_query_metadata(metadata):
+            decorated_call(arg1="value1")
 
     # then
     mock_api_call.assert_called_once()
