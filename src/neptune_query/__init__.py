@@ -54,14 +54,11 @@ from neptune_query.internal.composition import fetch_table as _fetch_table
 from neptune_query.internal.composition import list_attributes as _list_attributes
 from neptune_query.internal.composition import list_containers as _list_containers
 from neptune_query.internal.context import set_api_token
-from neptune_query.internal.query_metadata_context import (
-    QueryMetadata,
-    use_query_metadata,
-)
+from neptune_query.internal.query_metadata_context import use_query_metadata
 from neptune_query.internal.retrieval import search as _search
 
 
-@use_query_metadata(QueryMetadata(api_function="list_experiments"))
+@use_query_metadata(api_function="list_experiments")
 def list_experiments(
     *,
     project: Optional[str] = None,
@@ -86,7 +83,7 @@ def list_experiments(
     )
 
 
-@use_query_metadata(QueryMetadata(api_function="list_attributes"))
+@use_query_metadata(api_function="list_attributes")
 def list_attributes(
     *,
     project: Optional[str] = None,
@@ -121,7 +118,7 @@ def list_attributes(
     )
 
 
-@use_query_metadata(QueryMetadata(api_function="fetch_metrics"))
+@use_query_metadata(api_function="fetch_metrics")
 def fetch_metrics(
     *,
     project: Optional[str] = None,
@@ -178,7 +175,7 @@ def fetch_metrics(
     )
 
 
-@use_query_metadata(QueryMetadata(api_function="fetch_experiments_table"))
+@use_query_metadata(api_function="fetch_experiments_table")
 def fetch_experiments_table(
     *,
     project: Optional[str] = None,
@@ -227,7 +224,7 @@ def fetch_experiments_table(
     )
 
 
-@use_query_metadata(QueryMetadata(api_function="fetch_series"))
+@use_query_metadata(api_function="fetch_series")
 def fetch_series(
     *,
     project: Optional[str] = None,
@@ -278,7 +275,7 @@ def fetch_series(
     )
 
 
-@use_query_metadata(QueryMetadata(api_function="download_files"))
+@use_query_metadata(api_function="download_files")
 def download_files(
     *,
     project: Optional[str] = None,

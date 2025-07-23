@@ -19,10 +19,7 @@ import contextlib
 import dataclasses
 import functools
 import json
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass
 from importlib.metadata import (
     PackageNotFoundError,
     version,
@@ -57,7 +54,7 @@ def get_client_version() -> str:
 @dataclass
 class QueryMetadata:
     api_function: str
-    client_version: str = field(default_factory=get_client_version)
+    client_version: str
 
     def __post_init__(self) -> None:
         self.api_function = self.api_function[:50]
@@ -65,7 +62,11 @@ class QueryMetadata:
 
 
 @contextlib.contextmanager
-def use_query_metadata(query_metadata: QueryMetadata) -> Generator[None, None, None]:
+def use_query_metadata(api_function: str) -> Generator[None, None, None]:
+    query_metadata = QueryMetadata(
+        api_function=api_function,
+        client_version=get_client_version(),
+    )
     with concurrency.use_thread_local({"query_metadata": query_metadata}):
         yield
 

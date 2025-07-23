@@ -115,7 +115,7 @@ def test_fetch_runs_series_metadata(mock_use_thread_local: MagicMock) -> None:
 
 def _assert_metadata_set(mock_use_thread_local: MagicMock, expected_func_name: str) -> None:
     mock_use_thread_local.assert_called_once()
-    (call_args, ), _ = mock_use_thread_local.call_args
+    (call_args,), _ = mock_use_thread_local.call_args
     assert isinstance(call_args, dict)
     query_metadata = call_args.get("query_metadata")
     assert isinstance(query_metadata, QueryMetadata)

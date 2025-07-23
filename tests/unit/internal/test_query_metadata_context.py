@@ -41,12 +41,9 @@ def test_query_metadata_truncation() -> None:
 
 
 def test_use_query_metadata() -> None:
-    # given
-    metadata = QueryMetadata(api_function="test_func")
-
     # when
     assert get_thread_local("query_metadata", QueryMetadata) is None
-    with use_query_metadata(metadata):
+    with use_query_metadata(api_function="test_func"):
         # then
         retrieved_metadata = get_thread_local("query_metadata", QueryMetadata)
         assert retrieved_metadata is not None
@@ -73,12 +70,14 @@ def test_with_neptune_client_metadata_no_context() -> None:
 def test_with_neptune_client_metadata_with_context() -> None:
     # given
     mock_api_call = Mock()
-    metadata = QueryMetadata(api_function="test_api", client_version="1.2.3")
 
     # when
-    with mock.patch("neptune_query.internal.query_metadata_context.ADD_QUERY_METADATA", True):
+    with (
+        mock.patch("neptune_query.internal.query_metadata_context.ADD_QUERY_METADATA", True),
+        mock.patch("neptune_query.internal.query_metadata_context.get_client_version", return_value="1.2.3"),
+    ):
         decorated_call = with_neptune_client_metadata(mock_api_call)
-        with use_query_metadata(metadata):
+        with use_query_metadata(api_function="test_api"):
             decorated_call(arg1="value1")
 
     # then
