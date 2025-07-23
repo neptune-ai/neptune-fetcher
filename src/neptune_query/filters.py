@@ -243,7 +243,7 @@ class Filter:
         from neptune_query.filters import Filter
 
 
-        specific_tags = Filter.contains_all(["fly", "swim", "nest"])
+        specific_tags = Filter.contains_all("sys/tags", ["fly", "swim", "nest"])
         nq.fetch_metrics(experiments=specific_tags, attributes=r"^metrics/loss/")
         ```
 
@@ -259,8 +259,7 @@ class Filter:
 
         Fetch configs from the interesting experiments:
         ```
-        interesting_experiments = nq.list_experiments(experiments=interesting)
-        nq.fetch_experiments_table(experiments=interesting_experiments, attributes=r"config/")
+        nq.fetch_experiments_table(experiments=interesting, attributes=r"config/")
         ```
     """
 
