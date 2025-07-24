@@ -73,11 +73,11 @@ def list_runs(
     Examples:
         List all my runs in a specific project:
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
         from neptune_query.filters import Filter
 
 
-        nqr.list_runs(
+        nq_runs.list_runs(
             project="team-alpha/sandbox",
             runs=Filter.eq("sys/owner", "MyUsername"),
         )
@@ -118,16 +118,16 @@ def list_attributes(
     Examples:
         List all attributes that begin with "metrics":
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
 
 
-        nqr.list_attributes(attributes=r"^metrics")
+        nq_runs.list_attributes(attributes=r"^metrics")
         ```
 
         Search all runs of a specific project and list all attributes, except those in the
         "parameters" and "sys" namespaces:
         ```
-        nqr.list_attributes(
+        nq_runs.list_attributes(
             project="team-alpha/sandbox",
             attributes=r"!parameters/ & !sys/",
         )
@@ -192,10 +192,10 @@ def fetch_metrics(
     Example:
         Fetch losses of a specific run from step 1000 onward, including incomplete points:
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
 
 
-        nqr.fetch_metrics(
+        nq_runs.fetch_metrics(
             runs=["prompt-wolf-20250605132116671-2g2r1"],
             attributes=r"^loss/.*",
             step_range=(1000.0, None),
@@ -260,11 +260,11 @@ def fetch_runs_table(
     Example:
         Fetch constituent runs of an experiment, with attributes matching `loss` or `configs` as columns:
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
         from neptune_query.filters import Filter
 
 
-        nqr.fetch_runs_table(
+        nq_runs.fetch_runs_table(
             runs=Filter.eq("sys/name", "exp-week9"),
             attributes=r"loss | configs",
         )
@@ -325,10 +325,10 @@ def fetch_series(
     Example:
         Fetch custom string series of a specific run from step 100 onward:
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
 
 
-        nqr.fetch_series(
+        nq_runs.fetch_series(
             runs=["prompt-wolf-20250605132116671-2g2r1"],
             attributes=r"^messages/",
             step_range=(100.0, None),
@@ -381,16 +381,16 @@ def download_files(
     Example:
         Specify files from a given step range of a series:
         ```
-        import neptune_query.runs as nqr
+        import neptune_query.runs as nq_runs
 
 
-        interesting_files = nqr.fetch_series(
+        interesting_files = nq_runs.fetch_series(
             runs=["prompt-wolf-20250605132116671-2g2r1"],
             attributes=r"^predictions/",
             step_range=(2050.0, 2056.0),
         )
 
-        nqr.download_files(files=interesting_files)
+        nq_runs.download_files(files=interesting_files)
         ```
     """
     project_identifier = get_default_project_identifier(project)
