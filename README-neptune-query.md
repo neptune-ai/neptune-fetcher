@@ -43,6 +43,14 @@ Available functions:
 - `list_experiments()` &ndash; names of experiments in the target project.
 - `set_api_token()` &ndash; set the Neptune API token to use for the session.
 
+> To use the corresponding methods for runs, import the Runs API:
+>
+> ```python
+> import neptune_query.runs as nq_runs
+> ```
+>
+> You can use these methods to target individual runs by ID instead of experiment runs by name.
+
 ### Example 1: Fetch metric values
 
 To fetch values at each step, use `fetch_metrics()`.
