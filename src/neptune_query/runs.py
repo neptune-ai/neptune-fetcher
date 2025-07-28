@@ -367,7 +367,7 @@ def download_files(
 
     - For file series, use `fetch_series()` to specify the content containing the files
     and pass the output to the `files` argument.
-    - For invdividually assigned files, use `fetch_runs_table()`.
+    - For individually assigned files, use `fetch_runs_table()`.
 
     Args:
         project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
