@@ -214,22 +214,25 @@ class Attribute:
 class Filter:
     """Specifies criteria for experiments or attributes when using a fetching method.
 
+    For regular expressions, the extended syntax is supported.
+    For details, see https://docs.neptune.ai/regex/#compound-expressions
+
     Examples of filters:
-        - Name or attribute value must match regular expression.
+        - Name or attribute value must match a regex.
         - Attribute value must pass a condition, like "greater than 0.9".
         - Attribute of a given name must exist.
 
     You can negate a filter or join multiple filters with logical operators.
 
     Methods available for attribute values:
-        - `name()`: Experiment name matches an extended regular expression or a list of names
+        - `name()`: Experiment name matches a regex or a list of names
         - `eq()`: Attribute value equals
         - `ne()`: Attribute value doesn't equal
         - `gt()`: Attribute value is greater than
         - `ge()`: Attribute value is greater than or equal to
         - `lt()`: Attribute value is less than
         - `le()`: Attribute value is less than or equal to
-        - `matches()`: Experiment name matches an extended regular expression
+        - `matches()`: String attribute value matches a regex
         - `contains_all()`: Tagset contains all tags, or string contains substrings
         - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
         - `exists()`: Attribute exists
