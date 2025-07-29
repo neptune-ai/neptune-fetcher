@@ -38,6 +38,7 @@ from neptune_api.models import (
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from ...exceptions import NeptuneFileDownloadError
+from ...types import File
 from .. import (
     env,
     identifiers,
@@ -234,13 +235,11 @@ def download_file_complete(
         raise NeptuneFileDownloadError(details=f"Failed to download file after {max_tries} attempts.")
 
 
-def create_target_path(
-    destination: pathlib.Path, mime_type: str, experiment_label: str, attribute_path: str, step: Optional[float]
-) -> pathlib.Path:
-    relative_target_path = pathlib.Path(".") / experiment_label / attribute_path
-    if step is not None:
-        relative_target_path = relative_target_path / f"step_{step:f}"
-    extension = _guess_extension(mime_type)
+def create_target_path(destination: pathlib.Path, file: File) -> pathlib.Path:
+    relative_target_path = pathlib.Path(".") / file.container_label / file.attribute_path
+    if file.step is not None:
+        relative_target_path = relative_target_path / f"step_{file.step:f}"
+    extension = _guess_extension(file.mime_type)
 
     sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
     relative_target_path = pathlib.Path(*sanitized_parts)

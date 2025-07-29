@@ -24,8 +24,6 @@ from typing import (
 import numpy as np
 import pandas as pd
 
-from .. import types
-from ..exceptions import ConflictingAttributeTypes
 from . import identifiers
 from .retrieval import (
     metrics,
@@ -44,6 +42,8 @@ from .retrieval.metrics import (
     TimestampIndex,
     ValueIndex,
 )
+from .. import types
+from ..exceptions import ConflictingAttributeTypes
 
 __all__ = (
     "convert_table_to_dataframe",
@@ -95,6 +95,7 @@ def convert_table_to_dataframe(
                         row[(column_name, "last")] = _create_output_file(
                             file=agg_value,
                             label=label,
+                            index_column_name=index_column_name,
                             attribute_path=value.attribute_definition.name,
                             step=getattr(aggregation_value, "last_step", None),
                         )
@@ -107,6 +108,7 @@ def convert_table_to_dataframe(
                 row[(column_name, "")] = _create_output_file(
                     file=file_properties,
                     label=label,
+                    index_column_name=index_column_name,
                     attribute_path=value.attribute_definition.name,
                 )
             elif value.attribute_definition.type == "histogram":
@@ -331,6 +333,7 @@ def create_series_dataframe(
                     step=point.step,
                     value=_create_output_file(
                         file=point.value,
+                        index_column_name=index_column_name,
                         label=label,
                         attribute_path=run_attribute_definition.attribute_definition.name,
                         step=point.step,
@@ -455,7 +458,7 @@ def create_files_dataframe(
     rows: list[dict[str, Any]] = []
     for file, path in file_data.items():
         row = {
-            index_column_name: file.label,
+            index_column_name: file.container_label,
             "attribute": file.attribute_path,
             "step": file.step,
             "path": str(path) if path else None,
@@ -473,11 +476,15 @@ def create_files_dataframe(
 def _create_output_file(
     file: File,
     label: str,
+    index_column_name: str,
     attribute_path: str,
     step: Optional[float] = None,
 ) -> types.File:
+    run_id = label if index_column_name == "run" else None
+    experiment_name = label if index_column_name == "experiment" else None
     return types.File(
-        label=label,
+        experiment_name=experiment_name,
+        run_id=run_id,
         attribute_path=attribute_path,
         step=step,
         path=file.path,

@@ -29,7 +29,8 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
     result_df = download_files(
         files=[
             File(
-                label=EXPERIMENT_NAME,
+                experiment_name=EXPERIMENT_NAME,
+                run_id=None,
                 attribute_path=f"{PATH}/files/object-does-not-exist",
                 step=None,
                 path="object-does-not-exist",
@@ -65,7 +66,8 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
         download_files(
             files=[
                 File(
-                    label=EXPERIMENT_NAME,
+                    experiment_name=EXPERIMENT_NAME,
+                    run_id=None,
                     attribute_path=f"{PATH}/files/file-value.txt",
                     step=None,
                     path="not-real-path",
@@ -92,7 +94,8 @@ def test_download_files_destination_file_type(client, project, experiment_identi
         download_files(
             files=[
                 File(
-                    label=EXPERIMENT_NAME,
+                    experiment_name=EXPERIMENT_NAME,
+                    run_id=None,
                     attribute_path=f"{PATH}/files/file-value.txt",
                     step=None,
                     path="not-a-real-path",

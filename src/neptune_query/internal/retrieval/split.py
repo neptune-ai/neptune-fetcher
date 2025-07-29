@@ -21,6 +21,7 @@ from typing import (
     TypeVar,
 )
 
+from ...types import File
 from .. import (
     env,
     identifiers,
@@ -171,7 +172,7 @@ def _ceil_div(a: int, b: int) -> int:
     return (a + b - 1) // b
 
 
-def split_files(items: list[T]) -> Generator[list[T], None, None]:
+def split_files(items: list[File]) -> Generator[list[File], None, None]:
     batch_size = env.NEPTUNE_FETCHER_FILES_BATCH_SIZE.get()
 
     for i in range(0, len(items), batch_size):

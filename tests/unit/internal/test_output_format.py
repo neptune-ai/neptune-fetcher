@@ -202,7 +202,7 @@ def test_convert_experiment_table_to_dataframe_single_file_series():
     assert dataframe.to_dict() == {
         ("attr1", "last"): {
             "exp1": OFile(
-                label="exp1",
+                experiment_name="exp1",
                 attribute_path="attr1",
                 step=10.0,
                 path=last_file.path,
@@ -237,7 +237,7 @@ def test_convert_experiment_table_to_dataframe_single_file():
     assert dataframe_unflattened.to_dict() == {
         ("attr1", ""): {
             "exp1": OFile(
-                label="exp1",
+                experiment_name="exp1",
                 attribute_path="attr1",
                 step=None,
                 path=file.path,
@@ -721,7 +721,7 @@ def test_create_file_series_dataframe_with_absolute_timestamp():
     # Then
     downloadable_files = [
         OFile(
-            label="exp1",
+            experiment_name="exp1",
             attribute_path="path1",
             step=1.0,
             path=files[0].path,
@@ -729,7 +729,7 @@ def test_create_file_series_dataframe_with_absolute_timestamp():
             mime_type=files[0].mime_type,
         ),
         OFile(
-            label="exp1",
+            experiment_name="exp1",
             attribute_path="path2",
             step=2.0,
             path=files[1].path,
@@ -737,7 +737,7 @@ def test_create_file_series_dataframe_with_absolute_timestamp():
             mime_type=files[1].mime_type,
         ),
         OFile(
-            label="exp2",
+            experiment_name="exp2",
             attribute_path="path1",
             step=1.0,
             path=files[2].path,
@@ -1080,15 +1080,17 @@ def test_create_files_dataframe():
     # given
     file_data = {
         OFile(
-            label="experiment_1", attribute_path="attr1", step=None, path="", size_bytes=0, mime_type=""
+            experiment_name="experiment_1", attribute_path="attr1", step=None, path="", size_bytes=0, mime_type=""
         ): pathlib.Path("/path/to/file1"),
         OFile(
-            label="experiment_2", attribute_path="attr2", step=None, path="", size_bytes=0, mime_type=""
+            experiment_name="experiment_2", attribute_path="attr2", step=None, path="", size_bytes=0, mime_type=""
         ): pathlib.Path("/path/to/file2"),
         OFile(
-            label="experiment_3", attribute_path="series1", step=1.0, path="", size_bytes=0, mime_type=""
+            experiment_name="experiment_3", attribute_path="series1", step=1.0, path="", size_bytes=0, mime_type=""
         ): pathlib.Path("/path/to/file3"),
-        OFile(label="experiment_4", attribute_path="attr1", step=None, path="", size_bytes=0, mime_type=""): None,
+        OFile(
+            experiment_name="experiment_4", attribute_path="attr1", step=None, path="", size_bytes=0, mime_type=""
+        ): None,
     }
     index_column_name = "experiment"
 
@@ -1111,7 +1113,7 @@ def test_create_files_dataframe_index_name_attribute_conflict():
     # given
     file_data = {
         OFile(
-            label="experiment_1", attribute_path="experiment", step=None, path="", size_bytes=0, mime_type=""
+            experiment_name="experiment_1", attribute_path="experiment", step=None, path="", size_bytes=0, mime_type=""
         ): pathlib.Path("/path/to/file1"),
     }
     index_column_name = "experiment"
