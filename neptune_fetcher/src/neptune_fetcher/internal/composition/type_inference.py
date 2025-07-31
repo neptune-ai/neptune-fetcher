@@ -17,12 +17,10 @@ from collections import defaultdict
 from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
-    Generator,
     Generic,
     Iterable,
     Optional,
     TypeVar,
-    Union,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -32,12 +30,7 @@ from .. import (
     filters,
     identifiers,
 )
-from ..composition import attribute_components as _components
-from ..composition import concurrency
-from ..retrieval import (
-    search,
-    util,
-)
+from ..retrieval import search
 from ..retrieval.attribute_types import (
     ATTRIBUTE_LITERAL,
     FILE_SERIES_AGGREGATIONS,
@@ -46,8 +39,49 @@ from ..retrieval.attribute_types import (
     STRING_SERIES_AGGREGATIONS,
 )
 from ..retrieval.search import ContainerType
+from .attributes import fetch_attribute_definitions
 
 T = TypeVar("T", covariant=True)
+
+
+KNOWN_ATTRIBUTE_TYPES: dict[str, ATTRIBUTE_LITERAL] = {
+    "sys/archived": "bool",
+    "sys/creation_time": "datetime",
+    "sys/custom_run_id": "string",
+    "sys/description": "string",
+    "sys/diagnostics/attributes/bool_count": "int",
+    "sys/diagnostics/attributes/file_ref_count": "int",
+    "sys/diagnostics/attributes/file_ref_series_count": "int",
+    "sys/diagnostics/attributes/float_count": "int",
+    "sys/diagnostics/attributes/float_series_count": "int",
+    "sys/diagnostics/attributes/histogram_count": "int",
+    "sys/diagnostics/attributes/histogram_series_count": "int",
+    "sys/diagnostics/attributes/int_count": "int",
+    "sys/diagnostics/attributes/string_count": "int",
+    "sys/diagnostics/attributes/string_series_count": "int",
+    "sys/diagnostics/attributes/string_set_count": "int",
+    "sys/diagnostics/attributes/total_count": "int",
+    "sys/diagnostics/attributes/total_series_datapoints": "int",
+    "sys/diagnostics/project_uuid": "string",
+    "sys/diagnostics/run_uuid": "string",
+    "sys/experiment/is_head": "bool",
+    "sys/experiment/name": "string",
+    "sys/experiment/running_time_seconds": "float",
+    "sys/failed": "bool",
+    "sys/family": "string",
+    "sys/forking/depth": "int",
+    "sys/group_tags": "string_set",
+    "sys/id": "string",
+    "sys/modification_time": "datetime",
+    "sys/name": "string",
+    "sys/owner": "string",
+    "sys/ping_time": "datetime",
+    "sys/relative_creation_time_ms": "int",
+    "sys/running_time_seconds": "float",
+    "sys/size": "int",
+    "sys/tags": "string_set",
+    "sys/trashed": "bool",
+}
 
 
 @dataclass
@@ -77,7 +111,6 @@ class AttributeInferenceState:
 class InferenceState(Generic[T]):
     attributes: list[AttributeInferenceState]
     result: T
-    run_domain_empty: Optional[bool] = None
 
     @staticmethod
     def empty() -> "InferenceState[None]":
@@ -132,9 +165,6 @@ class InferenceState(Generic[T]):
     def is_complete(self) -> bool:
         return all(attr_state.is_finalized() for attr_state in self.attributes)
 
-    def is_run_domain_empty(self) -> bool:
-        return self.run_domain_empty is not None and self.run_domain_empty
-
     def raise_if_incomplete(self) -> None:
         uninferred_attributes = [attr_state for attr_state in self.attributes if not attr_state.is_inferred()]
         if uninferred_attributes:
@@ -176,7 +206,7 @@ def infer_attribute_types_in_filter(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        filter_=None,
+        filter_=None,  # filter_,
         executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         container_type=container_type,
@@ -220,6 +250,11 @@ def _infer_attribute_types_locally(
     for state in inference_state.incomplete_attributes():
         attribute = state.attribute
         matches: list[ATTRIBUTE_LITERAL] = []
+        if attribute.name in KNOWN_ATTRIBUTE_TYPES:
+            state.set_success(
+                inferred_type=KNOWN_ATTRIBUTE_TYPES[attribute.name], success_details="Inferred from attribute name"
+            )
+            continue
         if all(agg in FLOAT_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
             matches.append("float_series")
         if all(agg in STRING_SERIES_AGGREGATIONS for agg in attribute.aggregation or []):
@@ -232,6 +267,7 @@ def _infer_attribute_types_locally(
             state.set_success(inferred_type=matches[0], success_details="Inferred from aggregation")
 
 
+# TODO: remove the unused parameters
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
@@ -245,58 +281,34 @@ def _infer_attribute_types_from_api(
     attributes = [state.attribute for state in attribute_states]
     attribute_filter_by_name = filters._AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    output = concurrency.generate_concurrently(
-        items=search.fetch_sys_ids(
-            client=client,
-            project_identifier=project_identifier,
-            filter_=filter_,
-            container_type=container_type,
-        ),
-        executor=executor,
-        downstream=lambda sys_ids_page: concurrency.fork_concurrently(
-            executor=executor,
-            downstreams=[
-                lambda: _components.fetch_attribute_definitions_split(
-                    client=client,
-                    project_identifier=project_identifier,
-                    attribute_filter=attribute_filter_by_name,
-                    executor=executor,
-                    fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                    sys_ids=sys_ids_page.items,
-                    downstream=lambda _, definitions: concurrency.return_value(definitions),
-                ),
-                lambda: concurrency.return_value(sys_ids_page.items),
-            ],
-        ),
+    output = fetch_attribute_definitions(
+        client=client,
+        project_identifiers=[project_identifier],
+        run_identifiers=None,
+        attribute_filter=attribute_filter_by_name,
+        executor=fetch_attribute_definitions_executor,
     )
 
-    results: Generator[
-        Union[list[identifiers.SysId], util.Page[identifiers.AttributeDefinition]], None, None
-    ] = concurrency.gather_results(output)
+    container_name = "runs" if container_type == ContainerType.RUN else "experiments"
 
-    sys_ids: list[identifiers.SysId] = []
-    attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
-    for result in results:
-        if isinstance(result, util.Page):
-            for attr_def in result.items:
-                attribute_name_to_definition[attr_def.name].add(attr_def.type)
-        elif isinstance(result, list):
-            sys_ids.extend(result)
+    inferred_attributes = defaultdict(set)
+
+    for page in output:
+        for attr_def in page.items:
+            for state in attribute_states:
+                if state.attribute.name == attr_def.name:
+                    inferred_attributes[state.attribute.name].add(attr_def.type)
 
     for state in attribute_states:
-        attribute = state.attribute
-        if attribute.name in attribute_name_to_definition:
-            types = attribute_name_to_definition[attribute.name]
-            if len(types) == 1:
-                state.set_success(
-                    inferred_type=next(iter(types)),  # type: ignore
-                    success_details="Inferred from neptune api",
-                )
-            elif len(types) > 1:
-                container_name = "runs" if container_type == ContainerType.RUN else "experiments"
-                state.set_error(
-                    error=f"Neptune found the attribute name in multiple {container_name} "
-                    f"with conflicting types: {', '.join(types)}"
-                )
+        types = inferred_attributes.get(state.attribute.name, set())
+        if len(types) == 1:
+            state.set_success(
+                inferred_type=list(types)[0],  # type: ignore
+                success_details="Inferred from neptune api",
+            )
 
-    inference_state.run_domain_empty = len(sys_ids) == 0
+        if len(types) > 1:
+            state.set_error(
+                error=f"Neptune found the attribute name in multiple {container_name} "
+                f"with conflicting types: {', '.join(types)}"
+            )
