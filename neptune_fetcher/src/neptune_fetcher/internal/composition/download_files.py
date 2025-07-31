@@ -74,12 +74,6 @@ def download_files(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return output_format.create_files_dataframe(
-                [],
-                {},
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-            )
         filter_ = inference_result.get_result_or_raise()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}

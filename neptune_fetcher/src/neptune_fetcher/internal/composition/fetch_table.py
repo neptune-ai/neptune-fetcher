@@ -85,14 +85,17 @@ def fetch_table(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return output_format.convert_table_to_dataframe(
-                table_data={},
-                selected_aggregations={},
-                type_suffix_in_column_names=type_suffix_in_column_names,
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-                flatten_file_properties=flatten_file_properties,
-            )
+
+        # Only catches empty project -- remove:
+        # if inference_result.is_run_domain_empty():
+        #     return output_format.convert_table_to_dataframe(
+        #         table_data={},
+        #         selected_aggregations={},
+        #         type_suffix_in_column_names=type_suffix_in_column_names,
+        #         index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
+        #         flatten_file_properties=flatten_file_properties,
+        #     )
+
         filter_ = inference_result.get_result_or_raise()
 
         sort_by_inference_result = type_inference.infer_attribute_types_in_sort_by(
@@ -104,15 +107,11 @@ def fetch_table(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
             container_type=container_type,
         )
-        if sort_by_inference_result.is_run_domain_empty():
-            return output_format.convert_table_to_dataframe(
-                table_data={},
-                selected_aggregations={},
-                type_suffix_in_column_names=type_suffix_in_column_names,
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-                flatten_file_properties=flatten_file_properties,
-            )
-        sort_by = sort_by_inference_result.get_result_or_raise()
+
+        sort_by = sort_by_inference_result.result
+
+        if sort_by.type is None:
+            sort_by.type = "string"
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
@@ -186,6 +185,10 @@ def fetch_table(
         flatten_aggregations=flatten_aggregations,
         flatten_file_properties=flatten_file_properties,
     )
+
+    if not dataframe.empty:
+        sort_by_inference_result.raise_if_incomplete()
+
     return dataframe
 
 
