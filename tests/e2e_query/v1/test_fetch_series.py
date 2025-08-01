@@ -82,6 +82,7 @@ def create_expected_data_string_series(
 
     df = create_series_dataframe(
         series_data,
+        "my-project",
         sys_id_label_mapping,
         index_column_name="experiment",
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -308,6 +309,7 @@ def create_expected_data_histogram_series(
 
     df = create_series_dataframe(
         series_data,
+        "my-project",
         sys_id_label_mapping,
         index_column_name="experiment",
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -487,6 +489,7 @@ def create_expected_data_file_series(
     include_time: Union[Literal["absolute"], None],
     step_range: Tuple[Optional[int], Optional[int]],
     tail_limit: Optional[int],
+    project_identifier: str,
 ) -> Tuple[pd.DataFrame, List[str], set[str]]:
     series_data: dict[RunAttributeDefinition, list[SeriesValue]] = {}
     sys_id_label_mapping: dict[SysId, str] = {}
@@ -526,6 +529,7 @@ def create_expected_data_file_series(
 
     df = create_series_dataframe(
         series_data,
+        project_identifier,
         sys_id_label_mapping,
         index_column_name="experiment",
         timestamp_column_name="absolute_time" if include_time == "absolute" else None,
@@ -585,7 +589,7 @@ def test__fetch_file_series__filter_variants(
     )
 
     expected, columns, filtered_exps = create_expected_data_file_series(
-        experiments, include_time, step_range, tail_limit
+        experiments, include_time, step_range, tail_limit, project.project_identifier
     )
 
     pd.testing.assert_frame_equal(result, expected)
@@ -635,7 +639,7 @@ def test__fetch_file_series__step_variants(
     )
 
     expected, columns, filtered_exps = create_expected_data_file_series(
-        experiments, include_time, step_range, tail_limit
+        experiments, include_time, step_range, tail_limit, project.project_identifier
     )
 
     pd.testing.assert_frame_equal(result, expected)
@@ -691,7 +695,7 @@ def test__fetch_file_series__output_variants(
     )
 
     expected, columns, filtered_exps = create_expected_data_file_series(
-        experiments, include_time, step_range, tail_limit
+        experiments, include_time, step_range, tail_limit, project.project_identifier
     )
 
     pd.testing.assert_frame_equal(result, expected)

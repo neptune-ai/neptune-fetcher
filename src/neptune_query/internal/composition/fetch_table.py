@@ -86,6 +86,7 @@ def fetch_table(
         if inference_result.is_run_domain_empty():
             return output_format.convert_table_to_dataframe(
                 table_data={},
+                project_identifier=project_identifier,
                 selected_aggregations={},
                 type_suffix_in_column_names=type_suffix_in_column_names,
                 index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
@@ -104,6 +105,7 @@ def fetch_table(
         if sort_by_inference_result.is_run_domain_empty():
             return output_format.convert_table_to_dataframe(
                 table_data={},
+                project_identifier=project_identifier,
                 selected_aggregations={},
                 type_suffix_in_column_names=type_suffix_in_column_names,
                 index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
@@ -176,6 +178,7 @@ def fetch_table(
     result_by_name = _map_keys_preserving_order(result_by_id, sys_id_label_mapping)
     dataframe = output_format.convert_table_to_dataframe(
         table_data=result_by_name,
+        project_identifier=project_identifier,
         selected_aggregations=selected_aggregations,
         type_suffix_in_column_names=type_suffix_in_column_names,
         index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",

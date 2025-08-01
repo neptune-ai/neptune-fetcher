@@ -22,7 +22,6 @@ import pandas as pd
 
 from ... import types
 from .. import client as _client
-from .. import identifiers
 from ..composition import (
     concurrency,
     validation,
@@ -42,7 +41,6 @@ def download_files(
     *,
     files: list[types.File],
     destination: pathlib.Path,
-    project_identifier: identifiers.ProjectIdentifier,
     container_type: ContainerType,
     context: Optional[Context] = None,
 ) -> pd.DataFrame:
@@ -54,11 +52,7 @@ def download_files(
 
         def generate_signed_files() -> Generator[tuple[types.File, _files.SignedFile], None, None]:
             for file_group in split_files(files):
-                signed_files = _files.fetch_signed_urls(
-                    client=client,
-                    project_identifier=project_identifier,
-                    file_paths=[file.path for file in file_group],
-                )
+                signed_files = _files.fetch_signed_urls(client=client, files=file_group)
                 yield from zip(file_group, signed_files)
 
         output = concurrency.generate_concurrently(
@@ -72,10 +66,7 @@ def download_files(
                         signed_file=file_tuple[1],
                         target_path=_files.create_target_path(
                             destination=destination,
-                            mime_type=file_tuple[0].mime_type,
-                            experiment_label=file_tuple[0].label,
-                            attribute_path=file_tuple[0].attribute_path,
-                            step=file_tuple[0].step,
+                            file=file_tuple[0],
                         ),
                     ),
                 )
@@ -91,6 +82,16 @@ def download_files(
         file_paths: dict[types.File, Optional[pathlib.Path]] = {}
         for file, path in results:
             file_paths[file] = path
+
+        if len(files) == 0:
+            index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+        else:
+            index_column_name = files[0].container_label
+            if not all(file.container_label == index_column_name for file in files):
+                # If the container labels are not consistent, default to "run"
+                index_column_name = "run"
+
         return create_files_dataframe(
-            file_paths, index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run"
+            file_paths,
+            index_column_name=index_column_name,
         )

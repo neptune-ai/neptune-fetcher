@@ -43,8 +43,8 @@ from neptune_query._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
     resolve_destination_path,
-    resolve_downloadable_files,
     resolve_experiments_filter,
+    resolve_files,
     resolve_sort_by,
 )
 from neptune_query.internal.composition import download_files as _download_files
@@ -370,7 +370,6 @@ def fetch_series(
 @use_query_metadata(api_function="download_files")
 def download_files(
     *,
-    project: Optional[str] = None,
     files: Union[types.File, Iterable[types.File], _pandas.Series, _pandas.DataFrame],
     destination: Optional[Union[str, pathlib.Path]] = None,
 ) -> _pandas.DataFrame:
@@ -410,13 +409,9 @@ def download_files(
         nq.download_files(files=interesting_files)
         ```
     """
-    project_identifier = get_default_project_identifier(project)
-    file_list = resolve_downloadable_files(files)
+    file_list = resolve_files(files)
     destination_path = resolve_destination_path(destination)
 
     return _download_files.download_files(
-        project_identifier=project_identifier,
-        files=file_list,
-        destination=destination_path,
-        container_type=_search.ContainerType.EXPERIMENT,
+        files=file_list, destination=destination_path, container_type=_search.ContainerType.EXPERIMENT
     )

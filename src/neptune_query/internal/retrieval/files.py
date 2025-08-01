@@ -38,6 +38,7 @@ from neptune_api.models import (
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from ...exceptions import NeptuneFileDownloadError
+from ...types import File
 from .. import (
     env,
     identifiers,
@@ -56,24 +57,23 @@ class SignedFile:
 
 def fetch_signed_urls(
     client: AuthenticatedClient,
-    project_identifier: identifiers.ProjectIdentifier,
-    file_paths: list[str],
+    files: list[File] | list[SignedFile],
     permission: Literal["read", "write"] = "read",
 ) -> list[SignedFile]:
     body = CreateSignedUrlsRequest(
         files=[
-            FileToSign(project_identifier=project_identifier, path=file_path, permission=Permission(permission))
-            for file_path in file_paths
+            FileToSign(project_identifier=file.project_identifier, path=file.path, permission=Permission(permission))
+            for file in files
         ]
     )
     call_api = retry.handle_errors_default(with_neptune_client_metadata(signed_url_generic.sync_detailed))
     response = call_api(client=client, body=body)
 
     data: CreateSignedUrlsResponse = response.parsed
-    if len(data.files) != len(file_paths):
-        missing_paths = set(file_paths) - {file_.path for file_ in data.files}
+    if len(data.files) != len(files):
+        missing_paths = set(files) - {file_.path for file_ in data.files}
         raise ValueError(
-            f"Server returned {len(data.files)} / {len(file_paths)} signed urls. " f"Missing paths: {missing_paths}"
+            f"Server returned {len(data.files)} / {len(files)} signed urls. " f"Missing paths: {missing_paths}"
         )
     return [
         SignedFile(
@@ -104,12 +104,7 @@ def refresh_signed_file(
     Refreshes the signed file URL by fetching a new signed URL from the server.
     This is useful when the original signed URL has expired or is no longer valid.
     """
-    new_signed_files = fetch_signed_urls(
-        client=client,
-        project_identifier=signed_file.project_identifier,
-        file_paths=[signed_file.path],
-        permission=signed_file.permission,
-    )
+    new_signed_files = fetch_signed_urls(client=client, files=[signed_file], permission=signed_file.permission)
     return new_signed_files[0]
 
 
@@ -234,13 +229,11 @@ def download_file_complete(
         raise NeptuneFileDownloadError(details=f"Failed to download file after {max_tries} attempts.")
 
 
-def create_target_path(
-    destination: pathlib.Path, mime_type: str, experiment_label: str, attribute_path: str, step: Optional[float]
-) -> pathlib.Path:
-    relative_target_path = pathlib.Path(".") / experiment_label / attribute_path
-    if step is not None:
-        relative_target_path = relative_target_path / f"step_{step:f}"
-    extension = _guess_extension(mime_type)
+def create_target_path(destination: pathlib.Path, file: File) -> pathlib.Path:
+    relative_target_path = pathlib.Path(".") / file.container_name / file.attribute_path
+    if file.step is not None:
+        relative_target_path = relative_target_path / f"step_{file.step:f}"
+    extension = _guess_extension(file.mime_type)
 
     sanitized_parts = [_sanitize_path_part(part) for part in relative_target_path.parts]
     relative_target_path = pathlib.Path(*sanitized_parts)

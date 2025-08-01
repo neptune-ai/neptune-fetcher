@@ -25,18 +25,43 @@ class Histogram:
 
 @dataclass(frozen=True)
 class File:
-    label: str
+    project_identifier: str
+    experiment_name: Optional[str]
+    run_id: Optional[str]
     attribute_path: str
     step: Optional[float]
     path: str
     size_bytes: int
     mime_type: str
 
+    def __post_init__(self) -> None:
+        if not (self.experiment_name or self.run_id):
+            raise ValueError("Either 'experiment_name' or 'run_id' must be set for File.")
+        if self.experiment_name and self.run_id:
+            raise ValueError("Only one of 'experiment_name' or 'run_id' should be set for File.")
+
     def __repr__(self) -> str:
-        return (
-            f"File({self.label}, attribute_path={self.attribute_path}, "
-            f"step={self.step}, size={_humanize_size(self.size_bytes)}, mime_type={self.mime_type})"
-        )
+        return f"File(size={_humanize_size(self.size_bytes)}, mime_type={self.mime_type})"
+
+    @property
+    def container_name(self) -> str:
+        """Returns a label for the container based on the file's experiment name or run ID."""
+        if self.experiment_name:
+            return self.experiment_name
+        elif self.run_id:
+            return self.run_id
+        else:
+            raise ValueError("File must have either an experiment name or a run ID.")
+
+    @property
+    def container_label(self) -> str:
+        """Returns a label for the container based on the file's experiment name or run ID."""
+        if self.experiment_name:
+            return "experiment"
+        elif self.run_id:
+            return "run"
+        else:
+            raise ValueError("File must have either an experiment name or a run ID.")
 
 
 def _humanize_size(size_bytes: int) -> str:

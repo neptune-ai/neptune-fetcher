@@ -34,7 +34,6 @@ def test__download_files_from_table(project, temp_dir):
     result_df = download_files(
         files=files,
         destination=temp_dir,
-        project=project.project_identifier,
     )
 
     # then
@@ -73,7 +72,6 @@ def test__download_files_from_file_series(project, temp_dir):
     result_df = download_files(
         files=file_series,
         destination=temp_dir,
-        project=project.project_identifier,
     )
 
     # then
