@@ -34,7 +34,7 @@ jobs:
     needs: [ build-neptune-query ]
     runs-on: tools-gha-runners
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: neptune-query-package
           path: dist
@@ -59,7 +59,7 @@ jobs:
       - test-install
     runs-on: tools-gha-runners
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: neptune-query-package
           path: dist/
