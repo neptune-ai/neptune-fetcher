@@ -84,20 +84,10 @@ def fetch_metrics(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
-            executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return create_metrics_dataframe(
-                metrics_data={},
-                sys_id_label_mapping={},
-                index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
-                timestamp_column_name="absolute_time" if include_time == "absolute" else None,
-                include_point_previews=include_point_previews,
-                type_suffix_in_column_names=type_suffix_in_column_names,
-            )
         inferred_filter = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         metrics_data, sys_id_to_label_mapping = _fetch_metrics(
             filter_=inferred_filter,

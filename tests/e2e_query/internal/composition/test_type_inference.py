@@ -15,10 +15,7 @@ from neptune_query.internal.filters import (
     _Attribute,
     _Filter,
 )
-from neptune_query.internal.retrieval.search import (
-    ContainerType,
-    fetch_experiment_sys_attrs,
-)
+from neptune_query.internal.retrieval.search import fetch_experiment_sys_attrs
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 TEST_DATA_VERSION = "2025-01-31"
@@ -127,12 +124,11 @@ def test_infer_attribute_types_in_filter_no_filter(client, executor, project, ru
     project_identifier = project.project_identifier
 
     #  when
-    result = infer_attribute_types_in_filter(client, project_identifier, None, executor, executor)
+    result = infer_attribute_types_in_filter(client, project_identifier, None, executor)
 
     # then
-    assert not result.is_run_domain_empty()
     # no exception is raised
-    result.raise_if_incomplete()
+    result.raise_if_incomplete()  # doesn't raise
 
 
 @pytest.mark.parametrize(
@@ -171,19 +167,12 @@ def test_infer_attribute_types_in_filter_single(
     project_identifier = project.project_identifier
 
     #  when
-    result = infer_attribute_types_in_filter(
-        client,
-        project_identifier,
-        filter_before,
-        executor,
-        executor,
-    )
+    result = infer_attribute_types_in_filter(client, project_identifier, filter_before, executor)
 
     # then
     assert filter_before != filter_after
     assert result.result == filter_after
-    assert not result.is_run_domain_empty()
-    result.raise_if_incomplete()
+    result.raise_if_incomplete()  # doesn't raise
 
 
 @pytest.mark.parametrize(
@@ -243,14 +232,12 @@ def test_infer_attribute_types_in_filter_sys(
         project_identifier,
         filter_before,
         executor,
-        executor,
     )
 
     # then
     assert filter_before != filter_after
     assert result.result == filter_after
-    assert not result.is_run_domain_empty()
-    result.raise_if_incomplete()
+    result.raise_if_incomplete()  # doesn't raise
     assert all(attr.success_details == "Inferred as a known system attribute" for attr in result.attributes)
 
 
@@ -273,19 +260,13 @@ def test_infer_attribute_types_in_sort_by_single(
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=None,
-        sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
+        client, project_identifier, sort_by=attribute_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
     assert attribute_before != attribute_after
     assert result.result == attribute_after
-    assert not result.is_run_domain_empty()
-    result.raise_if_incomplete()
+    result.raise_if_incomplete()  # doesn't raise
 
 
 @pytest.mark.parametrize(
@@ -300,18 +281,12 @@ def test_infer_attribute_types_in_filter_missing(client, executor, project, filt
 
     #  when
     result = infer_attribute_types_in_filter(
-        client,
-        project_identifier,
-        filter_=filter_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
+        client, project_identifier, filter_=filter_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
-    with pytest.raises(AttributeTypeInferenceError) as exc:
-        result.raise_if_incomplete()
-    assert "could not find the attribute" in str(exc.value)
+    result.raise_if_incomplete()  # doesn't raise
+    assert result.result.attribute.type == "string"
 
 
 @pytest.mark.parametrize(
@@ -327,47 +302,35 @@ def test_infer_attribute_types_in_sort_by_missing_attribute(client, executor, pr
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=experiment_filter,
-        sort_by=attribute,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
+        client, project_identifier, sort_by=attribute, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
-    with pytest.raises(AttributeTypeInferenceError) as exc:
-        result.raise_if_incomplete()
-    assert "could not find the attribute" in str(exc.value)
+    result.raise_if_incomplete()  # doesn't raise
+    assert result.result.type == "string"
 
 
 @pytest.mark.parametrize(
-    "attribute,experiment_filter",
+    "attribute,experiment_filter,expected_type",
     [
-        (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_eq(EXPERIMENT_NAME + "does-not-exist")),
-        (_Attribute(f"{PATH}/int-value"), _Filter.name_eq(EXPERIMENT_NAME + "does-not-exist")),
+        (_Attribute(f"{PATH}/does-not-exist"), _Filter.name_eq(EXPERIMENT_NAME + "does-not-exist"), "string"),
+        (_Attribute(f"{PATH}/int-value"), _Filter.name_eq(EXPERIMENT_NAME + "does-not-exist"), "int"),
     ],
 )
-def test_infer_attribute_types_in_sort_by_missing_experiment(client, executor, project, attribute, experiment_filter):
+def test_infer_attribute_types_in_sort_by_missing_experiment(
+    client, executor, project, attribute, experiment_filter, expected_type
+):
     # given
     project_identifier = project.project_identifier
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=experiment_filter,
-        sort_by=attribute,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
+        client, project_identifier, sort_by=attribute, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert result.is_run_domain_empty()
-    with pytest.raises(AttributeTypeInferenceError) as exc:
-        result.raise_if_incomplete()
-    assert "could not find the attribute" in str(exc.value)
+    result.raise_if_incomplete()  # doesn't raise
+    assert result.result.type == expected_type
 
 
 @pytest.mark.parametrize(
@@ -384,20 +347,14 @@ def test_infer_attribute_types_in_filter_conflicting_types_int_string(
 
     #  when
     result = infer_attribute_types_in_filter(
-        client,
-        project_identifier,
-        filter_=filter_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
-        container_type=ContainerType.EXPERIMENT,
+        client, project_identifier, filter_=filter_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
     exc.match(
-        "Neptune found the attribute name in multiple experiments with conflicting types: (int, string|string, int)"
+        "Neptune found the attribute name in multiple runs and experiments across the project with conflicting types"
     )
 
 
@@ -418,20 +375,14 @@ def test_infer_attribute_types_in_filter_conflicting_types_int_float(
 
     #  when
     result = infer_attribute_types_in_filter(
-        client,
-        project_identifier,
-        filter_=filter_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
-        container_type=ContainerType.EXPERIMENT,
+        client, project_identifier, filter_=filter_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
     with pytest.raises(AttributeTypeInferenceError) as exc:
         result.raise_if_incomplete()
     exc.match(
-        "Neptune found the attribute name in multiple experiments with conflicting types: (int, float|float, int)"
+        "Neptune found the attribute name in multiple runs and experiments across the project with conflicting types"
     )
 
 
@@ -453,22 +404,17 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_string(
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=experiment_filter,
-        sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
-        container_type=ContainerType.EXPERIMENT,
+        client, project_identifier, sort_by=attribute_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
-    with pytest.raises(AttributeTypeInferenceError) as exc:
-        result.raise_if_incomplete()
-    exc.match(
-        "Neptune found the attribute name in multiple experiments with conflicting types: (int, string|string, int)"
-    )
+    result.raise_if_incomplete()  # doesn't raise
+
+    with pytest.warns(
+        UserWarning,
+        match="found the attribute name in multiple runs and experiments across the project with conflicting types",
+    ):
+        result.emit_warnings()
 
 
 @pytest.mark.parametrize(
@@ -489,22 +435,16 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_int_float(
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=experiment_filter,
-        sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
-        container_type=ContainerType.EXPERIMENT,
+        client, project_identifier, sort_by=attribute_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert not result.is_run_domain_empty()
-    with pytest.raises(AttributeTypeInferenceError) as exc:
-        result.raise_if_incomplete()
-    exc.match(
-        "Neptune found the attribute name in multiple experiments with conflicting types: (int, float|float, int)"
-    )
+    result.raise_if_incomplete()  # doesn't raise
+    with pytest.warns(
+        UserWarning,
+        match="found the attribute name in multiple runs and experiments across the project with conflicting types",
+    ):
+        result.emit_warnings()
 
 
 @pytest.mark.parametrize(
@@ -547,16 +487,13 @@ def test_infer_attribute_types_in_sort_by_conflicting_types_with_filter(
 
     #  when
     result = infer_attribute_types_in_sort_by(
-        client,
-        project_identifier,
-        filter_=experiment_filter,
-        sort_by=attribute_before,
-        executor=executor,
-        fetch_attribute_definitions_executor=executor,
+        client, project_identifier, sort_by=attribute_before, fetch_attribute_definitions_executor=executor
     )
 
     # then
-    assert attribute_before != attribute_after
-    assert result.result == attribute_after
-    assert not result.is_run_domain_empty()
-    result.raise_if_incomplete()
+    result.raise_if_incomplete()  # doesn't raise
+    with pytest.warns(
+        UserWarning,
+        match="found the attribute name in multiple runs and experiments across the project with conflicting types",
+    ):
+        result.emit_warnings()
