@@ -16,12 +16,12 @@
 import pytest
 from pytest import fixture
 
-from neptune_fetcher.exceptions import (
+from neptune_query.exceptions import (
     NeptuneApiTokenNotProvided,
     NeptuneProjectNotProvided,
 )
-from neptune_fetcher.internal import env
-from neptune_fetcher.internal.context import (
+from neptune_query.internal import env
+from neptune_query.internal.context import (
     Context,
     get_context,
     set_context,

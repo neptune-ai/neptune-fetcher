@@ -32,6 +32,8 @@ from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
 )
 from neptune_api.types import UNSET
 
+from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
+
 from ..identifiers import RunAttributeDefinition
 from ..retrieval import (
     retry,
@@ -99,10 +101,8 @@ def _fetch_series_page(
     params: dict[str, Any],
 ) -> ProtoSeriesValuesResponseDTO:
     body = SeriesValuesRequest.from_dict(params)
-
-    response = retry.handle_errors_default(get_series_values_proto.sync_detailed)(
-        client=client, body=body, use_deprecated_string_fields=False
-    )
+    call_api = retry.handle_errors_default(with_neptune_client_metadata(get_series_values_proto.sync_detailed))
+    response = call_api(client=client, body=body, use_deprecated_string_fields=False)
 
     return ProtoSeriesValuesResponseDTO.FromString(response.content)
 
@@ -123,6 +123,7 @@ def _process_series_page(
 
 
 def _extract_series_value(value_dto: ProtoPointValueDTO) -> SeriesValue:
+    value: Union[str, File, Histogram]
     obj = value_dto.object
     if obj.HasField("stringValue"):
         value = str(obj.stringValue)

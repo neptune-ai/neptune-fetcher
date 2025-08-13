@@ -21,10 +21,10 @@ import logging
 import random
 import time
 from typing import (
-    Any,
     Callable,
     Literal,
     Optional,
+    ParamSpec,
     TypeVar,
 )
 
@@ -37,10 +37,11 @@ from .. import env
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
+T = ParamSpec("T")
+R = TypeVar("R")
 
 
-def handle_errors_default(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
+def handle_errors_default(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
     return retry_backoff(
         max_tries=None,
         soft_max_time=env.NEPTUNE_FETCHER_RETRY_SOFT_TIMEOUT.get(),
@@ -71,10 +72,10 @@ def retry_backoff(
     soft_max_time: Optional[float] = None,
     hard_max_time: Optional[float] = None,
     backoff_strategy: Callable[[int], float] = exponential_backoff(),
-) -> Callable[[Callable[..., Response[T]]], Callable[..., Response[T]]]:
-    def decorator(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
+) -> Callable[[Callable[T, Response[R]]], Callable[T, Response[R]]]:
+    def decorator(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: T.args, **kwargs: T.kwargs) -> Response[R]:
             total_tries = 0
             backoff_tries = 0
             start_time = time.monotonic()
@@ -103,7 +104,7 @@ def retry_backoff(
                     break
 
                 if response is not None and "retry-after" in response.headers:
-                    sleep_time = int(response.headers["retry-after"])
+                    sleep_time = float(response.headers["retry-after"])
                     rate_limit_time_extension += sleep_time
                     backoff_tries = 0  # reset backoff tries counter when using a different strategy
                 else:
@@ -139,9 +140,9 @@ def retry_backoff(
     return decorator
 
 
-def handle_api_errors(func: Callable[..., Response[T]]) -> Callable[..., Response[T]]:
+def handle_api_errors(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: T.args, **kwargs: T.kwargs) -> Response[R]:
         # In general, exceptions - subtypes of NeptuneError won't be retried - raising them makes the error final.
         # Other exceptions may be retried with a backoff - if persistent, they will eventually cause NeptuneRetryError.
 

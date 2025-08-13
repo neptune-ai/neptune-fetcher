@@ -1,5 +1,6 @@
 import itertools
 import random
+import re
 import uuid
 from dataclasses import (
     dataclass,
@@ -11,12 +12,13 @@ from datetime import (
 )
 from typing import Any
 
-from neptune_scale.types import File
+from neptune_scale.types import File as ScaleFile
 from neptune_scale.types import Histogram as ScaleHistogram
 
 from neptune_query.internal.retrieval.attribute_types import Histogram as FetcherHistogram
+from neptune_query.types import Histogram as OHistogram
 
-TEST_DATA_VERSION = "2025-06-27"
+TEST_DATA_VERSION = "2025-07-14"
 PATH = f"test/test-alpha-{TEST_DATA_VERSION}"
 FLOAT_SERIES_PATHS = [f"{PATH}/metrics/float-series-value_{j}" for j in range(5)]
 STRING_SERIES_PATHS = [f"{PATH}/metrics/string-series-value_{j}" for j in range(2)]
@@ -25,6 +27,37 @@ HISTOGRAM_SERIES_PATHS = [f"{PATH}/metrics/histogram-series-value_{j}" for j in 
 NUMBER_OF_STEPS = 10
 MAX_PATH_LENGTH = 1024
 FILE_SERIES_STEPS = 3
+
+
+@dataclass
+class PathMatcher:
+    pattern: str
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return re.search(self.pattern, other) is not None
+        elif isinstance(other, PathMatcher):
+            return self.pattern == other.pattern
+        else:
+            raise TypeError(f"Cannot compare PathMatcher with {type(other)}")
+
+
+@dataclass
+class FileMatcher:
+    path_pattern: str
+    size_bytes: int
+    mime_type: str
+
+    @property
+    def path(self) -> PathMatcher:
+        return PathMatcher(self.path_pattern)
+
+    def __eq__(self, other):
+        return (
+            self.size_bytes == other.size_bytes
+            and self.mime_type == other.mime_type
+            and re.search(self.path_pattern, other.path) is not None
+        )
 
 
 @dataclass
@@ -65,6 +98,23 @@ class ExperimentData:
         return {
             key: [FetcherHistogram(type="COUNTING", edges=value.bin_edges, values=value.counts) for value in values]
             for key, values in self.histogram_series.items()
+        }
+
+    def output_histogram_series(self) -> dict[str, list[FetcherHistogram]]:
+        return {
+            key: [OHistogram(type="COUNTING", edges=value.bin_edges, values=value.counts) for value in values]
+            for key, values in self.histogram_series.items()
+        }
+
+    def file_series_matchers(self) -> dict[str, list[FileMatcher]]:
+        return {
+            key: [
+                FileMatcher(
+                    path_pattern=key.rsplit("/", 1)[-1], mime_type="application/octet-stream", size_bytes=len(value)
+                )
+                for value in values
+            ]
+            for key, values in self.file_series.items()
         }
 
 
@@ -116,8 +166,8 @@ class TestData:
                 if i == 0:
                     files = {
                         f"{PATH}/files/file-value": b"Binary content",
-                        f"{PATH}/files/file-value.txt": File(b"Text content", mime_type="text/plain"),
-                        f"{PATH}/files/object-does-not-exist": File(
+                        f"{PATH}/files/file-value.txt": ScaleFile(b"Text content", mime_type="text/plain"),
+                        f"{PATH}/files/object-does-not-exist": ScaleFile(
                             "/tmp/object-does-not-exist", mime_type="text/plain", size=1
                         ),
                     }

@@ -26,7 +26,13 @@ repos:
     rev: v1.5.4
     hooks:
       - id: insert-license
-        files: ^src/neptune_fetcher.*[^/]+\.py$
+        files: ^src/neptune_query.*[^/]+\.py$
+        args: [ "--license-filepath", ".github/license_header.txt", "--allow-past-years"]
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.4
+    hooks:
+      - id: insert-license
+        files: ^neptune_fetcher/src/neptune_fetcher.*[^/]+\.py$
         args: [ "--license-filepath", ".github/license_header.txt", "--allow-past-years"]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
@@ -34,12 +40,11 @@ repos:
       - id: mypy
         args: [ --config-file, pyproject.toml ]
         pass_filenames: false
-  - repo: local
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
     hooks:
-      - id: validate_internal
-        name: Check neptune_fetcher/internal = neptune_query/internal
-        entry: python .github/scripts/compare_python_dirs.py src/neptune_fetcher/internal src/neptune_query/internal
-        language: system
+      - id: mypy
+        args: [ --config-file, neptune_fetcher/pyproject.toml ]
         pass_filenames: false
 default_language_version:
     python: python3

@@ -37,7 +37,25 @@ def test__fetch_experiments_table(project, run_with_attributes, sort_direction):
     expected = pd.DataFrame(
         {
             "experiment": experiments if sort_direction == "asc" else experiments[::-1],
-            "sys/name": experiments if sort_direction == "asc" else experiments[::-1],
+        }
+    ).set_index("experiment", drop=True)
+    assert len(df) == 6
+    pd.testing.assert_frame_equal(df, expected)
+
+
+def test__fetch_experiments_table_empty_attribute_list(project):
+    df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=[exp.name for exp in TEST_DATA.experiments],
+        attributes=[],
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+    )
+
+    experiments = [experiment.name for experiment in TEST_DATA.experiments]
+    expected = pd.DataFrame(
+        {
+            "experiment": experiments,
         }
     ).set_index("experiment", drop=True)
     assert len(df) == 6
@@ -205,13 +223,52 @@ def test__fetch_experiments_table_with_attributes_filter_for_histogram_series(
             "experiment": [exp.name for exp in TEST_DATA.experiments[:2]],
             f"{PATH}/metrics/histogram-series-value_0"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
+                TEST_DATA.experiments[i].output_histogram_series()[f"{PATH}/metrics/histogram-series-value_0"][-1]
                 for i in range(2)
             ],
             f"{PATH}/metrics/histogram-series-value_1"
             + suffix: [
-                TEST_DATA.experiments[i].fetcher_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
+                TEST_DATA.experiments[i].output_histogram_series()[f"{PATH}/metrics/histogram-series-value_1"][-1]
                 for i in range(2)
+            ],
+        }
+    ).set_index("experiment", drop=True)
+    assert df.shape == expected.shape
+    pd.testing.assert_frame_equal(df[expected.columns], expected)
+    assert df[expected.columns].columns.equals(expected.columns)
+
+
+@pytest.mark.parametrize("type_suffix_in_column_names", [True, False])
+@pytest.mark.parametrize(
+    "attr_filter",
+    [
+        AttributeFilter(f"{PATH}/files/file-series-value_0", type=["file_series"])
+        | AttributeFilter(f"{PATH}/files/file-series-value_1", type=["file_series"])
+    ],
+)
+def test__fetch_experiments_table_with_attributes_filter_for_file_series(
+    project, run_with_attributes, attr_filter, type_suffix_in_column_names
+):
+    df = fetch_experiments_table(
+        project=project.project_identifier,
+        experiments=Filter.name(TEST_DATA.experiments[0].name),
+        sort_by=Attribute("sys/name", type="string"),
+        sort_direction="asc",
+        attributes=attr_filter,
+        type_suffix_in_column_names=type_suffix_in_column_names,
+    )
+
+    suffix = ":file_series" if type_suffix_in_column_names else ""
+    expected = pd.DataFrame(
+        {
+            "experiment": [exp.name for exp in TEST_DATA.experiments[:1]],
+            f"{PATH}/files/file-series-value_0"
+            + suffix: [
+                TEST_DATA.experiments[0].file_series_matchers()[f"{PATH}/files/file-series-value_0"][-1],
+            ],
+            f"{PATH}/files/file-series-value_1"
+            + suffix: [
+                TEST_DATA.experiments[0].file_series_matchers()[f"{PATH}/files/file-series-value_1"][-1],
             ],
         }
     ).set_index("experiment", drop=True)
@@ -433,6 +490,10 @@ def test_list_experiments_with_regex_matching_some(project, regex, expected):
         ),
         # ( # todo: histogram_series not supported yet in the nql
         #     Filter.exists(Attribute(HISTOGRAM_SERIES_PATHS[0], type="histogram_series")),
+        #     TEST_DATA.experiment_names,
+        # ),
+        # ( # todo: histogram_series not supported yet in the nql
+        #     Filter.exists(Attribute(FILE_SERIES_PATHS[0], type="file_series")),
         #     TEST_DATA.experiment_names,
         # ),
     ],

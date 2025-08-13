@@ -11,6 +11,7 @@ from neptune_query.filters import (
     Filter,
 )
 from tests.e2e_query.data import (
+    FILE_SERIES_PATHS,
     FLOAT_SERIES_PATHS,
     HISTOGRAM_SERIES_PATHS,
     PATH,
@@ -30,9 +31,7 @@ def _drop_sys_attr_names(attributes: Iterable[str]) -> list[str]:
 # in case the run has some extra experiments.
 EXPERIMENTS_IN_THIS_TEST = Filter.name(TEST_DATA.experiment_names)
 
-ALL_V1_ATTRIBUTE_NAMES = set(
-    it.chain.from_iterable(exp.all_attribute_names - exp.file_series.keys() for exp in TEST_DATA.experiments)
-)
+ALL_V1_ATTRIBUTE_NAMES = set(it.chain.from_iterable(exp.all_attribute_names for exp in TEST_DATA.experiments))
 
 
 @pytest.mark.parametrize(
@@ -56,7 +55,13 @@ ALL_V1_ATTRIBUTE_NAMES = set(
         ),
         (
             rf"{PATH}/files/.*",
-            {f"{PATH}/files/file-value", f"{PATH}/files/file-value.txt", f"{PATH}/files/object-does-not-exist"},
+            {
+                f"{PATH}/files/file-value",
+                f"{PATH}/files/file-value.txt",
+                f"{PATH}/files/object-does-not-exist",
+                f"{PATH}/files/file-series-value_0",
+                f"{PATH}/files/file-series-value_1",
+            },
         ),
         (
             rf"{PATH}/.*-value$",
@@ -84,6 +89,10 @@ ALL_V1_ATTRIBUTE_NAMES = set(
         (
             AttributeFilter(name=rf"{PATH}/metrics/histogram-series-value_.*", type=["histogram_series"]),
             set(HISTOGRAM_SERIES_PATHS),
+        ),
+        (
+            AttributeFilter(name=rf"{PATH}/files/file-series-value_.*", type=["file_series"]),
+            set(FILE_SERIES_PATHS),
         ),
         (AttributeFilter(name=f"^(foo) | {PATH}"), ALL_V1_ATTRIBUTE_NAMES),  # ERS OR
         (AttributeFilter(name="!.*"), []),  # ERS NOT

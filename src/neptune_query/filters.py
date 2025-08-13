@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import (
     Iterable,
     Literal,
+    Sequence,
     Union,
 )
 
@@ -34,21 +35,24 @@ from neptune_query.internal.util import (
 __all__ = ["Filter", "AttributeFilter", "Attribute", "KNOWN_TYPES"]
 
 
-KNOWN_TYPES = frozenset(
-    {
-        "float",
-        "int",
-        "string",
-        "bool",
-        "datetime",
-        "float_series",
-        "string_set",
-        "string_series",
-        "file",
-        "histogram_series",
-    }
+# fmt: off
+KNOWN_TYPES_LITERAL = Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"]  # noqa: E501
+# fmt: on
+
+KNOWN_TYPES: Sequence[KNOWN_TYPES_LITERAL] = (
+    "float",
+    "int",
+    "string",
+    "bool",
+    "datetime",
+    "float_series",
+    "string_set",
+    "string_series",
+    "file",
+    "histogram_series",
+    "file_series",
 )
-AGGREGATION_LAST = ("last",)
+AGGREGATION_LAST: Sequence[Literal["last"]] = ("last",)
 
 
 class BaseAttributeFilter(ABC):
@@ -65,35 +69,31 @@ class BaseAttributeFilter(ABC):
 
 @dataclass
 class AttributeFilter(BaseAttributeFilter):
-    """Filter to apply to attributes when fetching runs or experiments.
-
-    Use to select specific metrics or other metadata based on various criteria.
+    """Specifies criteria for attributes when using a fetching method.
 
     Args:
-        name (str|list[str], optional):
-            if str given: an extended regular expression to match attribute names.
-            if list[str] given: a list of attribute names to match exactly.
-        type (str|list[str], optional):
-            A list of allowed attribute types (or a single type as str). Defaults to all available types:
-                ["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series",
-                "file", "histogram_series"]
+        name: Criterion for attribute names.
+            If a string is provided, it's treated as a regex pattern that the attribute name must match.
+            Supports Neptune's extended regex syntax.
+            If a list of strings is provided, it's treated as exact attribute names to match.
+        type: List of allowed attribute types (or a single type as str). Defaults to all available types:
+            ["float", "int", "string", "bool", "datetime", "float_series", "string_set", "string_series",
+            "file", "histogram_series"]
             For reference, see: https://docs.neptune.ai/attribute_types
 
-    # TODO: Update docs post-PY-156
     Example:
 
+    From a particular experiment, fetch values from all FloatSeries attributes with "loss" in the name:
     ```
-    import neptune_query as npt
+    import neptune_query as nq
     from neptune_query.filters import AttributeFilter
 
 
-    loss_avg_and_var = AttributeFilter(
-        type=["float_series"],
-        name="loss$",
-        aggregations=["average", "variance"],
+    losses = AttributeFilter(name=r"loss", type="float_series")
+    loss_values = nq.fetch_metrics(
+        experiments=["training-week-34"],
+        attributes=losses,
     )
-
-    npt.fetch_experiments_table(attributes=loss_avg_and_var)
     ```
     """
 
@@ -101,44 +101,42 @@ class AttributeFilter(BaseAttributeFilter):
     # fmt: off
     name: Union[str, list[str], None] = None
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         list[
-            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+            Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         ],
         None,
     ] = None
     # fmt: on
 
     def __post_init__(self) -> None:
-        self.type = self.type or list(KNOWN_TYPES)
-        if isinstance(self.type, str):
+        if self.type is None:
+            self.type = list(KNOWN_TYPES)
+        elif isinstance(self.type, str):
             self.type = [self.type]
         _validate_string_or_string_list(self.name, "name")
         _validate_list_of_allowed_values(self.type, KNOWN_TYPES, "type")
 
-    def _to_internal(self) -> _filters._AttributeFilter:
+    def _to_internal(self) -> _filters._BaseAttributeFilter:
+        types: Sequence[KNOWN_TYPES_LITERAL] = self.type  # type: ignore  # it's converted into seq in __post_init__
+
         if isinstance(self.name, str):
             return _pattern.build_extended_regex_attribute_filter(
                 self.name,
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
         if self.name is None:
             return _filters._AttributeFilter(
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
-            )
-
-        if self.name == []:
-            raise ValueError(
-                "Invalid type for `name` attribute. Expected str, non-empty list of str, or None, but got empty list."
             )
 
         if isinstance(self.name, list):
             return _filters._AttributeFilter(
                 name_eq=self.name,
-                type_in=self.type,
+                type_in=types,
                 aggregations=AGGREGATION_LAST,
             )
 
@@ -164,47 +162,44 @@ class _AttributeFilterAlternative(BaseAttributeFilter):
 
 @dataclass
 class Attribute:
-    """Helper for specifying an attribute and its type.
+    """Specifies an attribute and its type.
 
     When fetching experiments or runs, use this class to filter and sort the returned entries.
 
     Args:
-        name (str): An attribute name to match exactly.
-        type (Literal["float", "int", "string", "bool", "datetime", "float_series", "string_set"], optional):
-            Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
-            that have the same name but are of a different type.
+        name: Attribute name to match exactly.
+        type: Attribute type. Specify it to resolve ambiguity, in case some of the project's runs contain attributes
+            that have the same name but are of a different type. Available types:
+            ["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series",
+            "string_series", "file_series"].
             For a reference, see: https://docs.neptune.ai/attribute_types
 
-     # TODO: Update docs post-PY-156
     Example:
-
-    Select a metric and pick variance as the aggregation:
-
-    ```
-    import neptune_query as npt
-    from neptune_query.filters import Attribute, Filter
+        Fetch metadata from experiments with "config/batch_size" set to the integer 64:
+        ```
+        import neptune_query as nq
+        from neptune_query.filters import Attribute, Filter
 
 
-    val_loss_variance = Attribute(
-        name="val/loss",
-        aggregation="variance",
-    )
-    # Construct a filter and pass it to a fetching or listing method
-    tiny_val_loss_variance = Filter.lt(val_loss_variance, 0.01)
-    npt.fetch_experiments_table(experiments=tiny_val_loss_variance)
-    ```
+        batch_size = Attribute(
+            name="config/batch_size",
+            type="int",
+        )
+        batch_size_64 = Filter.eq(batch_size, 64)
+        nq.fetch_experiments_table(experiments=batch_size_64)
+        ```
     """
 
     # fmt: off
     name: str
     type: Union[
-        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series"],  # noqa: E501
+        Literal["bool", "datetime", "file", "float", "int", "string", "string_set", "float_series", "histogram_series", "string_series", "file_series"],  # noqa: E501
         None,
     ] = None
     # fmt: on
 
     def __post_init__(self) -> None:
-        _validate_allowed_value(self.type, types.ALL_TYPES, "type")  # type: ignore
+        _validate_allowed_value(self.type, types.ALL_TYPES, "type")
 
     def _to_internal(self) -> _filters._Attribute:
         return _filters._Attribute(
@@ -217,47 +212,56 @@ class Attribute:
 
 
 class Filter:
-    """Filter used to specify criteria when fetching experiments or runs.
+    """Specifies criteria for experiments or attributes when using a fetching method.
+
+    For regular expressions, the extended syntax is supported.
+    For details, see https://docs.neptune.ai/regex/#compound-expressions
 
     Examples of filters:
-        - Name or attribute value must match regular expression.
+        - Name or attribute value must match a regex.
         - Attribute value must pass a condition, like "greater than 0.9".
-        - Attribute of a given name must exist or not exist.
+        - Attribute of a given name must exist.
 
     You can negate a filter or join multiple filters with logical operators.
 
     Methods available for attribute values:
-    - `name()`: Name of experiment matches an extended regular expression or a list of names.
-    - `eq()`: Attribute value equals
-    - `ne()`: Attribute value doesn't equal
-    - `gt()`: Attribute value is greater than
-    - `ge()`: Attribute value is greater than or equal to
-    - `lt()`: Attribute value is less than
-    - `le()`: Attribute value is less than or equal to
-    - `matches()`: Name of experiment matches an extended regular expression
-    - `contains_all()`: Tagset contains all tags, or string contains substrings
-    - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
-    - `exists()`: Attribute exists
+        - `name()`: Experiment name matches a regex or a list of names
+        - `eq()`: Attribute value equals
+        - `ne()`: Attribute value doesn't equal
+        - `gt()`: Attribute value is greater than
+        - `ge()`: Attribute value is greater than or equal to
+        - `lt()`: Attribute value is less than
+        - `le()`: Attribute value is less than or equal to
+        - `matches()`: String attribute value matches a regex
+        - `contains_all()`: Tagset contains all tags, or string contains substrings
+        - `contains_none()`: Tagset doesn't contain any of the tags, or string doesn't contain the substrings
+        - `exists()`: Attribute exists
 
     Examples:
+        Fetch loss values from experiments with specific tags:
+        ```
+        import neptune_query as nq
+        from neptune_query.filters import Filter
 
-    ```
-    import neptune_query as npt
-    from neptune_query.filters import Filter
 
-    # Fetch metadata from specific experiments
-    specific_experiments = Filter.name(["flying-123", "swimming-77"])
-    npt.fetch_experiments_table(experiments=specific_experiments)
+        specific_tags = Filter.contains_all("sys/tags", ["fly", "swim", "nest"])
+        nq.fetch_metrics(experiments=specific_tags, attributes=r"^metrics/loss/")
+        ```
 
-    # Define various criteria
-    owned_by_me = Filter.eq("sys/owner", "vidar")
-    loss_filter = Filter.lt("validation/loss", 0.1)
-    tag_filter = Filter.contains_none("sys/tags", ["test", "buggy"])
-    dataset_check = Filter.exists("dataset_version")
+        List my experiments that have a "dataset_version" attribute and "validation/loss" less than 0.1:
+        ```
+        owned_by_me = Filter.eq("sys/owner", "sigurd")
+        dataset_check = Filter.exists("dataset_version")
+        loss_filter = Filter.lt("validation/loss", 0.1)
 
-    my_interesting_experiments = owned_by_me & loss_filter & tag_filter & dataset_check
-    npt.fetch_experiments_table(experiments=my_interesting_experiments)
-    ```
+        interesting = owned_by_me & dataset_check & loss_filter
+        nq.list_experiments(experiments=interesting)
+        ```
+
+        Fetch configs from the interesting experiments:
+        ```
+        nq.fetch_experiments_table(experiments=interesting, attributes=r"config/")
+        ```
     """
 
     def __init__(self, internal: _filters._Filter) -> None:
@@ -269,7 +273,7 @@ class Filter:
         if isinstance(name, str):
             return Filter.matches(name_attribute, name)
         else:
-            return Filter(_filters._Filter.any([_filters._Filter.eq(name_attribute, n) for n in name]))
+            return Filter(_filters._Filter.any([_filters._Filter.eq(name_attribute._to_internal(), n) for n in name]))
 
     @staticmethod
     def eq(attribute: Union[str, Attribute], value: Union[int, float, str, datetime]) -> "Filter":

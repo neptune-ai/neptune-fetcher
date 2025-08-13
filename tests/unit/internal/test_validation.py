@@ -1,6 +1,6 @@
 import pytest
 
-from neptune_fetcher.internal.composition.validation import (
+from neptune_query.internal.composition.validation import (
     restrict_attribute_filter_type,
     validate_include_time,
     validate_limit,
@@ -8,7 +8,7 @@ from neptune_fetcher.internal.composition.validation import (
     validate_step_range,
     validate_tail_limit,
 )
-from neptune_fetcher.internal.filters import _AttributeFilter
+from neptune_query.internal.filters import _AttributeFilter
 
 
 def test_validate_limit():

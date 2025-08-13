@@ -1,18 +1,18 @@
 import pytest
 
-from neptune_fetcher.internal import identifiers
-from neptune_fetcher.internal.env import (
+from neptune_query.internal import identifiers
+from neptune_query.internal.env import (
     NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE,
     NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
     NEPTUNE_FETCHER_SERIES_BATCH_SIZE,
 )
-from neptune_fetcher.internal.identifiers import (
+from neptune_query.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
     RunAttributeDefinition,
     RunIdentifier,
 )
-from neptune_fetcher.internal.retrieval.split import (
+from neptune_query.internal.retrieval.split import (
     split_series_attributes,
     split_sys_ids,
     split_sys_ids_attributes,

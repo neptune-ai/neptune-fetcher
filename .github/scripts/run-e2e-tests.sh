@@ -3,6 +3,8 @@
 # Required env variables:
 #  - NEPTUNE_WORKSPACE - neptune workspace for testing
 #  - NEPTUNE_API_TOKEN - the API token to use
+#  - PROJECT_DIR - where to cd before running pytest
+#  - TESTS_DIR - what tests to run
 
 set -e
 
@@ -20,6 +22,9 @@ EXIT_CODE=-1
 
 UTF8_CHARS="你好()*+,-.;<=>@[]"
 PROJECT="pye2e-fetcher-$(date +%Y-%m-%d_%H-%M-%S)-$RANDOM-$UTF8_CHARS"
+
+# Our setup script requires neptune_fetcher, which is unfortunate...
+# TODO: rewrite test setup
 
 cleanup() {
   # Don't fail tests if cleanup fails
@@ -47,7 +52,9 @@ run_tests() {
   NEPTUNE_PROJECT="${NEPTUNE_E2E_PROJECT_PREPOPULATED}" python tests/populate_projects.py
 
   echo "Running tests..."
-  pytest --junitxml="test-results/test-e2e.xml" tests/e2e
+  cd "$PROJECT_DIR" &&
+
+  pytest --junitxml="test-results/test-e2e.xml" "$TESTS_DIR"
 
   EXIT_CODE=$?
 }
