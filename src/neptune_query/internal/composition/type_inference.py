@@ -214,9 +214,58 @@ def infer_attribute_types_in_sort_by(
     return state
 
 
+_KNOWN_SYS_ATTRIBUTES: dict[str, ATTRIBUTE_LITERAL] = {
+    "sys/archived": "bool",
+    "sys/creation_time": "datetime",
+    "sys/custom_run_id": "string",
+    "sys/description": "string",
+    "sys/diagnostics/attributes/bool_count": "int",
+    "sys/diagnostics/attributes/file_ref_count": "int",
+    "sys/diagnostics/attributes/file_ref_series_count": "int",
+    "sys/diagnostics/attributes/float_count": "int",
+    "sys/diagnostics/attributes/float_series_count": "int",
+    "sys/diagnostics/attributes/histogram_count": "int",
+    "sys/diagnostics/attributes/histogram_series_count": "int",
+    "sys/diagnostics/attributes/int_count": "int",
+    "sys/diagnostics/attributes/string_count": "int",
+    "sys/diagnostics/attributes/string_series_count": "int",
+    "sys/diagnostics/attributes/string_set_count": "int",
+    "sys/diagnostics/attributes/total_count": "int",
+    "sys/diagnostics/attributes/total_series_datapoints": "int",
+    "sys/diagnostics/project_uuid": "string",
+    "sys/diagnostics/run_uuid": "string",
+    "sys/experiment/is_head": "bool",
+    "sys/experiment/name": "string",
+    "sys/experiment/running_time_seconds": "float",
+    "sys/failed": "bool",
+    "sys/family": "string",
+    "sys/forking/depth": "int",
+    "sys/group_tags": "string_set",
+    "sys/id": "string",
+    "sys/modification_time": "datetime",
+    "sys/name": "string",
+    "sys/owner": "string",
+    "sys/ping_time": "datetime",
+    "sys/relative_creation_time_ms": "int",
+    "sys/running_time_seconds": "float",
+    "sys/size": "int",
+    "sys/tags": "string_set",
+    "sys/trashed": "bool",
+}
+
+
 def _infer_attribute_types_locally(
     inference_state: InferenceState,
 ) -> None:
+    for state in inference_state.incomplete_attributes():
+        attribute = state.attribute
+        if attribute.name in _KNOWN_SYS_ATTRIBUTES:
+            inferred_type = _KNOWN_SYS_ATTRIBUTES[attribute.name]
+            state.set_success(
+                inferred_type=inferred_type,
+                success_details="Inferred as a known system attribute",
+            )
+
     for state in inference_state.incomplete_attributes():
         attribute = state.attribute
         matches: list[ATTRIBUTE_LITERAL] = []
