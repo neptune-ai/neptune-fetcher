@@ -128,18 +128,13 @@ def _fetch_attribute_definitions(
 
     filters_ = att_defs.split_attribute_filters(attribute_filter)
 
-    if len(filters_) == 1:
-        head = filters_[0]
-        for page in go_fetch_single(head):
-            yield page, head
-    else:
-        output = concurrency.generate_concurrently(
-            items=(filter_ for filter_ in filters_),
+    output = concurrency.generate_concurrently(
+        items=(filter_ for filter_ in filters_),
+        executor=executor,
+        downstream=lambda filter_: concurrency.generate_concurrently(
+            items=go_fetch_single(filter_),
             executor=executor,
-            downstream=lambda filter_: concurrency.generate_concurrently(
-                items=go_fetch_single(filter_),
-                executor=executor,
-                downstream=lambda _page: concurrency.return_value((_page, filter_)),
-            ),
-        )
-        yield from concurrency.gather_results(output)
+            downstream=lambda _page: concurrency.return_value((_page, filter_)),
+        ),
+    )
+    yield from concurrency.gather_results(output)
