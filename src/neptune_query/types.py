@@ -44,23 +44,14 @@ class File:
         return f"File(size={_humanize_size(self.size_bytes)}, mime_type={self.mime_type})"
 
     @property
-    def container_name(self) -> str:
+    def container_identifier(self) -> str:
         """Returns a label for the container based on the file's experiment name or run ID."""
         if self.experiment_name:
             return self.experiment_name
         elif self.run_id:
             return self.run_id
         else:
-            raise ValueError("File must have either an experiment name or a run ID.")
-
-    @property
-    def container_label(self) -> str:
-        """Returns a label for the container based on the file's experiment name or run ID."""
-        if self.experiment_name:
-            return "experiment"
-        elif self.run_id:
-            return "run"
-        else:
+            # This should never happen due to __post_init__ validation
             raise ValueError("File must have either an experiment name or a run ID.")
 
 

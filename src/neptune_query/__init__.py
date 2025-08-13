@@ -47,6 +47,7 @@ from neptune_query._internal import (
     resolve_files,
     resolve_sort_by,
 )
+from neptune_query.exceptions import NeptuneUserError
 from neptune_query.internal.composition import download_files as _download_files
 from neptune_query.internal.composition import fetch_metrics as _fetch_metrics
 from neptune_query.internal.composition import fetch_series as _fetch_series
@@ -380,8 +381,6 @@ def download_files(
     - For individually assigned files, use `fetch_experiments_table()`.
 
     Args:
-        project: Path of the Neptune project, as `WorkspaceName/ProjectName`.
-            If not provided, the NEPTUNE_PROJECT environment variable is used.
         files: Which files to download, specified using one of the following options.
             - File object
             - Iterable of File objects
@@ -412,6 +411,16 @@ def download_files(
     file_list = resolve_files(files)
     destination_path = resolve_destination_path(destination)
 
+    if not all(file.experiment_name for file in file_list):
+        raise NeptuneUserError(
+            "Some files passed to nq.download_files don't have associated experiment names. "
+            "This is likely because you passed files from the runs API. "
+            "Please use files from the experiments API instead by fetching them with "
+            "nq.fetch_series() or nq.fetch_experiments_table()."
+        )
+
     return _download_files.download_files(
-        files=file_list, destination=destination_path, container_type=_search.ContainerType.EXPERIMENT
+        files=file_list,
+        destination=destination_path,
+        container_type=_search.ContainerType.EXPERIMENT,
     )

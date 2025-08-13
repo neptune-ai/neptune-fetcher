@@ -83,15 +83,7 @@ def download_files(
         for file, path in results:
             file_paths[file] = path
 
-        if len(files) == 0:
-            index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
-        else:
-            index_column_name = files[0].container_label
-            if not all(file.container_label == index_column_name for file in files):
-                # If the container labels are not consistent, default to "run"
-                index_column_name = "run"
-
         return create_files_dataframe(
             file_paths,
-            index_column_name=index_column_name,
+            container_type=container_type,
         )

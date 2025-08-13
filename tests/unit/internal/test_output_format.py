@@ -38,6 +38,7 @@ from neptune_query.internal.retrieval.attribute_types import (
 )
 from neptune_query.internal.retrieval.attribute_values import AttributeValue
 from neptune_query.internal.retrieval.metrics import FloatPointValue
+from neptune_query.internal.retrieval.search import ContainerType
 from neptune_query.internal.retrieval.series import SeriesValue
 from neptune_query.types import File as OFile
 from neptune_query.types import Histogram as OHistogram
@@ -1093,14 +1094,14 @@ def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str,
 def test_create_files_dataframe_empty():
     # given
     files_data = {}
-    index_column_name = "experiment"
+    container_type = ContainerType.EXPERIMENT
 
     # when
-    dataframe = create_files_dataframe(file_data=files_data, index_column_name=index_column_name)
+    dataframe = create_files_dataframe(file_data=files_data, container_type=container_type)
 
     # then
     assert dataframe.empty
-    assert dataframe.index.names == [index_column_name, "step"]
+    assert dataframe.index.names == ["experiment", "step"]
     assert dataframe.columns.names == ["attribute"]
 
 
@@ -1148,10 +1149,11 @@ def test_create_files_dataframe():
             mime_type="",
         ): None,
     }
+    container_type = ContainerType.EXPERIMENT
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(file_data=file_data, index_column_name=index_column_name)
+    dataframe = create_files_dataframe(file_data=file_data, container_type=container_type)
 
     # then
     expected_data = [
@@ -1179,10 +1181,11 @@ def test_create_files_dataframe_index_name_attribute_conflict():
             mime_type="",
         ): pathlib.Path("/path/to/file1"),
     }
+    container_type = ContainerType.EXPERIMENT
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(file_data=file_data, index_column_name=index_column_name)
+    dataframe = create_files_dataframe(file_data=file_data, container_type=container_type)
 
     # then
     expected_data = [

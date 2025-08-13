@@ -44,6 +44,7 @@ from .retrieval.metrics import (
     TimestampIndex,
     ValueIndex,
 )
+from .retrieval.search import ContainerType
 
 __all__ = (
     "convert_table_to_dataframe",
@@ -58,6 +59,8 @@ def convert_table_to_dataframe(
     project_identifier: str,
     selected_aggregations: dict[identifiers.AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
+    # TODO: accept container_type as an argument instead of index_column_name
+    # see https://github.com/neptune-ai/neptune-fetcher/pull/402/files#r2260012199
     index_column_name: str = "experiment",
     flatten_aggregations: bool = False,
 ) -> pd.DataFrame:
@@ -452,8 +455,10 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 def create_files_dataframe(
     file_data: dict[types.File, Optional[pathlib.Path]],
-    index_column_name: str = "experiment",
+    container_type: "ContainerType",
 ) -> pd.DataFrame:
+    index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+
     if not file_data:
         return pd.DataFrame(
             index=pd.MultiIndex.from_tuples([], names=[index_column_name, "step"]),
@@ -463,7 +468,7 @@ def create_files_dataframe(
     rows: list[dict[str, Any]] = []
     for file, path in file_data.items():
         row = {
-            index_column_name: file.container_name,
+            index_column_name: file.container_identifier,
             "attribute": file.attribute_path,
             "step": file.step,
             "path": str(path) if path else None,

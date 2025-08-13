@@ -71,7 +71,7 @@ def fetch_signed_urls(
 
     data: CreateSignedUrlsResponse = response.parsed
     if len(data.files) != len(files):
-        missing_paths = set(files) - {file_.path for file_ in data.files}
+        missing_paths = {f.path for f in files} - {f.path for f in data.files}
         raise ValueError(
             f"Server returned {len(data.files)} / {len(files)} signed urls. " f"Missing paths: {missing_paths}"
         )
@@ -230,7 +230,7 @@ def download_file_complete(
 
 
 def create_target_path(destination: pathlib.Path, file: File) -> pathlib.Path:
-    relative_target_path = pathlib.Path(".") / file.container_name / file.attribute_path
+    relative_target_path = pathlib.Path(".") / file.container_identifier / file.attribute_path
     if file.step is not None:
         relative_target_path = relative_target_path / f"step_{file.step:f}"
     extension = _guess_extension(file.mime_type)

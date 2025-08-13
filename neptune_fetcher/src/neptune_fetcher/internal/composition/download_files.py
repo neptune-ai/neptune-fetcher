@@ -156,5 +156,4 @@ def download_files(
         return output_format.create_files_dataframe(
             file_list,
             sys_id_label_mapping,
-            index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
         )
