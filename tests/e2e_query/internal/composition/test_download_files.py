@@ -8,7 +8,7 @@ from neptune_query import (
     fetch_experiments_table,
     fetch_series,
 )
-from neptune_query._internal import resolve_downloadable_files
+from neptune_query._internal import resolve_files
 from neptune_query.filters import AttributeFilter
 from neptune_query.internal.composition.download_files import download_files
 from neptune_query.internal.retrieval.search import ContainerType
@@ -29,7 +29,9 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
     result_df = download_files(
         files=[
             File(
-                label=EXPERIMENT_NAME,
+                project_identifier=project.project_identifier,
+                experiment_name=EXPERIMENT_NAME,
+                run_id=None,
                 attribute_path=f"{PATH}/files/object-does-not-exist",
                 step=None,
                 path="object-does-not-exist",
@@ -37,10 +39,9 @@ def test_download_files_missing(client, project, experiment_identifier, temp_dir
                 mime_type="application/octet-stream",
             ),
         ],
-        project_identifier=project.project_identifier,
         destination=temp_dir,
-        context=None,
         container_type=ContainerType.EXPERIMENT,
+        context=None,
     )
 
     # then
@@ -65,7 +66,9 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
         download_files(
             files=[
                 File(
-                    label=EXPERIMENT_NAME,
+                    project_identifier=project.project_identifier,
+                    experiment_name=EXPERIMENT_NAME,
+                    run_id=None,
                     attribute_path=f"{PATH}/files/file-value.txt",
                     step=None,
                     path="not-real-path",
@@ -73,10 +76,9 @@ def test_download_files_no_permission(client, project, experiment_identifier, te
                     mime_type="text/plain",
                 ),
             ],
-            project_identifier=project.project_identifier,
             destination=temp_dir,
-            context=None,
             container_type=ContainerType.EXPERIMENT,
+            context=None,
         )
 
     os.chmod(temp_dir, 0o755)  # Reset permissions
@@ -92,7 +94,9 @@ def test_download_files_destination_file_type(client, project, experiment_identi
         download_files(
             files=[
                 File(
-                    label=EXPERIMENT_NAME,
+                    project_identifier=project.project_identifier,
+                    experiment_name=EXPERIMENT_NAME,
+                    run_id=None,
                     attribute_path=f"{PATH}/files/file-value.txt",
                     step=None,
                     path="not-a-real-path",
@@ -100,10 +104,9 @@ def test_download_files_destination_file_type(client, project, experiment_identi
                     mime_type="text/plain",
                 ),
             ],
-            project_identifier=project.project_identifier,
             destination=destination,
-            context=None,
             container_type=ContainerType.EXPERIMENT,
+            context=None,
         )
 
 
@@ -117,11 +120,7 @@ def test_download_files_single(client, project, experiment_identifier, temp_dir)
     )
     downloadable_files = [files_df.loc[EXPERIMENT_NAME, f"{PATH}/files/file-value.txt"]]
     result_df = download_files(
-        files=downloadable_files,
-        project_identifier=project.project_identifier,
-        destination=temp_dir,
-        context=None,
-        container_type=ContainerType.EXPERIMENT,
+        files=downloadable_files, destination=temp_dir, container_type=ContainerType.EXPERIMENT, context=None
     )
 
     # then
@@ -157,11 +156,7 @@ def test_download_files_multiple(client, project, experiment_identifier, temp_di
         files_df.loc[EXPERIMENT_NAME, f"{PATH}/files/file-value.txt"],
     ]
     result_df = download_files(
-        files=downloadable_files,
-        project_identifier=project.project_identifier,
-        destination=temp_dir,
-        context=None,
-        container_type=ContainerType.EXPERIMENT,
+        files=downloadable_files, destination=temp_dir, container_type=ContainerType.EXPERIMENT, context=None
     )
 
     # then
@@ -196,15 +191,9 @@ def test_download_file_series(client, project, experiment_identifier, temp_dir):
         attributes=AttributeFilter(name=FILE_SERIES_PATHS, type="file_series"),
         project=project.project_identifier,
     )
-    files = resolve_downloadable_files(files_df)
+    files = resolve_files(files_df)
     assert len(files) == 6
-    result_df = download_files(
-        files=files,
-        project_identifier=project.project_identifier,
-        destination=temp_dir,
-        context=None,
-        container_type=ContainerType.EXPERIMENT,
-    )
+    result_df = download_files(files=files, destination=temp_dir, container_type=ContainerType.EXPERIMENT, context=None)
 
     # then
     expected_df = pd.DataFrame(

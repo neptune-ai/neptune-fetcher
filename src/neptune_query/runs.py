@@ -42,7 +42,7 @@ from neptune_query._internal import (
     get_default_project_identifier,
     resolve_attributes_filter,
     resolve_destination_path,
-    resolve_downloadable_files,
+    resolve_files,
     resolve_runs_filter,
     resolve_sort_by,
 )
@@ -399,13 +399,9 @@ def download_files(
         nq_runs.download_files(files=interesting_files)
         ```
     """
-    project_identifier = get_default_project_identifier(project)
-    file_list = resolve_downloadable_files(files)
+    file_list = resolve_files(files)
     destination_path = resolve_destination_path(destination)
 
     return _download_files.download_files(
-        project_identifier=project_identifier,
-        files=file_list,
-        destination=destination_path,
-        container_type=_search.ContainerType.RUN,
+        files=file_list, destination=destination_path, container_type=_search.ContainerType.RUN
     )

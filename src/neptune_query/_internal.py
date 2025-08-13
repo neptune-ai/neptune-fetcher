@@ -122,7 +122,7 @@ def get_default_project_identifier(project: Optional[str] = None) -> ProjectIden
     return ProjectIdentifier(project)
 
 
-def resolve_downloadable_files(
+def resolve_files(
     files: Union[File, Iterable[File], pd.Series, pd.DataFrame],
 ) -> list[File]:
     """

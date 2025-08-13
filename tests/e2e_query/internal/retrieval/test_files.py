@@ -17,6 +17,7 @@ from neptune_query.internal.retrieval.files import (
     download_file_complete,
     fetch_signed_urls,
 )
+from neptune_query.types import File
 from tests.e2e_query.conftest import extract_pages
 from tests.e2e_query.data import PATH
 
@@ -39,7 +40,22 @@ def file_path(client, project, experiment_identifier):
 @pytest.mark.files
 def test_fetch_signed_url_missing(client, project, experiment_identifier):
     # when
-    signed_urls = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")
+    signed_urls = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path="does-not-exist",
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )
 
     # then
     assert len(signed_urls) == 1
@@ -49,7 +65,22 @@ def test_fetch_signed_url_missing(client, project, experiment_identifier):
 @pytest.mark.files
 def test_fetch_signed_url_single(client, project, experiment_identifier, file_path):
     # when
-    signed_urls = fetch_signed_urls(client, project.project_identifier, [file_path], "read")
+    signed_urls = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )
 
     # then
     assert len(signed_urls) == 1
@@ -59,7 +90,22 @@ def test_fetch_signed_url_single(client, project, experiment_identifier, file_pa
 @pytest.mark.files
 def test_download_file_missing(client, project, experiment_identifier, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, ["does-not-exist"], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path="does-not-exist",
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
 
     # when
@@ -72,7 +118,22 @@ def test_download_file_missing(client, project, experiment_identifier, temp_dir)
 @pytest.mark.files
 def test_download_file_no_permission(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
     os.chmod(temp_dir, 0o000)  # No permission to write
 
@@ -86,7 +147,22 @@ def test_download_file_no_permission(client, project, experiment_identifier, fil
 @pytest.mark.files
 def test_download_file_single(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
 
     # when
@@ -101,7 +177,22 @@ def test_download_file_single(client, project, experiment_identifier, file_path,
 @pytest.mark.files
 def test_download_file_expired(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
     expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
@@ -115,7 +206,22 @@ def test_download_file_expired(client, project, experiment_identifier, file_path
 @pytest.mark.files
 def test_download_file_retry(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
     expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
@@ -131,7 +237,22 @@ def test_download_file_retry(client, project, experiment_identifier, file_path, 
 @pytest.mark.files
 def test_download_file_no_retries(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
     expired_file = dataclasses.replace(signed_file, url=_expire_signed_url(signed_file.provider, signed_file.url))
 
@@ -148,7 +269,22 @@ def test_download_file_no_retries(client, project, experiment_identifier, file_p
 @pytest.mark.files
 def test_download_file_retry_failed(client, project, experiment_identifier, file_path, temp_dir):
     # given
-    signed_file = fetch_signed_urls(client, project.project_identifier, [file_path], "read")[0]
+    signed_file = fetch_signed_urls(
+        client,
+        [
+            File(
+                project_identifier=project.project_identifier,
+                experiment_name="exp1",
+                run_id=None,
+                attribute_path=f"{PATH}/files/object-does-not-exist",
+                step=None,
+                path=file_path,
+                size_bytes=0,
+                mime_type="application/octet-stream",
+            )
+        ],
+        "read",
+    )[0]
     target_path = temp_dir / "test_download_file"
     invalid_file = dataclasses.replace(signed_file, url="https://invalid")
 
