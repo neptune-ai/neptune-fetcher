@@ -50,7 +50,7 @@ class NeptuneProjectNotProvided(NeptuneUserError):
 
 Make sure to specify a valid project in one of the following ways:
 
-- Pass `project` argument to the fetching method
+- Pass the project path to the `project` argument of the fetching method
 - Set the `NEPTUNE_PROJECT` environment variable
 
 For details, see https://docs.neptune.ai/query_metadata
