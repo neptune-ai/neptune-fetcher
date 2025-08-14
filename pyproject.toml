@@ -99,6 +99,7 @@ warn_return_any = "True"
 show_error_codes = "True"
 warn_unused_ignores = "True"
 ignore_missing_imports = "True"
+#exclude = "/neptune_query/internal/bundled|/neptune_query/internal/api_utils.py"
 
 [tool.pytest.ini_options]
 retries = 3
