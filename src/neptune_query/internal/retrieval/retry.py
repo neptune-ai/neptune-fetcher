@@ -29,8 +29,9 @@ from typing import (
 )
 
 import httpx
-import neptune_api.errors
-from neptune_api.types import Response
+
+from neptune_query.internal.bundled.neptune_api import errors
+from neptune_query.internal.bundled.neptune_api.types import Response
 
 from ... import exceptions
 from .. import env
@@ -151,10 +152,10 @@ def handle_api_errors(func: Callable[T, Response[R]]) -> Callable[T, Response[R]
 
             _raise_for_error_code(response.status_code.value, response.content)
             return response
-        except neptune_api.errors.ApiKeyRejectedError as e:
+        except errors.ApiKeyRejectedError as e:
             # The API token is explicitly rejected by the backend -- don't retry anymore.
             raise exceptions.NeptuneInvalidCredentialsError() from e
-        except neptune_api.errors.UnableToParseResponse as e:
+        except errors.UnableToParseResponse as e:
             # Allow invalid 5xx errors to be retried - _raise_for_error_code will filter them out
             # reraise the original error (to retry it) otherwise
             if 500 <= e.response.status_code < 600:

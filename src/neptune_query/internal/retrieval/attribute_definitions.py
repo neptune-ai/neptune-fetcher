@@ -23,13 +23,12 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import query_attribute_definitions_within_project
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import (
+from neptune_query.internal.bundled.neptune_api.api.retrieval import query_attribute_definitions_within_project
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )
-
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from .. import filters  # noqa: E402

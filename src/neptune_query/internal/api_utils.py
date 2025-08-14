@@ -22,15 +22,16 @@ from typing import (
 )
 
 import httpx
-from neptune_api import (
+
+from neptune_query.internal.bundled.neptune_api import (
     AuthenticatedClient,
     Client,
 )
-from neptune_api.api.backend import get_client_config
-from neptune_api.auth_helpers import exchange_api_key
-from neptune_api.credentials import Credentials
-from neptune_api.models import ClientConfig
-from neptune_api.types import Response
+from neptune_query.internal.bundled.neptune_api.api.backend import get_client_config
+from neptune_query.internal.bundled.neptune_api.auth_helpers import exchange_api_key
+from neptune_query.internal.bundled.neptune_api.credentials import Credentials
+from neptune_query.internal.bundled.neptune_api.models import ClientConfig
+from neptune_query.internal.bundled.neptune_api.types import Response
 
 from ..exceptions import NeptuneFailedToFetchClientConfig
 from .env import (

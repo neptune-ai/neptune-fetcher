@@ -23,15 +23,14 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import get_series_values_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import SeriesValuesRequest
-from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+from neptune_query.internal.bundled.neptune_api.api.retrieval import get_series_values_proto
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.models import SeriesValuesRequest
+from neptune_query.internal.bundled.neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
     ProtoPointValueDTO,
     ProtoSeriesValuesResponseDTO,
 )
-from neptune_api.types import UNSET
-
+from neptune_query.internal.bundled.neptune_api.types import UNSET
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from ..identifiers import RunAttributeDefinition

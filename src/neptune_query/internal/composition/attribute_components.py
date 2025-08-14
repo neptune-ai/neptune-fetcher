@@ -19,7 +19,7 @@ from typing import (
     Optional,
 )
 
-from neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
 
 from .. import (
     filters,

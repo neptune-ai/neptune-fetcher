@@ -21,11 +21,12 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import get_multiple_float_series_values_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import FloatTimeSeriesValuesRequest
-from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
-
+from neptune_query.internal.bundled.neptune_api.api.retrieval import get_multiple_float_series_values_proto
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.models import FloatTimeSeriesValuesRequest
+from neptune_query.internal.bundled.neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+    ProtoFloatSeriesValuesResponseDTO,
+)
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from .. import identifiers

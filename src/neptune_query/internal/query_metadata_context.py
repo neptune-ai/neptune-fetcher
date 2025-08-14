@@ -32,8 +32,7 @@ from typing import (
     TypeVar,
 )
 
-from neptune_api.types import Response
-
+from neptune_query.internal.bundled.neptune_api.types import Response
 from neptune_query.internal.composition import concurrency
 
 # This flag is used to control whether query metadata should be added to the request headers
