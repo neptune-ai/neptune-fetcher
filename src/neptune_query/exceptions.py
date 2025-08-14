@@ -50,11 +50,10 @@ class NeptuneProjectNotProvided(NeptuneUserError):
 
 Make sure to specify a valid project in one of the following ways:
 
-- Call the `set_project()` function
-- Create a Context with the project name and pass it to the `context` argument of the fetching method
+- Pass the project path to the `project` argument of the fetching method
 - Set the `NEPTUNE_PROJECT` environment variable
 
-For details, see https://docs.neptune.ai/fetcher_setup
+For details, see https://docs.neptune.ai/query_metadata
 """
         )
 
@@ -101,10 +100,9 @@ class NeptuneApiTokenNotProvided(NeptuneUserError):
 Make sure to specify a valid token in one of the following ways:
 
 - Call the `set_api_token()` function
-- Create a Context with the API token and pass it to the `context` argument of the fetching method
 - Set the `NEPTUNE_API_TOKEN` environment variable
 
-For details, see https://docs.neptune.ai/fetcher_setup
+For details, see https://docs.neptune.ai/query_metadata
 """
         )
 
@@ -118,12 +116,11 @@ class NeptuneInvalidCredentialsError(NeptuneUserError):
 The API token must be valid and the associated account must have access to the target project.
 Make sure to specify your Neptune credentials in one of the following ways:
 
-- Call the `set_api_token()` or `set_project()` functions
-- Create a Context with the API token and project, then pass it to the `context` argument of the fetching method
+- Call the `set_api_token()` function
 - Set the `NEPTUNE_API_TOKEN` and `NEPTUNE_PROJECT` environment variables
 
 For details, see:
-https://docs.neptune.ai/fetcher_setup
+https://docs.neptune.ai/query_metadata
 https://docs.neptune.ai/project_access
 """
         )
