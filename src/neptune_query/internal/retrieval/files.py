@@ -25,16 +25,16 @@ from typing import (
 import azure.core.exceptions
 import requests
 from azure.storage.blob import BlobClient as AzureBlobClient
-from neptune_api.api.storage import signed_url_generic
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import (
+
+from neptune_query.internal.bundled.neptune_api.api.storage import signed_url_generic
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
     FileToSign,
     Permission,
     Provider,
 )
-
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from ...exceptions import NeptuneFileDownloadError

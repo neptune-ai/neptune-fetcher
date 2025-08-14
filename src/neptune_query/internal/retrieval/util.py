@@ -26,7 +26,7 @@ from typing import (
     TypeVar,
 )
 
-from neptune_api import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api import AuthenticatedClient
 
 logger = logging.getLogger(__name__)
 

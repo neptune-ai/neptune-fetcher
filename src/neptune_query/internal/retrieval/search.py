@@ -26,11 +26,12 @@ from typing import (
     TypeVar,
 )
 
-from neptune_api.api.retrieval import search_leaderboard_entries_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import SearchLeaderboardEntriesParamsDTO
-from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
-
+from neptune_query.internal.bundled.neptune_api.api.retrieval import search_leaderboard_entries_proto
+from neptune_query.internal.bundled.neptune_api.client import AuthenticatedClient
+from neptune_query.internal.bundled.neptune_api.models import SearchLeaderboardEntriesParamsDTO
+from neptune_query.internal.bundled.neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+    ProtoLeaderboardEntriesSearchResultDTO,
+)
 from neptune_query.internal.query_metadata_context import with_neptune_client_metadata
 
 from .. import (
