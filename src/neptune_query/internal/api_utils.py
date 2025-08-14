@@ -34,8 +34,8 @@ from neptune_api.types import Response
 
 from ..exceptions import NeptuneFailedToFetchClientConfig
 from .env import (
+    NEPTUNE_ALLOW_SELF_SIGNED_CERTIFICATE,
     NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS,
-    NEPTUNE_VERIFY_SSL,
 )
 from .retrieval.retry import handle_errors_default
 
@@ -71,7 +71,7 @@ def get_config_and_token_urls(
     with Client(
         base_url=credentials.base_url,
         httpx_args={"mounts": proxies},
-        verify_ssl=NEPTUNE_VERIFY_SSL.get(),
+        verify_ssl=NEPTUNE_ALLOW_SELF_SIGNED_CERTIFICATE.get() is not True,
         timeout=timeout,
         headers={"User-Agent": _generate_user_agent()},
     ) as client:
@@ -102,7 +102,7 @@ def create_auth_api_client(
         client_id=config.security.client_id,
         token_refreshing_endpoint=token_refreshing_urls.token_endpoint,
         api_key_exchange_callback=exchange_api_key,
-        verify_ssl=NEPTUNE_VERIFY_SSL.get(),
+        verify_ssl=NEPTUNE_ALLOW_SELF_SIGNED_CERTIFICATE.get() is not True,
         httpx_args={"mounts": proxies, "http2": False},
         timeout=httpx.Timeout(NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS.get()),
         headers={"User-Agent": _generate_user_agent()},
