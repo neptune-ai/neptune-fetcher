@@ -116,7 +116,7 @@ class NeptuneInvalidCredentialsError(NeptuneUserError):
 The API token must be valid and the associated account must have access to the target project.
 Make sure to specify your Neptune credentials in one of the following ways:
 
-- Call the `set_api_token()`
+- Call the `set_api_token()` function
 - Set the `NEPTUNE_API_TOKEN` and `NEPTUNE_PROJECT` environment variables
 
 For details, see:
