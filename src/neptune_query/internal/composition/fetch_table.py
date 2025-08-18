@@ -79,38 +79,19 @@ def fetch_table(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
-            executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return output_format.convert_table_to_dataframe(
-                table_data={},
-                project_identifier=project_identifier,
-                selected_aggregations={},
-                type_suffix_in_column_names=type_suffix_in_column_names,
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-            )
         filter_ = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         sort_by_inference_result = type_inference.infer_attribute_types_in_sort_by(
             client=client,
             project_identifier=project_identifier,
-            filter_=filter_,
             sort_by=sort_by,
-            executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
         )
-        if sort_by_inference_result.is_run_domain_empty():
-            return output_format.convert_table_to_dataframe(
-                table_data={},
-                project_identifier=project_identifier,
-                selected_aggregations={},
-                type_suffix_in_column_names=type_suffix_in_column_names,
-                index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
-            )
-        sort_by = sort_by_inference_result.get_result_or_raise()
+        sort_by = sort_by_inference_result.result
+        sort_by_inference_result.emit_warnings()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
         result_by_id: dict[identifiers.SysId, list[att_vals.AttributeValue]] = {}
@@ -184,6 +165,7 @@ def fetch_table(
         index_column_name="experiment" if container_type == search.ContainerType.EXPERIMENT else "run",
         flatten_aggregations=flatten_aggregations,
     )
+
     return dataframe
 
 

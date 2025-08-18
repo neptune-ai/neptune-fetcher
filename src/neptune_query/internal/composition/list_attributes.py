@@ -62,13 +62,10 @@ def list_attributes(
             client,
             project_identifier,
             filter_,
-            executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return []
         filter_ = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         output = _components.fetch_attribute_definitions_complete(
             client=client,

@@ -13,16 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import warnings
 from collections import defaultdict
 from concurrent.futures import Executor
 from dataclasses import dataclass
 from typing import (
-    Generator,
     Generic,
     Iterable,
     Optional,
     TypeVar,
-    Union,
 )
 
 from neptune_api.client import AuthenticatedClient
@@ -32,12 +31,6 @@ from .. import (
     filters,
     identifiers,
 )
-from ..composition import attribute_components as _components
-from ..composition import concurrency
-from ..retrieval import (
-    search,
-    util,
-)
 from ..retrieval.attribute_types import (
     ATTRIBUTE_LITERAL,
     FILE_SERIES_AGGREGATIONS,
@@ -45,7 +38,7 @@ from ..retrieval.attribute_types import (
     HISTOGRAM_SERIES_AGGREGATIONS,
     STRING_SERIES_AGGREGATIONS,
 )
-from ..retrieval.search import ContainerType
+from .attributes import fetch_attribute_definitions
 
 T = TypeVar("T", covariant=True)
 
@@ -57,6 +50,7 @@ class AttributeInferenceState:
     inferred_type: Optional[str] = None
     success_details: Optional[str] = None
     error: Optional[str] = None
+    warning_text: Optional[str] = None
 
     def is_finalized(self) -> bool:
         return self.inferred_type is not None or self.error is not None
@@ -72,12 +66,23 @@ class AttributeInferenceState:
     def set_error(self, error: str) -> None:
         self.error = error
 
+    def set_fallback(
+        self,
+        inferred_type: ATTRIBUTE_LITERAL,
+        success_details: Optional[str] = None,
+        warning_text: Optional[str] = None,
+    ) -> None:
+        self.inferred_type = inferred_type
+        self.success_details = success_details
+        self.attribute.type = inferred_type
+        self.error = None
+        self.warning_text = warning_text
+
 
 @dataclass
 class InferenceState(Generic[T]):
     attributes: list[AttributeInferenceState]
     result: T
-    run_domain_empty: Optional[bool] = None
 
     @staticmethod
     def empty() -> "InferenceState[None]":
@@ -132,9 +137,6 @@ class InferenceState(Generic[T]):
     def is_complete(self) -> bool:
         return all(attr_state.is_finalized() for attr_state in self.attributes)
 
-    def is_run_domain_empty(self) -> bool:
-        return self.run_domain_empty is not None and self.run_domain_empty
-
     def raise_if_incomplete(self) -> None:
         uninferred_attributes = [attr_state for attr_state in self.attributes if not attr_state.is_inferred()]
         if uninferred_attributes:
@@ -153,14 +155,18 @@ class InferenceState(Generic[T]):
         self.raise_if_incomplete()
         return self.result
 
+    def emit_warnings(self) -> None:
+        for attr_state in self.attributes:
+            if attr_state.warning_text:
+                msg = f"Attribute '{attr_state.original_attribute.name}': {attr_state.warning_text}"
+                warnings.warn(msg, stacklevel=3)
+
 
 def infer_attribute_types_in_filter(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
     filter_: Optional[filters._Filter],
-    executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> InferenceState[Optional[filters._Filter]]:
     if filter_ is None:
         return InferenceState.empty()
@@ -176,23 +182,19 @@ def infer_attribute_types_in_filter(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        filter_=None,
-        executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        container_type=container_type,
         inference_state=state,
     )
+
+    _fill_unknown_types_as_string(state)
     return state
 
 
 def infer_attribute_types_in_sort_by(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters._Filter],
     sort_by: filters._Attribute,
-    executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    container_type: search.ContainerType = search.ContainerType.EXPERIMENT,  # TODO: remove the default
 ) -> InferenceState[filters._Attribute]:
     state = InferenceState.from_attribute(sort_by)
     if state.is_complete():
@@ -205,12 +207,12 @@ def infer_attribute_types_in_sort_by(
     _infer_attribute_types_from_api(
         client=client,
         project_identifier=project_identifier,
-        filter_=filter_,
-        executor=executor,
         fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-        container_type=container_type,
         inference_state=state,
     )
+
+    _fill_unknown_types_as_string(state)
+    _fill_conflicting_types_as_string(state)
     return state
 
 
@@ -266,6 +268,7 @@ def _infer_attribute_types_locally(
                 success_details="Inferred as a known system attribute",
             )
 
+    # TODO: this doesn't have a lot of sense in neptune-query, as we don't have aggregations beyond last anymore
     for state in inference_state.incomplete_attributes():
         attribute = state.attribute
         matches: list[ATTRIBUTE_LITERAL] = []
@@ -284,68 +287,65 @@ def _infer_attribute_types_locally(
 def _infer_attribute_types_from_api(
     client: AuthenticatedClient,
     project_identifier: identifiers.ProjectIdentifier,
-    filter_: Optional[filters._Filter],
-    executor: Executor,
     fetch_attribute_definitions_executor: Executor,
-    container_type: search.ContainerType,
     inference_state: InferenceState,
 ) -> None:
     attribute_states = inference_state.incomplete_attributes()
     attributes = [state.attribute for state in attribute_states]
     attribute_filter_by_name = filters._AttributeFilter(name_eq=list({attr.name for attr in attributes}))
 
-    output = concurrency.generate_concurrently(
-        items=search.fetch_sys_ids(
-            client=client,
-            project_identifier=project_identifier,
-            filter_=filter_,
-            container_type=container_type,
-        ),
-        executor=executor,
-        downstream=lambda sys_ids_page: concurrency.fork_concurrently(
-            executor=executor,
-            downstreams=[
-                lambda: _components.fetch_attribute_definitions_split(
-                    client=client,
-                    project_identifier=project_identifier,
-                    attribute_filter=attribute_filter_by_name,
-                    executor=executor,
-                    fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-                    sys_ids=sys_ids_page.items,
-                    downstream=lambda _, definitions: concurrency.return_value(definitions),
-                ),
-                lambda: concurrency.return_value(sys_ids_page.items),
-            ],
-        ),
+    output = fetch_attribute_definitions(
+        client=client,
+        project_identifiers=[project_identifier],
+        run_identifiers=None,
+        attribute_filter=attribute_filter_by_name,
+        executor=fetch_attribute_definitions_executor,
     )
 
-    results: Generator[
-        Union[list[identifiers.SysId], util.Page[identifiers.AttributeDefinition]], None, None
-    ] = concurrency.gather_results(output)
+    inferred_attributes = defaultdict(set)
 
-    sys_ids: list[identifiers.SysId] = []
-    attribute_name_to_definition: dict[str, set[str]] = defaultdict(set)
-    for result in results:
-        if isinstance(result, util.Page):
-            for attr_def in result.items:
-                attribute_name_to_definition[attr_def.name].add(attr_def.type)
-        elif isinstance(result, list):
-            sys_ids.extend(result)
+    for page in output:
+        for attr_def in page.items:
+            for state in attribute_states:
+                if state.attribute.name == attr_def.name:
+                    inferred_attributes[state.attribute.name].add(attr_def.type)
 
     for state in attribute_states:
-        attribute = state.attribute
-        if attribute.name in attribute_name_to_definition:
-            types = attribute_name_to_definition[attribute.name]
-            if len(types) == 1:
-                state.set_success(
-                    inferred_type=next(iter(types)),  # type: ignore
-                    success_details="Inferred from neptune api",
-                )
-            elif len(types) > 1:
-                container_name = "runs" if container_type == ContainerType.RUN else "experiments"
-                state.set_error(
-                    error=f"Neptune found the attribute name in multiple {container_name} "
-                    f"with conflicting types: {', '.join(types)}"
-                )
+        types = inferred_attributes.get(state.attribute.name, set())
+        if len(types) == 1:
+            state.set_success(
+                inferred_type=list(types)[0],  # type: ignore
+                success_details="Inferred from neptune api",
+            )
 
-    inference_state.run_domain_empty = len(sys_ids) == 0
+        if len(types) > 1:
+            state.set_error(
+                error=f"Neptune found the attribute name in multiple runs and experiments across the project "
+                f"with conflicting types: {', '.join(types)}"
+            )
+
+
+def _fill_unknown_types_as_string(state: InferenceState) -> None:
+    """
+    Fills the types of attributes that are not inferred with "string".
+    """
+    for attr_state in state.incomplete_attributes():
+        if attr_state.inferred_type is None:
+            attr_state.set_fallback(
+                inferred_type="string",
+                success_details="Defaulting to string type for unknown attributes",
+                warning_text="Attribute doesn't exist in the project",
+            )
+
+
+def _fill_conflicting_types_as_string(state: InferenceState) -> None:
+    """
+    Fills the types of attributes that have conflicting types with "string".
+    """
+    for attr_state in state.attributes:
+        if attr_state.inferred_type is None and attr_state.error:
+            attr_state.set_fallback(
+                inferred_type="string",
+                success_details="Defaulting to string type for attributes with conflicting types",
+                warning_text=attr_state.error,
+            )

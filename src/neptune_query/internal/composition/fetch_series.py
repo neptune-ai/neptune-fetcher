@@ -81,19 +81,10 @@ def fetch_series(
             client=client,
             project_identifier=project_identifier,
             filter_=filter_,
-            executor=executor,
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
-            container_type=container_type,
         )
-        if inference_result.is_run_domain_empty():
-            return create_series_dataframe(
-                series_data={},
-                project_identifier=project_identifier,
-                sys_id_label_mapping={},
-                index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
-                timestamp_column_name="absolute_time" if include_time == "absolute" else None,
-            )
         inferred_filter = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         sys_id_label_mapping: dict[identifiers.SysId, str] = {}
 
