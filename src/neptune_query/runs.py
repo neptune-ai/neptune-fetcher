@@ -400,13 +400,14 @@ def download_files(
     file_list = resolve_files(files)
     destination_path = resolve_destination_path(destination)
 
-    if not all(file.experiment_name for file in file_list):
+    if not all(file.run_id for file in file_list):
         raise NeptuneUserError(
             "Some files passed to nq_runs.download_files don't have associated run IDs. "
             "This is likely because you passed files not originating from the runs API. "
             "Please use files from the runs API instead by fetching them with "
             "nq_runs.fetch_series() or nq_runs.fetch_experiments_table()."
         )
+
     return _download_files.download_files(
         files=file_list,
         destination=destination_path,
