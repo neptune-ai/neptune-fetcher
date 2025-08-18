@@ -45,6 +45,7 @@ def list_containers(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
         filter_ = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         sys_attr_pages = search.fetch_sys_id_labels(container_type)(client, project_identifier, filter_)
         return list(sorted(attrs.label for page in sys_attr_pages for attrs in page.items))

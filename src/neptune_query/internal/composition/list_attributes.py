@@ -65,6 +65,7 @@ def list_attributes(
             fetch_attribute_definitions_executor=fetch_attribute_definitions_executor,
         )
         filter_ = inference_result.get_result_or_raise()
+        inference_result.emit_warnings()
 
         output = _components.fetch_attribute_definitions_complete(
             client=client,
