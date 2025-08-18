@@ -2,9 +2,9 @@ import pytest
 
 from neptune_query.internal import identifiers
 from neptune_query.internal.env import (
-    NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE,
-    NEPTUNE_FETCHER_QUERY_SIZE_LIMIT,
-    NEPTUNE_FETCHER_SERIES_BATCH_SIZE,
+    NEPTUNE_QUERY_ATTRIBUTE_VALUES_BATCH_SIZE,
+    NEPTUNE_QUERY_MAX_REQUEST_SIZE,
+    NEPTUNE_QUERY_SERIES_BATCH_SIZE,
 )
 from neptune_query.internal.identifiers import (
     AttributeDefinition,
@@ -70,7 +70,7 @@ def test_split_sys_ids(sys_ids, expected):
 )
 def test_split_sys_ids_custom_envs(monkeypatch, given_num, query_size_limit, expected_nums):
     # given
-    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
+    monkeypatch.setenv(NEPTUNE_QUERY_MAX_REQUEST_SIZE.name, str(query_size_limit))
     sys_ids = [SYS_ID] * given_num
     expected = [[SYS_ID] * num for num in expected_nums]
 
@@ -133,8 +133,8 @@ def test_split_sys_ids_attributes_custom_envs(
     monkeypatch, sys_id_num, attribute_num, query_size_limit, values_batch_size, expected_nums
 ):
     # given
-    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
-    monkeypatch.setenv(NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.name, str(values_batch_size))
+    monkeypatch.setenv(NEPTUNE_QUERY_MAX_REQUEST_SIZE.name, str(query_size_limit))
+    monkeypatch.setenv(NEPTUNE_QUERY_ATTRIBUTE_VALUES_BATCH_SIZE.name, str(values_batch_size))
     sys_ids = [SYS_ID] * sys_id_num
     attributes = [ATTRIBUTE_DEFINITION] * attribute_num
     expected = [([SYS_ID] * a, [ATTRIBUTE_DEFINITION] * b) for a, b in expected_nums]
@@ -190,8 +190,8 @@ def test_split_series_attributes(attributes, expected):
 )
 def test_split_series_attributes_custom_envs(monkeypatch, given_num, query_size_limit, batch_size, expected_nums):
     # given
-    monkeypatch.setenv(NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.name, str(query_size_limit))
-    monkeypatch.setenv(NEPTUNE_FETCHER_SERIES_BATCH_SIZE.name, str(batch_size))
+    monkeypatch.setenv(NEPTUNE_QUERY_MAX_REQUEST_SIZE.name, str(query_size_limit))
+    monkeypatch.setenv(NEPTUNE_QUERY_SERIES_BATCH_SIZE.name, str(batch_size))
     run_attributes = _add_run([ATTRIBUTE_DEFINITION] * given_num)
     expected = [_add_run([ATTRIBUTE_DEFINITION] * num) for num in expected_nums]
 

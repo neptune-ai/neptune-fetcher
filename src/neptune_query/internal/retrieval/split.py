@@ -49,10 +49,10 @@ def split_sys_ids(
     sys_ids: list[identifiers.SysId],
 ) -> Generator[list[identifiers.SysId]]:
     """
-    Splits a sequence of sys ids into batches of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
+    Splits a sequence of sys ids into batches of size at most `NEPTUNE_QUERY_MAX_REQUEST_SIZE`.
     Use before fetching attribute definitions.
     """
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
+    query_size_limit = env.NEPTUNE_QUERY_MAX_REQUEST_SIZE.get()
     identifier_num_limit = max(query_size_limit // _sys_id_size(), 1)
 
     identifier_num = len(sys_ids)
@@ -72,14 +72,14 @@ def split_sys_ids_attributes(
 ) -> Generator[tuple[list[identifiers.SysId], list[identifiers.AttributeDefinition]]]:
     """
     Splits a pair of sys ids and attribute_definitions into batches that:
-    When their length is added it is of size at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
-    When their item count is multiplied, it is at most `NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE`.
+    When their length is added it is of size at most `NEPTUNE_QUERY_MAX_REQUEST_SIZE`.
+    When their item count is multiplied, it is at most `NEPTUNE_QUERY_ATTRIBUTE_VALUES_BATCH_SIZE`.
 
     It's intended for use before fetching attribute values and assumes that the sys_ids and attribute_definitions
     will be sent to the server in a single request and the response will contain data for their cartesian product.
     """
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
-    attribute_values_batch_size = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get()
+    query_size_limit = env.NEPTUNE_QUERY_MAX_REQUEST_SIZE.get()
+    attribute_values_batch_size = env.NEPTUNE_QUERY_ATTRIBUTE_VALUES_BATCH_SIZE.get()
 
     if not attribute_definitions:
         return
@@ -141,13 +141,13 @@ def _split_attribute_definitions(
 def split_series_attributes(items: Iterable[RunAttributeDefinition]) -> Generator[list[RunAttributeDefinition]]:
     """
     Splits a list of classes containing an attribute_definition into batches so that:
-    When the lengths of attribute paths are added, the total length is at most `NEPTUNE_FETCHER_QUERY_SIZE_LIMIT`.
-    Item count is at most `NEPTUNE_FETCHER_SERIES_BATCH_SIZE`.
+    When the lengths of attribute paths are added, the total length is at most `NEPTUNE_QUERY_MAX_REQUEST_SIZE`.
+    Item count is at most `NEPTUNE_QUERY_SERIES_BATCH_SIZE`.
 
     Intended for use before fetching (string, float) series.
     """
-    query_size_limit = env.NEPTUNE_FETCHER_QUERY_SIZE_LIMIT.get()
-    batch_size_limit = env.NEPTUNE_FETCHER_SERIES_BATCH_SIZE.get()
+    query_size_limit = env.NEPTUNE_QUERY_MAX_REQUEST_SIZE.get()
+    batch_size_limit = env.NEPTUNE_QUERY_SERIES_BATCH_SIZE.get()
 
     if not items:
         return
@@ -172,7 +172,7 @@ def _ceil_div(a: int, b: int) -> int:
 
 
 def split_files(items: list[T]) -> Generator[list[T], None, None]:
-    batch_size = env.NEPTUNE_FETCHER_FILES_BATCH_SIZE.get()
+    batch_size = env.NEPTUNE_QUERY_FILES_BATCH_SIZE.get()
 
     for i in range(0, len(items), batch_size):
         yield items[i : i + batch_size]

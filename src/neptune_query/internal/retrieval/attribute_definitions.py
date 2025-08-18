@@ -58,7 +58,7 @@ def fetch_attribute_definitions_single_filter(
     project_identifiers: Iterable[identifiers.ProjectIdentifier],
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters._AttributeFilter,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_QUERY_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[identifiers.AttributeDefinition], None, None]:
     params: dict[str, Any] = {
         "projectIdentifiers": list(project_identifiers),

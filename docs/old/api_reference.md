@@ -424,7 +424,7 @@ Improves the performance of access to consecutive field values. Works only for s
 To speed up the fetching process, this method can use multithreading.
 To enable it, set the `use_threads` parameter to `True`.
 
-By default, the maximum number of workers is 10. You can change this number by setting the `NEPTUNE_FETCHER_MAX_WORKERS`
+By default, the maximum number of workers is 32. You can change this number by setting the `NEPTUNE_QUERY_MAX_WORKERS`
 environment variable.
 
 __Parameters__:
