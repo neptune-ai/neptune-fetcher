@@ -59,6 +59,8 @@ def test_fill_unknown_types_as_string():
     type_inference._fill_unknown_types_as_string(state)
     assert state.attributes[0].inferred_type == "string"
     assert state.attributes[0].success_details.startswith("Defaulting")
+    with pytest.warns(UserWarning, match="Attribute 'foo': Attribute doesn't exist in the project"):
+        state.emit_warnings()
 
 
 def test_known_attribute_types_constant():
