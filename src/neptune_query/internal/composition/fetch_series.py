@@ -147,6 +147,7 @@ def fetch_series(
 
         return create_series_dataframe(
             series_data,
+            project_identifier,
             sys_id_label_mapping,
             index_column_name="experiment" if container_type == ContainerType.EXPERIMENT else "run",
             timestamp_column_name="absolute_time" if include_time == "absolute" else None,

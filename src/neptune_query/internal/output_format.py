@@ -44,6 +44,7 @@ from .retrieval.metrics import (
     TimestampIndex,
     ValueIndex,
 )
+from .retrieval.search import ContainerType
 
 __all__ = (
     "convert_table_to_dataframe",
@@ -55,8 +56,11 @@ __all__ = (
 
 def convert_table_to_dataframe(
     table_data: dict[str, list[AttributeValue]],
+    project_identifier: str,
     selected_aggregations: dict[identifiers.AttributeDefinition, set[str]],
     type_suffix_in_column_names: bool,
+    # TODO: accept container_type as an argument instead of index_column_name
+    # see https://github.com/neptune-ai/neptune-fetcher/pull/402/files#r2260012199
     index_column_name: str = "experiment",
     flatten_aggregations: bool = False,
 ) -> pd.DataFrame:
@@ -93,8 +97,10 @@ def convert_table_to_dataframe(
                 for agg_name, agg_value in agg_subset_values.items():
                     if value.attribute_definition.type == "file_series" and agg_name == "last":
                         row[(column_name, "last")] = _create_output_file(
+                            project_identifier=project_identifier,
                             file=agg_value,
                             label=label,
+                            index_column_name=index_column_name,
                             attribute_path=value.attribute_definition.name,
                             step=getattr(aggregation_value, "last_step", None),
                         )
@@ -105,8 +111,10 @@ def convert_table_to_dataframe(
             elif value.attribute_definition.type == "file":
                 file_properties: File = value.value
                 row[(column_name, "")] = _create_output_file(
+                    project_identifier=project_identifier,
                     file=file_properties,
                     label=label,
+                    index_column_name=index_column_name,
                     attribute_path=value.attribute_definition.name,
                 )
             elif value.attribute_definition.type == "histogram":
@@ -305,6 +313,7 @@ def create_metrics_dataframe(
 
 def create_series_dataframe(
     series_data: dict[identifiers.RunAttributeDefinition, list[series.SeriesValue]],
+    project_identifier: str,
     sys_id_label_mapping: dict[identifiers.SysId, str],
     index_column_name: str,
     timestamp_column_name: Optional[str],
@@ -330,8 +339,10 @@ def create_series_dataframe(
                 series.SeriesValue(
                     step=point.step,
                     value=_create_output_file(
+                        project_identifier=project_identifier,
                         file=point.value,
                         label=label,
+                        index_column_name=index_column_name,
                         attribute_path=run_attribute_definition.attribute_definition.name,
                         step=point.step,
                     ),
@@ -444,8 +455,10 @@ def _sort_indices(df: pd.DataFrame) -> pd.DataFrame:
 
 def create_files_dataframe(
     file_data: dict[types.File, Optional[pathlib.Path]],
-    index_column_name: str = "experiment",
+    container_type: "ContainerType",
 ) -> pd.DataFrame:
+    index_column_name = "experiment" if container_type == ContainerType.EXPERIMENT else "run"
+
     if not file_data:
         return pd.DataFrame(
             index=pd.MultiIndex.from_tuples([], names=[index_column_name, "step"]),
@@ -455,7 +468,7 @@ def create_files_dataframe(
     rows: list[dict[str, Any]] = []
     for file, path in file_data.items():
         row = {
-            index_column_name: file.label,
+            index_column_name: file.container_identifier,
             "attribute": file.attribute_path,
             "step": file.step,
             "path": str(path) if path else None,
@@ -471,13 +484,19 @@ def create_files_dataframe(
 
 
 def _create_output_file(
+    project_identifier: str,
     file: File,
     label: str,
+    index_column_name: str,
     attribute_path: str,
     step: Optional[float] = None,
 ) -> types.File:
+    run_id = label if index_column_name == "run" else None
+    experiment_name = label if index_column_name == "experiment" else None
     return types.File(
-        label=label,
+        project_identifier=project_identifier,
+        experiment_name=experiment_name,
+        run_id=run_id,
         attribute_path=attribute_path,
         step=step,
         path=file.path,

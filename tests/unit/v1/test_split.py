@@ -52,6 +52,8 @@ def test_list_attributes_patched(sys_id_length, exp_count, expected_calls):
     ):
         get_client.return_value = None
         fetch_sys_ids.return_value = iter([util.Page(sys_ids)])
+        attributes = [AttributeDefinition(name=f"{i:020d}", type="irrelevant") for i in range(100)]
+        fetch_attribute_definitions_single_filter.side_effect = lambda **kwargs: iter([util.Page(attributes)])
 
         npt.list_attributes(
             project=project,
