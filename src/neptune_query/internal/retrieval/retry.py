@@ -44,8 +44,8 @@ R = TypeVar("R")
 def handle_errors_default(func: Callable[T, Response[R]]) -> Callable[T, Response[R]]:
     return retry_backoff(
         max_tries=None,
-        soft_max_time=env.NEPTUNE_FETCHER_RETRY_SOFT_TIMEOUT.get(),
-        hard_max_time=env.NEPTUNE_FETCHER_RETRY_HARD_TIMEOUT.get(),
+        soft_max_time=env.NEPTUNE_QUERY_RETRY_SOFT_TIMEOUT.get(),
+        hard_max_time=env.NEPTUNE_QUERY_RETRY_HARD_TIMEOUT.get(),
         backoff_strategy=exponential_backoff(jitter="full"),
     )(handle_api_errors(func))
 

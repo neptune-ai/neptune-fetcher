@@ -130,7 +130,7 @@ class FetchSysAttrs(Protocol[T]):
         sort_by: _Attribute = _Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
-        batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
+        batch_size: int = env.NEPTUNE_QUERY_SYS_ATTRS_BATCH_SIZE.get(),
         container_type: ContainerType = ContainerType.EXPERIMENT,
     ) -> Generator[util.Page[T], None, None]:
         ...
@@ -148,7 +148,7 @@ def _create_fetch_sys_attrs(
         sort_by: _Attribute = _Attribute("sys/creation_time", type="datetime"),
         sort_direction: Literal["asc", "desc"] = "desc",
         limit: Optional[int] = None,
-        batch_size: int = env.NEPTUNE_FETCHER_SYS_ATTRS_BATCH_SIZE.get(),
+        batch_size: int = env.NEPTUNE_QUERY_SYS_ATTRS_BATCH_SIZE.get(),
         container_type: ContainerType = default_container_type,
     ) -> Generator[util.Page[T], None, None]:
         params: dict[str, Any] = {

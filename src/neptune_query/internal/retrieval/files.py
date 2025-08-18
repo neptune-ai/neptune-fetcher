@@ -118,8 +118,8 @@ class DownloadResult:
 def download_file(
     signed_file: SignedFile,
     target_path: pathlib.Path,
-    max_concurrency: int = env.NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY.get(),
-    timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
+    max_concurrency: int = env.NEPTUNE_QUERY_FILES_MAX_CONCURRENCY.get(),
+    timeout: Optional[int] = env.NEPTUNE_QUERY_FILES_TIMEOUT.get(),
 ) -> DownloadResult:
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -136,8 +136,8 @@ def download_file(
 def _download_file_azure(
     signed_file: SignedFile,
     target_path: pathlib.Path,
-    max_concurrency: int = env.NEPTUNE_FETCHER_FILES_MAX_CONCURRENCY.get(),
-    timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
+    max_concurrency: int = env.NEPTUNE_QUERY_FILES_MAX_CONCURRENCY.get(),
+    timeout: Optional[int] = env.NEPTUNE_QUERY_FILES_TIMEOUT.get(),
 ) -> DownloadResult:
     try:
         blob_client = AzureBlobClient.from_blob_url(signed_file.url)
@@ -160,7 +160,7 @@ def _download_file_azure(
 def _download_file_requests(
     signed_file: SignedFile,
     target_path: pathlib.Path,
-    timeout: Optional[int] = env.NEPTUNE_FETCHER_FILES_TIMEOUT.get(),
+    timeout: Optional[int] = env.NEPTUNE_QUERY_FILES_TIMEOUT.get(),
 ) -> DownloadResult:
     try:
         response = requests.get(signed_file.url, stream=True, timeout=timeout)

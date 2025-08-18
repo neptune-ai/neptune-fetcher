@@ -43,7 +43,7 @@ OUT = tuple[set[Future[R]], Optional[R]]
 
 
 def create_thread_pool_executor() -> Executor:
-    max_workers = env.NEPTUNE_FETCHER_MAX_WORKERS.get()
+    max_workers = env.NEPTUNE_QUERY_MAX_WORKERS.get()
     return ThreadPoolExecutor(max_workers=max_workers)
 
 

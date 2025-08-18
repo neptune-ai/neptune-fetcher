@@ -54,7 +54,7 @@ def fetch_attribute_values(
     project_identifier: identifiers.ProjectIdentifier,
     run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_definitions: Iterable[identifiers.AttributeDefinition],
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_QUERY_ATTRIBUTE_VALUES_BATCH_SIZE.get(),
 ) -> Generator[util.Page[AttributeValue], None, None]:
     attribute_definitions_set: set[identifiers.AttributeDefinition] = set(attribute_definitions)
     experiments = [str(e) for e in run_identifiers]

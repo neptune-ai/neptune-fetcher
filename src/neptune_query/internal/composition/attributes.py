@@ -47,7 +47,7 @@ def fetch_attribute_definitions(
     run_identifiers: Optional[Iterable[identifiers.RunIdentifier]],
     attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_QUERY_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[util.Page[identifiers.AttributeDefinition], None, None]:
     pages_filters = _fetch_attribute_definitions(
         client, project_identifiers, run_identifiers, attribute_filter, batch_size, executor
@@ -66,7 +66,7 @@ def fetch_attribute_definition_aggregations(
     run_identifiers: Iterable[identifiers.RunIdentifier],
     attribute_filter: filters._BaseAttributeFilter,
     executor: Executor,
-    batch_size: int = env.NEPTUNE_FETCHER_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
+    batch_size: int = env.NEPTUNE_QUERY_ATTRIBUTE_DEFINITIONS_BATCH_SIZE.get(),
 ) -> Generator[
     tuple[util.Page[identifiers.AttributeDefinition], util.Page[AttributeDefinitionAggregation]], None, None
 ]:
