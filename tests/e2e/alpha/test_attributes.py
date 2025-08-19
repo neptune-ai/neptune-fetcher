@@ -3,7 +3,7 @@ import os
 from typing import Iterable
 
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     STRING_SERIES_PATHS,

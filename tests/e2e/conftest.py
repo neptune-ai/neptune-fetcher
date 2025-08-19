@@ -5,7 +5,7 @@ from concurrent.futures import Executor
 from datetime import timedelta
 
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     FILE_SERIES_STEPS,
     NOW,
     PATH,

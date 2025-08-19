@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import pytest
-from e2e.alpha.generator import (
+from tests.e2e.alpha.generator import (
     RUN_BY_ID,
     timestamp_for_step,
 )

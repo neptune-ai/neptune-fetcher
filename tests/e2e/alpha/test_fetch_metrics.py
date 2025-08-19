@@ -13,7 +13,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     NOW,
     PATH,
     TEST_DATA,

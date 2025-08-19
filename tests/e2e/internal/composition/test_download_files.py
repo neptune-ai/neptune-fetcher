@@ -4,7 +4,7 @@ import tempfile
 
 import pandas as pd
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     PATH,
     TEST_DATA,
 )

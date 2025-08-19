@@ -12,7 +12,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     NOW,
     NUMBER_OF_STEPS,
     TEST_DATA,

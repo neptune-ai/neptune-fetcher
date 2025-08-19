@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from e2e.alpha.generator import (
+from tests.e2e.alpha.generator import (
     ALL_STATIC_RUNS,
     LINEAR_HISTORY_TREE,
 )

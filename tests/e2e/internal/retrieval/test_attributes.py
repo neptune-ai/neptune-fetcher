@@ -7,8 +7,8 @@ from datetime import (
 )
 
 import pytest
-from e2e.conftest import extract_pages
-from e2e.data import (
+from tests.e2e.conftest import extract_pages
+from tests.e2e.data import (
     FILE_SERIES_PATHS,
     FILE_SERIES_STEPS,
     FLOAT_SERIES_PATHS,

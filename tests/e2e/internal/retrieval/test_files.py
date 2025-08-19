@@ -10,8 +10,8 @@ from datetime import (
 
 import azure.core.exceptions
 import pytest
-from e2e.conftest import extract_pages
-from e2e.data import PATH
+from tests.e2e.conftest import extract_pages
+from tests.e2e.data import PATH
 
 from neptune_fetcher.internal.identifiers import AttributeDefinition
 from neptune_fetcher.internal.retrieval.attribute_values import fetch_attribute_values

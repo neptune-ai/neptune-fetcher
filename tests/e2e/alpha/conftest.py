@@ -11,11 +11,11 @@ from datetime import (
 from pathlib import Path
 from typing import Any
 
-import e2e.alpha.generator as data
+import tests.e2e.alpha.generator as data
 import filelock
 import pytest
 from _pytest.outcomes import Failed
-from e2e.alpha.generator import ALL_STATIC_RUNS
+from tests.e2e.alpha.generator import ALL_STATIC_RUNS
 from neptune_api import AuthenticatedClient
 from pytest import fixture
 

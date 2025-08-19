@@ -8,7 +8,7 @@ from typing import Generator
 
 import pytest
 import pytz
-from e2e.data import (
+from tests.e2e.data import (
     FILE_SERIES_PATHS,
     FLOAT_SERIES_PATHS,
     HISTOGRAM_SERIES_PATHS,

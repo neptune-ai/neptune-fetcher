@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import pytest
-from e2e.data import (
+from tests.e2e.data import (
     FLOAT_SERIES_PATHS,
     PATH,
     TEST_DATA,
