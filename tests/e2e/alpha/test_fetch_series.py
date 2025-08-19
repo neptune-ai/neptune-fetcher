@@ -12,12 +12,6 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pytest
-from tests.e2e.data import (
-    NOW,
-    NUMBER_OF_STEPS,
-    TEST_DATA,
-    ExperimentData,
-)
 
 from neptune_fetcher.alpha import fetch_series
 from neptune_fetcher.alpha.filters import (
@@ -34,6 +28,12 @@ from neptune_fetcher.internal.identifiers import (
 )
 from neptune_fetcher.internal.output_format import create_series_dataframe
 from neptune_fetcher.internal.retrieval.series import SeriesValue
+from tests.e2e.data import (
+    NOW,
+    NUMBER_OF_STEPS,
+    TEST_DATA,
+    ExperimentData,
+)
 
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 

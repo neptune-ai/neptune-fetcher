@@ -13,12 +13,6 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
-from tests.e2e.data import (
-    NOW,
-    PATH,
-    TEST_DATA,
-    ExperimentData,
-)
 
 from neptune_fetcher.alpha import fetch_metrics
 from neptune_fetcher.alpha.filters import (
@@ -35,6 +29,12 @@ from neptune_fetcher.internal.identifiers import (
 )
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
 from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
+from tests.e2e.data import (
+    NOW,
+    PATH,
+    TEST_DATA,
+    ExperimentData,
+)
 
 NEPTUNE_PROJECT: str = os.getenv("NEPTUNE_E2E_PROJECT")
 

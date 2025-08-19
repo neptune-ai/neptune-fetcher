@@ -7,17 +7,6 @@ from datetime import (
 )
 
 import pytest
-from tests.e2e.conftest import extract_pages
-from tests.e2e.data import (
-    FILE_SERIES_PATHS,
-    FILE_SERIES_STEPS,
-    FLOAT_SERIES_PATHS,
-    HISTOGRAM_SERIES_PATHS,
-    NUMBER_OF_STEPS,
-    PATH,
-    STRING_SERIES_PATHS,
-    TEST_DATA,
-)
 
 from neptune_fetcher.exceptions import NeptuneProjectInaccessible
 from neptune_fetcher.internal.filters import (
@@ -39,6 +28,17 @@ from neptune_fetcher.internal.retrieval.attribute_types import (
 from neptune_fetcher.internal.retrieval.attribute_values import (
     AttributeValue,
     fetch_attribute_values,
+)
+from tests.e2e.conftest import extract_pages
+from tests.e2e.data import (
+    FILE_SERIES_PATHS,
+    FILE_SERIES_STEPS,
+    FLOAT_SERIES_PATHS,
+    HISTOGRAM_SERIES_PATHS,
+    NUMBER_OF_STEPS,
+    PATH,
+    STRING_SERIES_PATHS,
+    TEST_DATA,
 )
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")

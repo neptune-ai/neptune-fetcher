@@ -4,12 +4,6 @@ from datetime import datetime
 
 import pandas as pd
 import pytest
-from tests.e2e.data import (
-    FLOAT_SERIES_PATHS,
-    PATH,
-    TEST_DATA,
-    TEST_DATA_VERSION,
-)
 
 from neptune_fetcher.alpha import (
     Context,
@@ -23,6 +17,12 @@ from neptune_fetcher.alpha.filters import (
 )
 from neptune_fetcher.exceptions import NeptuneUnexpectedResponseError
 from neptune_fetcher.internal import env
+from tests.e2e.data import (
+    FLOAT_SERIES_PATHS,
+    PATH,
+    TEST_DATA,
+    TEST_DATA_VERSION,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 

@@ -2,15 +2,15 @@ import os
 
 import pandas as pd
 import pytest
-from tests.e2e.alpha.generator import (
-    RUN_BY_ID,
-    timestamp_for_step,
-)
 
 import neptune_fetcher.alpha.runs as runs
 from neptune_fetcher.alpha import Context
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.output_format import create_metrics_dataframe
+from tests.e2e.alpha.generator import (
+    RUN_BY_ID,
+    timestamp_for_step,
+)
 
 NEPTUNE_PROJECT = os.getenv("NEPTUNE_E2E_PROJECT")
 
