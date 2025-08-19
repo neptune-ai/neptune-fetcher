@@ -1,4 +1,4 @@
-name: Run e2e tests - neptune-fetcher
+name: Run e2e tests
 
 on:
   schedule:
@@ -10,11 +10,11 @@ on:
       - dev/.*
   pull_request: # Don't run e2e tests on PRs that don't modify source code
     paths:
-      - 'neptune_fetcher/src/**'
-      - 'neptune_fetcher/tests/**'
+      - 'src/**'
+      - 'tests/**'
       - 'dev_requirements.txt'
-      - 'neptune_fetcher/pyproject.toml'
-      - '.github/workflows/tests-e2e-fetcher.yml'
+      - 'pyproject.toml'
+      - '.github/workflows/tests-e2e.yml'
 
 jobs:
   test:
@@ -31,7 +31,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd neptune_fetcher &&
           python -m pip install --upgrade pip &&
           pip install -r dev_requirements.txt
 
@@ -41,7 +40,7 @@ jobs:
           NEPTUNE_E2E_WORKSPACE: ${{ secrets.E2E_WORKSPACE }}
           NEPTUNE_E2E_PROJECT: ${{ secrets.E2E_PROJECT }}
           NEPTUNE_API_TOKEN: ${{ secrets.E2E_API_TOKEN }}
-          PROJECT_DIR: neptune_fetcher
+          PROJECT_DIR: .
           TESTS_DIR: tests/e2e
         run: bash .github/scripts/run-e2e-tests.sh
 
@@ -49,7 +48,7 @@ jobs:
         uses: mikepenz/action-junit-report@v5
         if: always()
         with:
-          report_paths: "./neptune_fetcher/test-results/test-e2e*.xml"
+          report_paths: "./test-results/test-e2e*.xml"
           update_check: true
           include_passed: true
           annotate_notice: true

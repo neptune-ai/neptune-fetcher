@@ -1,12 +1,12 @@
-name: release neptune-query
+name: release neptune-fetcher
 
 on:
   push:
     tags:
-      - "neptune_query/*"
+      - "*"
 
 jobs:
-  build-neptune-query:
+  build-neptune-fetcher:
     runs-on: tools-gha-runners
     steps:
       - name: Checkout repository
@@ -23,20 +23,20 @@ jobs:
         run: pip install poetry poetry-dynamic-versioning
 
       - name: Build package
-        run: bash .github/scripts/build-package.sh neptune_query ${{ github.ref }}
+        run: bash .github/scripts/build-package.sh ${{ github.ref }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: neptune-query-package
+          name: neptune-fetcher-package
           path: dist/
 
   test-install:
-    needs: [ build-neptune-query ]
+    needs: [ build-neptune-fetcher ]
     runs-on: tools-gha-runners
     steps:
       - uses: actions/download-artifact@v5
         with:
-          name: neptune-query-package
+          name: neptune-fetcher-package
           path: dist
 
       - name: Install Python
@@ -44,24 +44,24 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install neptune-query package
-        run: pip install --force-reinstall --pre -f ./dist neptune-query
+      - name: Install neptune-fetcher package
+        run: pip install --force-reinstall --pre -f ./dist neptune-fetcher
 
       - name: List dependencies
         run: pip list
 
       - name: Test imports
-        run: python -c "from neptune_query import *"
+        run: python -c "from neptune_fetcher import *"
 
-  publish-neptune-query:
+  publish-neptune-fetcher:
     needs:
-      - build-neptune-query
+      - build-neptune-fetcher
       - test-install
     runs-on: tools-gha-runners
     steps:
       - uses: actions/download-artifact@v5
         with:
-          name: neptune-query-package
+          name: neptune-fetcher-package
           path: dist/
 
       - name: Install Python
@@ -73,4 +73,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN_NEPTUNE_QUERY }}
+          password: ${{ secrets.PYPI_API_TOKEN }}

@@ -1,4 +1,4 @@
-name: Run unit tests - neptune-query
+name: Run unit tests
 
 on:
   workflow_call:
@@ -35,12 +35,14 @@ jobs:
       - name: Install package
         uses: ./.github/actions/install-package
         with:
+          working_directory: .
           python-version: ${{ matrix.python-version }}
           os: ${{ matrix.os }}-latest
 
       - name: Run tests
         uses: ./.github/actions/run-tests
         with:
+          working-directory: .
           test-directory: unit
           report-job: 'test (${{ matrix.os }} - py${{ matrix.python-version }})'
           report-suffix: 'unit-${{ matrix.python-version }}-${{ matrix.os }}'
