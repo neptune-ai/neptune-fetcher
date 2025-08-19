@@ -1,11 +1,11 @@
 import pytest
 
-from neptune_query.internal.filters import (
+from neptune_fetcher.internal.filters import (
     _Attribute,
     _AttributeFilter,
     _AttributeNameFilter,
 )
-from neptune_query.internal.pattern import (
+from neptune_fetcher.internal.pattern import (
     Alternative,
     Conjunction,
     build_extended_regex_attribute_filter,
