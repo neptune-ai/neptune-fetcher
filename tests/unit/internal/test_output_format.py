@@ -11,37 +11,32 @@ import pandas as pd
 import pytest
 from pandas._testing import assert_frame_equal
 
-from neptune_query.exceptions import ConflictingAttributeTypes
-from neptune_query.internal import identifiers
-from neptune_query.internal.identifiers import (
+from neptune_fetcher.exceptions import ConflictingAttributeTypes
+from neptune_fetcher.internal import identifiers
+from neptune_fetcher.internal.identifiers import (
     AttributeDefinition,
     ProjectIdentifier,
     RunAttributeDefinition,
     RunIdentifier,
     SysId,
 )
-from neptune_query.internal.output_format import (
+from neptune_fetcher.internal.output_format import (
     convert_table_to_dataframe,
     create_files_dataframe,
     create_metrics_dataframe,
     create_series_dataframe,
 )
-from neptune_query.internal.retrieval.attribute_types import File as IFile
-from neptune_query.internal.retrieval.attribute_types import (
+from neptune_fetcher.internal.retrieval.attribute_types import (
+    File,
     FileSeriesAggregations,
     FloatSeriesAggregations,
-)
-from neptune_query.internal.retrieval.attribute_types import Histogram as IHistogram
-from neptune_query.internal.retrieval.attribute_types import (
+    Histogram,
     HistogramSeriesAggregations,
     StringSeriesAggregations,
 )
-from neptune_query.internal.retrieval.attribute_values import AttributeValue
-from neptune_query.internal.retrieval.metrics import FloatPointValue
-from neptune_query.internal.retrieval.search import ContainerType
-from neptune_query.internal.retrieval.series import SeriesValue
-from neptune_query.types import File as OFile
-from neptune_query.types import Histogram as OHistogram
+from neptune_fetcher.internal.retrieval.attribute_values import AttributeValue
+from neptune_fetcher.internal.retrieval.metrics import FloatPointValue
+from neptune_fetcher.internal.retrieval.series import SeriesValue
 
 EXPERIMENT_IDENTIFIER = identifiers.RunIdentifier(
     identifiers.ProjectIdentifier("project/abc"), identifiers.SysId("XXX-1")
@@ -53,9 +48,7 @@ def test_convert_experiment_table_to_dataframe_empty():
     experiment_data = {}
 
     # when
-    dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert dataframe.empty
@@ -70,9 +63,7 @@ def test_convert_experiment_table_to_dataframe_single_string():
     }
 
     # when
-    dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert dataframe.to_dict() == {
@@ -89,9 +80,7 @@ def test_convert_experiment_table_to_dataframe_single_string_with_type_suffix():
     }
 
     # when
-    dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=True
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=True)
 
     # then
     assert dataframe.to_dict() == {
@@ -114,7 +103,6 @@ def test_convert_experiment_table_to_dataframe_single_float_series():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={
             AttributeDefinition("attr1", "float_series"): {"last", "min", "variance"},
         },
@@ -144,7 +132,6 @@ def test_convert_experiment_table_to_dataframe_single_string_series():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={
             AttributeDefinition("attr1", "string_series"): {"last"},
         },
@@ -159,7 +146,7 @@ def test_convert_experiment_table_to_dataframe_single_string_series():
 
 def test_convert_experiment_table_to_dataframe_single_histogram_series():
     # given
-    last_histogram = IHistogram(type="COUNTING", edges=list(range(6)), values=list(range(5)))
+    last_histogram = Histogram(type="COUNTING", edges=list(range(6)), values=list(range(5)))
     experiment_data = {
         identifiers.SysName("exp1"): [
             AttributeValue(
@@ -173,7 +160,6 @@ def test_convert_experiment_table_to_dataframe_single_histogram_series():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={
             AttributeDefinition("attr1", "histogram_series"): {"last"},
         },
@@ -182,13 +168,13 @@ def test_convert_experiment_table_to_dataframe_single_histogram_series():
 
     # then
     assert dataframe.to_dict() == {
-        ("attr1", "last"): {"exp1": OHistogram(type="COUNTING", edges=list(range(6)), values=list(range(5)))},
+        ("attr1", "last"): {"exp1": last_histogram},
     }
 
 
 def test_convert_experiment_table_to_dataframe_single_file_series():
     # given
-    last_file = IFile(path="path/to/last/file", size_bytes=1024, mime_type="text/plain")
+    last_file = File(path="path/to/last/file", size_bytes=1024, mime_type="text/plain")
     experiment_data = {
         identifiers.SysName("exp1"): [
             AttributeValue(
@@ -202,7 +188,6 @@ def test_convert_experiment_table_to_dataframe_single_file_series():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={
             AttributeDefinition("attr1", "file_series"): {"last"},
         },
@@ -211,53 +196,44 @@ def test_convert_experiment_table_to_dataframe_single_file_series():
 
     # then
     assert dataframe.to_dict() == {
-        ("attr1", "last"): {
-            "exp1": OFile(
-                project_identifier="my-project",
-                experiment_name="exp1",
-                run_id=None,
-                attribute_path="attr1",
-                step=10.0,
-                path=last_file.path,
-                size_bytes=last_file.size_bytes,
-                mime_type=last_file.mime_type,
-            )
-        },
+        ("attr1", "last"): {"exp1": last_file},
     }
 
 
 def test_convert_experiment_table_to_dataframe_single_file():
     # given
-    file = IFile(path="path/to/file", size_bytes=1024, mime_type="text/plain")
     experiment_data = {
         identifiers.SysName("exp1"): [
             AttributeValue(
                 AttributeDefinition("attr1", "file"),
-                file,
+                File(path="path/to/file", size_bytes=1024, mime_type="text/plain"),
                 EXPERIMENT_IDENTIFIER,
             ),
         ],
     }
 
     # when
+    dataframe_flattened = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        flatten_file_properties=True,
+    )
     dataframe_unflattened = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
     )
 
     # then
+    assert dataframe_flattened.to_dict() == {
+        ("attr1", "path"): {"exp1": "path/to/file"},
+        ("attr1", "size_bytes"): {"exp1": 1024},
+        ("attr1", "mime_type"): {"exp1": "text/plain"},
+    }
+
     assert dataframe_unflattened.to_dict() == {
-        ("attr1", ""): {
-            "exp1": OFile(
-                project_identifier="my-project",
-                experiment_name="exp1",
-                run_id=None,
-                attribute_path="attr1",
-                step=None,
-                path=file.path,
-                size_bytes=file.size_bytes,
-                mime_type=file.mime_type,
-            )
-        },
+        ("attr1", ""): {"exp1": File(path="path/to/file", size_bytes=1024, mime_type="text/plain")},
     }
 
 
@@ -273,9 +249,7 @@ def test_convert_experiment_table_to_dataframe_disjoint_names():
     }
 
     # when
-    dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     expected_data = pd.DataFrame.from_dict(
@@ -301,9 +275,7 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_with_suffix():
     }
 
     # when
-    dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=True
-    )
+    dataframe = convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=True)
 
     # then
     expected_data = pd.DataFrame.from_dict(
@@ -330,9 +302,7 @@ def test_convert_experiment_table_to_dataframe_conflicting_types_without_suffix(
 
     # when
     with pytest.raises(ConflictingAttributeTypes) as exc_info:
-        convert_table_to_dataframe(
-            experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
-        )
+        convert_table_to_dataframe(experiment_data, selected_aggregations={}, type_suffix_in_column_names=False)
 
     # then
     assert "attr1/a:b:c" in str(exc_info.value)
@@ -352,7 +322,6 @@ def test_convert_experiment_table_to_dataframe_flatten_aggregations_only_last():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={
             AttributeDefinition("attr1", "float_series"): {"last"},
         },
@@ -380,12 +349,35 @@ def test_convert_experiment_table_to_dataframe_flatten_aggregations_non_last_rai
     with pytest.raises(ValueError):
         convert_table_to_dataframe(
             experiment_data,
-            "my-project",
             selected_aggregations={
                 AttributeDefinition("attr1", "float_series"): {"last", "min"},
             },
             type_suffix_in_column_names=False,
             flatten_aggregations=True,
+        )
+
+
+def test_convert_experiment_table_to_dataframe_flatten_aggregations_and_file_properties_raises():
+    # given
+    experiment_data = {
+        identifiers.SysName("exp1"): [
+            AttributeValue(
+                AttributeDefinition("attr1", "float_series"),
+                FloatSeriesAggregations(last=42.0, min=0.0, max=100, average=24.0, variance=100.0),
+                EXPERIMENT_IDENTIFIER,
+            ),
+        ],
+    }
+    # when / then
+    with pytest.raises(ValueError):
+        convert_table_to_dataframe(
+            experiment_data,
+            selected_aggregations={
+                AttributeDefinition("attr1", "float_series"): {"last"},
+            },
+            type_suffix_in_column_names=False,
+            flatten_aggregations=True,
+            flatten_file_properties=True,
         )
 
 
@@ -395,7 +387,6 @@ def test_convert_experiment_table_to_dataframe_empty_with_flatten_aggregations()
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={},
         type_suffix_in_column_names=False,
         flatten_aggregations=True,
@@ -403,6 +394,21 @@ def test_convert_experiment_table_to_dataframe_empty_with_flatten_aggregations()
     # then
     assert dataframe.empty
     assert list(dataframe.columns) == []
+
+
+def test_convert_experiment_table_to_dataframe_empty_with_flatten_file_properties():
+    # given
+    experiment_data = {}
+    # when
+    dataframe = convert_table_to_dataframe(
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=False,
+        flatten_file_properties=True,
+    )
+    # then
+    assert dataframe.empty
+    assert isinstance(dataframe.columns, pd.MultiIndex)
 
 
 def test_convert_experiment_table_to_dataframe_duplicate_column_name_with_type_suffix():
@@ -415,7 +421,9 @@ def test_convert_experiment_table_to_dataframe_duplicate_column_name_with_type_s
     }
     # when
     dataframe = convert_table_to_dataframe(
-        experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=True
+        experiment_data,
+        selected_aggregations={},
+        type_suffix_in_column_names=True,
     )
     # then
     assert set(dataframe.columns.get_level_values(0)) == {"attr:int", "attr:float"}
@@ -432,7 +440,9 @@ def test_convert_experiment_table_to_dataframe_duplicate_column_name_without_typ
     # when / then
     with pytest.raises(ConflictingAttributeTypes):
         convert_table_to_dataframe(
-            experiment_data, "my-project", selected_aggregations={}, type_suffix_in_column_names=False
+            experiment_data,
+            selected_aggregations={},
+            type_suffix_in_column_names=False,
         )
 
 
@@ -446,7 +456,6 @@ def test_convert_experiment_table_to_dataframe_index_column_name_custom():
     # when
     dataframe = convert_table_to_dataframe(
         experiment_data,
-        "my-project",
         selected_aggregations={},
         type_suffix_in_column_names=False,
         index_column_name="custom_index",
@@ -626,7 +635,6 @@ def test_create_string_series_dataframe_with_absolute_timestamp():
 
     df = create_series_dataframe(
         series_data=series_data,
-        project_identifier="my-project",
         sys_id_label_mapping=sys_id_label_mapping,
         index_column_name="experiment",
         timestamp_column_name="absolute_time",
@@ -657,20 +665,14 @@ def test_create_string_series_dataframe_with_absolute_timestamp():
 def test_create_histogram_dataframe_with_absolute_timestamp():
     # Given
     histograms = [
-        IHistogram(type="COUNTING", edges=[1, 2, 3], values=[10, 20]),
-        IHistogram(type="COUNTING", edges=[5, 6], values=[100]),
-        IHistogram(type="COUNTING", edges=[1, 2, 3], values=[11, 19]),
+        Histogram(type="COUNTING", edges=[1, 2, 3], values=[10, 20]),
+        Histogram(type="COUNTING", edges=[5, 6], values=[100]),
+        Histogram(type="COUNTING", edges=[1, 2, 3], values=[11, 19]),
     ]
     series_data = {
-        _run_definition("expid1", "path1", "histogram_series"): [
-            SeriesValue(1, histograms[0], _make_timestamp(2023, 1, 1))
-        ],
-        _run_definition("expid1", "path2", "histogram_series"): [
-            SeriesValue(2, histograms[1], _make_timestamp(2023, 1, 3))
-        ],
-        _run_definition("expid2", "path1", "histogram_series"): [
-            SeriesValue(1, histograms[2], _make_timestamp(2023, 1, 2))
-        ],
+        _run_definition("expid1", "path1"): [SeriesValue(1, histograms[0], _make_timestamp(2023, 1, 1))],
+        _run_definition("expid1", "path2"): [SeriesValue(2, histograms[1], _make_timestamp(2023, 1, 3))],
+        _run_definition("expid2", "path1"): [SeriesValue(1, histograms[2], _make_timestamp(2023, 1, 2))],
     }
     sys_id_label_mapping = {
         SysId("expid1"): "exp1",
@@ -679,7 +681,6 @@ def test_create_histogram_dataframe_with_absolute_timestamp():
 
     df = create_series_dataframe(
         series_data=series_data,
-        project_identifier="my-project",
         sys_id_label_mapping=sys_id_label_mapping,
         index_column_name="experiment",
         timestamp_column_name="absolute_time",
@@ -692,100 +693,13 @@ def test_create_histogram_dataframe_with_absolute_timestamp():
             np.nan,
             datetime(2023, 1, 2, tzinfo=timezone.utc),
         ],
-        ("path1", "value"): [
-            OHistogram(type=histograms[0].type, edges=histograms[0].edges, values=histograms[0].values),
-            np.nan,
-            OHistogram(type=histograms[2].type, edges=histograms[2].edges, values=histograms[2].values),
-        ],
+        ("path1", "value"): [histograms[0], np.nan, histograms[2]],
         ("path2", "absolute_time"): [
             np.nan,
             datetime(2023, 1, 3, tzinfo=timezone.utc),
             np.nan,
         ],
-        ("path2", "value"): [
-            np.nan,
-            OHistogram(type=histograms[1].type, edges=histograms[1].edges, values=histograms[1].values),
-            np.nan,
-        ],
-    }
-    expected_df = pd.DataFrame(
-        dict(sorted(expected.items())),
-        index=pd.MultiIndex.from_tuples([("exp1", 1.0), ("exp1", 2.0), ("exp2", 1.0)], names=["experiment", "step"]),
-    )
-    pd.testing.assert_frame_equal(df, expected_df)
-
-
-def test_create_file_series_dataframe_with_absolute_timestamp():
-    # Given
-    files = [
-        IFile(path="path/to/file1", size_bytes=1024, mime_type="text/plain"),
-        IFile(path="path/to/file2", size_bytes=2048, mime_type="image/png"),
-        IFile(path="path/to/file3", size_bytes=512, mime_type="application/json"),
-    ]
-    series_data = {
-        _run_definition("expid1", "path1", "file_series"): [SeriesValue(1, files[0], _make_timestamp(2023, 1, 1))],
-        _run_definition("expid1", "path2", "file_series"): [SeriesValue(2, files[1], _make_timestamp(2023, 1, 3))],
-        _run_definition("expid2", "path1", "file_series"): [SeriesValue(1, files[2], _make_timestamp(2023, 1, 2))],
-    }
-    sys_id_label_mapping = {
-        SysId("expid1"): "exp1",
-        SysId("expid2"): "exp2",
-    }
-
-    df = create_series_dataframe(
-        series_data=series_data,
-        project_identifier="my-project",
-        sys_id_label_mapping=sys_id_label_mapping,
-        index_column_name="experiment",
-        timestamp_column_name="absolute_time",
-    )
-
-    # Then
-    downloadable_files = [
-        OFile(
-            experiment_name="exp1",
-            run_id=None,
-            project_identifier="my-project",
-            attribute_path="path1",
-            step=1.0,
-            path=files[0].path,
-            size_bytes=files[0].size_bytes,
-            mime_type=files[0].mime_type,
-        ),
-        OFile(
-            experiment_name="exp1",
-            run_id=None,
-            project_identifier="my-project",
-            attribute_path="path2",
-            step=2.0,
-            path=files[1].path,
-            size_bytes=files[1].size_bytes,
-            mime_type=files[1].mime_type,
-        ),
-        OFile(
-            experiment_name="exp2",
-            run_id=None,
-            project_identifier="my-project",
-            attribute_path="path1",
-            step=1.0,
-            path=files[2].path,
-            size_bytes=files[2].size_bytes,
-            mime_type=files[2].mime_type,
-        ),
-    ]
-    expected = {
-        ("path1", "absolute_time"): [
-            datetime(2023, 1, 1, tzinfo=timezone.utc),
-            np.nan,
-            datetime(2023, 1, 2, tzinfo=timezone.utc),
-        ],
-        ("path1", "value"): [downloadable_files[0], np.nan, downloadable_files[2]],
-        ("path2", "absolute_time"): [
-            np.nan,
-            datetime(2023, 1, 3, tzinfo=timezone.utc),
-            np.nan,
-        ],
-        ("path2", "value"): [np.nan, downloadable_files[1], np.nan],
+        ("path2", "value"): [np.nan, histograms[1], np.nan],
     }
     expected_df = pd.DataFrame(
         dict(sorted(expected.items())),
@@ -937,7 +851,6 @@ def test_create_empty_series_dataframe(timestamp_column_name: str):
     # When
     df = create_series_dataframe(
         series_data={},
-        project_identifier="my-project",
         sys_id_label_mapping={},
         index_column_name="experiment",
         timestamp_column_name=timestamp_column_name,
@@ -1093,105 +1006,82 @@ def test_create_metrics_dataframe_with_reserved_paths_with_flat_index(path: str,
 
 def test_create_files_dataframe_empty():
     # given
-    files_data = {}
-    container_type = ContainerType.EXPERIMENT
+    files_data = []
+    sys_id_label_mapping = {}
+    index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(file_data=files_data, container_type=container_type)
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
 
     # then
     assert dataframe.empty
-    assert dataframe.index.names == ["experiment", "step"]
-    assert dataframe.columns.names == ["attribute"]
+    assert dataframe.index.name == index_column_name
+    assert dataframe.columns.names == [None]
 
 
 def test_create_files_dataframe():
     # given
-    file_data = {
-        OFile(
-            experiment_name="experiment_1",
-            run_id=None,
-            project_identifier="foo/bar",
-            attribute_path="attr1",
-            step=None,
-            path="",
-            size_bytes=0,
-            mime_type="",
-        ): pathlib.Path("/path/to/file1"),
-        OFile(
-            experiment_name="experiment_2",
-            run_id=None,
-            project_identifier="foo/bar",
-            attribute_path="attr2",
-            step=None,
-            path="",
-            size_bytes=0,
-            mime_type="",
-        ): pathlib.Path("/path/to/file2"),
-        OFile(
-            experiment_name="experiment_3",
-            run_id=None,
-            project_identifier="foo/bar",
-            attribute_path="series1",
-            step=1.0,
-            path="",
-            size_bytes=0,
-            mime_type="",
-        ): pathlib.Path("/path/to/file3"),
-        OFile(
-            experiment_name="experiment_4",
-            run_id=None,
-            project_identifier="foo/bar",
-            attribute_path="attr1",
-            step=None,
-            path="",
-            size_bytes=0,
-            mime_type="",
-        ): None,
+    files_data = [
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
+            AttributeDefinition("attr1", "file"),
+            pathlib.Path("/path/to/file1"),
+        ),
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp2")),
+            AttributeDefinition("attr2", "file"),
+            pathlib.Path("/path/to/file2"),
+        ),
+    ]
+    sys_id_label_mapping = {
+        SysId("exp1"): "experiment_1",
+        SysId("exp2"): "experiment_2",
     }
-    container_type = ContainerType.EXPERIMENT
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(file_data=file_data, container_type=container_type)
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
 
     # then
     expected_data = [
-        {index_column_name: "experiment_1", "step": None, "attr1": str(pathlib.Path("/path/to/file1"))},
-        {index_column_name: "experiment_2", "step": None, "attr2": str(pathlib.Path("/path/to/file2"))},
-        {index_column_name: "experiment_3", "step": 1.0, "series1": str(pathlib.Path("/path/to/file3"))},
-        {index_column_name: "experiment_4", "step": None, "attr1": None},
+        {index_column_name: "experiment_1", "attr1": str(pathlib.Path("/path/to/file1"))},
+        {index_column_name: "experiment_2", "attr2": str(pathlib.Path("/path/to/file2"))},
     ]
-    expected_df = pd.DataFrame(expected_data).set_index([index_column_name, "step"])
+    expected_df = pd.DataFrame(expected_data).set_index(index_column_name)
     expected_df.columns.names = ["attribute"]
+
     assert_frame_equal(dataframe, expected_df)
 
 
 def test_create_files_dataframe_index_name_attribute_conflict():
     # given
-    file_data = {
-        OFile(
-            experiment_name="experiment_1",
-            run_id=None,
-            project_identifier="foo/bar",
-            attribute_path="experiment",
-            step=None,
-            path="",
-            size_bytes=0,
-            mime_type="",
-        ): pathlib.Path("/path/to/file1"),
+    files_data = [
+        (
+            RunIdentifier(ProjectIdentifier("foo/bar"), SysId("exp1")),
+            AttributeDefinition("experiment", "file"),
+            pathlib.Path("/path/to/file1"),
+        ),
+    ]
+    sys_id_label_mapping = {
+        SysId("exp1"): "experiment_1",
     }
-    container_type = ContainerType.EXPERIMENT
     index_column_name = "experiment"
 
     # when
-    dataframe = create_files_dataframe(file_data=file_data, container_type=container_type)
+    dataframe = create_files_dataframe(
+        files_data=files_data, sys_id_label_mapping=sys_id_label_mapping, index_column_name=index_column_name
+    )
 
     # then
     expected_data = [
-        {"_REPLACE_": "experiment_1", "step": None, "experiment": str(pathlib.Path("/path/to/file1"))},
+        {"_REPLACE_": "experiment_1", "experiment": str(pathlib.Path("/path/to/file1"))},
     ]
-    expected_df = pd.DataFrame(expected_data).set_index(["_REPLACE_", "step"])
+    expected_df = pd.DataFrame(expected_data).set_index("_REPLACE_")
     expected_df.columns.names = ["attribute"]
-    expected_df.index.names = [index_column_name, "step"]
+    expected_df.index.name = index_column_name
+
     assert_frame_equal(dataframe, expected_df)

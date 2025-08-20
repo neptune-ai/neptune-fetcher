@@ -4,16 +4,10 @@ import sys
 import httpx
 from neptune_api.credentials import Credentials
 
-try:
-    from neptune_fetcher.internal.api_utils import (
-        create_auth_api_client,
-        get_config_and_token_urls,
-    )
-except ImportError:
-    from neptune_query.internal.api_utils import (
-        create_auth_api_client,
-        get_config_and_token_urls,
-    )
+from neptune_fetcher.internal.api_utils import (
+    create_auth_api_client,
+    get_config_and_token_urls,
+)
 
 
 def create_project(client: httpx.Client, organization, name):

@@ -12,12 +12,12 @@ from neptune_api.errors import (
 )
 from pytest import fixture
 
-from neptune_query.exceptions import (
+from neptune_fetcher.exceptions import (
     NeptuneInvalidCredentialsError,
     NeptuneRetryError,
     NeptuneUnexpectedResponseError,
 )
-from neptune_query.internal.retrieval.retry import (
+from neptune_fetcher.internal.retrieval.retry import (
     exponential_backoff,
     handle_api_errors,
     retry_backoff,

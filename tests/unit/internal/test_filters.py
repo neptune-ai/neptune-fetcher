@@ -2,13 +2,13 @@ from datetime import datetime
 
 import pytest
 
-from neptune_query.internal.filters import (
+from neptune_fetcher.internal.filters import (
     _Attribute,
     _AttributeFilter,
     _AttributeNameFilter,
     _Filter,
 )
-from neptune_query.internal.retrieval import attribute_types as types
+from neptune_fetcher.internal.retrieval import attribute_types as types
 
 
 def test_attribute_valid_values():
