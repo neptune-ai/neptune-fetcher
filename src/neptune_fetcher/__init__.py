@@ -18,6 +18,7 @@ __all__ = [
     "ReadOnlyRun",
 ]
 
+import warnings
 from importlib.metadata import (
     PackageNotFoundError,
     version,
@@ -28,20 +29,23 @@ try:
     version("neptune-experimental")
 
     raise ImportError(
-        """You have `neptune-experimental` installed. The package is deprecated and causes errors.
+        """You have `neptune-experimental` installed. That package is deprecated and causes errors.
 
-Uninstall it before using `neptune-fetcher`:
+Moreover, neptune-fetcher is now deprecated as well.
 
-    pip uninstall -y neptune-experimental neptune-fetcher; pip install neptune-fetcher
-
-If you're using `uv`:
-
-    uv pip uninstall neptune-experimental neptune-fetcher; uv pip install neptune-fetcher
-
-    """
+Migrate your code to 'neptune-query'. See https://docs.neptune.ai/query_migration
+"""
     )
 except PackageNotFoundError:
     pass
 
+
 from .read_only_project import ReadOnlyProject
 from .read_only_run import ReadOnlyRun
+
+warnings.warn(
+    "Package 'neptune-fetcher' is deprecated. Migrate your code to 'neptune-query'. "
+    "See https://docs.neptune.ai/query_migration",
+    DeprecationWarning,
+    stacklevel=2,
+)

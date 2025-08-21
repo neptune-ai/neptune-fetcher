@@ -1,4 +1,18 @@
-# Neptune Fetcher
+# Neptune Fetcher [DEPRECATED]
+
+> [!IMPORTANT]
+> This package is deprecated and no longer actively developed.
+>
+>
+> Use [`neptune-query`][neptune-query] instead:
+>
+> ```bash
+> pip uninstall -y neptune-fetcher && pip install "neptune-query>=1.0.0,<2.0.0"
+> ```
+>
+> For instructions, see [the migration guide][query-migration].
+
+---
 
 Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Python client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
 
@@ -114,6 +128,8 @@ To update your code to the new version, see [Migrate to Fetcher Alpha][fetcher-m
 
 This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
 
+[query-migration]: https://docs.neptune.ai/query_migration
+[neptune-query]: https://github.com/neptune-ai/neptune-query
 [fetcher-api-ref]: https://docs.neptune.ai/fetcher/attribute
 [fetch-exp-table]: https://docs.neptune.ai/fetcher/fetch_experiments_table
 [fetch-metrics]: https://docs.neptune.ai/fetcher/fetch_metrics

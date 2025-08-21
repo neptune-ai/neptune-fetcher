@@ -1,5 +1,8 @@
 # This is pyproject.toml for neptune_fetcher
-# neptune_query's pyproject.toml is located in the repository root
+
+# IMPORTANT: This package is deprecated. Please use neptune-query instead.
+# Repository: https://github.com/neptune-ai/neptune-query
+# PyPI: https://pypi.org/project/neptune-query
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
@@ -27,16 +30,16 @@ tqdm = { version = ">=4.66.0" }
 
 [tool.poetry]
 authors = ["neptune.ai <contact@neptune.ai>"]
-description = "Neptune Fetcher"
+description = "Neptune Fetcher (DEPRECATED - use neptune-query instead)"
 repository = "https://github.com/neptune-ai/neptune-fetcher"
 homepage = "https://neptune.ai/"
-documentation = "https://docs.neptune.ai/"
+documentation = "https://docs.neptune.ai/fetcher_setup"
 license = "Apache License 2.0"
 name = "neptune-fetcher"
 readme = "README.md"
 version = "0.1.0"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 7 - Inactive",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
@@ -63,7 +66,8 @@ packages = [
 
 [tool.poetry.urls]
 "Tracker" = "https://github.com/neptune-ai/neptune-fetcher/issues"
-"Documentation" = "https://docs.neptune.ai/"
+"Documentation" = "https://docs.neptune.ai/fetcher_setup"
+"Replacement Package" = "https://pypi.org/project/neptune-query"
 
 [tool.black]
 line-length = 120
