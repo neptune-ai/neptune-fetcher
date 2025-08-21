@@ -1,13 +1,16 @@
 # Neptune Fetcher [DEPRECATED]
 
 > [!IMPORTANT]
-> **This package is deprecated and no longer maintained.**
+> This package is deprecated and no longer actively developed.
 >
-> Please use [**neptune-query**][neptune-query] instead:
+>
+> Use [`neptune-query`][neptune-query] instead:
+>
 > ```bash
 > pip uninstall -y neptune-fetcher && pip install "neptune-query>=1.0.0,<2.0.0"
 > ```
-> For migration guidance, see [the migration guide][query-migration].
+>
+> For instructions, see [the migration guide][query-migration].
 
 ---
 
