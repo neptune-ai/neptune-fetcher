@@ -36,6 +36,7 @@ from typing import (
     Union,
 )
 
+import pandas
 from neptune_api.models import (
     AttributeNameFilterDTO,
     ProjectDTO,
@@ -720,7 +721,7 @@ def _to_pandas_df(run_uuids: list[str], items: Dict[str, Any], ensure_columns=No
     if ensure_columns:
         new_columns = new_columns.union(set(ensure_columns))
 
-    df = df.reindex(sorted(new_columns, key=sort_key), axis="columns")
+    df = df.reindex(sorted(new_columns, key=sort_key), axis="columns", fill_value=pandas.NA)
 
     return df
 
