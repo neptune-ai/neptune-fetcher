@@ -717,12 +717,11 @@ def _to_pandas_df(run_uuids: list[str], items: Dict[str, Any], ensure_columns=No
 
     df = DataFrame(items[x] for x in run_uuids)
 
+    new_columns = set(df.columns)
     if ensure_columns:
-        for col in ensure_columns:
-            if col not in df.columns:
-                df[col] = pandas.NA
+        new_columns = new_columns.union(set(ensure_columns))
 
-    df = df.reindex(sorted(df.columns, key=sort_key), axis="columns")
+    df = df.reindex(sorted(new_columns, key=sort_key), axis="columns", fill_value=pandas.NA)
 
     return df
 
