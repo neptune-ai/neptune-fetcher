@@ -1,7 +1,9 @@
 import os
 import re
 import time
+import warnings
 
+import pandas as pd
 import pytest
 
 from neptune_fetcher import (
@@ -118,6 +120,25 @@ def test__columns_present_in_all_experiments(project, all_experiment_ids):
     assert len(df) == len(all_experiment_ids)
     # 10 metrics/foo* per experiment + the sorting column + sys/name for experiments
     assert df.count().sum() == len(all_experiment_ids) * 12
+
+
+def test__columns_not_present_in_any_experiment_warning(project, all_experiment_ids):
+    """Request columns that do not exist anywhere. Ensure we do not get a performance warning. Also check the shape"""
+    columns = [f"no-such-column-{i}" for i in range(100)]
+
+    with warnings.catch_warnings(record=True) as captured_warnings:
+        warnings.simplefilter("always", pd.errors.PerformanceWarning)
+
+        df = project.fetch_experiments_df(columns=columns)
+
+        performance_warnings = [
+            warning for warning in captured_warnings if issubclass(warning.category, pd.errors.PerformanceWarning)
+        ]
+        assert not performance_warnings, "No warnings should be logged"
+
+    assert len(df) == len(all_experiment_ids)
+    assert len(df.columns) == 103  # 100 requested + 3 default
+    assert df[df[columns]].isnull().all().all(), "All values must be null"
 
 
 def test__columns_must_match_runs(project, all_run_ids):
