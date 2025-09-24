@@ -40,27 +40,6 @@ export NEPTUNE_PROJECT="workspace-name/project-name"
 
 For help, see [Get started][setup] in the Neptune documentation.
 
-> [!TIP]
-> To change the token or project, use `Context`. It stores API token and project information. This way, you can work with multiple projects at the same time.
->
-> Example:
-> ```py
-> import neptune_fetcher.alpha as npt
->
->
-> main_project = Context(project="team-alpha/project-x", api_token="SomeNeptuneApiToken")
->
-> # Use context for specific method call
-> npt.list_experiments(context=main_project)
->
-> # Set context globally
-> npt.set_context(main_project)
->
-> # Create a context by copying the global context and overriding the project
-> my_other_project = npt.get_context().with_project("team-beta/project-y")
-> # and pass it to any 'context' argument
-> ```
-
 ## Usage
 
 Import the `alpha` module:
@@ -112,7 +91,28 @@ npt.fetch_metrics(
 9  exp_hgctc     4              0.102646          0.055511
 ```
 
----
+### Change the context
+
+To change the token or project, use `Context`. It stores API token and project information. This way, you can work with multiple projects at the same time.
+
+Example:
+
+```py
+import neptune_fetcher.alpha as npt
+
+
+main_project = Context(project="team-alpha/project-x", api_token="SomeNeptuneApiToken")
+
+# Use context for specific method call
+npt.list_experiments(context=main_project)
+
+# Set context globally
+npt.set_context(main_project)
+
+# Create a context by copying the global context and overriding the project
+my_other_project = npt.get_context().with_project("team-beta/project-y")
+# and pass it to any 'context' argument
+```
 
 ## Old Fetcher API
 
@@ -134,7 +134,6 @@ This project is licensed under the Apache License Version 2.0. For details, see 
 [neptune-query]: https://github.com/neptune-ai/neptune-query
 [query-migration]: https://docs.neptune.ai/query_migration
 [fetcher-migration]: https://docs.neptune.ai/fetcher_migration
-[set-context]:
 [setup]: https://docs.neptune.ai/setup
 [neptune-client-scale]: https://github.com/neptune-ai/neptune-client-scale
 
