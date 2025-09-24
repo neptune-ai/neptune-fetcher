@@ -46,11 +46,10 @@ run.prefetch_series_values(["metrics/accuracy"])
 print(run["metrics/accuracy"].fetch_values())
 ```
 
-For details, see the Neptune documentation:
+For details, see:
 
-- [Fetch runs or experiments][old-fetch-runs]
-- [Fetch metadata from a run or experiment][old-fetch-metadata]
-- [Neptune Query Language (NQL)][nql]
+- [API reference](docs/old/api_reference.md)
+- [NQL reference](docs/old/nql_reference.md)
 
 ## Examples
 
