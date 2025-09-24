@@ -1,9 +1,7 @@
 # Old Fetcher API reference
 
-> [!NOTE]
-> We're redesigning the Fetcher API.
->
-> To try the new version, see [Migrate to Fetcher Alpha][fetcher-migration] in the Neptune docs.
+> [!IMPORTANT]
+> We've released a new API that replaces Fetcher. See [Migrate to Query API][fetcher-migration] in the Neptune docs.
 
 ## `ReadOnlyProject`
 
