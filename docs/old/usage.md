@@ -58,6 +58,7 @@ For details, see:
 ```python
 from neptune_fetcher import ReadOnlyProject
 
+
 project = ReadOnlyProject("workspace/project")
 
 for run in project.list_runs():
@@ -69,6 +70,7 @@ for run in project.list_runs():
 ```python
 from neptune_fetcher import ReadOnlyProject
 
+
 project = ReadOnlyProject("workspace/project")
 
 for experiment in project.list_experiments():
@@ -79,6 +81,7 @@ for experiment in project.list_experiments():
 
 ```python
 from neptune_fetcher import ReadOnlyProject
+
 
 project = ReadOnlyProject("workspace/project")
 
@@ -106,6 +109,7 @@ for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
 
 ```python
 from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
+
 
 project = ReadOnlyProject("workspace/project")
 run = ReadOnlyRun(project, with_id="TES-1")

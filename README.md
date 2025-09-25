@@ -1,5 +1,3 @@
-# Neptune Fetcher [DEPRECATED]
-
 > [!IMPORTANT]
 > This package is deprecated and no longer actively developed.
 >
@@ -12,7 +10,14 @@
 >
 > For instructions, see [the migration guide][query-migration].
 
----
+> [!NOTE]
+> For documentation related to the original Fetcher API based on `ReadOnlyProject` and `ReadOnlyRun`, see the [`docs/old`](docs/old/) directory:
+>
+> - [Usage guide](docs/old/usage.md)
+> - [API reference](docs/old/api_reference.md)
+> - [NQL reference](docs/old/nql_reference.md)
+
+# Neptune Fetcher [DEPRECATED]
 
 Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Python client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
 
@@ -113,16 +118,6 @@ npt.set_context(main_project)
 my_other_project = npt.get_context().with_project("team-beta/project-y")
 # and pass it to any 'context' argument
 ```
-
-## Old Fetcher API
-
-For documentation related to the previous version of the Fetcher API, see the `docs/old/` directory:
-
-- [Usage guide](docs/old/usage.md)
-- [API reference](docs/old/api_reference.md)
-- [NQL reference](docs/old/nql_reference.md)
-
-To update your code to the new version, see [Migrate to Query API][fetcher-migration] in the Neptune documentation.
 
 ---
 
