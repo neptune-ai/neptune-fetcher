@@ -1,9 +1,7 @@
-# Using the old Fetcher API
+# Using the original Fetcher API
 
-> [!NOTE]
-> We're redesigning the Fetcher API.
->
-> To try the new version, see [Migrate to Fetcher Alpha][fetcher-migration] in the Neptune docs.
+> [!IMPORTANT]
+> We've released a new API that replaces Fetcher. See [Migrate to Query API][fetcher-migration] in the Neptune docs.
 
 In your Python code, create a [`ReadOnlyProject`][read-only-project] instance:
 
@@ -48,11 +46,10 @@ run.prefetch_series_values(["metrics/accuracy"])
 print(run["metrics/accuracy"].fetch_values())
 ```
 
-For details, see the Neptune documentation:
+For details, see:
 
-- [Fetch runs or experiments][old-fetch-runs]
-- [Fetch metadata from a run or experiment][old-fetch-metadata]
-- [Neptune Query Language (NQL)][nql]
+- [API reference](docs/old/api_reference.md)
+- [NQL reference](docs/old/nql_reference.md)
 
 ## Examples
 
@@ -60,6 +57,7 @@ For details, see the Neptune documentation:
 
 ```python
 from neptune_fetcher import ReadOnlyProject
+
 
 project = ReadOnlyProject("workspace/project")
 
@@ -72,6 +70,7 @@ for run in project.list_runs():
 ```python
 from neptune_fetcher import ReadOnlyProject
 
+
 project = ReadOnlyProject("workspace/project")
 
 for experiment in project.list_experiments():
@@ -82,6 +81,7 @@ for experiment in project.list_experiments():
 
 ```python
 from neptune_fetcher import ReadOnlyProject
+
 
 project = ReadOnlyProject("workspace/project")
 
@@ -109,6 +109,7 @@ for run in project.fetch_read_only_runs(with_ids=["RUN-1", "RUN-2"]):
 
 ```python
 from neptune_fetcher import ReadOnlyProject, ReadOnlyRun
+
 
 project = ReadOnlyProject("workspace/project")
 run = ReadOnlyRun(project, with_id="TES-1")
