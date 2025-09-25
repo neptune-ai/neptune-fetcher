@@ -1,6 +1,6 @@
 # Neptune Query Language (NQL)
 
-When fetching runs from your project, use the Neptune Query Language (NQL) to filter the runs by an attribute and other criteria.
+When using the original Fetcher API to fetch metadata, use the Neptune Query Language (NQL) to filter the runs by name, ID, or attribute value.
 
 ## NQL usage
 

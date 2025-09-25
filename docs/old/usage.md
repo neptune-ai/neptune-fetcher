@@ -1,4 +1,4 @@
-# Using the old Fetcher API
+# Using the original Fetcher API
 
 > [!IMPORTANT]
 > We've released a new API that replaces Fetcher. See [Migrate to Query API][fetcher-migration] in the Neptune docs.
