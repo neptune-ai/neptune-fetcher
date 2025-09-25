@@ -428,7 +428,7 @@ project.fetch_runs_df(
 
 ---
 
-> [!TIP] Related documentation
+> **Related documentation:**
 >
 > - [Runs table][runs-table]
 > - [Attribute types reference][attribute-types]
