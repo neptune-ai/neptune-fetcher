@@ -69,18 +69,21 @@ def project(request):
 @pytest.fixture(scope="module")
 def run_with_attributes(project, client):
     runs = {}
+    force_data_generation = os.getenv("NEPTUNE_E2E_FORCE_DATA_GENERATION", "").lower() in ("true", "1", "yes")
+
     for experiment in TEST_DATA.experiments:
         project_id = project.project_identifier
 
-        existing = next(
-            fetch_experiment_sys_attrs(
-                client,
-                identifiers.ProjectIdentifier(project_id),
-                _Filter.name_eq(experiment.name),
+        if not force_data_generation:
+            existing = next(
+                fetch_experiment_sys_attrs(
+                    client,
+                    identifiers.ProjectIdentifier(project_id),
+                    _Filter.name_eq(experiment.name),
+                )
             )
-        )
-        if existing.items:
-            continue
+            if existing.items:
+                continue
 
         run = Run(
             project=project_id,
