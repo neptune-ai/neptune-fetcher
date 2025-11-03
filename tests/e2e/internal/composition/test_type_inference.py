@@ -40,15 +40,17 @@ def run_with_attributes(client, project):
 
     project_identifier = project.project_identifier
 
-    existing = next(
-        fetch_experiment_sys_attrs(
-            client,
-            identifiers.ProjectIdentifier(project_identifier),
-            _Filter.name_eq(EXPERIMENT_NAME),
+    force_data_generation = os.getenv("NEPTUNE_E2E_FORCE_DATA_GENERATION", "").lower() in ("true", "1", "yes")
+    if not force_data_generation:
+        existing = next(
+            fetch_experiment_sys_attrs(
+                client,
+                identifiers.ProjectIdentifier(project_identifier),
+                _Filter.name_eq(EXPERIMENT_NAME),
+            )
         )
-    )
-    if existing.items:
-        return
+        if existing.items:
+            return
 
     run_id = str(uuid.uuid4())
 
