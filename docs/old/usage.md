@@ -1,9 +1,6 @@
 # Using the original Fetcher API
 
-> [!IMPORTANT]
-> We've released a new API that replaces Fetcher. See [Migrate to Query API][fetcher-migration] in the Neptune docs.
-
-In your Python code, create a [`ReadOnlyProject`][read-only-project] instance:
+In your Python code, create a `ReadOnlyProject` instance:
 
 ```python
 from neptune_fetcher import ReadOnlyProject
@@ -25,7 +22,7 @@ experiments_df = my_project.fetch_experiments_df(
 )
 ```
 
-To fetch metadata from an individual experiment or run, create and use a [`ReadOnlyRun`][read-only-run] object:
+To fetch metadata from an individual experiment or run, create and use a `ReadOnlyRun` object:
 
 ```python
 from neptune_fetcher import ReadOnlyRun
@@ -45,11 +42,6 @@ print(run["metrics/loss"].fetch_last())
 run.prefetch_series_values(["metrics/accuracy"])
 print(run["metrics/accuracy"].fetch_values())
 ```
-
-For details, see:
-
-- [API reference](docs/old/api_reference.md)
-- [NQL reference](docs/old/nql_reference.md)
 
 ## Examples
 
@@ -122,12 +114,3 @@ print(run["parameters/init_lr"].fetch())
 print(run["metrics/loss"].fetch_values())
 print(run["metrics/accuracy"].fetch_values())
 ```
-
-
-[read-only-project]: api_reference.md#readonlyproject
-[read-only-run]: api_reference.md#readonlyrun
-
-[fetcher-migration]: https://docs-beta.neptune.ai/fetcher_migration
-[nql]: https://docs-beta.neptune.ai/nql
-[old-fetch-runs]: https://docs-beta.neptune.ai/fetch_runs
-[old-fetch-metadata]: https://docs-beta.neptune.ai/fetch_run_data

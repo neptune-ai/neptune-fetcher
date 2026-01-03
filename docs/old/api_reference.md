@@ -1,8 +1,5 @@
 # Original Fetcher API reference
 
-> [!IMPORTANT]
-> We've released a new API that replaces Fetcher. See [Migrate to Query API][fetcher-migration] in the Neptune docs.
-
 ## `ReadOnlyProject`
 
 Representation of a Neptune project in a limited read-only mode.
@@ -194,7 +191,7 @@ __Parameters__:
 | `with_ids`            | `List[str]`, optional | `None`              | List of multiple Neptune IDs. Example: `["NLU-1", "NLU-2"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                                                   |
 | `custom_ids`          | `List[str]`, optional | `None`              | List of multiple custom IDs. Example: `["nostalgic_shockley", "high_albattani"]`. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                                              |
 | `states`              | `List[str]`, optional | `None`              | List of states. Possible values: `"inactive"`, `"active"`. "Active" means that at least one process is connected to the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                                                            |
-| `owners`              | `List[str]`, optional | `None`              | List of multiple owners. Example: `["frederic", "josh"]`. The owner is the user who created the experiement. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                  |
+| `owners`              | `List[str]`, optional | `None`              | List of multiple owners. Example: `["frederic", "josh"]`. The owner is the user who created the experiment. Matching any element of the list is sufficient to pass the criterion.                                                                                                                                  |
 | `tags`                | `List[str]`, optional | `None`              | A list of tags. Example: `"lightGBM"` or `["pytorch", "cycleLR"]`. **Note:** Only experiments that have all specified tags will pass this criterion.                                                                                                                                                                 |
 | `trashed`             | `bool`, optional      | `False`             | Whether to retrieve trashed experiments. If `True`, only trashed experiments are retrieved. If `False`, only non-trashed experiments are retrieved. If `None` or left empty, all experiment objects are retrieved, including trashed ones.                                                                           |
 | `limit`               | `int`, optional       | `None`              | Maximum number of experiments to fetch. If `None`, all experiments are fetched.                                                                                                                                                                                                                                      |
@@ -519,7 +516,7 @@ __Parameters:__
 | `include_inherited` | `bool`                | `True`       | If True (default), values inherited from ancestor runs are included. To only fetch values from the current run, set to False.                                             |
 | `progress_bar`      | `bool`                | `True`       | Set to False to disable the download progress bar.                                                                                                                        |
 | `step_range`        | `tuple[float, float]` | (None, None) | - left: left boundary of the range (inclusive). If None, it\'s open on the left. <br> - right: right boundary of the range (inclusive). If None, it\'s open on the right. |
-| `include_point_previews` | `bool` | `False` | To include [metric previews][docs-metric-previews], set to `True`. When previews are included, the returned data frame includes additional sub-columns with preview information (`is_preview` and `preview_completion`). If `False`, only regular, committed points are fetched. |
+| `include_point_previews` | `bool` | `False` | To include metric previews, set to `True`. When previews are included, the returned data frame includes additional sub-columns with preview information (`is_preview` and `preview_completion`). If `False`, only regular, committed points are fetched. |
 
 __Returns:__ `pandas.DataFrame`
 
@@ -555,7 +552,6 @@ __Returns:__ `str`
 
 > [!NOTE]
 > The state can be **active** or **inactive**. It refers to whether new data was recently logged to the run.
-> To learn more about this field, see [System namespace: State][sys-state] in the Neptune legacy docs.
 
 __Example:__
 
@@ -590,8 +586,3 @@ __Example:__
 ```python
 groups = run["sys/group_tags"].fetch()
 ```
-
-
-[docs-metric-previews]: https://docs.neptune.ai/metric_previews
-[fetcher-migration]: https://docs.neptune.ai/fetcher_migration
-[sys-state]: https://docs-legacy.neptune.ai/api/sys/#state
