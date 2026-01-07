@@ -2,24 +2,19 @@
 > This package is deprecated and no longer actively developed.
 >
 >
-> Use [`neptune-query`][neptune-query] instead:
+> Use [neptune-query](https://github.com/neptune-ai/neptune-query) instead:
 >
 > ```bash
 > pip uninstall -y neptune-fetcher && pip install "neptune-query>=1.0.0,<2.0.0"
 > ```
 >
-> For instructions, see [the migration guide][query-migration].
-
-> [!NOTE]
-> For documentation related to the original Fetcher API based on `ReadOnlyProject` and `ReadOnlyRun`, see the [`docs/old`](docs/old/) directory:
->
-> - [Usage guide](docs/old/usage.md)
-> - [API reference](docs/old/api_reference.md)
-> - [NQL reference](docs/old/nql_reference.md)
+> For migration instructions, see:
+> - [Migrate from Fetcher Alpha to Query API](docs/alpha/migrate_from_fetcher_alpha_to_query.md)
+> - [Migrate from original Fetcher to Query API](docs/original/migrate_from_fetcher_to_query.md)
 
 # Neptune Fetcher [DEPRECATED]
 
-Neptune Fetcher is a read-only API for querying metadata logged with the [Neptune Python client][neptune-client-scale]. The separation makes it safer and more efficient to fetch data from Neptune.
+Neptune Fetcher is a read-only API for querying metadata.
 
 With the Fetcher API, you can:
 
@@ -43,7 +38,12 @@ export NEPTUNE_API_TOKEN="h0dHBzOi8aHR0cHM.4kl0jvYh3Kb8...ifQ=="
 export NEPTUNE_PROJECT="workspace-name/project-name"
 ```
 
-For help, see [Get started][setup] in the Neptune documentation.
+## Documentation
+
+For how-tos and API references, see the [`docs/alpha`](docs/alpha/) directory.
+
+> [!NOTE]
+> For documentation related to the original Fetcher API based on `ReadOnlyProject` and `ReadOnlyRun`, see the [`docs/original`](docs/original/) directory.
 
 ## Usage
 
@@ -123,13 +123,4 @@ my_other_project = npt.get_context().with_project("team-beta/project-y")
 
 ## License
 
-This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0][license].
-
-
-[neptune-query]: https://github.com/neptune-ai/neptune-query
-[query-migration]: https://docs.neptune.ai/query_migration
-[fetcher-migration]: https://docs.neptune.ai/fetcher_migration
-[setup]: https://docs.neptune.ai/setup
-[neptune-client-scale]: https://github.com/neptune-ai/neptune-client-scale
-
-[license]: http://www.apache.org/licenses/LICENSE-2.0
+This project is licensed under the Apache License Version 2.0. For details, see [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
