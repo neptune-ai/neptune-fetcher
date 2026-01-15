@@ -104,7 +104,8 @@ def _fetch_series_page(
         client=client, body=body, use_deprecated_string_fields=False
     )
 
-    return ProtoSeriesValuesResponseDTO.FromString(response.content)
+    dto: ProtoSeriesValuesResponseDTO = ProtoSeriesValuesResponseDTO.FromString(response.content)
+    return dto
 
 
 def _process_series_page(

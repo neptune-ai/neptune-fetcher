@@ -95,7 +95,8 @@ def _fetch_attribute_values_page(
         project_identifier=project_identifier,
     )
 
-    return ProtoQueryAttributesResultDTO.FromString(response.content)
+    dto: ProtoQueryAttributesResultDTO = ProtoQueryAttributesResultDTO.FromString(response.content)
+    return dto
 
 
 def _process_attribute_values_page(

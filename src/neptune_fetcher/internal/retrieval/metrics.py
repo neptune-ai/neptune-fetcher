@@ -123,7 +123,8 @@ def _fetch_metrics_page(
         client=client, body=body
     )
 
-    return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+    dto: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+    return dto
 
 
 def _process_metrics_page(

@@ -228,7 +228,8 @@ def _fetch_sys_attrs_page(
         body=body,
     )
 
-    return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    dto: ProtoLeaderboardEntriesSearchResultDTO = ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    return dto
 
 
 def _process_sys_attrs_page(

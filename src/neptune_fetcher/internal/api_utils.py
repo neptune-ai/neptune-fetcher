@@ -79,11 +79,16 @@ def get_config_and_token_urls(
         try:
             config_response = handle_errors_default(get_client_config.sync_detailed)(client=client)
             config = config_response.parsed
+            if not isinstance(config, ClientConfig):
+                raise RuntimeError(f"Expected ClientConfig but got {type(config).__name__}")
 
             urls_response = handle_errors_default(
                 lambda: _wrap_httpx_json_response(client.get_httpx_client().get(config.security.open_id_discovery))
             )()
-            token_urls = TokenRefreshingURLs.from_dict(urls_response.parsed)
+            token_urls_dict = urls_response.parsed
+            if not isinstance(token_urls_dict, dict):
+                raise RuntimeError(f"Expected dict but got {type(token_urls_dict).__name__}")
+            token_urls = TokenRefreshingURLs.from_dict(token_urls_dict)
 
             return config, token_urls
         except Exception as e:
