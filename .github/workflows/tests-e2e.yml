@@ -49,6 +49,11 @@ jobs:
           NEPTUNE_E2E_FORCE_DATA_GENERATION: ${{ inputs.force_data_generation || 'false' }}
           PROJECT_DIR: .
           TESTS_DIR: tests/e2e
+          # more aggressive timeouts:
+          NEPTUNE_HTTP_REQUEST_TIMEOUT_SECONDS: "15"
+          NEPTUNE_FETCHER_FILES_TIMEOUT: "240"
+          NEPTUNE_FETCHER_RETRY_HARD_TIMEOUT: "240"
+          NEPTUNE_FETCHER_RETRY_SOFT_TIMEOUT: "120"
         run: |
           curl -vsI "$(base64 -d <<< "$NEPTUNE_API_TOKEN" | jq .api_url -r )/api/leaderboard/" 2> >(head) &&
           bash .github/scripts/run-e2e-tests.sh
