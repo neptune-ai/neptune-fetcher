@@ -47,7 +47,7 @@ def test_protobuf_model_import__all():
 
 
 def test_serialize_sample_model__neptune_ingest():
-    pytest.importorskip("neptune_fetcher.generated.neptune_api.proto.neptune_pb")
+    pytest.importorskip("neptune_fetcher.generated.neptune_api.proto.neptune_pb.v1.common_pb2")
     from neptune_fetcher.generated.neptune_api.proto.neptune_pb.ingest import ForkPoint
 
     example = ForkPoint()
