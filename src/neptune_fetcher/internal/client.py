@@ -25,8 +25,8 @@ from typing import (
     Tuple,
 )
 
-from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
+from neptune_fetcher.generated.neptune_api import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.credentials import Credentials
 
 from .api_utils import (
     create_auth_api_client,

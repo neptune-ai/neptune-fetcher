@@ -8,10 +8,12 @@ def test_protobuf_model_import__neptune_api_and_neptune():
     pytest.importorskip("neptune.api.proto.neptune_pb")
 
     import neptune.api.proto.neptune_pb.api.model
-    import neptune_api.proto.neptune_pb
+
+    import neptune_fetcher.generated.neptune_api.proto.neptune_pb
 
     for loader, module_name, is_pkg in pkgutil.walk_packages(
-        neptune_api.proto.neptune_pb.__path__, neptune_api.proto.neptune_pb.__name__ + "."
+        neptune_fetcher.generated.neptune_api.proto.neptune_pb.__path__,
+        neptune_fetcher.generated.neptune_api.proto.neptune_pb.__name__ + ".",
     ):
         importlib.import_module(module_name)
 
@@ -27,10 +29,12 @@ def test_protobuf_model_import__all():
     pytest.importorskip("neptune.api.proto.neptune_pb")
 
     import neptune.api.proto.neptune_pb.api.model
-    import neptune_api.proto.neptune_pb
+
+    import neptune_fetcher.generated.neptune_api.proto.neptune_pb
 
     for loader, module_name, is_pkg in pkgutil.walk_packages(
-        neptune_api.proto.neptune_pb.__path__, neptune_api.proto.neptune_pb.__name__ + "."
+        neptune_fetcher.generated.neptune_api.proto.neptune_pb.__path__,
+        neptune_fetcher.generated.neptune_api.proto.neptune_pb.__name__ + ".",
     ):
         importlib.import_module(module_name)
 
@@ -43,8 +47,8 @@ def test_protobuf_model_import__all():
 
 
 def test_serialize_sample_model__neptune_ingest():
-    pytest.importorskip("neptune_api.proto.neptune_pb")
-    from neptune_api.proto.neptune_pb.ingest.v1.common_pb2 import ForkPoint
+    pytest.importorskip("neptune_fetcher.generated.neptune_api.proto.neptune_pb")
+    from neptune_fetcher.generated.neptune_api.proto.neptune_pb.ingest import ForkPoint
 
     example = ForkPoint()
 

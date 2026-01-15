@@ -12,35 +12,6 @@ from unittest.mock import (
 )
 
 import pytest
-from neptune_api.models import (
-    AttributeDefinitionDTO,
-    AttributeTypeDTO,
-    NextPageDTO,
-    ProjectDTO,
-    QueryAttributeDefinitionsBodyDTO,
-    QueryAttributeDefinitionsResultDTO,
-)
-from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
-    ProtoAttributeDefinitionDTO,
-    ProtoAttributesSearchResultDTO,
-    ProtoQueryAttributesExperimentResultDTO,
-    ProtoQueryAttributesResultDTO,
-)
-from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
-    ProtoAttributeDTO,
-    ProtoAttributesDTO,
-    ProtoDatetimeAttributeDTO,
-    ProtoFloatSeriesAttributeDTO,
-    ProtoLeaderboardEntriesSearchResultDTO,
-    ProtoStringAttributeDTO,
-)
-from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
-    ProtoFloatPointValueDTO,
-    ProtoFloatSeriesValuesDTO,
-    ProtoFloatSeriesValuesResponseDTO,
-    ProtoFloatSeriesValuesSingleSeriesResponseDTO,
-)
-from neptune_api.types import Response
 from pytest import fixture
 
 import neptune_fetcher
@@ -50,6 +21,35 @@ from neptune_fetcher import (
 )
 from neptune_fetcher.api.api_client import ApiClient
 from neptune_fetcher.fetchable import SUPPORTED_TYPES
+from neptune_fetcher.generated.neptune_api.models import (
+    AttributeDefinitionDTO,
+    AttributeTypeDTO,
+    NextPageDTO,
+    ProjectDTO,
+    QueryAttributeDefinitionsBodyDTO,
+    QueryAttributeDefinitionsResultDTO,
+)
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
+    ProtoAttributeDefinitionDTO,
+    ProtoAttributesSearchResultDTO,
+    ProtoQueryAttributesExperimentResultDTO,
+    ProtoQueryAttributesResultDTO,
+)
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+    ProtoAttributeDTO,
+    ProtoAttributesDTO,
+    ProtoDatetimeAttributeDTO,
+    ProtoFloatSeriesAttributeDTO,
+    ProtoLeaderboardEntriesSearchResultDTO,
+    ProtoStringAttributeDTO,
+)
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+    ProtoFloatPointValueDTO,
+    ProtoFloatSeriesValuesDTO,
+    ProtoFloatSeriesValuesResponseDTO,
+    ProtoFloatSeriesValuesSingleSeriesResponseDTO,
+)
+from neptune_fetcher.generated.neptune_api.types import Response
 from neptune_fetcher.util import (
     NeptuneWarning,
     warn_unsupported_value_type,
@@ -139,14 +139,18 @@ def json_response(body: Any) -> Response:
 
 @fixture(autouse=True)
 def get_attributes_with_paths_filter_proto():
-    with patch("neptune_api.api.retrieval.get_attributes_with_paths_filter_proto.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.get_attributes_with_paths_filter_proto.sync_detailed"
+    ) as patched:
         patched.return_value = proto_response(make_proto_attributes_dto())
         yield patched
 
 
 @fixture(autouse=True)
 def get_multiple_float_series_values_proto():
-    with patch("neptune_api.api.retrieval.get_multiple_float_series_values_proto.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.get_multiple_float_series_values_proto.sync_detailed"
+    ) as patched:
         # Just return a series with a single point
         points = [ProtoFloatPointValueDTO(timestamp_millis=1, step=1, value=42)]
         values = ProtoFloatSeriesValuesDTO(total_item_count=1, values=points)
@@ -158,7 +162,9 @@ def get_multiple_float_series_values_proto():
 
 @fixture(autouse=True)
 def query_attribute_definitions_proto():
-    with patch("neptune_api.api.retrieval.query_attribute_definitions_proto.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.query_attribute_definitions_proto.sync_detailed"
+    ) as patched:
         entries = [ProtoAttributeDefinitionDTO(name=f"attr-{type_}", type=type_) for type_ in SUPPORTED_TYPES_STR]
         patched.SUPPORTED_TYPES_RESPONSE = proto_response(ProtoAttributesSearchResultDTO(entries=entries))
 
@@ -173,7 +179,9 @@ def query_attribute_definitions_proto():
 
 @fixture(autouse=True)
 def query_attributes_within_project_proto():
-    with patch("neptune_api.api.retrieval.query_attributes_within_project_proto.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.query_attributes_within_project_proto.sync_detailed"
+    ) as patched:
         patched.UNSUPPORTED_TYPES_RESPONSE = proto_response(
             ProtoQueryAttributesResultDTO(
                 entries=[
@@ -203,7 +211,9 @@ def query_attributes_within_project_proto():
 
 @fixture(autouse=True)
 def query_attribute_definitions_within_project():
-    with patch("neptune_api.api.retrieval.query_attribute_definitions_within_project.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.query_attribute_definitions_within_project.sync_detailed"
+    ) as patched:
         entries = [AttributeDefinitionDTO(f"attr-{type_}", AttributeTypeDTO(type_)) for type_ in SUPPORTED_TYPES_STR]
         # Need to use Mock for unsupported type, otherwise the Enum will raise an exception
         entries += [
@@ -229,7 +239,9 @@ def query_attribute_definitions_within_project():
 
 @fixture(autouse=True)
 def search_leaderboard_entries_proto():
-    with patch("neptune_api.api.retrieval.search_leaderboard_entries_proto.sync_detailed") as patched:
+    with patch(
+        "neptune_fetcher.generated.neptune_api.api.retrieval.search_leaderboard_entries_proto.sync_detailed"
+    ) as patched:
         entries = make_proto_attributes_dto()
         patched.UNSUPPORTED_TYPES_RESPONSE = proto_response(
             ProtoLeaderboardEntriesSearchResultDTO(matching_item_count=len(entries.attributes), entries=[entries])
@@ -245,7 +257,7 @@ def search_leaderboard_entries_proto():
 
 @fixture(autouse=True)
 def get_project():
-    with patch("neptune_api.api.backend.get_project.sync_detailed") as patched:
+    with patch("neptune_fetcher.generated.neptune_api.api.backend.get_project.sync_detailed") as patched:
         patched.return_value = json_response(ProjectDTO("project", "workspace", 1, "project-id", "TEST", "org-id"))
         yield patched
 

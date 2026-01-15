@@ -26,12 +26,6 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import get_attributes_with_paths_filter_proto
-from neptune_api.models import AttributeQueryDTO
-from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
-    ProtoAttributeDTO,
-    ProtoAttributesDTO,
-)
 from tqdm import tqdm
 
 from neptune_fetcher.api.api_client import ApiClient
@@ -47,6 +41,12 @@ from neptune_fetcher.fields import (
     String,
     StringSet,
     Unsupported,
+)
+from neptune_fetcher.generated.neptune_api.api.retrieval import get_attributes_with_paths_filter_proto
+from neptune_fetcher.generated.neptune_api.models import AttributeQueryDTO
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+    ProtoAttributeDTO,
+    ProtoAttributesDTO,
 )
 from neptune_fetcher.internal.retrieval.retry import handle_errors_default
 from neptune_fetcher.util import (

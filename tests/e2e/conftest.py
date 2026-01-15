@@ -5,11 +5,11 @@ from concurrent.futures import Executor
 from datetime import timedelta
 
 import pytest
-from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
 from neptune_scale import Run
 
 from neptune_fetcher import ReadOnlyProject
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.credentials import Credentials
 from neptune_fetcher.internal import identifiers
 from neptune_fetcher.internal.api_utils import (
     create_auth_api_client,
