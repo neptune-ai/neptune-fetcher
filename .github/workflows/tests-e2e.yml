@@ -49,8 +49,9 @@ jobs:
           NEPTUNE_E2E_FORCE_DATA_GENERATION: ${{ inputs.force_data_generation || 'false' }}
           PROJECT_DIR: .
           TESTS_DIR: tests/e2e
-        run: bash .github/scripts/run-e2e-tests.sh
-
+        run: |
+          curl -vsI "$(base64 -d <<< "$NEPTUNE_API_TOKEN" | jq .api_url -r )/api/leaderboard/" 2> >(head) &&
+          bash .github/scripts/run-e2e-tests.sh
       - name: Report
         uses: mikepenz/action-junit-report@v5
         if: always()
