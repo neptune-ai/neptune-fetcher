@@ -20,7 +20,7 @@ on:
       - 'tests/**'
       - 'dev_requirements.txt'
       - 'pyproject.toml'
-      - '.github/workflows/tests-e2e.yml'
+      - '.github/**'
 
 jobs:
   test:
