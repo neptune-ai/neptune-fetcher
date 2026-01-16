@@ -26,10 +26,12 @@ from typing import (
     TypeVar,
 )
 
-from neptune_api.api.retrieval import search_leaderboard_entries_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import SearchLeaderboardEntriesParamsDTO
-from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import ProtoLeaderboardEntriesSearchResultDTO
+from neptune_fetcher.generated.neptune_api.api.retrieval import search_leaderboard_entries_proto
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.models import SearchLeaderboardEntriesParamsDTO
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+    ProtoLeaderboardEntriesSearchResultDTO,
+)
 
 from .. import (
     env,
@@ -226,7 +228,8 @@ def _fetch_sys_attrs_page(
         body=body,
     )
 
-    return ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    dto: ProtoLeaderboardEntriesSearchResultDTO = ProtoLeaderboardEntriesSearchResultDTO.FromString(response.content)
+    return dto
 
 
 def _process_sys_attrs_page(

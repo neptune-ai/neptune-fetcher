@@ -14,7 +14,6 @@ from typing import Any
 import filelock
 import pytest
 from _pytest.outcomes import Failed
-from neptune_api import AuthenticatedClient
 from pytest import fixture
 
 import tests.e2e.alpha.generator as data
@@ -22,6 +21,7 @@ from neptune_fetcher.alpha import (
     get_context,
     set_project,
 )
+from neptune_fetcher.generated.neptune_api import AuthenticatedClient
 from tests.e2e.alpha.generator import ALL_STATIC_RUNS
 
 API_TOKEN_ENV_NAME: str = "NEPTUNE_API_TOKEN"

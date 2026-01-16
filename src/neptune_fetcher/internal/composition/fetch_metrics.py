@@ -21,7 +21,8 @@ from typing import (
 )
 
 import pandas as pd
-from neptune_api.client import AuthenticatedClient
+
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
 
 from .. import identifiers
 from ..client import get_client

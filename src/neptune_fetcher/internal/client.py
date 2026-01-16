@@ -25,8 +25,8 @@ from typing import (
     Tuple,
 )
 
-from neptune_api import AuthenticatedClient
-from neptune_api.credentials import Credentials
+from neptune_fetcher.generated.neptune_api import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.credentials import Credentials
 
 from .api_utils import (
     create_auth_api_client,
@@ -53,6 +53,9 @@ def get_client(context: Context, proxies: Optional[Dict[str, str]] = None) -> Au
     with _lock:
         if (client := _cache.get(hash_key)) is not None:
             return client
+
+        if not context.api_token:
+            raise ValueError("API token is not set")
 
         credentials = Credentials.from_api_key(api_key=context.api_token)
         config, token_urls = get_config_and_token_urls(credentials=credentials, proxies=proxies)

@@ -22,7 +22,7 @@ from typing import (
     Optional,
 )
 
-from neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
 
 from .. import (
     env,

@@ -21,10 +21,12 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import get_multiple_float_series_values_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import FloatTimeSeriesValuesRequest
-from neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import ProtoFloatSeriesValuesResponseDTO
+from neptune_fetcher.generated.neptune_api.api.retrieval import get_multiple_float_series_values_proto
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.models import FloatTimeSeriesValuesRequest
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.series_values_pb2 import (
+    ProtoFloatSeriesValuesResponseDTO,
+)
 
 from .. import identifiers
 from ..retrieval import (
@@ -121,7 +123,8 @@ def _fetch_metrics_page(
         client=client, body=body
     )
 
-    return ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+    dto: ProtoFloatSeriesValuesResponseDTO = ProtoFloatSeriesValuesResponseDTO.FromString(response.content)
+    return dto
 
 
 def _process_metrics_page(

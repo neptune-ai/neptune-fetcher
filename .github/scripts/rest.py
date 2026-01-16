@@ -2,8 +2,8 @@ import os
 import sys
 
 import httpx
-from neptune_api.credentials import Credentials
 
+from neptune_fetcher.generated.neptune_api.credentials import Credentials
 from neptune_fetcher.internal.api_utils import (
     create_auth_api_client,
     get_config_and_token_urls,

@@ -22,9 +22,10 @@ from typing import (
 
 import azure.core.exceptions
 from azure.storage.blob import BlobClient
-from neptune_api.api.storage import signed_url
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import (
+
+from neptune_fetcher.generated.neptune_api.api.storage import signed_url
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.models import (
     CreateSignedUrlsRequest,
     CreateSignedUrlsResponse,
     FileToSign,
@@ -59,7 +60,10 @@ def fetch_signed_urls(
 
     response = retry.handle_errors_default(signed_url.sync_detailed)(client=client, body=body)
 
-    data: CreateSignedUrlsResponse = response.parsed
+    data: Optional[CreateSignedUrlsResponse] = response.parsed
+    if data is None:
+        raise RuntimeError("Failed to fetch signed URLs: response parsed content is None")
+
     return [SignedFile(url=file_.url, path=file_.path) for file_ in data.files]
 
 

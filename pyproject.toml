@@ -17,13 +17,18 @@ pattern = "default-unprefixed"
 [tool.poetry.dependencies]
 python = "^3.9"
 
-# Base neptune package
-neptune-api = ">=0.17.0,<0.24.0"
 azure-storage-blob = "^12.7.0"
 pandas = [
     { version = ">=1.4.0,<2.3.0", python = "<3.10" },
     { version = ">=1.4.0", python = ">=3.10" }
 ]
+
+# neptune-api dependencies:
+httpx = { version = ">=0.15.4,<0.28.2", extras = ["http2"] }
+attrs = ">=21.3.0"
+python-dateutil = "^2.8.0"
+PyJWT = "^2.0.0"
+protobuf = ">=4.21.1,<7"
 
 # Optional for default progress update handling
 tqdm = { version = ">=4.66.0" }
@@ -95,7 +100,7 @@ extend-ignore = "E203"
 
 [tool.mypy]
 mypy_path = "src/"
-packages = "neptune_fetcher.alpha,neptune_fetcher.internal"
+packages = "neptune_fetcher.alpha,neptune_fetcher.internal,neptune_fetcher.generated.neptune_api"
 follow_imports = "silent"
 install_types = "True"
 non_interactive = "True"

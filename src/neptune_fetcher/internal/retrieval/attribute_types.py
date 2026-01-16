@@ -21,7 +21,7 @@ from typing import (
     Sequence,
 )
 
-from neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.leaderboard_entries_pb2 import (
     ProtoAttributeDTO,
     ProtoFileRefAttributeDTO,
     ProtoFileRefSeriesAttributeDTO,

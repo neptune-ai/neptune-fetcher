@@ -23,13 +23,14 @@ from typing import (
     Union,
 )
 
-from neptune_api.api.retrieval import query_attribute_definitions_within_project
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import (
+from neptune_fetcher.generated.neptune_api.api.retrieval import query_attribute_definitions_within_project
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.models import (
     QueryAttributeDefinitionsBodyDTO,
     QueryAttributeDefinitionsResultDTO,
 )
 
+from ...generated.neptune_api.types import Response
 from .. import filters  # noqa: E402
 from .. import (  # noqa: E402
     env,
@@ -111,10 +112,15 @@ def _fetch_attribute_definitions_page(
 ) -> QueryAttributeDefinitionsResultDTO:
     body = QueryAttributeDefinitionsBodyDTO.from_dict(params)
 
-    response = retry.handle_errors_default(query_attribute_definitions_within_project.sync_detailed)(
+    response: Response[QueryAttributeDefinitionsResultDTO] = retry.handle_errors_default(
+        query_attribute_definitions_within_project.sync_detailed
+    )(
         client=client,
         body=body,
     )
+
+    if response.parsed is None:
+        raise RuntimeError("query_attribute_definitions_within_project returned no data")
 
     return response.parsed
 

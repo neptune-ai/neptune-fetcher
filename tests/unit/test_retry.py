@@ -5,9 +5,9 @@ from unittest.mock import (
 )
 
 import pytest
-from neptune_api.errors import ApiKeyRejectedError
 from pytest import fixture
 
+from neptune_fetcher.generated.neptune_api.errors import ApiKeyRejectedError
 from neptune_fetcher.internal.retrieval.retry import (
     exponential_backoff,
     handle_api_errors,

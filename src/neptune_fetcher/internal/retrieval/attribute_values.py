@@ -21,10 +21,12 @@ from typing import (
     Optional,
 )
 
-from neptune_api.api.retrieval import query_attributes_within_project_proto
-from neptune_api.client import AuthenticatedClient
-from neptune_api.models import QueryAttributesBodyDTO
-from neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import ProtoQueryAttributesResultDTO
+from neptune_fetcher.generated.neptune_api.api.retrieval import query_attributes_within_project_proto
+from neptune_fetcher.generated.neptune_api.client import AuthenticatedClient
+from neptune_fetcher.generated.neptune_api.models import QueryAttributesBodyDTO
+from neptune_fetcher.generated.neptune_api.proto.neptune_pb.api.v1.model.attributes_pb2 import (
+    ProtoQueryAttributesResultDTO,
+)
 
 from .. import (
     env,
@@ -93,7 +95,8 @@ def _fetch_attribute_values_page(
         project_identifier=project_identifier,
     )
 
-    return ProtoQueryAttributesResultDTO.FromString(response.content)
+    dto: ProtoQueryAttributesResultDTO = ProtoQueryAttributesResultDTO.FromString(response.content)
+    return dto
 
 
 def _process_attribute_values_page(
